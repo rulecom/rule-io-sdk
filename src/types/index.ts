@@ -1,0 +1,71 @@
+/**
+ * Rule.io SDK Types
+ *
+ * Re-exports all types from the SDK.
+ */
+
+// API types
+export type {
+  RuleApiResponse,
+  RuleSubscriberFields,
+  RuleSubscriber,
+  RuleSubscriberResponse,
+  RuleSubscriberFieldsResponse,
+  RuleSubscriberTagsResponse,
+  RuleTag,
+  RuleTagsResponse,
+  RuleAutomail,
+  RuleAutomailTrigger,
+  RuleSendoutType,
+  RuleAutomailCreateRequest,
+  RuleAutomailUpdateRequest,
+  RuleAutomailResponse,
+  RuleMessage,
+  RuleMessageCreateRequest,
+  RuleMessageResponse,
+  RuleTemplate,
+  RuleTemplateCreateRequest,
+  RuleTemplateResponse,
+  RuleDynamicSet,
+  RuleDynamicSetCreateRequest,
+  RuleDynamicSetResponse,
+  RuleClientConfig,
+  CreateAutomationEmailConfig,
+  CreateAutomationEmailResult,
+} from './api';
+
+// RCML types
+export type {
+  RCMLProseMirrorDoc,
+  RCMLProseMirrorNode,
+  RCMLProseMirrorMark,
+  RCMLDocument,
+  RCMLHead,
+  RCMLAttributes,
+  RCMLClass,
+  RCMLBodyStyle,
+  RCMLSectionStyle,
+  RCMLButtonStyle,
+  RCMLSocialConfig,
+  RCMLBrandStyle,
+  RCMLPreview,
+  RCMLFont,
+  RCMLPlainText,
+  RCMLBody,
+  RCMLSection,
+  RCMLColumn,
+  RCMLColumnChild,
+  RCMLText,
+  RCMLHeading,
+  RCMLButton,
+  RCMLImage,
+  RCMLLogo,
+  RCMLVideo,
+  RCMLSpacer,
+  RCMLDivider,
+  RCMLSocial,
+  RCMLSocialElement,
+  RCMLLoop,
+  RCMLSwitch,
+  RCMLCase,
+} from './rcml';
