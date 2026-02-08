@@ -57,13 +57,13 @@ import type {
  *
  * // Sync a subscriber
  * await client.syncSubscriber({
- *   email: 'guest@example.com',
+ *   email: 'customer@example.com',
  *   fields: { FirstName: 'Anna' },
- *   tags: ['booking-confirmed']
+ *   tags: ['order-confirmed'],
  * });
  *
  * // Add tags with automation trigger
- * await client.addSubscriberTags('guest@example.com', ['accommodation'], 'force');
+ * await client.addSubscriberTags('customer@example.com', ['accommodation'], 'force');
  * ```
  */
 export class RuleClient {
@@ -78,6 +78,7 @@ export class RuleClient {
         baseUrlV3: RULE_API_V3_BASE_URL,
         fetch: globalThis.fetch,
         debug: false,
+        fieldGroupPrefix: 'Booking',
       };
     } else {
       this.config = {
@@ -86,6 +87,7 @@ export class RuleClient {
         baseUrlV3: config.baseUrlV3 ?? RULE_API_V3_BASE_URL,
         fetch: config.fetch ?? globalThis.fetch,
         debug: config.debug ?? false,
+        fieldGroupPrefix: config.fieldGroupPrefix ?? 'Booking',
       };
     }
 
@@ -178,7 +180,7 @@ export class RuleClient {
       if (error instanceof RuleApiError) {
         throw error;
       }
-      console.error('Rule.io API request failed:', error);
+      this.log('Rule.io API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
   }
@@ -233,7 +235,7 @@ export class RuleClient {
       if (error instanceof RuleApiError) {
         throw error;
       }
-      console.error('Rule.io v3 API request failed:', error);
+      this.log('Rule.io v3 API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
   }
@@ -251,24 +253,24 @@ export class RuleClient {
    * @example
    * ```typescript
    * await client.syncSubscriber({
-   *   email: 'guest@example.com',
+   *   email: 'customer@example.com',
    *   fields: {
    *     FirstName: 'Anna',
-   *     LastName: 'Svensson',
-   *     BookingRef: 'BV-123'
+   *     OrderRef: 'ORD-456',
    *   },
-   *   tags: ['booking-confirmed', 'accommodation']
+   *   tags: ['order-confirmed', 'new-customer'],
    * });
    * ```
    */
   async syncSubscriber(subscriber: RuleSubscriber): Promise<RuleSubscriberResponse> {
     // Filter out undefined/null/empty string fields
-    // Rule.io requires fields in format "Group.FieldName" - we use "Booking" as our group
+    // Rule.io requires fields in format "Group.FieldName"
+    const prefix = this.config.fieldGroupPrefix;
     const fields = subscriber.fields
       ? Object.entries(subscriber.fields)
           .filter(([, value]) => value !== undefined && value !== null && value !== '')
           .map(([key, value]) => ({
-            key: `Booking.${key}`,
+            key: `${prefix}.${key}`,
             value: String(value),
           }))
       : [];
@@ -302,10 +304,10 @@ export class RuleClient {
    * @example
    * ```typescript
    * // Add tags and trigger automation
-   * await client.addSubscriberTags('guest@example.com', ['booking-confirmed'], 'force');
+   * await client.addSubscriberTags('customer@example.com', ['order-confirmed'], 'force');
    *
    * // Add tags without triggering automation
-   * await client.addSubscriberTags('guest@example.com', ['vip-guest'], false);
+   * await client.addSubscriberTags('customer@example.com', ['vip'], false);
    * ```
    */
   async addSubscriberTags(
@@ -406,7 +408,7 @@ export class RuleClient {
    * Note: Uses /subscriber/ (singular) endpoint, not /subscribers/
    *
    * @param email - Subscriber email address
-   * @returns Map of field keys to values (e.g., { "Booking.FirstName": "Anna" })
+   * @returns Map of field keys to values (e.g., { "Group.FirstName": "Anna" })
    */
   async getSubscriberFields(email: string): Promise<Record<string, string | null>> {
     try {
@@ -447,7 +449,7 @@ export class RuleClient {
   /**
    * Get a tag ID by name
    *
-   * @param name - Tag name (e.g., "booking-confirmed")
+   * @param name - Tag name (e.g., "order-confirmed")
    * @returns Tag ID or null if not found
    */
   async getTagIdByName(name: string): Promise<number | null> {
@@ -684,14 +686,13 @@ export class RuleClient {
    * @example
    * ```typescript
    * const result = await client.createAutomationEmail({
-   *   name: 'Booking Confirmation',
+   *   name: 'Order Confirmation',
    *   triggerType: 'tag',
-   *   triggerValue: 'booking-confirmed',
-   *   subject: 'Your booking is confirmed!',
-   *   template: createBookingConfirmationTemplate(config)
+   *   triggerValue: 'order-confirmed',
+   *   subject: 'Your order is confirmed!',
+   *   template: createOrderConfirmationEmail(config),
    * });
-   *
-   * console.log('Created automation:', result.automailId);
+   * // result.automailId, result.messageId, result.templateId
    * ```
    */
   async createAutomationEmail(
@@ -809,7 +810,7 @@ export class RuleClient {
               break;
           }
         } catch (cleanupError) {
-          console.error(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
+          this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
         }
       }
       throw error;

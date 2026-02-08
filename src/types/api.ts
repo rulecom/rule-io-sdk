@@ -18,20 +18,14 @@ export interface RuleApiResponse {
 // v2 Subscriber API Types
 // ============================================================================
 
+/**
+ * Subscriber fields to sync to Rule.io.
+ *
+ * Keys are field names (e.g., 'FirstName', 'OrderRef').
+ * The client prepends the configured `fieldGroupPrefix` (default: 'Booking')
+ * to create the full Rule.io field key (e.g., 'Booking.FirstName').
+ */
 export interface RuleSubscriberFields {
-  FirstName?: string;
-  LastName?: string;
-  Phone?: string;
-  BookingRef?: string;
-  CheckInDate?: string;
-  CheckOutDate?: string;
-  TotalGuests?: number;
-  TotalPrice?: number;
-  ServiceType?: string;
-  ServiceName?: string;
-  RoomName?: string;
-  DietaryRequirements?: string;
-  SpecialRequests?: string;
   [key: string]: string | number | undefined;
 }
 
@@ -94,7 +88,7 @@ export interface RuleAutomailTrigger {
 /**
  * Sendout type for an automail.
  * - 1: Campaign (marketing emails)
- * - 2: Transactional (booking confirmations, receipts, etc.)
+ * - 2: Transactional (order confirmations, receipts, etc.)
  */
 export type RuleSendoutType = 1 | 2;
 
@@ -234,6 +228,11 @@ export interface RuleClientConfig {
   fetch?: typeof fetch;
   /** Enable debug logging */
   debug?: boolean;
+  /**
+   * Group prefix for subscriber custom fields (default: 'Booking').
+   * Fields are sent as `{prefix}.{fieldName}` (e.g., 'Booking.FirstName').
+   */
+  fieldGroupPrefix?: string;
 }
 
 export interface CreateAutomationEmailConfig {
@@ -250,7 +249,7 @@ export interface CreateAutomationEmailConfig {
   /**
    * Sendout type for the automation.
    * - 1: Campaign (marketing emails)
-   * - 2: Transactional (booking confirmations, receipts, etc.) - DEFAULT
+   * - 2: Transactional (order confirmations, receipts, etc.) - DEFAULT
    */
   sendoutType?: RuleSendoutType;
   template: RCMLDocument;

@@ -135,7 +135,7 @@ function createAttributesFromStyles(styles: EmailStyleConfig): RCMLAttributes {
  * @example
  * ```typescript
  * const doc = createRCMLDocument({
- *   preheader: 'Your booking is confirmed!',
+ *   preheader: 'Your order is confirmed!',
  *   styles: {
  *     logoUrl: 'https://example.com/logo.png',
  *     primaryColor: '#333333',
@@ -147,7 +147,7 @@ function createAttributesFromStyles(styles: EmailStyleConfig): RCMLAttributes {
  *       children: [
  *         createLogo(), // Will use logoUrl from styles
  *         createHeading('Welcome!'),
- *         createText('Thank you for your booking.'),
+ *         createText('Thank you for your order.'),
  *       ]
  *     })
  *   ]
@@ -416,7 +416,7 @@ export interface CreateTextOptions {
  *
  * @example
  * ```typescript
- * createText('Thank you for your booking.', {
+ * createText('Thank you for your order.', {
  *   align: 'center',
  *   color: '#333333'
  * })
@@ -453,8 +453,8 @@ export interface CreateButtonOptions {
  *
  * @example
  * ```typescript
- * createButton('View Booking', 'https://example.com/booking/123', {
- *   backgroundColor: '#2D5016',
+ * createButton('View Order', 'https://example.com/orders/123', {
+ *   backgroundColor: '#333333',
  *   color: '#FFFFFF'
  * })
  * ```

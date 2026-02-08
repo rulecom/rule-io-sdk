@@ -22,7 +22,6 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src/",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
