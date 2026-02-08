@@ -99,8 +99,16 @@ fi
 echo "  ✅ Type check passed"
 
 # Lint (only if lint script exists)
-if npm run lint --if-present > /dev/null 2>&1; then
+if [ -f "package.json" ] && grep -q '"lint"' package.json; then
+    echo "  → Linting..."
+    npm run lint > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "❌ Lint failed. Run: npm run lint"
+        exit 1
+    fi
     echo "  ✅ Lint passed"
+else
+    echo "  ⚠️ Lint skipped (no lint script in package.json)"
 fi
 
 # Tests

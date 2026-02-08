@@ -23,6 +23,7 @@ import {
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
+  validateCustomFields,
 } from './brand-template';
 
 // ============================================================================
@@ -81,6 +82,7 @@ export interface OrderConfirmationConfig {
  * ```
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createOrderConfirmationEmail');
   const { customFields, fieldNames, text } = config;
 
   const detailRows: ReturnType<typeof createBrandText>[] = [
@@ -200,6 +202,7 @@ export interface ShippingUpdateConfig {
  * Create a shipping update email template.
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createShippingUpdateEmail');
   const { customFields, fieldNames, text } = config;
 
   const detailRows: ReturnType<typeof createBrandText>[] = [
@@ -300,6 +303,7 @@ export interface AbandonedCartConfig {
  * Create an abandoned cart recovery email template.
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createAbandonedCartEmail');
   const { customFields, fieldNames, text } = config;
 
   return createBrandTemplate({
@@ -372,6 +376,7 @@ export interface OrderCancellationConfig {
  * Create an order cancellation email template.
  */
 export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createOrderCancellationEmail');
   const { customFields, fieldNames, text } = config;
 
   return createBrandTemplate({

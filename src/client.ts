@@ -94,6 +94,15 @@ export class RuleClient {
     if (!this.config.apiKey) {
       throw new RuleConfigError('API key is required');
     }
+
+    const prefix = this.config.fieldGroupPrefix.trim();
+    if (!prefix) {
+      throw new RuleConfigError('fieldGroupPrefix must not be empty');
+    }
+    if (prefix.includes('.')) {
+      throw new RuleConfigError('fieldGroupPrefix must not contain dots');
+    }
+    this.config.fieldGroupPrefix = prefix;
   }
 
   /**

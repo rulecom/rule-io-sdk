@@ -36,7 +36,7 @@ RULE_IO_API_KEY=your-api-key-here
 import { RuleClient, RuleTags } from 'rule-io-sdk';
 
 // Create a client with your API key
-const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY });
+const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY! });
 
 // Sync a subscriber with tags and custom fields
 await client.syncSubscriber({

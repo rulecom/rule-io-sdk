@@ -24,6 +24,7 @@ import {
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
+  validateCustomFields,
 } from './brand-template';
 
 // ============================================================================
@@ -109,6 +110,7 @@ export interface ReservationTemplateConfig {
  * ```
  */
 export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createReservationConfirmationEmail');
   const { customFields, fieldNames, text } = config;
 
   const detailRows: ReturnType<typeof createBrandText>[] = [
@@ -265,6 +267,7 @@ export interface ReservationCancellationConfig {
  * Create a reservation cancellation email template.
  */
 export function createReservationCancellationEmail(config: ReservationCancellationConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createReservationCancellationEmail');
   const { customFields, fieldNames, text } = config;
 
   return createBrandTemplate({
@@ -345,6 +348,7 @@ export interface ReservationReminderConfig {
  * Create a reservation reminder email template.
  */
 export function createReservationReminderEmail(config: ReservationReminderConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createReservationReminderEmail');
   const { customFields, fieldNames, text } = config;
 
   const detailRows: ReturnType<typeof createBrandText>[] = [];
@@ -479,6 +483,7 @@ export interface FeedbackRequestConfig {
  * Works for post-stay, post-purchase, or any review request.
  */
 export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createFeedbackRequestEmail');
   const { customFields, fieldNames, text } = config;
 
   return createBrandTemplate({
@@ -549,6 +554,7 @@ export interface ReservationRequestConfig {
  * Create a reservation request confirmation email (for pending/manual approval flows).
  */
 export function createReservationRequestEmail(config: ReservationRequestConfig): RCMLDocument {
+  validateCustomFields(config.customFields, config.fieldNames, 'createReservationRequestEmail');
   const { customFields, fieldNames, text } = config;
 
   const dateContent = fieldNames.checkOutDate

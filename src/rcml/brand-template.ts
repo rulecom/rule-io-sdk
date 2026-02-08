@@ -29,6 +29,7 @@
  */
 
 import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
+import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
 // ============================================================================
@@ -51,6 +52,24 @@ import { sanitizeUrl } from './utils';
  */
 export interface CustomFieldMap {
   [fieldName: string]: number;
+}
+
+/**
+ * Validate that all required field names have corresponding entries in the custom fields map.
+ * Throws `RuleConfigError` if any required field is missing.
+ */
+export function validateCustomFields(
+  customFields: CustomFieldMap,
+  fieldNames: Record<string, string | undefined>,
+  templateName: string
+): void {
+  for (const [key, fieldName] of Object.entries(fieldNames)) {
+    if (fieldName !== undefined && customFields[fieldName] === undefined) {
+      throw new RuleConfigError(
+        `${templateName}: missing customFields entry for fieldNames.${key} ("${fieldName}")`
+      );
+    }
+  }
 }
 
 // ============================================================================
@@ -218,7 +237,7 @@ export function createBrandHead(
             tagName: 'rc-class',
             attributes: {
               name: 'rcml-logo-style',
-              src: brandStyle.logoUrl,
+              src: sanitizeUrl(brandStyle.logoUrl),
             },
           },
           // Brand color class
@@ -339,14 +358,14 @@ export function createBrandHead(
         tagName: 'rc-font',
         attributes: {
           name: brandStyle.headingFont.split(',')[0].trim(),
-          href: brandStyle.headingFontUrl,
+          href: sanitizeUrl(brandStyle.headingFontUrl),
         },
       },
       {
         tagName: 'rc-font',
         attributes: {
           name: brandStyle.bodyFont.split(',')[0].trim(),
-          href: brandStyle.bodyFontUrl,
+          href: sanitizeUrl(brandStyle.bodyFontUrl),
         },
       },
     ],
