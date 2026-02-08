@@ -339,7 +339,6 @@ npm install
 npm run build        # Build with tsup (CJS + ESM)
 npm run test         # Run tests with Vitest
 npm run type-check   # TypeScript strict mode
-npm run lint         # ESLint
 ```
 
 ## License

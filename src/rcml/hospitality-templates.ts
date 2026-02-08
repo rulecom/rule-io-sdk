@@ -218,7 +218,7 @@ export function createReservationConfirmationEmail(config: ReservationTemplateCo
           createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
           ...detailRows,
         ],
-        { padding: '20px 0', backgroundColor: '#f6f8f9' }
+        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
       ),
 
       // CTA
@@ -409,7 +409,7 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
         createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
         ...detailRows,
       ],
-      { padding: '20px 0', backgroundColor: '#f6f8f9' }
+      { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
     ),
   ];
 
@@ -606,7 +606,7 @@ export function createReservationRequestEmail(config: ReservationRequestConfig):
             ])
           ),
         ],
-        { padding: '20px 0', backgroundColor: '#f6f8f9' }
+        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
       ),
 
       createFooterSection(config.footer),

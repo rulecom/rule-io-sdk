@@ -29,6 +29,7 @@
  */
 
 import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
+import { sanitizeUrl } from './utils';
 
 // ============================================================================
 // Custom Field Definitions
@@ -480,7 +481,7 @@ export function createBrandButton(
   return {
     tagName: 'rc-button',
     attributes: {
-      href,
+      href: sanitizeUrl(href),
       align: 'center',
       border: 'none',
       'border-radius': '8px',

@@ -151,7 +151,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
           ...detailRows,
         ],
-        { padding: '20px 0', backgroundColor: '#f6f8f9' }
+        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
       ),
 
       createContentSection(
@@ -258,7 +258,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         { padding: '20px 0' }
       ),
 
-      createContentSection(detailRows, { padding: '20px 0', backgroundColor: '#f6f8f9' }),
+      createContentSection(detailRows, { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }),
 
       createContentSection(
         [

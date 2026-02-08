@@ -184,6 +184,11 @@ export const POST_STAY_FEEDBACK_TEXT = {
  * Example booking automations.
  * Uses the new generic tag names.
  *
+ * Note: The ORDER_* trigger tags and Booking.* merge fields are intentionally
+ * different — tag names identify the automation trigger, while merge fields
+ * reference subscriber field groups. The "Booking" group is a legacy convention
+ * from earlier consumers and is independent of the tag naming scheme.
+ *
  * @deprecated Create your own automation configs with your localized text.
  */
 export const BOOKING_AUTOMATIONS: AutomationConfig[] = [
