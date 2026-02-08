@@ -9,38 +9,39 @@ export const RULE_API_V2_BASE_URL = 'https://app.rule.io/api/v2';
 export const RULE_API_V3_BASE_URL = 'https://app.rule.io/api/v3';
 
 /**
- * Common Rule.io tags for booking systems
+ * Common Rule.io tags for e-commerce and hospitality.
+ *
+ * These are suggested tag names — you can use any string as a tag.
+ * Using consistent tags across your automations makes segmentation easier.
+ *
+ * @example
+ * ```typescript
+ * await client.syncSubscriber({
+ *   email: 'customer@example.com',
+ *   tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
+ * });
+ * ```
  */
 export const RuleTags = {
-  // Booking lifecycle events
-  BOOKING_STARTED: 'booking-started',
-  BOOKING_REQUEST: 'booking-request',
-  BOOKING_CONFIRMED: 'booking-confirmed',
-  BOOKING_CANCELLED: 'booking-cancelled',
-  BOOKING_REMINDER: 'booking-reminder',
-  BOOKING_COMPLETED: 'booking-completed',
+  // Order lifecycle (generic e-commerce)
+  ORDER_STARTED: 'order-started',
+  ORDER_PENDING: 'order-pending',
+  ORDER_CONFIRMED: 'order-confirmed',
+  ORDER_CANCELLED: 'order-cancelled',
+  ORDER_REMINDER: 'order-reminder',
+  ORDER_COMPLETED: 'order-completed',
+  CART_ABANDONED: 'cart-abandoned',
+  SHIPPING_UPDATE: 'shipping-update',
+  REVIEW_REQUEST: 'review-request',
 
-  // Service type segmentation
+  // Hospitality-specific
   ACCOMMODATION: 'accommodation',
   RESTAURANT: 'restaurant',
-  WINE_TASTING: 'wine-tasting',
+  EXPERIENCE: 'experience',
 
-  // Guest segmentation
-  RETURNING_GUEST: 'returning-guest',
-  NEW_GUEST: 'new-guest',
+  // Customer segmentation
+  RETURNING_CUSTOMER: 'returning-customer',
+  NEW_CUSTOMER: 'new-customer',
 } as const;
 
 export type RuleTag = (typeof RuleTags)[keyof typeof RuleTags];
-
-/**
- * Brand colors for email templates
- */
-export const DefaultBrandColors = {
-  primary: '#2D5016',
-  secondary: '#8B4513',
-  accent: '#D4AF37',
-  background: '#FDF5E6',
-  text: '#333333',
-  textLight: '#666666',
-  white: '#FFFFFF',
-} as const;

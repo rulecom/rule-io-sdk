@@ -2,28 +2,20 @@
  * Rule.io SDK
  *
  * A TypeScript SDK for the Rule.io email marketing API.
+ * Supports e-commerce, hospitality, and any vertical that uses
+ * email automation with Rule.io.
  *
  * @example
  * ```typescript
- * import { RuleClient, RuleTags, createBookingConfirmationTemplate } from 'rule-io-sdk';
+ * import { RuleClient, RuleTags, createOrderConfirmationEmail } from 'rule-io-sdk';
  *
  * const client = new RuleClient({ apiKey: 'your-api-key' });
  *
  * // Sync a subscriber
  * await client.syncSubscriber({
- *   email: 'guest@example.com',
- *   fields: { FirstName: 'Anna', BookingRef: 'BV-123' },
- *   tags: [RuleTags.BOOKING_CONFIRMED, RuleTags.ACCOMMODATION]
- * });
- *
- * // Create an automation with RCML template
- * const template = createBookingConfirmationTemplate({ ... });
- * await client.createAutomationEmail({
- *   name: 'Booking Confirmation',
- *   triggerType: 'tag',
- *   triggerValue: RuleTags.BOOKING_CONFIRMED,
- *   subject: 'Your booking is confirmed!',
- *   template
+ *   email: 'customer@example.com',
+ *   fields: { FirstName: 'Anna', OrderRef: 'ORD-123' },
+ *   tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
  * });
  * ```
  *
@@ -41,7 +33,6 @@ export {
   RULE_API_V2_BASE_URL,
   RULE_API_V3_BASE_URL,
   RuleTags,
-  DefaultBrandColors,
 } from './constants';
 export type { RuleTag } from './constants';
 
@@ -106,7 +97,7 @@ export type {
   RCMLCase,
 } from './types';
 
-// RCML Utilities (re-exported from rcml module for convenience)
+// RCML Utilities
 export {
   escapeHtml,
   sanitizeUrl,
@@ -125,9 +116,6 @@ export {
   createVideo,
   createSpacer,
   createDivider,
-  createBookingConfirmationTemplate,
-  createBookingCancellationTemplate,
-  createBookingReminderTemplate,
 } from './rcml';
 
 // RCML option types
@@ -143,6 +131,70 @@ export type {
   CreateLogoOptions,
   CreateVideoOptions,
   CreateDividerOptions,
+} from './rcml';
+
+// Brand template utilities
+export {
+  createBrandTemplate,
+  createBrandHead,
+  createBrandLogo,
+  createBrandHeading,
+  createBrandText,
+  createBrandButton,
+  createContentSection,
+  createFooterSection,
+  createPlaceholder,
+  createTextNode,
+  createDocWithPlaceholders,
+} from './rcml';
+
+export type {
+  BrandStyleConfig,
+  CustomFieldMap,
+  SimpleTemplateConfig,
+  FooterConfig,
+} from './rcml';
+
+// Hospitality templates
+export {
+  createReservationConfirmationEmail,
+  createReservationCancellationEmail,
+  createReservationReminderEmail,
+  createFeedbackRequestEmail,
+  createReservationRequestEmail,
+} from './rcml';
+
+export type {
+  ReservationTemplateConfig,
+  ReservationCancellationConfig,
+  ReservationReminderConfig,
+  FeedbackRequestConfig,
+  ReservationRequestConfig,
+} from './rcml';
+
+// E-commerce templates
+export {
+  createOrderConfirmationEmail,
+  createShippingUpdateEmail,
+  createAbandonedCartEmail,
+  createOrderCancellationEmail,
+} from './rcml';
+
+export type {
+  OrderConfirmationConfig,
+  ShippingUpdateConfig,
+  AbandonedCartConfig,
+  OrderCancellationConfig,
+} from './rcml';
+
+// Legacy templates (kept for backward compatibility)
+export {
+  createBookingConfirmationTemplate,
+  createBookingCancellationTemplate,
+  createBookingReminderTemplate,
+} from './rcml';
+
+export type {
   BookingConfirmationTemplateConfig,
   BookingCancellationTemplateConfig,
   BookingReminderTemplateConfig,
@@ -163,7 +215,7 @@ export {
 
 export type { AutomationConfig, AutomationCondition, TemplateConfig } from './automation-configs';
 
-// New automation configurations (v2) - uses brand templates with proper placeholders
+// Automation configurations (v2)
 export {
   BOOKING_AUTOMATIONS_V2,
   DEFAULT_TEMPLATE_CONFIG,
@@ -172,37 +224,3 @@ export {
 } from './automation-configs-v2';
 
 export type { AutomationConfigV2, TemplateConfigV2 } from './automation-configs-v2';
-
-// Brand template exports
-export {
-  // Templates
-  createBookingConfirmationEmail,
-  createBookingCancellationEmail,
-  createBookingReminderEmail,
-  createAbandonedBookingEmail,
-  createPostStayFeedbackEmail,
-  createBookingRequestEmail,
-  // Brand template utilities
-  createBrandTemplate,
-  createBrandHead,
-  createBrandLogo,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createContentSection,
-  createFooterSection,
-  // Placeholder helpers
-  createPlaceholder,
-  createTextNode,
-  createDocWithPlaceholders,
-  // Default configurations
-  BLACKSTA_CUSTOM_FIELDS,
-  BLACKSTA_BRAND_STYLE,
-} from './rcml';
-
-export type {
-  BookingTemplateConfig,
-  BrandStyleConfig,
-  CustomFieldMap,
-  SimpleTemplateConfig,
-} from './rcml';

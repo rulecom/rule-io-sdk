@@ -1,15 +1,15 @@
 # Rule.io SDK
 
-A TypeScript SDK for the Rule.io email marketing API.
+A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and manage email automations, subscribers, and RCML templates programmatically.
 
 ## Features
 
-- **Full API Coverage** - v2 Subscriber API and v3 Editor API
-- **Type Safety** - Complete TypeScript types for all endpoints
-- **RCML Builder** - Fluent API for building email templates
-- **Pre-built Templates** - Ready-to-use booking email templates
-- **Security** - Built-in XSS protection for user content
-- **Zero Dependencies** - No external runtime dependencies
+- **Full API Coverage** — v2 Subscriber API and v3 Editor API
+- **Type Safety** — Complete TypeScript types for all endpoints
+- **RCML Builder** — Build email templates with a fluent API
+- **Pre-built Templates** — Hospitality and e-commerce email templates
+- **Security** — Built-in XSS protection for user content in templates
+- **Zero Dependencies** — No external runtime dependencies
 
 ## Installation
 
@@ -17,120 +17,89 @@ A TypeScript SDK for the Rule.io email marketing API.
 npm install rule-io-sdk
 ```
 
+## Getting Your API Key
+
+1. Log in to [Rule.io](https://app.rule.io)
+2. Go to **Settings → API** (or navigate to `https://app.rule.io/settings/api`)
+3. Copy your API key
+
+Store it securely — never commit it to source control:
+
+```bash
+# .env (add to .gitignore)
+RULE_IO_API_KEY=your-api-key-here
+```
+
 ## Quick Start
 
 ```typescript
-import { RuleClient, RuleTags, createBookingConfirmationTemplate } from 'rule-io-sdk';
+import { RuleClient, RuleTags } from 'rule-io-sdk';
 
-// Create a client
-const client = new RuleClient({ apiKey: 'your-api-key' });
+// Create a client with your API key
+const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY });
 
 // Sync a subscriber with tags and custom fields
 await client.syncSubscriber({
-  email: 'guest@example.com',
+  email: 'customer@example.com',
   fields: {
     FirstName: 'Anna',
-    LastName: 'Svensson',
-    BookingRef: 'BV-123',
+    OrderRef: 'ORD-456',
   },
-  tags: [RuleTags.BOOKING_CONFIRMED, RuleTags.ACCOMMODATION],
+  tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
 });
 ```
 
-## API Reference
-
-### RuleClient
-
-The main client for interacting with Rule.io APIs.
-
-#### Constructor
+## Client Configuration
 
 ```typescript
-// Simple (string API key)
+// Simple — just the API key
 const client = new RuleClient('your-api-key');
 
 // With options
 const client = new RuleClient({
-  apiKey: 'your-api-key',
-  baseUrlV2: 'https://app.rule.io/api/v2', // Optional
-  baseUrlV3: 'https://app.rule.io/api/v3', // Optional
-  debug: false, // Enable debug logging
+  apiKey: process.env.RULE_IO_API_KEY,
+  baseUrlV2: 'https://app.rule.io/api/v2', // default
+  baseUrlV3: 'https://app.rule.io/api/v3', // default
+  debug: false, // set true to log requests
 });
 ```
 
-#### Subscriber Methods (v2 API)
+The client validates the API key on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
+
+## Subscriber Management (v2 API)
 
 ```typescript
 // Create or update subscriber
 await client.syncSubscriber({
-  email: 'guest@example.com',
+  email: 'customer@example.com',
   fields: { FirstName: 'Anna' },
-  tags: ['booking-confirmed'],
+  tags: ['order-confirmed'],
 });
 
-// Add tags (with automation trigger)
-await client.addSubscriberTags('guest@example.com', ['vip'], 'force');
+// Add tags (and trigger automations)
+await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
 
 // Remove tags
-await client.removeSubscriberTags('guest@example.com', ['temporary-tag']);
+await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
 
 // Get subscriber
-const subscriber = await client.getSubscriber('guest@example.com');
+const subscriber = await client.getSubscriber('customer@example.com');
 
 // Get subscriber tags
-const tags = await client.getSubscriberTags('guest@example.com');
+const tags = await client.getSubscriberTags('customer@example.com');
 
 // Get subscriber custom fields
-const fields = await client.getSubscriberFields('guest@example.com');
+const fields = await client.getSubscriberFields('customer@example.com');
 
 // Delete subscriber
-await client.deleteSubscriber('guest@example.com');
+await client.deleteSubscriber('customer@example.com');
 ```
 
-#### Automation Methods (v3 API)
+## Email Templates
 
-```typescript
-// Create automail (automation workflow)
-const automail = await client.createAutomail({
-  name: 'Booking Confirmation',
-  trigger_type: 'tag',
-  trigger_value: 'booking-confirmed',
-});
+### Low-Level: RCML Element Builders
 
-// Create message
-const message = await client.createMessage({
-  dispatcher: { id: automailId, type: 'automail' },
-  type: 1, // email
-  subject: 'Your booking is confirmed!',
-});
-
-// Create template
-const template = await client.createTemplate({
-  message_id: messageId,
-  name: 'Confirmation Template',
-  message_type: 'email',
-  template: rcmlDocument,
-});
-
-// Create dynamic set (connects message and template)
-await client.createDynamicSet({
-  message_id: messageId,
-  template_id: templateId,
-});
-
-// Or use the high-level helper
-const result = await client.createAutomationEmail({
-  name: 'Booking Confirmation',
-  triggerType: 'tag',
-  triggerValue: 'booking-confirmed',
-  subject: 'Your booking is confirmed!',
-  template: rcmlDocument,
-});
-```
-
-### RCML Template Builders
-
-Build email templates programmatically.
+Build templates element by element:
 
 ```typescript
 import {
@@ -140,226 +109,237 @@ import {
   createText,
   createButton,
   createLogo,
-  createDivider,
 } from 'rule-io-sdk';
 
 const template = createRCMLDocument({
-  preheader: 'Thank you for your booking!',
-  // Define your brand styles directly (no brandStyleId needed!)
+  preheader: 'Your order is confirmed!',
   styles: {
     logoUrl: 'https://example.com/logo.png',
-    primaryColor: '#2D5016', // Headings, buttons
-    accentColor: '#D4AF37', // Links, dividers
-    backgroundColor: '#FDF5E6', // Details sections
+    primaryColor: '#333333',
+    accentColor: '#0066CC',
+    backgroundColor: '#F5F5F5',
   },
   sections: [
-    // Header - logo is loaded from styles.logoUrl
     createCenteredSection({
       backgroundColor: '#FFFFFF',
       padding: '30px 0',
       children: [createLogo()],
     }),
-
-    // Content
     createCenteredSection({
       children: [
-        createHeading('Welcome, Anna!'),
-        createText('Your booking has been confirmed.'),
-        createDivider(),
-        createButton('View Booking', 'https://example.com/booking/123'),
+        createHeading('Thank you, Anna!'),
+        createText('Your order ORD-456 has been confirmed.'),
+        createButton('View Order', 'https://example.com/orders/456'),
       ],
     }),
   ],
 });
 ```
 
-**Note**: The `brandStyleId` parameter is deprecated. Brand style IDs are only for Rule.io's internal editor reference and don't actually apply styling. Use the `styles` object to define your colors and logo directly.
+### Mid-Level: Brand Template System
 
-### Pre-built Templates
+Use Rule.io brand styles with placeholder merge fields:
 
 ```typescript
-import { createBookingConfirmationTemplate } from 'rule-io-sdk';
+import {
+  createBrandTemplate,
+  createBrandLogo,
+  createBrandHeading,
+  createBrandText,
+  createBrandButton,
+  createContentSection,
+  createFooterSection,
+  createPlaceholder,
+  createTextNode,
+  createDocWithPlaceholders,
+} from 'rule-io-sdk';
+import type { BrandStyleConfig, CustomFieldMap } from 'rule-io-sdk';
 
-const template = createBookingConfirmationTemplate({
-  guestName: 'Anna',
-  bookingRef: 'BV-123',
-  serviceName: 'Hotellpaket',
-  serviceType: 'accommodation',
-  checkInDate: '15 mars 2026',
-  checkOutDate: '17 mars 2026',
-  totalGuests: 2,
-  totalPrice: '4 500 kr',
-  websiteUrl: 'https://blackstavingard.se',
-  logoUrl: 'https://...',
-  contactEmail: 'info@blackstavingard.se',
-  contactPhone: '+46 123 456 789',
+// Your brand style from Rule.io (Settings → Brand)
+const myBrand: BrandStyleConfig = {
+  brandStyleId: '12345',
+  logoUrl: 'https://example.com/logo.png',
+  buttonColor: '#0066CC',
+  bodyBackgroundColor: '#f3f3f3',
+  sectionBackgroundColor: '#ffffff',
+  brandColor: '#f6f8f9',
+  headingFont: "'Helvetica Neue', sans-serif",
+  headingFontUrl: 'https://app.rule.io/brand-style/12345/font/1/css',
+  bodyFont: "'Arial', sans-serif",
+  bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/2/css',
+  textColor: '#1A1A1A',
+};
+
+// Custom field IDs from Rule.io (GET /api/v2/customizations)
+const myFields: CustomFieldMap = {
+  'Order.CustomerName': 169233,
+  'Order.OrderRef': 169234,
+};
+
+const template = createBrandTemplate({
+  brandStyle: myBrand,
+  preheader: 'Your order is confirmed!',
+  sections: [
+    createBrandLogo(),
+    createContentSection([
+      createBrandHeading(createDocWithPlaceholders([
+        createTextNode('Thank you, '),
+        createPlaceholder('Order.CustomerName', myFields['Order.CustomerName']),
+        createTextNode('!'),
+      ])),
+    ]),
+    createFooterSection(),
+  ],
+});
+```
+
+### High-Level: Pre-Built Templates
+
+Ready-to-use templates for common use cases:
+
+#### Hospitality (Hotels, Restaurants)
+
+```typescript
+import { createReservationConfirmationEmail } from 'rule-io-sdk';
+
+const email = createReservationConfirmationEmail({
+  brandStyle: myBrand,
+  customFields: myFields,
+  websiteUrl: 'https://example.com',
   text: {
-    preheader: 'Tack för din bokning! Ref: {ref}',
-    heading: 'Tack för din bokning, {name}!',
-    intro: 'Vi har tagit emot din bokning.',
-    detailsHeading: 'Bokningsdetaljer',
-    labels: {
-      bookingRef: 'Bokningsreferens',
-      service: 'Tjänst',
-      room: 'Rum',
-      checkIn: 'Incheckning',
-      checkOut: 'Utcheckning',
-      dateTime: 'Datum & tid',
-      date: 'Datum',
-      guests: 'Antal gäster',
-      totalPrice: 'Totalt',
-      requests: 'Särskilda önskemål',
-    },
-    viewBookingButton: 'Se bokning',
-    questionsHeading: 'Frågor?',
-    contactText: 'Kontakta oss på {email} eller ring {phone}',
-    footer: 'Blacksta Vingård. Alla rättigheter förbehållna.',
+    preheader: 'Thank you for your reservation!',
+    greeting: 'Hello',
+    intro: 'We look forward to welcoming you.',
+    detailsHeading: 'Reservation Details',
+    referenceLabel: 'Reference',
+    serviceLabel: 'Service',
+    checkInLabel: 'Check-in',
+    checkOutLabel: 'Check-out',
+    guestsLabel: 'Guests',
+    ctaButton: 'View Reservation',
+  },
+  fieldNames: {
+    firstName: 'Booking.FirstName',
+    bookingRef: 'Booking.BookingRef',
+    serviceType: 'Booking.ServiceType',
+    checkInDate: 'Booking.CheckInDate',
+    checkOutDate: 'Booking.CheckOutDate',
+    totalGuests: 'Booking.TotalGuests',
   },
 });
 ```
 
-### Security Utilities
+Also available: `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`.
+
+#### E-Commerce (Online Stores)
 
 ```typescript
-import { escapeHtml, sanitizeUrl } from 'rule-io-sdk';
+import { createOrderConfirmationEmail } from 'rule-io-sdk';
 
-// Escape user input for XSS protection
-const safeName = escapeHtml(userInput);
-
-// Validate URLs (blocks javascript: and data: URLs)
-const safeUrl = sanitizeUrl(userProvidedUrl);
+const email = createOrderConfirmationEmail({
+  brandStyle: myBrand,
+  customFields: myFields,
+  websiteUrl: 'https://myshop.com',
+  text: {
+    preheader: 'Your order has been confirmed!',
+    greeting: 'Hi',
+    intro: 'Thank you for your order.',
+    detailsHeading: 'Order Summary',
+    orderRefLabel: 'Order',
+    totalLabel: 'Total',
+    ctaButton: 'View Order',
+  },
+  fieldNames: {
+    firstName: 'Order.CustomerName',
+    orderRef: 'Order.OrderRef',
+    totalPrice: 'Order.Total',
+  },
+});
 ```
 
-### Automation Configurations
+Also available: `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`.
 
-Pre-configured automation definitions for booking systems:
+## Automation Workflows (v3 API)
+
+Create complete email automations triggered by tags:
 
 ```typescript
-import {
-  BOOKING_AUTOMATIONS,
-  TAG_AUTOMATION_MAP,
-  getAutomationById,
-  getAutomationByTrigger,
-  type AutomationConfig,
-  type TemplateConfig,
-} from 'rule-io-sdk';
+const result = await client.createAutomationEmail({
+  name: 'Order Confirmation',
+  triggerType: 'tag',
+  triggerValue: 'order-confirmed',
+  subject: 'Your order is confirmed!',
+  template: email, // any RCMLDocument
+});
 
-// List all automations
-for (const automation of BOOKING_AUTOMATIONS) {
-  console.log(`${automation.name} → ${automation.triggerTag}`);
-}
-
-// Get automation by ID
-const confirmation = getAutomationById('booking-confirmation');
-
-// Get automation by trigger tag
-const reminder = getAutomationByTrigger('booking-reminder');
-
-// Tag to email mapping
-console.log(TAG_AUTOMATION_MAP);
-// {
-//   'booking-confirmed': 'Bokningsbekräftelse',
-//   'booking-cancelled': 'Avbokning',
-//   ...
-// }
-
-// Build template with config
-const templateConfig: TemplateConfig = {
-  websiteUrl: 'https://example.com',
-  contactEmail: 'info@example.com',
-  contactPhone: '+46 123 456',
-  logoUrl: 'https://example.com/logo.png',
-  venueName: 'My Venue',
-  primaryColor: '#2D5016',
-  accentColor: '#D4AF37',
-  backgroundColor: '#FDF5E6',
-};
-
-const template = confirmation.templateBuilder(templateConfig);
+console.log('Created:', result.automailId, result.messageId, result.templateId);
 ```
 
-### Constants
+The high-level `createAutomationEmail` helper handles the full 4-step process (automail → message → template → dynamic set) and cleans up on failure.
+
+## Tags
+
+The SDK provides suggested tag names for common scenarios:
 
 ```typescript
-import { RuleTags, DefaultBrandColors } from 'rule-io-sdk';
+import { RuleTags } from 'rule-io-sdk';
 
-// Pre-defined tags
-RuleTags.BOOKING_CONFIRMED; // 'booking-confirmed'
-RuleTags.BOOKING_CANCELLED; // 'booking-cancelled'
-RuleTags.ACCOMMODATION; // 'accommodation'
-RuleTags.NEW_GUEST; // 'new-guest'
-// ... etc
+// E-commerce lifecycle
+RuleTags.ORDER_STARTED      // 'order-started'
+RuleTags.ORDER_CONFIRMED     // 'order-confirmed'
+RuleTags.ORDER_CANCELLED     // 'order-cancelled'
+RuleTags.CART_ABANDONED      // 'cart-abandoned'
+RuleTags.SHIPPING_UPDATE     // 'shipping-update'
 
-// Default brand colors
-DefaultBrandColors.primary; // '#2D5016'
-DefaultBrandColors.secondary; // '#8B4513'
-DefaultBrandColors.accent; // '#D4AF37'
-// ... etc
+// Hospitality
+RuleTags.ACCOMMODATION       // 'accommodation'
+RuleTags.RESTAURANT          // 'restaurant'
+RuleTags.EXPERIENCE          // 'experience'
+
+// Customer segmentation
+RuleTags.NEW_CUSTOMER        // 'new-customer'
+RuleTags.RETURNING_CUSTOMER  // 'returning-customer'
 ```
+
+These are suggestions — you can use any string as a tag.
 
 ## Error Handling
 
 ```typescript
-import { RuleApiError } from 'rule-io-sdk';
+import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 
 try {
   await client.syncSubscriber({ ... });
 } catch (error) {
   if (error instanceof RuleApiError) {
-    if (error.isRateLimited()) {
-      // Handle rate limiting
+    if (error.statusCode === 401) {
+      console.error('Invalid API key');
+    } else if (error.statusCode === 429) {
+      console.error('Rate limited — retry later');
     }
-    if (error.isAuthError()) {
-      // Handle invalid API key
-    }
-    if (error.isNotFound()) {
-      // Handle 404
-    }
-    console.error(`Rule.io error: ${error.message} (${error.statusCode})`);
   }
 }
 ```
 
-## TypeScript Types
+## Security
 
-All types are exported for use in your application:
+All user-provided content rendered in templates is automatically escaped by the pre-built templates. If you build custom templates, use the security utilities:
 
 ```typescript
-import type {
-  RuleSubscriber,
-  RuleSubscriberFields,
-  RCMLDocument,
-  RCMLSection,
-  BookingConfirmationTemplateConfig,
-  // ... etc
-} from 'rule-io-sdk';
+import { escapeHtml, sanitizeUrl } from 'rule-io-sdk';
+
+const safeName = escapeHtml(userInput);          // Prevents XSS
+const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript: URLs
 ```
-
-## API Quirks
-
-The SDK handles several Rule.io API quirks:
-
-1. **Tags placement** - Tags go at top level for sync, inside body for add
-2. **Field prefixing** - Fields are auto-prefixed with `Booking.`
-3. **Singular endpoint** - `/subscriber/{id}/fields` (not `/subscribers/`)
-4. **v3 charset** - Content-Type includes `charset=utf-8`
-
-See [API v3 Proposal](../../docs/rule-io-api-v3-proposal.md) for details.
 
 ## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Run tests
-npm test
-
-# Build
-npm run build
-
-# Type check
-npm run type-check
+npm run build        # Build with tsup (CJS + ESM)
+npm run test         # Run tests with Vitest
+npm run type-check   # TypeScript strict mode
+npm run lint         # ESLint
 ```
 
 ## License

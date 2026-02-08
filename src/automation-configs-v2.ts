@@ -1,32 +1,22 @@
 /**
  * Automation Configuration Definitions (v2)
  *
- * Uses the new brand-based templates with proper placeholder nodes.
+ * Provides types and utilities for structuring Rule.io automations.
+ * Consumers create their own automation configs with their specific
+ * brand styles, field mappings, and localized text.
  *
  * @module automation-configs-v2
  */
 
-import { RuleTags } from './constants';
 import type { RCMLDocument } from './types';
-import {
-  createBookingConfirmationEmail,
-  createBookingCancellationEmail,
-  createBookingReminderEmail,
-  createAbandonedBookingEmail,
-  createPostStayFeedbackEmail,
-  createBookingRequestEmail,
-  BLACKSTA_BRAND_STYLE,
-  BLACKSTA_CUSTOM_FIELDS,
-  type BrandStyleConfig,
-  type CustomFieldMap,
-} from './rcml';
+import type { BrandStyleConfig, CustomFieldMap } from './rcml';
 
 // ============================================================================
 // Types
 // ============================================================================
 
 /**
- * Configuration for building templates
+ * Configuration for building templates.
  */
 export interface TemplateConfigV2 {
   /** Brand style configuration */
@@ -38,7 +28,28 @@ export interface TemplateConfigV2 {
 }
 
 /**
- * Full automation configuration
+ * Full automation configuration.
+ *
+ * @example
+ * ```typescript
+ * import { RuleTags, createOrderConfirmationEmail } from 'rule-io-sdk';
+ * import type { AutomationConfigV2 } from 'rule-io-sdk';
+ *
+ * const confirmationAutomation: AutomationConfigV2 = {
+ *   id: 'order-confirmation',
+ *   name: 'Order Confirmation',
+ *   description: 'Sent when an order is confirmed',
+ *   triggerTag: RuleTags.ORDER_CONFIRMED,
+ *   subject: 'Your order is confirmed!',
+ *   templateBuilder: (config) => createOrderConfirmationEmail({
+ *     brandStyle: config.brandStyle,
+ *     customFields: config.customFields,
+ *     websiteUrl: config.websiteUrl,
+ *     text: { ... },
+ *     fieldNames: { ... },
+ *   }),
+ * };
+ * ```
  */
 export interface AutomationConfigV2 {
   /** Unique identifier for this automation */
@@ -65,122 +76,58 @@ export interface AutomationConfigV2 {
 }
 
 // ============================================================================
-// Automation Configurations
+// Utilities
 // ============================================================================
 
 /**
- * All booking automations using brand-based templates
- */
-export const BOOKING_AUTOMATIONS_V2: AutomationConfigV2[] = [
-  {
-    id: 'booking-confirmation',
-    name: 'Bokningsbekräftelse',
-    description: 'Skickas när en bokning bekräftas',
-    triggerTag: RuleTags.BOOKING_CONFIRMED,
-    subject: 'Bokningsbekräftelse',
-    preheader: 'Tack för din bokning hos Blacksta Vingård!',
-    templateBuilder: (config) =>
-      createBookingConfirmationEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-  {
-    id: 'booking-request-confirmation',
-    name: 'Förfrågningsbekräftelse',
-    description: 'Skickas när en bokningsförfrågan tas emot (lågsäsong)',
-    triggerTag: RuleTags.BOOKING_REQUEST,
-    subject: 'Vi har mottagit din förfrågan',
-    preheader: 'Vi återkommer inom kort med bekräftelse',
-    templateBuilder: (config) =>
-      createBookingRequestEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-  {
-    id: 'booking-cancellation',
-    name: 'Avbokning',
-    description: 'Skickas när en bokning avbokas',
-    triggerTag: RuleTags.BOOKING_CANCELLED,
-    subject: 'Bokning avbokad',
-    preheader: 'Din bokning har avbokats',
-    templateBuilder: (config) =>
-      createBookingCancellationEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-  {
-    id: 'booking-reminder',
-    name: 'Påminnelse',
-    description: 'Skickas 1 dag före incheckning',
-    triggerTag: RuleTags.BOOKING_REMINDER,
-    subject: 'Din vistelse börjar snart!',
-    preheader: 'Påminnelse: Din vistelse på Blacksta Vingård börjar snart',
-    templateBuilder: (config) =>
-      createBookingReminderEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-  {
-    id: 'abandoned-booking',
-    name: 'Övergiven bokning',
-    description: 'Skickas 2 timmar efter att en bokning påbörjats men inte slutförts',
-    triggerTag: RuleTags.BOOKING_STARTED,
-    delayInSeconds: '7200', // 2 hours
-    conditions: {
-      notHasTag: [RuleTags.BOOKING_CONFIRMED, RuleTags.BOOKING_REQUEST],
-    },
-    subject: 'Glömde du något?',
-    preheader: 'Din bokning väntar på dig',
-    templateBuilder: (config) =>
-      createAbandonedBookingEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-  {
-    id: 'post-stay-feedback',
-    name: 'Feedback efter vistelse',
-    description: 'Skickas dagen efter utcheckning',
-    triggerTag: RuleTags.BOOKING_COMPLETED,
-    subject: 'Tack för ditt besök!',
-    preheader: 'Vi hoppas att du hade en fantastisk upplevelse',
-    templateBuilder: (config) =>
-      createPostStayFeedbackEmail({
-        brandStyle: config.brandStyle,
-        customFields: config.customFields,
-        websiteUrl: config.websiteUrl,
-      }),
-  },
-];
-
-/**
- * Default template configuration for Blacksta Vingård
+ * Example/placeholder template config.
+ * Consumers must replace this with their own configuration.
+ *
+ * @deprecated Create your own TemplateConfigV2 with your brand style,
+ *   custom field IDs, and website URL.
  */
 export const DEFAULT_TEMPLATE_CONFIG: TemplateConfigV2 = {
-  brandStyle: BLACKSTA_BRAND_STYLE,
-  customFields: BLACKSTA_CUSTOM_FIELDS,
-  websiteUrl: 'https://blackstavingard.se',
+  brandStyle: {
+    brandStyleId: '',
+    logoUrl: '',
+    buttonColor: '#333333',
+    bodyBackgroundColor: '#f3f3f3',
+    sectionBackgroundColor: '#ffffff',
+    brandColor: '#f6f8f9',
+    headingFont: "'Helvetica Neue', sans-serif",
+    headingFontUrl: '',
+    bodyFont: "'Arial', sans-serif",
+    bodyFontUrl: '',
+    textColor: '#1A1A1A',
+  },
+  customFields: {},
+  websiteUrl: 'https://example.com',
 };
 
 /**
- * Get automation by ID
+ * Placeholder for backward compatibility.
+ *
+ * @deprecated Create your own automation configurations using
+ *   AutomationConfigV2 type and the template builder functions.
  */
-export function getAutomationByIdV2(id: string): AutomationConfigV2 | undefined {
-  return BOOKING_AUTOMATIONS_V2.find((a) => a.id === id);
+export const BOOKING_AUTOMATIONS_V2: AutomationConfigV2[] = [];
+
+/**
+ * Get automation by ID from a list of automations.
+ */
+export function getAutomationByIdV2(
+  id: string,
+  automations: AutomationConfigV2[] = BOOKING_AUTOMATIONS_V2
+): AutomationConfigV2 | undefined {
+  return automations.find((a) => a.id === id);
 }
 
 /**
- * Get automation by trigger tag
+ * Get automation by trigger tag from a list of automations.
  */
-export function getAutomationByTriggerV2(tag: string): AutomationConfigV2 | undefined {
-  return BOOKING_AUTOMATIONS_V2.find((a) => a.triggerTag === tag);
+export function getAutomationByTriggerV2(
+  tag: string,
+  automations: AutomationConfigV2[] = BOOKING_AUTOMATIONS_V2
+): AutomationConfigV2 | undefined {
+  return automations.find((a) => a.triggerTag === tag);
 }

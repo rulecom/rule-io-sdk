@@ -4,7 +4,6 @@
  * Functions for creating RCML email template elements.
  */
 
-import { DefaultBrandColors } from '../constants';
 import type {
   RCMLProseMirrorDoc,
   RCMLDocument,
@@ -119,7 +118,7 @@ function createAttributesFromStyles(styles: EmailStyleConfig): RCMLAttributes {
     children.push({
       tagName: 'rc-button',
       attributes: {
-        'background-color': styles.buttonColor || styles.primaryColor || DefaultBrandColors.primary,
+        'background-color': styles.buttonColor || styles.primaryColor || '#333333',
       },
     });
   }
@@ -139,9 +138,9 @@ function createAttributesFromStyles(styles: EmailStyleConfig): RCMLAttributes {
  *   preheader: 'Your booking is confirmed!',
  *   styles: {
  *     logoUrl: 'https://example.com/logo.png',
- *     primaryColor: '#2D5016',
- *     accentColor: '#D4AF37',
- *     backgroundColor: '#FDF5E6',
+ *     primaryColor: '#333333',
+ *     accentColor: '#0066CC',
+ *     backgroundColor: '#F5F5F5',
  *   },
  *   sections: [
  *     createCenteredSection({
@@ -193,7 +192,7 @@ export function createRCMLDocument(options: CreateRCMLDocumentOptions): RCMLDocu
 
   // Determine background color from styles or direct option
   const bgColor =
-    options.styles?.backgroundColor || options.backgroundColor || DefaultBrandColors.background;
+    options.styles?.backgroundColor || options.backgroundColor || '#F5F5F5';
 
   return {
     tagName: 'rcml',
@@ -381,9 +380,9 @@ export interface CreateHeadingOptions {
  *
  * @example
  * ```typescript
- * createHeading('Welcome to Blacksta Vingård!', {
+ * createHeading('Welcome!', {
  *   align: 'center',
- *   color: '#2D5016',
+ *   color: '#333333',
  *   fontSize: '28px'
  * })
  * ```
@@ -393,7 +392,7 @@ export function createHeading(text: string, options?: CreateHeadingOptions): RCM
     tagName: 'rc-heading',
     attributes: {
       align: options?.align || 'center',
-      color: options?.color || DefaultBrandColors.primary,
+      color: options?.color || '#333333',
       'font-size': options?.fontSize || '28px',
       'font-weight': options?.fontWeight || '700',
       padding: options?.padding || '0 0 20px 0',
@@ -428,7 +427,7 @@ export function createText(text: string, options?: CreateTextOptions): RCMLText 
     tagName: 'rc-text',
     attributes: {
       align: options?.align || 'left',
-      color: options?.color || DefaultBrandColors.text,
+      color: options?.color || '#1A1A1A',
       'font-size': options?.fontSize || '16px',
       'line-height': options?.lineHeight || '1.6',
       padding: options?.padding || '0 0 16px 0',
@@ -470,8 +469,8 @@ export function createButton(
     attributes: {
       href,
       align: options?.align || 'center',
-      'background-color': options?.backgroundColor || DefaultBrandColors.primary,
-      color: options?.color || DefaultBrandColors.white,
+      'background-color': options?.backgroundColor || '#333333',
+      color: options?.color || '#FFFFFF',
       'border-radius': options?.borderRadius || '8px',
       'inner-padding': options?.innerPadding || '14px 28px',
       padding: options?.padding || '10px 0 20px 0',
@@ -604,7 +603,7 @@ export function createDivider(options?: CreateDividerOptions): RCMLDivider {
   return {
     tagName: 'rc-divider',
     attributes: {
-      'border-color': options?.borderColor || DefaultBrandColors.accent,
+      'border-color': options?.borderColor || '#CCCCCC',
       'border-style': options?.borderStyle || 'solid',
       'border-width': options?.borderWidth || '1px',
       width: options?.width || '100%',

@@ -1,16 +1,16 @@
 /**
  * Brand-Based Template Builder
  *
- * Creates RCML templates that properly use Rule.io brand styles.
- * This approach extracts the full brand style attributes from a base template
- * and uses proper placeholder nodes for merge fields.
+ * Creates RCML templates that use Rule.io brand styles.
+ * This approach uses the brand style attributes from your Rule.io account
+ * and proper placeholder nodes for merge fields.
  *
- * ## Key Learnings (API Quirks)
+ * ## Key Concepts
  *
  * 1. **Brand Style**: The `rc-brand-style` element MUST be in the document head
  *    with an `id` attribute referencing the brand style ID from Rule.io.
  *
- * 2. **Placeholder Nodes**: For merge fields, you MUST use placeholder nodes,
+ * 2. **Placeholder Nodes**: For merge fields, use placeholder nodes,
  *    NOT `{{...}}` syntax. The placeholder structure is:
  *    ```json
  *    {
@@ -18,17 +18,14 @@
  *      "attrs": {
  *        "type": "CustomField",
  *        "original": "[CustomField:169233]",
- *        "name": "Booking.FirstName",
- *        "value": 169233  // The custom field ID
+ *        "name": "Order.CustomerName",
+ *        "value": 169233
  *      }
  *    }
  *    ```
  *
  * 3. **Custom Field IDs**: Must be obtained from `/api/v2/customizations` endpoint.
  *    Each Rule.io account has different field IDs.
- *
- * @see .claude/RULE_IO_SETUP_GUIDE.md for complete setup instructions
- * @see .claude/RCML_REFERENCE.md for RCML element documentation
  */
 
 import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
@@ -38,35 +35,37 @@ import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
 // ============================================================================
 
 /**
- * Custom field IDs from Rule.io.
- * These are specific to the Blacksta Vingård account.
- * Get these from: GET https://app.rule.io/api/v2/customizations
+ * Maps custom field names to their Rule.io field IDs.
+ *
+ * Get your field IDs from: `GET https://app.rule.io/api/v2/customizations`
+ *
+ * @example
+ * ```typescript
+ * const myFields: CustomFieldMap = {
+ *   'Order.CustomerName': 169233,
+ *   'Order.OrderRef': 169234,
+ *   'Order.TotalPrice': 169235,
+ * };
+ * ```
  */
 export interface CustomFieldMap {
   [fieldName: string]: number;
 }
-
-/**
- * Default custom field IDs for Blacksta Vingård
- */
-export const BLACKSTA_CUSTOM_FIELDS: CustomFieldMap = {
-  'Booking.FirstName': 169233,
-  'Booking.LastName': 169234,
-  'Booking.ServiceType': 169235,
-  'Booking.CheckInDate': 169236,
-  'Booking.CheckOutDate': 169237,
-  'Booking.BookingRef': 169238,
-  'Booking.TotalGuests': 169239,
-  'Booking.TotalPrice': 169240,
-  'Booking.RoomName': 169241,
-};
 
 // ============================================================================
 // Placeholder Node Creation
 // ============================================================================
 
 /**
- * Create a ProseMirror placeholder node for a custom field
+ * Create a ProseMirror placeholder node for a custom field.
+ *
+ * @param fieldName - The custom field name (e.g., 'Order.CustomerName')
+ * @param fieldId - The numeric field ID from Rule.io
+ *
+ * @example
+ * ```typescript
+ * createPlaceholder('Order.CustomerName', 169233)
+ * ```
  */
 export function createPlaceholder(
   fieldName: string,
@@ -84,14 +83,23 @@ export function createPlaceholder(
 }
 
 /**
- * Create a text node
+ * Create a text node for use in ProseMirror documents.
  */
 export function createTextNode(text: string): { type: 'text'; text: string } {
   return { type: 'text', text };
 }
 
 /**
- * Create a ProseMirror document with mixed text and placeholders
+ * Create a ProseMirror document with mixed text and placeholder nodes.
+ *
+ * @example
+ * ```typescript
+ * const doc = createDocWithPlaceholders([
+ *   createTextNode('Hello '),
+ *   createPlaceholder('Order.CustomerName', 169233),
+ *   createTextNode('!'),
+ * ]);
+ * ```
  */
 export function createDocWithPlaceholders(
   content: Array<
@@ -110,11 +118,32 @@ export function createDocWithPlaceholders(
 }
 
 // ============================================================================
-// Brand Style Base Template
+// Brand Style Configuration
 // ============================================================================
 
 /**
- * Brand style configuration
+ * Brand style configuration for Rule.io templates.
+ *
+ * Get these values from your Rule.io account:
+ * - Brand style ID: Settings → Brand
+ * - Font URLs: Inspect the brand style in Rule.io's editor
+ *
+ * @example
+ * ```typescript
+ * const myBrandStyle: BrandStyleConfig = {
+ *   brandStyleId: '12345',
+ *   logoUrl: 'https://example.com/logo.png',
+ *   buttonColor: '#0066CC',
+ *   bodyBackgroundColor: '#f3f3f3',
+ *   sectionBackgroundColor: '#ffffff',
+ *   brandColor: '#f6f8f9',
+ *   headingFont: "'Helvetica Neue', sans-serif",
+ *   headingFontUrl: 'https://app.rule.io/brand-style/12345/font/1234/css',
+ *   bodyFont: "'Arial', sans-serif",
+ *   bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/5678/css',
+ *   textColor: '#1A1A1A',
+ * };
+ * ```
  */
 export interface BrandStyleConfig {
   /** Brand style ID from Rule.io */
@@ -142,29 +171,20 @@ export interface BrandStyleConfig {
 }
 
 /**
- * Default brand style for Blacksta Vingård (ID: 10261)
- */
-export const BLACKSTA_BRAND_STYLE: BrandStyleConfig = {
-  brandStyleId: '10261',
-  logoUrl: 'https://img.rule.io/14518/698261295cbf5',
-  buttonColor: '#C9A962',
-  bodyBackgroundColor: '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  brandColor: '#f6f8f9',
-  headingFont: "'Tenor Sans', sans-serif",
-  headingFontUrl: 'https://app.rule.io/brand-style/10261/font/4744/css',
-  bodyFont: "'Pontano Sans Regular', sans-serif",
-  bodyFontUrl: 'https://app.rule.io/brand-style/10261/font/4578/css',
-  textColor: '#1A1A1A',
-};
-
-/**
- * Create the rc-head element with full brand style attributes
+ * Create the rc-head element with full brand style attributes.
  */
 export function createBrandHead(
   brandStyle: BrandStyleConfig,
-  preheader?: string
+  options?: {
+    /** Preview/preheader text shown in email clients */
+    preheader?: string;
+    /** Plain text fallback content */
+    plainText?: string;
+  }
 ): RCMLDocument['children'][0] {
+  const plainTextContent = options?.plainText
+    ?? 'View this email in your browser: %Link:WebBrowser%\n\n---\nUnsubscribe: %Link:Unsubscribe%';
+
   return {
     tagName: 'rc-head',
     children: [
@@ -303,14 +323,14 @@ export function createBrandHead(
       // Preview/preheader
       {
         tagName: 'rc-preview',
-        ...(preheader ? { content: { type: 'text' as const, text: preheader } } : {}),
+        ...(options?.preheader ? { content: { type: 'text' as const, text: options.preheader } } : {}),
       },
       // Plain text fallback
       {
         tagName: 'rc-plain-text',
         content: {
           type: 'text' as const,
-          text: `Klicka här för att läsa mailet på webben: %Link:WebBrowser%\n\n---\nKlicka här för att avregistrera dig från detta nyhetsbrev: %Link:Unsubscribe%`,
+          text: plainTextContent,
         },
       },
       // Font definitions
@@ -337,26 +357,44 @@ export function createBrandHead(
 // ============================================================================
 
 export interface SimpleTemplateConfig {
-  /** Brand style to use */
-  brandStyle?: BrandStyleConfig;
-  /** Custom field mapping */
-  customFields?: CustomFieldMap;
-  /** Preview text */
+  /** Brand style to use (required) */
+  brandStyle: BrandStyleConfig;
+  /** Preview text shown in email clients */
   preheader?: string;
+  /** Plain text fallback content */
+  plainText?: string;
   /** Email body sections */
   sections: RCMLDocument['children'][1]['children'];
 }
 
 /**
- * Create a simple RCML document using brand styles
+ * Create an RCML document using brand styles.
+ *
+ * @example
+ * ```typescript
+ * const doc = createBrandTemplate({
+ *   brandStyle: myBrandStyle,
+ *   preheader: 'Your order has been confirmed!',
+ *   sections: [
+ *     createContentSection([
+ *       createBrandHeading(createDocWithPlaceholders([
+ *         createTextNode('Thank you, '),
+ *         createPlaceholder('Order.CustomerName', 169233),
+ *         createTextNode('!'),
+ *       ])),
+ *     ]),
+ *   ],
+ * });
+ * ```
  */
 export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument {
-  const brandStyle = config.brandStyle || BLACKSTA_BRAND_STYLE;
-
   return {
     tagName: 'rcml',
     children: [
-      createBrandHead(brandStyle, config.preheader),
+      createBrandHead(config.brandStyle, {
+        preheader: config.preheader,
+        plainText: config.plainText,
+      }),
       {
         tagName: 'rc-body',
         children: config.sections,
@@ -370,7 +408,7 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 // ============================================================================
 
 /**
- * Create a logo element using brand style
+ * Create a logo element using brand style.
  */
 export function createBrandLogo(): RCMLDocument['children'][1]['children'][0] {
   return {
@@ -399,7 +437,7 @@ export function createBrandLogo(): RCMLDocument['children'][1]['children'][0] {
 }
 
 /**
- * Create a heading using brand style
+ * Create a heading using brand style.
  */
 export function createBrandHeading(
   content: RCMLProseMirrorDoc,
@@ -415,7 +453,7 @@ export function createBrandHeading(
 }
 
 /**
- * Create a text element using brand style
+ * Create a text element using brand style.
  */
 export function createBrandText(
   content: RCMLProseMirrorDoc,
@@ -433,7 +471,7 @@ export function createBrandText(
 }
 
 /**
- * Create a button using brand style
+ * Create a button using brand style.
  */
 export function createBrandButton(
   content: RCMLProseMirrorDoc,
@@ -457,7 +495,7 @@ export function createBrandButton(
 }
 
 /**
- * Create a content section
+ * Create a content section with a single column.
  */
 export function createContentSection(
   children: Array<
@@ -484,15 +522,51 @@ export function createContentSection(
   } as RCMLDocument['children'][1]['children'][0];
 }
 
+export interface FooterConfig {
+  /** "View in browser" link text (default: 'View in browser') */
+  viewInBrowserText?: string;
+  /** Unsubscribe link text (default: 'Unsubscribe') */
+  unsubscribeText?: string;
+  /** Footer background color (default: '#f3f3f3') */
+  backgroundColor?: string;
+  /** Footer text color (default: '#666666') */
+  textColor?: string;
+  /** Footer text size (default: '10px') */
+  fontSize?: string;
+}
+
 /**
- * Create the footer section with unsubscribe links
+ * Create a footer section with unsubscribe and web browser links.
+ *
+ * @param config - Optional footer configuration. All text is configurable
+ *   for localization.
+ *
+ * @example
+ * ```typescript
+ * // English (default)
+ * createFooterSection()
+ *
+ * // Swedish
+ * createFooterSection({
+ *   viewInBrowserText: 'Öppna i webbläsare',
+ *   unsubscribeText: 'Avregistrera',
+ * })
+ * ```
  */
-export function createFooterSection(): RCMLDocument['children'][1]['children'][0] {
+export function createFooterSection(
+  config?: FooterConfig
+): RCMLDocument['children'][1]['children'][0] {
+  const viewText = config?.viewInBrowserText ?? 'View in browser';
+  const unsubText = config?.unsubscribeText ?? 'Unsubscribe';
+  const bgColor = config?.backgroundColor ?? '#f3f3f3';
+  const textColor = config?.textColor ?? '#666666';
+  const fontSize = config?.fontSize ?? '10px';
+
   return {
     tagName: 'rc-section',
     attributes: {
       padding: '20px 0px 20px 0px',
-      'background-color': '#f3f3f3',
+      'background-color': bgColor,
     },
     children: [
       {
@@ -517,14 +591,14 @@ export function createFooterSection(): RCMLDocument['children'][1]['children'][0
                   content: [
                     {
                       type: 'text',
-                      text: 'Öppna i webbläsare',
+                      text: viewText,
                       marks: [
                         {
                           type: 'font',
                           attrs: {
-                            'font-size': '10px',
+                            'font-size': fontSize,
                             'text-decoration': 'underline',
-                            color: '#666666',
+                            color: textColor,
                           },
                         },
                         {
@@ -541,19 +615,19 @@ export function createFooterSection(): RCMLDocument['children'][1]['children'][0
                     {
                       type: 'text',
                       text: '|',
-                      marks: [{ type: 'font', attrs: { 'font-size': '10px', color: '#666666' } }],
+                      marks: [{ type: 'font', attrs: { 'font-size': fontSize, color: textColor } }],
                     },
                     { type: 'text', text: ' ' },
                     {
                       type: 'text',
-                      text: 'Avregistrera',
+                      text: unsubText,
                       marks: [
                         {
                           type: 'font',
                           attrs: {
-                            'font-size': '10px',
+                            'font-size': fontSize,
                             'text-decoration': 'underline',
-                            color: '#666666',
+                            color: textColor,
                           },
                         },
                         {

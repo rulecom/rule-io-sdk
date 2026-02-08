@@ -54,19 +54,6 @@ export type {
   BookingReminderTemplateConfig,
 } from './templates';
 
-// Brand-based templates (recommended)
-export {
-  // Template builders
-  createBookingConfirmationEmail,
-  createBookingCancellationEmail,
-  createBookingReminderEmail,
-  createAbandonedBookingEmail,
-  createPostStayFeedbackEmail,
-  createBookingRequestEmail,
-  // Config type
-  type BookingTemplateConfig,
-} from './booking-templates';
-
 // Brand template utilities
 export {
   // Template builder
@@ -84,11 +71,44 @@ export {
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
-  // Default configurations
-  BLACKSTA_CUSTOM_FIELDS,
-  BLACKSTA_BRAND_STYLE,
-  // Types
-  type BrandStyleConfig,
-  type CustomFieldMap,
-  type SimpleTemplateConfig,
 } from './brand-template';
+
+// Brand template types
+export type {
+  BrandStyleConfig,
+  CustomFieldMap,
+  SimpleTemplateConfig,
+  FooterConfig,
+} from './brand-template';
+
+// Hospitality templates (hotels, restaurants, experiences)
+export {
+  createReservationConfirmationEmail,
+  createReservationCancellationEmail,
+  createReservationReminderEmail,
+  createFeedbackRequestEmail,
+  createReservationRequestEmail,
+} from './hospitality-templates';
+
+export type {
+  ReservationTemplateConfig,
+  ReservationCancellationConfig,
+  ReservationReminderConfig,
+  FeedbackRequestConfig,
+  ReservationRequestConfig,
+} from './hospitality-templates';
+
+// E-commerce templates (online stores)
+export {
+  createOrderConfirmationEmail,
+  createShippingUpdateEmail,
+  createAbandonedCartEmail,
+  createOrderCancellationEmail,
+} from './ecommerce-templates';
+
+export type {
+  OrderConfirmationConfig,
+  ShippingUpdateConfig,
+  AbandonedCartConfig,
+  OrderCancellationConfig,
+} from './ecommerce-templates';

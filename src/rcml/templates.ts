@@ -4,7 +4,16 @@
  * Ready-to-use email templates for common booking scenarios.
  */
 
-import { DefaultBrandColors } from '../constants';
+// Neutral default colors for legacy templates
+const DEFAULTS = {
+  primary: '#333333',
+  secondary: '#666666',
+  accent: '#0066CC',
+  background: '#F5F5F5',
+  text: '#1A1A1A',
+  textLight: '#666666',
+  white: '#FFFFFF',
+} as const;
 import type { RCMLDocument } from '../types';
 import {
   createRCMLDocument,
@@ -139,9 +148,9 @@ export function createBookingConfirmationTemplate(
   }
 
   // Get colors (with fallbacks)
-  const primaryColor = config.primaryColor || DefaultBrandColors.primary;
-  const accentColor = config.accentColor || DefaultBrandColors.accent;
-  const bgColor = config.backgroundColor || DefaultBrandColors.background;
+  const primaryColor = config.primaryColor || DEFAULTS.primary;
+  const accentColor = config.accentColor || DEFAULTS.accent;
+  const bgColor = config.backgroundColor || DEFAULTS.background;
 
   // Format contact text
   const contactHtml = escapeHtml(t.contactText)
@@ -166,14 +175,14 @@ export function createBookingConfirmationTemplate(
     sections: [
       // Header with logo
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '30px 0',
         children: [createLogo({ href: safeWebsiteUrl })],
       }),
 
       // Main content
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '0 0 30px 0',
         children: [
           createHeading(escapeHtml(t.heading).replace('{name}', safeGuestName), {
@@ -205,7 +214,7 @@ export function createBookingConfirmationTemplate(
       ...(safeWebsiteUrl
         ? [
             createCenteredSection({
-              backgroundColor: DefaultBrandColors.white,
+              backgroundColor: DEFAULTS.white,
               padding: '30px 0',
               children: [
                 createButton(
@@ -224,25 +233,25 @@ export function createBookingConfirmationTemplate(
         padding: '30px 0',
         children: [
           createHeading(escapeHtml(t.questionsHeading), {
-            color: DefaultBrandColors.white,
+            color: DEFAULTS.white,
             fontSize: '20px',
             padding: '0 0 12px 0',
           }),
           createText(contactHtml, {
             align: 'center',
-            color: DefaultBrandColors.white,
+            color: DEFAULTS.white,
           }),
         ],
       }),
 
       // Footer
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '20px 0',
         children: [
           createText(`© ${new Date().getFullYear()} ${escapeHtml(t.footer)}`, {
             align: 'center',
-            color: DefaultBrandColors.textLight,
+            color: DEFAULTS.textLight,
             fontSize: '12px',
           }),
         ],
@@ -302,8 +311,8 @@ export function createBookingCancellationTemplate(
   const safeWebsiteUrl = sanitizeUrl(config.websiteUrl);
 
   // Get colors (with fallbacks)
-  const primaryColor = config.primaryColor || DefaultBrandColors.primary;
-  const accentColor = config.accentColor || DefaultBrandColors.accent;
+  const primaryColor = config.primaryColor || DEFAULTS.primary;
+  const accentColor = config.accentColor || DEFAULTS.accent;
 
   const formattedMessage = escapeHtml(t.message)
     .replace('{ref}', safeBookingRef)
@@ -321,14 +330,14 @@ export function createBookingCancellationTemplate(
     sections: [
       // Header with logo
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '30px 0',
         children: [createLogo({ href: safeWebsiteUrl })],
       }),
 
       // Main content
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '0 0 30px 0',
         children: [
           createHeading(escapeHtml(t.heading), { color: primaryColor }),
@@ -343,7 +352,7 @@ export function createBookingCancellationTemplate(
       ...(safeWebsiteUrl
         ? [
             createCenteredSection({
-              backgroundColor: DefaultBrandColors.white,
+              backgroundColor: DEFAULTS.white,
               padding: '20px 0',
               children: [
                 createButton(escapeHtml(t.newBookingButton), safeWebsiteUrl, {
@@ -360,7 +369,7 @@ export function createBookingCancellationTemplate(
         padding: '30px 0',
         children: [
           createHeading(escapeHtml(t.contactHeading), {
-            color: DefaultBrandColors.white,
+            color: DEFAULTS.white,
             fontSize: '20px',
             padding: '0 0 12px 0',
           }),
@@ -368,7 +377,7 @@ export function createBookingCancellationTemplate(
             `<a href="mailto:${safeContactEmail}" style="color: ${accentColor};">${safeContactEmail}</a> | <a href="tel:${safeContactPhone}" style="color: ${accentColor};">${safeContactPhone}</a>`,
             {
               align: 'center',
-              color: DefaultBrandColors.white,
+              color: DEFAULTS.white,
             }
           ),
         ],
@@ -376,12 +385,12 @@ export function createBookingCancellationTemplate(
 
       // Footer
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '20px 0',
         children: [
           createText(`© ${new Date().getFullYear()} ${escapeHtml(t.footer)}`, {
             align: 'center',
-            color: DefaultBrandColors.textLight,
+            color: DEFAULTS.textLight,
             fontSize: '12px',
           }),
         ],
@@ -462,9 +471,9 @@ export function createBookingReminderTemplate(config: BookingReminderTemplateCon
   const safeVenueName = escapeHtml(t.venueName);
 
   // Get colors (with fallbacks)
-  const primaryColor = config.primaryColor || DefaultBrandColors.primary;
-  const accentColor = config.accentColor || DefaultBrandColors.accent;
-  const bgColor = config.backgroundColor || DefaultBrandColors.background;
+  const primaryColor = config.primaryColor || DEFAULTS.primary;
+  const accentColor = config.accentColor || DEFAULTS.accent;
+  const bgColor = config.backgroundColor || DEFAULTS.background;
 
   const arrivalText =
     config.daysUntilArrival === 1
@@ -495,14 +504,14 @@ export function createBookingReminderTemplate(config: BookingReminderTemplateCon
     sections: [
       // Header with logo
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '30px 0',
         children: [createLogo({ href: safeWebsiteUrl })],
       }),
 
       // Main content
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '0 0 30px 0',
         children: [
           createHeading(escapeHtml(t.heading).replace('{name}', safeGuestName), {
@@ -548,7 +557,7 @@ export function createBookingReminderTemplate(config: BookingReminderTemplateCon
 
       // Practical info
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '30px 0',
         children: [
           createHeading(escapeHtml(t.practicalInfoHeading), {
@@ -580,25 +589,25 @@ export function createBookingReminderTemplate(config: BookingReminderTemplateCon
         padding: '30px 0',
         children: [
           createHeading(escapeHtml(t.questionsHeading), {
-            color: DefaultBrandColors.white,
+            color: DEFAULTS.white,
             fontSize: '20px',
             padding: '0 0 12px 0',
           }),
           createText(contactHtml, {
             align: 'center',
-            color: DefaultBrandColors.white,
+            color: DEFAULTS.white,
           }),
         ],
       }),
 
       // Footer
       createCenteredSection({
-        backgroundColor: DefaultBrandColors.white,
+        backgroundColor: DEFAULTS.white,
         padding: '20px 0',
         children: [
           createText(`© ${new Date().getFullYear()} ${escapeHtml(t.footer)}`, {
             align: 'center',
-            color: DefaultBrandColors.textLight,
+            color: DEFAULTS.textLight,
             fontSize: '12px',
           }),
         ],
