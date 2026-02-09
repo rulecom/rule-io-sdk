@@ -275,6 +275,16 @@ export class RuleClient {
     // Filter out undefined/null/empty string fields
     // Rule.io requires fields in format "Group.FieldName"
     const prefix = this.config.fieldGroupPrefix;
+
+    if (subscriber.fields) {
+      const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
+      if (dottedKey) {
+        throw new RuleConfigError(
+          `Field key "${dottedKey}" contains a dot. Pass bare field names (e.g. "${dottedKey.split('.').pop()}") — the SDK adds the group prefix automatically.`
+        );
+      }
+    }
+
     const fields = subscriber.fields
       ? Object.entries(subscriber.fields)
           .filter(([, value]) => value !== undefined && value !== null && value !== '')

@@ -154,6 +154,28 @@ describe('RuleClient', () => {
       expect(fieldKeys).not.toContain('Booking.LastName');
       expect(fieldKeys).not.toContain('Booking.Phone');
     });
+
+    it('should throw RuleConfigError if field key contains a dot', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.syncSubscriber({
+          email: 'test@example.com',
+          fields: { 'Booking.FirstName': 'Anna' },
+          tags: ['test'],
+        })
+      ).rejects.toThrow(RuleConfigError);
+
+      await expect(
+        client.syncSubscriber({
+          email: 'test@example.com',
+          fields: { 'Booking.FirstName': 'Anna' },
+          tags: ['test'],
+        })
+      ).rejects.toThrow(/contains a dot/);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 
   describe('addSubscriberTags', () => {
