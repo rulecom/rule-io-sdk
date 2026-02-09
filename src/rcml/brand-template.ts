@@ -343,8 +343,7 @@ export function createBrandHead(
               name: 'rcml-label-style',
               'font-family': brandStyle.bodyFont,
               'font-size': '14px',
-              // White text on colored buttons — not a brand style property in Rule.io
-              color: '#FFFFFF',
+              color: brandStyle.brandColor,
               'line-height': '120%',
               'letter-spacing': '0em',
               'font-weight': '400',

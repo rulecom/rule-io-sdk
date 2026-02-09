@@ -266,7 +266,7 @@ describe('Brand Template Utilities', () => {
       ).toThrow(RuleConfigError);
     });
 
-    it('should throw RuleConfigError for empty URL', () => {
+    it('should throw RuleConfigError for invalid URL', () => {
       expect(() =>
         createBrandButton(
           createDocWithPlaceholders([createTextNode('Click')]),

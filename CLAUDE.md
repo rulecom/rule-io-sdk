@@ -81,7 +81,6 @@ npm run dev           # Build in watch mode
 npm run test          # Run tests
 npm run test:watch    # Tests in watch mode
 npm run type-check    # TypeScript
-npm run lint          # ESLint
 
 /review               # Code review (RUN BEFORE COMMIT)
 /commit               # Smart commit (runs /review first)
