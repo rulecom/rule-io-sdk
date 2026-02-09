@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh *)",
+      "Bash(gh:*)"
+    ]
+  },
+  "classifierPermissionsEnabled": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/format-code.sh",
+            "description": "Auto-format code with Prettier"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/security-scan.py",
+            "description": "Scan for hardcoded secrets"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/check-exports.sh",
+            "description": "Check for public API changes"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit:*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-commit.sh",
+            "description": "Run type check, lint, and tests before commit"
+          }
+        ]
+      }
+    ]
+  }
+}
