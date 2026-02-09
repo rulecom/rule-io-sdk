@@ -186,6 +186,24 @@ describe('Brand Template Utilities', () => {
       );
       expect(plainText).toBeDefined();
     });
+
+    it('should throw RuleConfigError for unsafe logoUrl', () => {
+      expect(() =>
+        createBrandHead({ ...TEST_BRAND_STYLE, logoUrl: 'javascript:alert(1)' })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for unsafe headingFontUrl', () => {
+      expect(() =>
+        createBrandHead({ ...TEST_BRAND_STYLE, headingFontUrl: 'javascript:void(0)' })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for unsafe bodyFontUrl', () => {
+      expect(() =>
+        createBrandHead({ ...TEST_BRAND_STYLE, bodyFontUrl: 'data:text/html,<script>' })
+      ).toThrow(RuleConfigError);
+    });
   });
 
   describe('createFooterSection', () => {
