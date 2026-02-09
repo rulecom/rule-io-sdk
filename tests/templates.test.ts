@@ -257,7 +257,7 @@ describe('Brand Template Utilities', () => {
       expect(button.attributes?.href).toBe('https://example.com');
     });
 
-    it('should throw RuleConfigError for invalid URL', () => {
+    it('should throw RuleConfigError for javascript: URL', () => {
       expect(() =>
         createBrandButton(
           createDocWithPlaceholders([createTextNode('Click')]),
@@ -266,7 +266,7 @@ describe('Brand Template Utilities', () => {
       ).toThrow(RuleConfigError);
     });
 
-    it('should throw RuleConfigError for invalid URL', () => {
+    it('should throw RuleConfigError for malformed URL', () => {
       expect(() =>
         createBrandButton(
           createDocWithPlaceholders([createTextNode('Click')]),
