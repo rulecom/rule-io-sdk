@@ -446,6 +446,7 @@ describe('Hospitality Templates', () => {
           heading: 'Reservation Cancelled',
           greeting: 'Hello',
           message: 'Your reservation has been cancelled as requested.',
+          referenceLabel: 'Reference',
           followUp: 'We hope to see you again!',
           ctaButton: 'Make a New Reservation',
         },

@@ -258,6 +258,7 @@ export interface ReservationCancellationConfig {
     heading: string;
     greeting: string;
     message: string;
+    referenceLabel: string;
     followUp: string;
     ctaButton: string;
   };
@@ -295,6 +296,13 @@ export function createReservationCancellationEmail(config: ReservationCancellati
           createBrandText(
             createDocWithPlaceholders([
               createTextNode(text.message),
+            ])
+          ),
+
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(`${text.referenceLabel}: `),
+              createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
             ])
           ),
 
