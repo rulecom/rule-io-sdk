@@ -162,7 +162,6 @@ export function createDocWithPlaceholders(
  *   bodyFont: "'Arial', sans-serif",
  *   bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/5678/css',
  *   textColor: '#1A1A1A',
- *   buttonTextColor: '#FFFFFF',
  * };
  * ```
  */
@@ -189,8 +188,6 @@ export interface BrandStyleConfig {
   bodyFontUrl: string;
   /** Text color */
   textColor: string;
-  /** Button text color */
-  buttonTextColor: string;
 }
 
 /**
@@ -207,6 +204,19 @@ export function createBrandHead(
 ): RCMLDocument['children'][0] {
   const plainTextContent = options?.plainText
     ?? 'View this email in your browser: %Link:WebBrowser%\n\n---\nUnsubscribe: %Link:Unsubscribe%';
+
+  const sanitizedLogoUrl = sanitizeUrl(brandStyle.logoUrl);
+  if (!sanitizedLogoUrl) {
+    throw new RuleConfigError('createBrandHead: invalid or unsafe logoUrl');
+  }
+  const sanitizedHeadingFontUrl = sanitizeUrl(brandStyle.headingFontUrl);
+  if (!sanitizedHeadingFontUrl) {
+    throw new RuleConfigError('createBrandHead: invalid or unsafe headingFontUrl');
+  }
+  const sanitizedBodyFontUrl = sanitizeUrl(brandStyle.bodyFontUrl);
+  if (!sanitizedBodyFontUrl) {
+    throw new RuleConfigError('createBrandHead: invalid or unsafe bodyFontUrl');
+  }
 
   return {
     tagName: 'rc-head',
@@ -240,7 +250,7 @@ export function createBrandHead(
             tagName: 'rc-class',
             attributes: {
               name: 'rcml-logo-style',
-              src: sanitizeUrl(brandStyle.logoUrl),
+              src: sanitizedLogoUrl,
             },
           },
           // Brand color class
@@ -333,7 +343,8 @@ export function createBrandHead(
               name: 'rcml-label-style',
               'font-family': brandStyle.bodyFont,
               'font-size': '14px',
-              color: brandStyle.buttonTextColor,
+              // White text on colored buttons — not a brand style property in Rule.io
+              color: '#FFFFFF',
               'line-height': '120%',
               'letter-spacing': '0em',
               'font-weight': '400',
@@ -361,14 +372,14 @@ export function createBrandHead(
         tagName: 'rc-font',
         attributes: {
           name: brandStyle.headingFont.split(',')[0].trim(),
-          href: sanitizeUrl(brandStyle.headingFontUrl),
+          href: sanitizedHeadingFontUrl,
         },
       },
       {
         tagName: 'rc-font',
         attributes: {
           name: brandStyle.bodyFont.split(',')[0].trim(),
-          href: sanitizeUrl(brandStyle.bodyFontUrl),
+          href: sanitizedBodyFontUrl,
         },
       },
     ],
