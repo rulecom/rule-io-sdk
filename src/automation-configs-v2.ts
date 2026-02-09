@@ -1,5 +1,5 @@
 /**
- * Automation Configuration Definitions (v2)
+ * Automation Configuration Definitions
  *
  * Provides types and utilities for structuring Rule.io automations.
  * Consumers create their own automation configs with their specific
@@ -80,44 +80,11 @@ export interface AutomationConfigV2 {
 // ============================================================================
 
 /**
- * Example/placeholder template config.
- * Consumers must replace this with their own configuration.
- *
- * @deprecated Create your own TemplateConfigV2 with your brand style,
- *   custom field IDs, and website URL.
- */
-export const DEFAULT_TEMPLATE_CONFIG: TemplateConfigV2 = {
-  brandStyle: {
-    brandStyleId: '',
-    logoUrl: '',
-    buttonColor: '#333333',
-    bodyBackgroundColor: '#f3f3f3',
-    sectionBackgroundColor: '#ffffff',
-    brandColor: '#f6f8f9',
-    headingFont: "'Helvetica Neue', sans-serif",
-    headingFontUrl: '',
-    bodyFont: "'Arial', sans-serif",
-    bodyFontUrl: '',
-    textColor: '#1A1A1A',
-  },
-  customFields: {},
-  websiteUrl: 'https://example.com',
-};
-
-/**
- * Placeholder for backward compatibility.
- *
- * @deprecated Create your own automation configurations using
- *   AutomationConfigV2 type and the template builder functions.
- */
-export const BOOKING_AUTOMATIONS_V2: AutomationConfigV2[] = [];
-
-/**
  * Get automation by ID from a list of automations.
  */
 export function getAutomationByIdV2(
   id: string,
-  automations: AutomationConfigV2[] = BOOKING_AUTOMATIONS_V2
+  automations: AutomationConfigV2[]
 ): AutomationConfigV2 | undefined {
   return automations.find((a) => a.id === id);
 }
@@ -127,7 +94,7 @@ export function getAutomationByIdV2(
  */
 export function getAutomationByTriggerV2(
   tag: string,
-  automations: AutomationConfigV2[] = BOOKING_AUTOMATIONS_V2
+  automations: AutomationConfigV2[]
 ): AutomationConfigV2 | undefined {
   return automations.find((a) => a.triggerTag === tag);
 }

@@ -52,6 +52,7 @@ const TEST_BRAND_STYLE: BrandStyleConfig = {
   bodyFont: "'Arial', sans-serif",
   bodyFontUrl: 'https://app.rule.io/brand-style/99999/font/2/css',
   textColor: '#1A1A1A',
+  buttonTextColor: '#FFFFFF',
 };
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {

@@ -121,10 +121,8 @@ src/
 │   ├── brand-template.ts     # Brand-aware template utilities
 │   ├── hospitality-templates.ts  # Hotel/restaurant email templates
 │   ├── ecommerce-templates.ts    # E-commerce email templates
-│   ├── templates.ts          # Legacy template builders
 │   └── utils.ts              # escapeHtml, sanitizeUrl, etc.
-├── automation-configs.ts     # Legacy automation definitions
-└── automation-configs-v2.ts  # v2 automation types and utilities
+└── automation-configs-v2.ts  # Automation types and utilities
 ```
 
 ---

@@ -187,38 +187,8 @@ export type {
   OrderCancellationConfig,
 } from './rcml';
 
-// Legacy templates (kept for backward compatibility)
+// Automation configurations
 export {
-  createBookingConfirmationTemplate,
-  createBookingCancellationTemplate,
-  createBookingReminderTemplate,
-} from './rcml';
-
-export type {
-  BookingConfirmationTemplateConfig,
-  BookingCancellationTemplateConfig,
-  BookingReminderTemplateConfig,
-} from './rcml';
-
-// Legacy automation configurations (v1)
-export {
-  BOOKING_AUTOMATIONS,
-  BOOKING_CONFIRMATION_TEXT,
-  BOOKING_CANCELLATION_TEXT,
-  BOOKING_REMINDER_TEXT,
-  ABANDONED_BOOKING_TEXT,
-  POST_STAY_FEEDBACK_TEXT,
-  TAG_AUTOMATION_MAP,
-  getAutomationById,
-  getAutomationByTrigger,
-} from './automation-configs';
-
-export type { AutomationConfig, AutomationCondition, TemplateConfig } from './automation-configs';
-
-// Automation configurations (v2)
-export {
-  BOOKING_AUTOMATIONS_V2,
-  DEFAULT_TEMPLATE_CONFIG,
   getAutomationByIdV2,
   getAutomationByTriggerV2,
 } from './automation-configs-v2';

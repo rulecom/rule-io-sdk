@@ -40,20 +40,6 @@ export type {
   CreateDividerOptions,
 } from './elements';
 
-// Legacy Templates (use brand templates instead for new code)
-export {
-  createBookingConfirmationTemplate,
-  createBookingCancellationTemplate,
-  createBookingReminderTemplate,
-} from './templates';
-
-// Legacy template config types
-export type {
-  BookingConfirmationTemplateConfig,
-  BookingCancellationTemplateConfig,
-  BookingReminderTemplateConfig,
-} from './templates';
-
 // Brand template utilities
 export {
   // Template builder

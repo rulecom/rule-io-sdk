@@ -162,6 +162,7 @@ export function createDocWithPlaceholders(
  *   bodyFont: "'Arial', sans-serif",
  *   bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/5678/css',
  *   textColor: '#1A1A1A',
+ *   buttonTextColor: '#FFFFFF',
  * };
  * ```
  */
@@ -188,6 +189,8 @@ export interface BrandStyleConfig {
   bodyFontUrl: string;
   /** Text color */
   textColor: string;
+  /** Button text color */
+  buttonTextColor: string;
 }
 
 /**
@@ -330,7 +333,7 @@ export function createBrandHead(
               name: 'rcml-label-style',
               'font-family': brandStyle.bodyFont,
               'font-size': '14px',
-              color: '#FFFFFF',
+              color: brandStyle.buttonTextColor,
               'line-height': '120%',
               'letter-spacing': '0em',
               'font-weight': '400',
@@ -497,16 +500,15 @@ export function createBrandButton(
   content: RCMLProseMirrorDoc,
   href: string
 ): { tagName: 'rc-button'; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+  const sanitizedHref = sanitizeUrl(href);
+  if (!sanitizedHref) {
+    throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
+  }
+
   return {
     tagName: 'rc-button',
     attributes: {
-      href: (() => {
-        const sanitized = sanitizeUrl(href);
-        if (!sanitized) {
-          throw new RuleConfigError(`createBrandButton: invalid or unsafe URL: "${href}"`);
-        }
-        return sanitized;
-      })(),
+      href: sanitizedHref,
       align: 'center',
       border: 'none',
       'border-radius': '8px',
