@@ -4,8 +4,8 @@
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 FILE_PATH="$TOOL_USE_FILE_PATH"
 
-# Only format if Prettier is available (via npx)
-if ! command -v prettier &> /dev/null && [ ! -d "$PROJECT_DIR/node_modules/.bin" ]; then
+# Only format if Prettier is actually available
+if ! command -v prettier &> /dev/null && [ ! -x "$PROJECT_DIR/node_modules/.bin/prettier" ]; then
     exit 0
 fi
 
