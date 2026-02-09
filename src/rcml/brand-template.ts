@@ -343,7 +343,7 @@ export function createBrandHead(
       // Preview/preheader
       {
         tagName: 'rc-preview',
-        ...(options?.preheader ? { content: { type: 'text' as const, text: options.preheader } } : {}),
+        ...(options?.preheader ? { content: options.preheader } : {}),
       },
       // Plain text fallback
       {
@@ -500,7 +500,13 @@ export function createBrandButton(
   return {
     tagName: 'rc-button',
     attributes: {
-      href: sanitizeUrl(href),
+      href: (() => {
+        const sanitized = sanitizeUrl(href);
+        if (!sanitized) {
+          throw new RuleConfigError(`createBrandButton: invalid or unsafe URL: "${href}"`);
+        }
+        return sanitized;
+      })(),
       align: 'center',
       border: 'none',
       'border-radius': '8px',

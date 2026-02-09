@@ -8,6 +8,8 @@
 import { describe, it, expect } from 'vitest';
 import type { RCMLDocument } from '../src/types';
 import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
+import { RuleConfigError } from '../src/errors';
+import { validateCustomFields } from '../src/rcml/brand-template';
 import {
   // Brand template utilities
   createBrandTemplate,
@@ -254,6 +256,24 @@ describe('Brand Template Utilities', () => {
       expect(button.tagName).toBe('rc-button');
       expect(button.attributes?.href).toBe('https://example.com');
     });
+
+    it('should throw RuleConfigError for invalid URL', () => {
+      expect(() =>
+        createBrandButton(
+          createDocWithPlaceholders([createTextNode('Click')]),
+          'javascript:alert(1)'
+        )
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for empty URL', () => {
+      expect(() =>
+        createBrandButton(
+          createDocWithPlaceholders([createTextNode('Click')]),
+          'not-a-url'
+        )
+      ).toThrow(RuleConfigError);
+    });
   });
 
   describe('createContentSection', () => {
@@ -272,6 +292,51 @@ describe('Brand Template Utilities', () => {
       expect(section.attributes?.padding).toBe('40px 0');
       expect(section.attributes?.['background-color']).toBe('#FF0000');
     });
+  });
+});
+
+// ============================================================================
+// Validation
+// ============================================================================
+
+describe('validateCustomFields', () => {
+  it('should pass when all required fields are present', () => {
+    const customFields: CustomFieldMap = {
+      'Order.Ref': 100,
+      'Order.Name': 101,
+    };
+    expect(() =>
+      validateCustomFields(customFields, { orderRef: 'Order.Ref', name: 'Order.Name' }, 'test')
+    ).not.toThrow();
+  });
+
+  it('should throw RuleConfigError for missing required field', () => {
+    const customFields: CustomFieldMap = {
+      'Order.Ref': 100,
+    };
+    expect(() =>
+      validateCustomFields(customFields, { orderRef: 'Order.Ref', name: 'Order.Name' }, 'test')
+    ).toThrow(RuleConfigError);
+  });
+
+  it('should include field name in error message', () => {
+    const customFields: CustomFieldMap = {};
+    expect(() =>
+      validateCustomFields(customFields, { orderRef: 'Order.Ref' }, 'createOrderEmail')
+    ).toThrow('createOrderEmail: missing customFields entry for fieldNames.orderRef ("Order.Ref")');
+  });
+
+  it('should skip undefined (optional) field names', () => {
+    const customFields: CustomFieldMap = {
+      'Order.Ref': 100,
+    };
+    expect(() =>
+      validateCustomFields(
+        customFields,
+        { orderRef: 'Order.Ref', items: undefined },
+        'test'
+      )
+    ).not.toThrow();
   });
 });
 

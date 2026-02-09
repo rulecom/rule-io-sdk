@@ -42,6 +42,60 @@ describe('RuleClient', () => {
       expect(() => new RuleClient('')).toThrow(RuleConfigError);
       expect(() => new RuleClient({ apiKey: '' })).toThrow(RuleConfigError);
     });
+
+    it('should accept a custom fieldGroupPrefix', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({
+        apiKey: 'test-key',
+        fetch: mockFetch,
+        fieldGroupPrefix: 'Order',
+      });
+      await client.syncSubscriber({
+        email: 'test@example.com',
+        fields: { Ref: 'ORD-123' },
+        tags: ['test'],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.subscribers.fields).toContainEqual({
+        key: 'Order.Ref',
+        value: 'ORD-123',
+      });
+    });
+
+    it('should throw RuleConfigError for empty fieldGroupPrefix', () => {
+      expect(() => new RuleClient({ apiKey: 'test-key', fieldGroupPrefix: '' }))
+        .toThrow(RuleConfigError);
+      expect(() => new RuleClient({ apiKey: 'test-key', fieldGroupPrefix: '   ' }))
+        .toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for fieldGroupPrefix containing dots', () => {
+      expect(() => new RuleClient({ apiKey: 'test-key', fieldGroupPrefix: 'Group.Sub' }))
+        .toThrow(RuleConfigError);
+    });
+
+    it('should trim whitespace from fieldGroupPrefix', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({
+        apiKey: 'test-key',
+        fetch: mockFetch,
+        fieldGroupPrefix: '  Custom  ',
+      });
+      await client.syncSubscriber({
+        email: 'test@example.com',
+        fields: { Name: 'Test' },
+        tags: [],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.subscribers.fields).toContainEqual({
+        key: 'Custom.Name',
+        value: 'Test',
+      });
+    });
   });
 
   describe('syncSubscriber', () => {
