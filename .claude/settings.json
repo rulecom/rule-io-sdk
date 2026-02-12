@@ -1,8 +1,22 @@
 {
   "permissions": {
     "allow": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Task",
+      "NotebookEdit",
       "Bash(gh *)",
-      "Bash(gh:*)"
+      "Bash(gh:*)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(cat *)"
     ]
   },
   "classifierPermissionsEnabled": true,
