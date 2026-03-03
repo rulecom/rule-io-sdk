@@ -705,11 +705,11 @@ export class RuleClient {
    * @example
    * ```typescript
    * const result = await client.createAutomationEmail({
-   *   name: 'Order Completed',
+   *   name: 'Abandoned Cart',
    *   triggerType: 'tag',
-   *   triggerValue: 'OrderCompleted',
-   *   subject: 'Your order is complete!',
-   *   template: createOrderConfirmationEmail(config),
+   *   triggerValue: 'CartInProgress',
+   *   subject: 'You left something behind!',
+   *   template: createAbandonedCartEmail(config),
    * });
    * // result.automailId, result.messageId, result.templateId
    * ```

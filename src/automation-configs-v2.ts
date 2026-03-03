@@ -35,13 +35,13 @@ export interface TemplateConfigV2 {
  * import { RuleTags, createOrderConfirmationEmail } from 'rule-io-sdk';
  * import type { AutomationConfigV2 } from 'rule-io-sdk';
  *
- * const completedAutomation: AutomationConfigV2 = {
- *   id: 'order-completed',
- *   name: 'Order Completed',
- *   description: 'Sent when an order is completed',
- *   triggerTag: RuleTags.ORDER_COMPLETED,
- *   subject: 'Your order is complete!',
- *   templateBuilder: (config) => createOrderConfirmationEmail({
+ * const abandonedCartAutomation: AutomationConfigV2 = {
+ *   id: 'abandoned-cart',
+ *   name: 'Abandoned Cart',
+ *   description: 'Sent when a cart is abandoned',
+ *   triggerTag: RuleTags.CART_IN_PROGRESS,
+ *   subject: 'You left something behind!',
+ *   templateBuilder: (config) => createAbandonedCartEmail({
  *     brandStyle: config.brandStyle,
  *     customFields: config.customFields,
  *     websiteUrl: config.websiteUrl,
