@@ -59,7 +59,7 @@ import type {
  * await client.syncSubscriber({
  *   email: 'customer@example.com',
  *   fields: { FirstName: 'Anna' },
- *   tags: ['order-confirmed'],
+ *   tags: ['OrderCompleted'],
  * });
  *
  * // Add tags with automation trigger
@@ -267,7 +267,7 @@ export class RuleClient {
    *     FirstName: 'Anna',
    *     OrderRef: 'ORD-456',
    *   },
-   *   tags: ['order-confirmed', 'new-customer'],
+   *   tags: ['OrderCompleted', 'Newsletter'],
    * });
    * ```
    */
@@ -323,7 +323,7 @@ export class RuleClient {
    * @example
    * ```typescript
    * // Add tags and trigger automation
-   * await client.addSubscriberTags('customer@example.com', ['order-confirmed'], 'force');
+   * await client.addSubscriberTags('customer@example.com', ['OrderCompleted'], 'force');
    *
    * // Add tags without triggering automation
    * await client.addSubscriberTags('customer@example.com', ['vip'], false);
@@ -707,7 +707,7 @@ export class RuleClient {
    * const result = await client.createAutomationEmail({
    *   name: 'Order Confirmation',
    *   triggerType: 'tag',
-   *   triggerValue: 'order-confirmed',
+   *   triggerValue: 'OrderCompleted',
    *   subject: 'Your order is confirmed!',
    *   template: createOrderConfirmationEmail(config),
    * });

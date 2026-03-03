@@ -39,7 +39,7 @@ export interface TemplateConfigV2 {
  *   id: 'order-confirmation',
  *   name: 'Order Confirmation',
  *   description: 'Sent when an order is confirmed',
- *   triggerTag: RuleTags.ORDER_CONFIRMED,
+ *   triggerTag: RuleTags.ORDER_COMPLETED,
  *   subject: 'Your order is confirmed!',
  *   templateBuilder: (config) => createOrderConfirmationEmail({
  *     brandStyle: config.brandStyle,

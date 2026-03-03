@@ -309,6 +309,28 @@ describe('RuleClient', () => {
   });
 
   describe('v3 API', () => {
+    it('should send template as a single RCML document, not wrapped in an array', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 456, name: 'Test Template' },
+        })
+      );
+
+      const rcmlDoc = { tagName: 'rcml', children: [{ tagName: 'section', children: [] }] };
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.createTemplate({
+        message_id: 1,
+        name: 'Test Template',
+        message_type: 'email',
+        template: rcmlDoc as any,
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.template).toEqual(rcmlDoc);
+      expect(Array.isArray(body.template)).toBe(false);
+    });
+
     it('should create automail', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
