@@ -17,6 +17,16 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 npm install rule-io-sdk
 ```
 
+### Installing from GitHub
+
+If the package isn't published to npm yet, install directly from GitHub:
+
+```bash
+npm install github:Bookzen-app/rule-io-sdk
+```
+
+The `prepare` script will automatically build the TypeScript source on install.
+
 ## Getting Your API Key
 
 1. Log in to [Rule.io](https://app.rule.io)
@@ -175,6 +185,64 @@ const myFields: CustomFieldMap = {
   'Order.CustomerName': 169233,
   'Order.OrderRef': 169234,
 };
+```
+
+#### BrandStyleConfig Reference
+
+All fields are **required**. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontUrl`) must be valid `http://` or `https://` URLs — empty strings or invalid URLs will throw `RuleConfigError`.
+
+| Field | Type | Description |
+|---|---|---|
+| `brandStyleId` | `string` | Brand style ID from Rule.io |
+| `logoUrl` | `string` | Logo image URL (must be valid http/https) |
+| `buttonColor` | `string` | CTA button background color (hex) |
+| `bodyBackgroundColor` | `string` | Email body background color (hex) |
+| `sectionBackgroundColor` | `string` | Content section background color (hex) |
+| `brandColor` | `string` | Accent/brand color used for detail sections (hex) |
+| `headingFont` | `string` | Heading font family CSS value |
+| `headingFontUrl` | `string` | Heading font CSS URL (must be valid http/https) |
+| `bodyFont` | `string` | Body font family CSS value |
+| `bodyFontUrl` | `string` | Body font CSS URL (must be valid http/https) |
+| `textColor` | `string` | Default text color (hex) |
+
+**Mapping from the `/brand-styles/from-domain` API response:**
+
+```typescript
+const brandStyle: BrandStyleConfig = {
+  brandStyleId: String(apiResponse.data.id),
+  logoUrl: apiResponse.data.images[0],
+  buttonColor: apiResponse.data.colours[0],
+  brandColor: apiResponse.data.colours[0],
+  bodyBackgroundColor: apiResponse.data.colours[1] ?? '#f3f3f3',
+  sectionBackgroundColor: '#ffffff',
+  headingFont: apiResponse.data.fonts[0],
+  headingFontUrl: apiResponse.data.font_urls[0],
+  bodyFont: apiResponse.data.fonts[0],
+  bodyFontUrl: apiResponse.data.font_urls[1] ?? apiResponse.data.font_urls[0],
+  textColor: apiResponse.data.text_color ?? '#1A1A1A',
+};
+```
+
+#### CustomFieldMap and Validation
+
+Template builders validate that every `fieldNames` entry has a corresponding key in `customFields`. If a field name is referenced but missing from the map, a `RuleConfigError` is thrown.
+
+```typescript
+// Custom field IDs are account-specific — look them up via GET /api/v2/customizations
+const myFields: CustomFieldMap = {
+  'Order.CustomerName': 169233,
+  'Order.OrderRef': 169234,
+  'Order.Total': 169235,
+};
+
+// For new accounts where fields don't exist yet, use 0 as a placeholder ID.
+// The templates will be created but merge fields won't resolve until real IDs are set.
+const placeholderFields: CustomFieldMap = {
+  'Order.CustomerName': 0,
+  'Order.OrderRef': 0,
+  'Order.Total': 0,
+};
+```
 
 const template = createBrandTemplate({
   brandStyle: myBrand,
@@ -233,31 +301,113 @@ Also available: `createReservationCancellationEmail`, `createReservationReminder
 
 #### E-Commerce (Online Stores)
 
+All e-commerce templates require `brandStyle`, `customFields`, `text`, and `fieldNames`. The `text` and `fieldNames` objects have **no defaults** — all fields listed below as required must be provided.
+
+##### `createOrderConfirmationEmail`
+
 ```typescript
 import { createOrderConfirmationEmail } from 'rule-io-sdk';
 
 const email = createOrderConfirmationEmail({
   brandStyle: myBrand,
   customFields: myFields,
-  websiteUrl: 'https://myshop.com',
+  websiteUrl: 'https://myshop.com',      // Used for CTA button link
+  footer: { /* optional FooterConfig */ },
   text: {
-    preheader: 'Your order has been confirmed!',
-    greeting: 'Hi',
-    intro: 'Thank you for your order.',
-    detailsHeading: 'Order Summary',
-    orderRefLabel: 'Order',
-    totalLabel: 'Total',
-    ctaButton: 'View Order',
+    preheader: 'Your order has been confirmed!',  // required
+    greeting: 'Hi',                                // required
+    intro: 'Thank you for your order.',            // required
+    detailsHeading: 'Order Summary',               // required
+    orderRefLabel: 'Order',                        // required
+    totalLabel: 'Total',                           // required
+    itemsLabel: 'Items',                           // optional
+    shippingLabel: 'Ships to',                     // optional
+    ctaButton: 'View Order',                       // required
   },
   fieldNames: {
-    firstName: 'Order.CustomerName',
-    orderRef: 'Order.OrderRef',
-    totalPrice: 'Order.Total',
+    firstName: 'Order.CustomerName',    // required
+    orderRef: 'Order.OrderRef',         // required
+    totalPrice: 'Order.Total',          // required
+    items: 'Order.Items',              // optional (needs itemsLabel)
+    shippingAddress: 'Order.Address',  // optional (needs shippingLabel)
   },
 });
 ```
 
-Also available: `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`.
+##### `createShippingUpdateEmail`
+
+```typescript
+import { createShippingUpdateEmail } from 'rule-io-sdk';
+
+const email = createShippingUpdateEmail({
+  brandStyle: myBrand,
+  customFields: myFields,
+  trackingUrl: 'https://myshop.com/tracking',  // Used for CTA button link
+  text: {
+    preheader: 'Your order is on its way!',     // required
+    heading: 'Shipping Update',                  // required
+    greeting: 'Hi',                              // required
+    message: 'Your order has been shipped.',     // required
+    orderRefLabel: 'Order',                      // required
+    trackingLabel: 'Tracking',                   // optional
+    estimatedDeliveryLabel: 'Estimated delivery', // optional
+    ctaButton: 'Track Package',                  // required
+  },
+  fieldNames: {
+    firstName: 'Order.CustomerName',         // required
+    orderRef: 'Order.OrderRef',              // required
+    trackingNumber: 'Order.TrackingNumber',  // optional (needs trackingLabel)
+    estimatedDelivery: 'Order.EstDelivery',  // optional (needs estimatedDeliveryLabel)
+  },
+});
+```
+
+##### `createAbandonedCartEmail`
+
+```typescript
+import { createAbandonedCartEmail } from 'rule-io-sdk';
+
+const email = createAbandonedCartEmail({
+  brandStyle: myBrand,
+  customFields: myFields,
+  cartUrl: 'https://myshop.com/cart',  // Used for CTA button link
+  text: {
+    preheader: 'Your cart is waiting for you',   // required
+    greeting: 'Hi',                               // required
+    message: 'You left some items in your cart.', // required
+    reminder: 'Complete your purchase!',           // required
+    ctaButton: 'Return to Cart',                  // required
+  },
+  fieldNames: {
+    firstName: 'Order.CustomerName',  // required
+  },
+});
+```
+
+##### `createOrderCancellationEmail`
+
+```typescript
+import { createOrderCancellationEmail } from 'rule-io-sdk';
+
+const email = createOrderCancellationEmail({
+  brandStyle: myBrand,
+  customFields: myFields,
+  websiteUrl: 'https://myshop.com',  // Used for CTA button link
+  text: {
+    preheader: 'Your order has been cancelled',  // required
+    heading: 'Order Cancelled',                   // required
+    greeting: 'Hi',                               // required
+    message: 'Your order has been cancelled.',    // required
+    orderRefLabel: 'Order',                       // required
+    followUp: 'Contact us with any questions.',   // required
+    ctaButton: 'Visit Store',                     // required
+  },
+  fieldNames: {
+    firstName: 'Order.CustomerName',  // required
+    orderRef: 'Order.OrderRef',       // required
+  },
+});
+```
 
 ## Automation Workflows (v3 API)
 
@@ -276,6 +426,35 @@ console.log('Created:', result.automailId, result.messageId, result.templateId);
 ```
 
 The high-level `createAutomationEmail` helper handles the full 4-step process (automail → message → template → dynamic set) and cleans up on failure.
+
+### Prerequisites
+
+**Trigger tags must exist before creating automations.** The SDK looks up the tag ID by name via `getTagIdByName()`. If the tag doesn't exist on the account, automation creation will fail with a 404 error.
+
+Create tags beforehand using the v2 API:
+
+```typescript
+// Option 1: Use addSubscriberTags (creates tags as a side effect)
+await client.addSubscriberTags('setup@example.com', ['order-confirmed', 'shipping-update'], false);
+
+// Option 2: Create tags via the v2 REST API directly
+await fetch(`${baseUrlV2}/tags`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ tags: ['order-confirmed', 'shipping-update'] }),
+});
+```
+
+### Return Value
+
+```typescript
+interface CreateAutomationEmailResult {
+  automailId: number;
+  messageId: number;
+  templateId: number;
+  dynamicSetId: number;
+}
+```
 
 ## Tags
 
