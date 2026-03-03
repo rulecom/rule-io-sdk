@@ -15,7 +15,7 @@
  * await client.syncSubscriber({
  *   email: 'customer@example.com',
  *   fields: { FirstName: 'Anna', OrderRef: 'ORD-123' },
- *   tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
+ *   tags: [RuleTags.ORDER_COMPLETED, RuleTags.NEWSLETTER],
  * });
  * ```
  *

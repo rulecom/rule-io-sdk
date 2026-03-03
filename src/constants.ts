@@ -18,21 +18,16 @@ export const RULE_API_V3_BASE_URL = 'https://app.rule.io/api/v3';
  * ```typescript
  * await client.syncSubscriber({
  *   email: 'customer@example.com',
- *   tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
+ *   tags: [RuleTags.ORDER_COMPLETED, RuleTags.NEW_CUSTOMER],
  * });
  * ```
  */
 export const RuleTags = {
-  // Order lifecycle (generic e-commerce)
-  ORDER_STARTED: 'order-started',
-  ORDER_PENDING: 'order-pending',
-  ORDER_CONFIRMED: 'order-confirmed',
-  ORDER_CANCELLED: 'order-cancelled',
-  ORDER_REMINDER: 'order-reminder',
-  ORDER_COMPLETED: 'order-completed',
-  CART_ABANDONED: 'cart-abandoned',
-  SHIPPING_UPDATE: 'shipping-update',
-  REVIEW_REQUEST: 'review-request',
+  // Order lifecycle — matches Shopify preset tags
+  CART_IN_PROGRESS: 'CartInProgress',
+  ORDER_SHIPPED: 'OrderShipped',
+  ORDER_COMPLETED: 'OrderCompleted',
+  NEWSLETTER: 'Newsletter',
 
   // Hospitality-specific
   ACCOMMODATION: 'accommodation',
