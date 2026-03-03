@@ -316,14 +316,20 @@ describe('RuleClient', () => {
         })
       );
 
-      const rcmlDoc = { tagName: 'rcml', children: [{ tagName: 'section', children: [] }] };
+      const rcmlDoc = {
+        tagName: 'rcml',
+        children: [
+          { tagName: 'rc-head', children: [] },
+          { tagName: 'rc-body', children: [] },
+        ],
+      };
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await client.createTemplate({
         message_id: 1,
         name: 'Test Template',
         message_type: 'email',
-        template: rcmlDoc as any,
+        template: rcmlDoc,
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);

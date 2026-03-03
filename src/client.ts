@@ -705,10 +705,10 @@ export class RuleClient {
    * @example
    * ```typescript
    * const result = await client.createAutomationEmail({
-   *   name: 'Order Confirmation',
+   *   name: 'Order Completed',
    *   triggerType: 'tag',
    *   triggerValue: 'OrderCompleted',
-   *   subject: 'Your order is confirmed!',
+   *   subject: 'Your order is complete!',
    *   template: createOrderConfirmationEmail(config),
    * });
    * // result.automailId, result.messageId, result.templateId

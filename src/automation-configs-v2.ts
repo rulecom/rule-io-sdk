@@ -35,12 +35,12 @@ export interface TemplateConfigV2 {
  * import { RuleTags, createOrderConfirmationEmail } from 'rule-io-sdk';
  * import type { AutomationConfigV2 } from 'rule-io-sdk';
  *
- * const confirmationAutomation: AutomationConfigV2 = {
- *   id: 'order-confirmation',
- *   name: 'Order Confirmation',
- *   description: 'Sent when an order is confirmed',
+ * const completedAutomation: AutomationConfigV2 = {
+ *   id: 'order-completed',
+ *   name: 'Order Completed',
+ *   description: 'Sent when an order is completed',
  *   triggerTag: RuleTags.ORDER_COMPLETED,
- *   subject: 'Your order is confirmed!',
+ *   subject: 'Your order is complete!',
  *   templateBuilder: (config) => createOrderConfirmationEmail({
  *     brandStyle: config.brandStyle,
  *     customFields: config.customFields,
