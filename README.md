@@ -22,7 +22,7 @@ npm install rule-io-sdk
 If the package isn't published to npm yet, install directly from GitHub:
 
 ```bash
-npm install github:Bookzen-app/rule-io-sdk
+npm install github:swesam/rule-io-sdk
 ```
 
 The `prepare` script will automatically build the TypeScript source on install.
@@ -434,10 +434,7 @@ The high-level `createAutomationEmail` helper handles the full 4-step process (a
 Create tags beforehand using the v2 API:
 
 ```typescript
-// Option 1: Use addSubscriberTags (creates tags as a side effect)
-await client.addSubscriberTags('setup@example.com', ['order-confirmed', 'shipping-update'], false);
-
-// Option 2: Create tags via the v2 REST API directly
+// Create tags via the v2 REST API directly
 await fetch(`${baseUrlV2}/tags`, {
   method: 'POST',
   headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
