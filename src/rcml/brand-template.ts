@@ -28,9 +28,17 @@
  *    Each Rule.io account has different field IDs.
  */
 
+import crypto from 'node:crypto';
 import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
+
+/**
+ * Generate a unique UUID v4 for RCML node identification.
+ */
+function generateId(): string {
+  return crypto.randomUUID();
+}
 
 // ============================================================================
 // Custom Field Definitions
@@ -220,6 +228,7 @@ export function createBrandHead(
 
   return {
     tagName: 'rc-head',
+    id: generateId(),
     children: [
       // Brand style reference (required for editor)
       {
@@ -423,6 +432,7 @@ export interface SimpleTemplateConfig {
 export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument {
   return {
     tagName: 'rcml',
+    id: generateId(),
     children: [
       createBrandHead(config.brandStyle, {
         preheader: config.preheader,
@@ -430,6 +440,7 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
       }),
       {
         tagName: 'rc-body',
+        id: generateId(),
         children: config.sections,
       },
     ],
@@ -442,13 +453,19 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 
 /**
  * Create a logo element using brand style.
+ *
+ * @param logoUrl - Direct logo URL for the logo image.
  */
-export function createBrandLogo(): RCMLDocument['children'][1]['children'][0] {
+export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
+  const sanitizedSrc = sanitizeUrl(logoUrl);
+
   return {
     tagName: 'rc-section',
+    id: generateId(),
     children: [
       {
         tagName: 'rc-column',
+        id: generateId(),
         attributes: {
           padding: '0 20px',
           'padding-on-mobile': '0 20px',
@@ -456,8 +473,10 @@ export function createBrandLogo(): RCMLDocument['children'][1]['children'][0] {
         children: [
           {
             tagName: 'rc-logo',
+            id: generateId(),
             attributes: {
-              'rc-class': 'rcml-logo-style',
+              'rc-class': 'rcml-logo-style rc-initial-logo',
+              ...(sanitizedSrc && { src: sanitizedSrc }),
               width: '96px',
               padding: '20px 0',
               'padding-on-mobile': '20px 0',
@@ -475,9 +494,10 @@ export function createBrandLogo(): RCMLDocument['children'][1]['children'][0] {
 export function createBrandHeading(
   content: RCMLProseMirrorDoc,
   level: 1 | 2 | 3 | 4 = 1
-): { tagName: 'rc-heading'; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): { tagName: 'rc-heading'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
   return {
     tagName: 'rc-heading',
+    id: generateId(),
     attributes: {
       'rc-class': `rcml-h${level}-style`,
     },
@@ -491,9 +511,10 @@ export function createBrandHeading(
 export function createBrandText(
   content: RCMLProseMirrorDoc,
   options?: { align?: 'left' | 'center' | 'right'; padding?: string }
-): { tagName: 'rc-text'; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): { tagName: 'rc-text'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
   return {
     tagName: 'rc-text',
+    id: generateId(),
     attributes: {
       'rc-class': 'rcml-p-style',
       ...(options?.align && { align: options.align }),
@@ -509,7 +530,7 @@ export function createBrandText(
 export function createBrandButton(
   content: RCMLProseMirrorDoc,
   href: string
-): { tagName: 'rc-button'; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): { tagName: 'rc-button'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
   const sanitizedHref = sanitizeUrl(href);
   if (!sanitizedHref) {
     throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
@@ -517,6 +538,7 @@ export function createBrandButton(
 
   return {
     tagName: 'rc-button',
+    id: generateId(),
     attributes: {
       href: sanitizedHref,
       align: 'center',
@@ -545,6 +567,7 @@ export function createContentSection(
 ): RCMLDocument['children'][1]['children'][0] {
   return {
     tagName: 'rc-section',
+    id: generateId(),
     attributes: {
       ...(options?.padding && { padding: options.padding }),
       ...(options?.backgroundColor && { 'background-color': options.backgroundColor }),
@@ -552,6 +575,7 @@ export function createContentSection(
     children: [
       {
         tagName: 'rc-column',
+        id: generateId(),
         attributes: { padding: '0 20px' },
         children:
           children as unknown as RCMLDocument['children'][1]['children'][0]['children'][0]['children'],
@@ -602,6 +626,7 @@ export function createFooterSection(
 
   return {
     tagName: 'rc-section',
+    id: generateId(),
     attributes: {
       padding: '20px 0px 20px 0px',
       'background-color': bgColor,
@@ -609,6 +634,7 @@ export function createFooterSection(
     children: [
       {
         tagName: 'rc-column',
+        id: generateId(),
         attributes: {
           padding: '0 20px',
           'padding-on-mobile': '0 20px',
@@ -616,6 +642,7 @@ export function createFooterSection(
         children: [
           {
             tagName: 'rc-text',
+            id: generateId(),
             attributes: {
               align: 'center',
               padding: '0px 0px 10px 0px',

@@ -243,7 +243,7 @@ describe('Brand Template Utilities', () => {
 
   describe('createBrandLogo', () => {
     it('should create a logo element', () => {
-      const logo = createBrandLogo();
+      const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456');
       expect(logo.tagName).toBe('rc-section');
     });
   });
