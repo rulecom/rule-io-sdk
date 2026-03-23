@@ -177,19 +177,28 @@ describe('Brand Template Utilities', () => {
         ],
       });
 
-      // Collect all IDs from the tree
+      // Collect all IDs and assert every RCML node has one
       const ids: string[] = [];
-      function collectIds(node: Record<string, unknown>): void {
-        if (node.id) ids.push(node.id as string);
-        if (Array.isArray(node.children)) {
-          node.children.forEach((child: Record<string, unknown>) => collectIds(child));
+      function traverse(node: unknown): void {
+        if (!node || typeof node !== 'object') return;
+        const n = node as Record<string, unknown>;
+
+        if (typeof n.tagName === 'string') {
+          expect(n.id, `RCML node <${n.tagName}> is missing an id`).toBeDefined();
+          ids.push(String(n.id));
+        }
+
+        for (const value of Object.values(n)) {
+          if (Array.isArray(value)) {
+            value.forEach((child) => traverse(child));
+          } else if (value && typeof value === 'object') {
+            traverse(value);
+          }
         }
       }
-      collectIds(doc as unknown as Record<string, unknown>);
+      traverse(doc as unknown);
 
-      // Every node with a tagName should have an id
       expect(ids.length).toBeGreaterThan(0);
-      // All IDs should be unique
       expect(new Set(ids).size).toBe(ids.length);
     });
   });

@@ -233,30 +233,36 @@ export function createBrandHead(
       // Brand style reference (required for editor)
       {
         tagName: 'rc-brand-style',
+        id: generateId(),
         attributes: { id: brandStyle.brandStyleId },
       },
       // Full brand style attributes
       {
         tagName: 'rc-attributes',
+        id: generateId(),
         children: [
           // Body default
           {
             tagName: 'rc-body',
+            id: generateId(),
             attributes: { 'background-color': brandStyle.bodyBackgroundColor },
           },
           // Section default
           {
             tagName: 'rc-section',
+            id: generateId(),
             attributes: { 'background-color': brandStyle.sectionBackgroundColor },
           },
           // Button default
           {
             tagName: 'rc-button',
+            id: generateId(),
             attributes: { 'background-color': brandStyle.buttonColor },
           },
           // Logo style class
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-logo-style',
               src: sanitizedLogoUrl,
@@ -265,6 +271,7 @@ export function createBrandHead(
           // Brand color class
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-brand-color',
               'background-color': brandStyle.brandColor,
@@ -273,6 +280,7 @@ export function createBrandHead(
           // Paragraph style
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-p-style',
               'font-family': brandStyle.bodyFont,
@@ -288,6 +296,7 @@ export function createBrandHead(
           // H1 style
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-h1-style',
               'font-family': brandStyle.headingFont,
@@ -303,6 +312,7 @@ export function createBrandHead(
           // H2 style
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-h2-style',
               'font-family': brandStyle.headingFont,
@@ -318,6 +328,7 @@ export function createBrandHead(
           // H3 style
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-h3-style',
               'font-family': brandStyle.headingFont,
@@ -333,6 +344,7 @@ export function createBrandHead(
           // H4 style
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-h4-style',
               'font-family': brandStyle.headingFont,
@@ -348,6 +360,7 @@ export function createBrandHead(
           // Label style (for buttons)
           {
             tagName: 'rc-class',
+            id: generateId(),
             attributes: {
               name: 'rcml-label-style',
               'font-family': brandStyle.bodyFont,
@@ -365,11 +378,13 @@ export function createBrandHead(
       // Preview/preheader
       {
         tagName: 'rc-preview',
+        id: generateId(),
         ...(options?.preheader ? { content: options.preheader } : {}),
       },
       // Plain text fallback
       {
         tagName: 'rc-plain-text',
+        id: generateId(),
         content: {
           type: 'text' as const,
           text: plainTextContent,
@@ -378,6 +393,7 @@ export function createBrandHead(
       // Font definitions
       {
         tagName: 'rc-font',
+        id: generateId(),
         attributes: {
           name: brandStyle.headingFont.split(',')[0].trim(),
           href: sanitizedHeadingFontUrl,
@@ -385,6 +401,7 @@ export function createBrandHead(
       },
       {
         tagName: 'rc-font',
+        id: generateId(),
         attributes: {
           name: brandStyle.bodyFont.split(',')[0].trim(),
           href: sanitizedBodyFontUrl,
