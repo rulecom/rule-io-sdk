@@ -165,6 +165,33 @@ describe('Brand Template Utilities', () => {
       );
       expect(brandStyleEl).toBeDefined();
     });
+
+    it('should assign IDs to all RCML elements', () => {
+      const doc = createBrandTemplate({
+        brandStyle: TEST_BRAND_STYLE,
+        preheader: 'Test',
+        sections: [
+          createContentSection([
+            createBrandText(createDocWithPlaceholders([createTextNode('Hello')])),
+          ]),
+        ],
+      });
+
+      // Collect all IDs from the tree
+      const ids: string[] = [];
+      function collectIds(node: Record<string, unknown>): void {
+        if (node.id) ids.push(node.id as string);
+        if (Array.isArray(node.children)) {
+          node.children.forEach((child: Record<string, unknown>) => collectIds(child));
+        }
+      }
+      collectIds(doc as unknown as Record<string, unknown>);
+
+      // Every node with a tagName should have an id
+      expect(ids.length).toBeGreaterThan(0);
+      // All IDs should be unique
+      expect(new Set(ids).size).toBe(ids.length);
+    });
   });
 
   describe('createBrandHead', () => {

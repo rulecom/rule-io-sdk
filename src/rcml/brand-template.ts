@@ -28,7 +28,7 @@
  *    Each Rule.io account has different field IDs.
  */
 
-import crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
@@ -37,7 +37,7 @@ import { sanitizeUrl } from './utils';
  * Generate a unique UUID v4 for RCML node identification.
  */
 function generateId(): string {
-  return crypto.randomUUID();
+  return randomUUID();
 }
 
 // ============================================================================
