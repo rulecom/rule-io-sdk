@@ -133,7 +133,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(),
+      createBrandLogo(config.brandStyle.logoUrl),
 
       createContentSection(
         [
@@ -247,7 +247,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(),
+      createBrandLogo(config.brandStyle.logoUrl),
 
       createContentSection(
         [
@@ -314,7 +314,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(),
+      createBrandLogo(config.brandStyle.logoUrl),
 
       createContentSection(
         [
@@ -387,7 +387,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(),
+      createBrandLogo(config.brandStyle.logoUrl),
 
       createContentSection(
         [

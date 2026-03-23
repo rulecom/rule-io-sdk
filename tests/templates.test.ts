@@ -165,6 +165,42 @@ describe('Brand Template Utilities', () => {
       );
       expect(brandStyleEl).toBeDefined();
     });
+
+    it('should assign IDs to all RCML elements', () => {
+      const doc = createBrandTemplate({
+        brandStyle: TEST_BRAND_STYLE,
+        preheader: 'Test',
+        sections: [
+          createContentSection([
+            createBrandText(createDocWithPlaceholders([createTextNode('Hello')])),
+          ]),
+        ],
+      });
+
+      // Collect all IDs and assert every RCML node has one
+      const ids: string[] = [];
+      function traverse(node: unknown): void {
+        if (!node || typeof node !== 'object') return;
+        const n = node as Record<string, unknown>;
+
+        if (typeof n.tagName === 'string') {
+          expect(n.id, `RCML node <${n.tagName}> is missing an id`).toBeDefined();
+          ids.push(String(n.id));
+        }
+
+        for (const value of Object.values(n)) {
+          if (Array.isArray(value)) {
+            value.forEach((child) => traverse(child));
+          } else if (value && typeof value === 'object') {
+            traverse(value);
+          }
+        }
+      }
+      traverse(doc as unknown);
+
+      expect(ids.length).toBeGreaterThan(0);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
   });
 
   describe('createBrandHead', () => {
@@ -242,9 +278,36 @@ describe('Brand Template Utilities', () => {
   });
 
   describe('createBrandLogo', () => {
-    it('should create a logo element', () => {
-      const logo = createBrandLogo();
+    it('should create a logo element with correct structure', () => {
+      const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456');
       expect(logo.tagName).toBe('rc-section');
+      expect(logo.id).toBeDefined();
+
+      // Check column
+      const column = logo.children[0];
+      expect(column.tagName).toBe('rc-column');
+      expect(column.id).toBeDefined();
+
+      // Check rc-logo
+      const rcLogo = column.children[0];
+      expect(rcLogo.tagName).toBe('rc-logo');
+      expect(rcLogo.id).toBeDefined();
+      expect(rcLogo.attributes?.['rc-class']).toBe('rcml-logo-style rc-initial-logo');
+      expect(rcLogo.attributes?.src).toBe('https://app.rule.io/brand-style/123/image/456');
+    });
+
+    it('should generate unique IDs across nodes', () => {
+      const logo = createBrandLogo('https://example.com/logo.png');
+      const ids = [logo.id, logo.children[0].id, logo.children[0].children[0].id];
+      expect(new Set(ids).size).toBe(3);
+    });
+
+    it('should throw RuleConfigError for unsafe logoUrl', () => {
+      expect(() => createBrandLogo('javascript:alert(1)')).toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for empty logoUrl', () => {
+      expect(() => createBrandLogo('')).toThrow(RuleConfigError);
     });
   });
 
