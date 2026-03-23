@@ -458,6 +458,9 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
  */
 export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
   const sanitizedSrc = sanitizeUrl(logoUrl);
+  if (!sanitizedSrc) {
+    throw new RuleConfigError('createBrandLogo: invalid or unsafe logoUrl');
+  }
 
   return {
     tagName: 'rc-section',
@@ -476,7 +479,7 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
             id: generateId(),
             attributes: {
               'rc-class': 'rcml-logo-style rc-initial-logo',
-              ...(sanitizedSrc && { src: sanitizedSrc }),
+              src: sanitizedSrc,
               width: '96px',
               padding: '20px 0',
               'padding-on-mobile': '20px 0',

@@ -180,7 +180,7 @@ const template = createBrandTemplate({
   brandStyle: myBrand,
   preheader: 'Your order is confirmed!',
   sections: [
-    createBrandLogo(),
+    createBrandLogo(myBrand.logoUrl),
     createContentSection([
       createBrandHeading(createDocWithPlaceholders([
         createTextNode('Thank you, '),

@@ -242,9 +242,36 @@ describe('Brand Template Utilities', () => {
   });
 
   describe('createBrandLogo', () => {
-    it('should create a logo element', () => {
+    it('should create a logo element with correct structure', () => {
       const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456');
       expect(logo.tagName).toBe('rc-section');
+      expect(logo.id).toBeDefined();
+
+      // Check column
+      const column = logo.children[0];
+      expect(column.tagName).toBe('rc-column');
+      expect(column.id).toBeDefined();
+
+      // Check rc-logo
+      const rcLogo = column.children[0];
+      expect(rcLogo.tagName).toBe('rc-logo');
+      expect(rcLogo.id).toBeDefined();
+      expect(rcLogo.attributes?.['rc-class']).toBe('rcml-logo-style rc-initial-logo');
+      expect(rcLogo.attributes?.src).toBe('https://app.rule.io/brand-style/123/image/456');
+    });
+
+    it('should generate unique IDs across nodes', () => {
+      const logo = createBrandLogo('https://example.com/logo.png');
+      const ids = [logo.id, logo.children[0].id, logo.children[0].children[0].id];
+      expect(new Set(ids).size).toBe(3);
+    });
+
+    it('should throw RuleConfigError for unsafe logoUrl', () => {
+      expect(() => createBrandLogo('javascript:alert(1)')).toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError for empty logoUrl', () => {
+      expect(() => createBrandLogo('')).toThrow(RuleConfigError);
     });
   });
 
