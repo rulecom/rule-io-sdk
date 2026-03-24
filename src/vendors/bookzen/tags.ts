@@ -20,9 +20,19 @@ import type { VendorTagSchema } from '../types';
  * ```
  */
 export const BOOKZEN_TAGS = {
+  /** Service type tags — used for segmentation */
   accommodation: 'accommodation',
   restaurant: 'restaurant',
   experience: 'experience',
+
+  /** Lifecycle tags — each triggers a distinct automation */
+  reservationConfirmed: 'reservation-confirmed',
+  reservationCancelled: 'reservation-cancelled',
+  reservationReminder: 'reservation-reminder',
+  feedbackRequest: 'feedback-request',
+  reservationRequest: 'reservation-request',
+
+  /** Customer segmentation */
   newCustomer: 'new-customer',
   returningCustomer: 'returning-customer',
 } as const satisfies VendorTagSchema;

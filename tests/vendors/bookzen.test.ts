@@ -137,6 +137,12 @@ describe('bookzenPreset', () => {
       expect(new Set(ids).size).toBe(ids.length);
     });
 
+    it('returns automations with unique trigger tags', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const triggerTags = automations.map((a) => a.triggerTag);
+      expect(new Set(triggerTags).size).toBe(triggerTags.length);
+    });
+
     it('all automations have trigger tags from BOOKZEN_TAGS', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
       const validTags = new Set(Object.values(BOOKZEN_TAGS));
