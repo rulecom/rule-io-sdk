@@ -147,7 +147,7 @@ export interface VendorPreset<
   /** Human-readable vendor name */
   readonly displayName: string;
   /** Business vertical */
-  readonly vertical: 'ecommerce' | 'hospitality';
+  readonly vertical: 'ecommerce' | 'hospitality' | (string & {});
 
   /**
    * The field names this vendor uses in Rule.io.

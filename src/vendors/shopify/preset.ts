@@ -43,9 +43,21 @@ const FIELD_DESCRIPTIONS: Record<ShopifyFieldNames, string> = {
   currency: 'Order currency code',
 };
 
+/** Fields actually used by the shipped automations (required in customFields). */
+const REQUIRED_FIELDS: readonly ShopifyFieldNames[] = [
+  'customerFirstName',
+  'orderRef',
+  'totalPrice',
+  'items',
+  'shippingAddress',
+  'trackingNumber',
+  'estimatedDelivery',
+];
+
 function validateShopifyConfig(config: VendorConsumerConfig): void {
   const missingFields: string[] = [];
-  for (const [logicalName, fieldName] of Object.entries(SHOPIFY_FIELDS)) {
+  for (const logicalName of REQUIRED_FIELDS) {
+    const fieldName = SHOPIFY_FIELDS[logicalName];
     if (config.customFields[fieldName] === undefined) {
       missingFields.push(`${logicalName} ("${fieldName}")`);
     }
@@ -99,10 +111,10 @@ export const shopifyPreset: VendorPreset<ShopifyFieldSchema, ShopifyTagSchema> =
   validateConfig: validateShopifyConfig,
 
   getRequiredFields(): readonly VendorFieldInfo[] {
-    return Object.entries(SHOPIFY_FIELDS).map(([logicalName, fieldName]) => ({
+    return REQUIRED_FIELDS.map((logicalName) => ({
       logicalName,
-      fieldName,
-      description: FIELD_DESCRIPTIONS[logicalName as ShopifyFieldNames],
+      fieldName: SHOPIFY_FIELDS[logicalName],
+      description: FIELD_DESCRIPTIONS[logicalName],
     }));
   },
 };

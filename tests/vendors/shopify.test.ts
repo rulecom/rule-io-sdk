@@ -78,6 +78,23 @@ describe('shopifyPreset', () => {
       expect(() => shopifyPreset.validateConfig(TEST_CONFIG)).not.toThrow();
     });
 
+    it('passes without optional fields (customerEmail, currency)', () => {
+      const configWithoutOptional: VendorConsumerConfig = {
+        ...TEST_CONFIG,
+        customFields: {
+          [SHOPIFY_FIELDS.customerFirstName]: 200001,
+          [SHOPIFY_FIELDS.orderRef]: 200003,
+          [SHOPIFY_FIELDS.totalPrice]: 200004,
+          [SHOPIFY_FIELDS.items]: 200005,
+          [SHOPIFY_FIELDS.shippingAddress]: 200006,
+          [SHOPIFY_FIELDS.trackingNumber]: 200007,
+          [SHOPIFY_FIELDS.estimatedDelivery]: 200008,
+          // customerEmail and currency omitted
+        },
+      };
+      expect(() => shopifyPreset.validateConfig(configWithoutOptional)).not.toThrow();
+    });
+
     it('throws RuleConfigError when fields are missing', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
@@ -110,7 +127,8 @@ describe('shopifyPreset', () => {
     it('returns all fields with descriptions', () => {
       const fields = shopifyPreset.getRequiredFields();
 
-      expect(fields.length).toBe(Object.keys(SHOPIFY_FIELDS).length);
+      // Only fields used by automations are required (excludes customerEmail, currency)
+      expect(fields.length).toBe(7);
 
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
