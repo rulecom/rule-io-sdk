@@ -162,6 +162,29 @@ describe('shopifyPreset', () => {
       }
     });
 
+    it('templateBuilder honors TemplateConfigV2 overrides', () => {
+      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+      const orderConfirmation = automations.find(
+        (a) => a.id === 'shopify-order-confirmation'
+      )!;
+
+      const overriddenFields: CustomFieldMap = {
+        ...TEST_CUSTOM_FIELDS,
+        [SHOPIFY_FIELDS.orderRef]: 999999,
+      };
+
+      const doc = orderConfirmation.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: overriddenFields,
+        websiteUrl: 'https://override.example.com',
+      });
+      const json = JSON.stringify(doc);
+
+      // Should use the overridden field ID, not the original
+      expect(json).toContain('[CustomField:999999]');
+      expect(json).not.toContain('[CustomField:200003]');
+    });
+
     it('RCML contains Shopify field placeholders', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
       const orderConfirmation = automations.find(

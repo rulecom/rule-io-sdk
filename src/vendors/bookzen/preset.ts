@@ -23,7 +23,7 @@
  */
 
 import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '../types';
-import type { AutomationConfigV2 } from '../../automation-configs-v2';
+import type { AutomationConfigV2, TemplateConfigV2 } from '../../automation-configs-v2';
 import type { BookzenFieldNames } from './fields';
 import type { BookzenTagNames } from './tags';
 import { BOOKZEN_FIELDS } from './fields';
@@ -52,7 +52,8 @@ function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] 
     conditions: a.conditions,
     subject: a.subject,
     preheader: a.preheader,
-    templateBuilder: () => a.templateBuilder(config),
+    templateBuilder: (overrides: TemplateConfigV2) =>
+      a.templateBuilder({ ...config, ...overrides, customFields: { ...config.customFields, ...overrides.customFields } }),
   }));
 }
 

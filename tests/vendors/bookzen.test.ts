@@ -159,6 +159,29 @@ describe('bookzenPreset', () => {
       }
     });
 
+    it('templateBuilder honors TemplateConfigV2 overrides', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const confirmation = automations.find(
+        (a) => a.id === 'bookzen-reservation-confirmation'
+      )!;
+
+      const overriddenFields: CustomFieldMap = {
+        ...TEST_CUSTOM_FIELDS,
+        [BOOKZEN_FIELDS.bookingRef]: 999999,
+      };
+
+      const doc = confirmation.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: overriddenFields,
+        websiteUrl: 'https://override.example.com',
+      });
+      const json = JSON.stringify(doc);
+
+      // Should use the overridden field ID, not the original
+      expect(json).toContain('[CustomField:999999]');
+      expect(json).not.toContain('[CustomField:100002]');
+    });
+
     it('RCML contains Bookzen field placeholders', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
       const confirmation = automations.find(
