@@ -1,0 +1,244 @@
+/**
+ * Bookzen Vendor Preset Tests
+ */
+
+import { describe, it, expect } from 'vitest';
+import type { RCMLDocument } from '../../src/types';
+import type { BrandStyleConfig, CustomFieldMap } from '../../src/rcml';
+import type { VendorConsumerConfig } from '../../src/vendors/types';
+import { RuleConfigError } from '../../src/errors';
+import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '../../src/vendors/bookzen';
+
+// ============================================================================
+// Shared fixtures
+// ============================================================================
+
+const TEST_BRAND_STYLE: BrandStyleConfig = {
+  brandStyleId: '99999',
+  logoUrl: 'https://example.com/logo.png',
+  buttonColor: '#0066CC',
+  bodyBackgroundColor: '#f3f3f3',
+  sectionBackgroundColor: '#ffffff',
+  brandColor: '#f6f8f9',
+  headingFont: "'Helvetica Neue', sans-serif",
+  headingFontUrl: 'https://app.rule.io/brand-style/99999/font/1/css',
+  bodyFont: "'Arial', sans-serif",
+  bodyFontUrl: 'https://app.rule.io/brand-style/99999/font/2/css',
+  textColor: '#1A1A1A',
+};
+
+const TEST_CUSTOM_FIELDS: CustomFieldMap = {
+  [BOOKZEN_FIELDS.guestFirstName]: 100001,
+  [BOOKZEN_FIELDS.bookingRef]: 100002,
+  [BOOKZEN_FIELDS.serviceType]: 100003,
+  [BOOKZEN_FIELDS.checkInDate]: 100004,
+  [BOOKZEN_FIELDS.checkOutDate]: 100005,
+  [BOOKZEN_FIELDS.totalGuests]: 100006,
+  [BOOKZEN_FIELDS.totalPrice]: 100007,
+  [BOOKZEN_FIELDS.roomName]: 100008,
+};
+
+const TEST_CONFIG: VendorConsumerConfig = {
+  brandStyle: TEST_BRAND_STYLE,
+  customFields: TEST_CUSTOM_FIELDS,
+  websiteUrl: 'https://myhotel.example.com',
+};
+
+function assertValidRCMLDocument(doc: RCMLDocument): void {
+  expect(doc.tagName).toBe('rcml');
+  expect(doc.children).toHaveLength(2);
+  expect(doc.children[0].tagName).toBe('rc-head');
+  expect(doc.children[1].tagName).toBe('rc-body');
+  expect(doc.children[1].children.length).toBeGreaterThan(0);
+}
+
+// ============================================================================
+// Preset metadata
+// ============================================================================
+
+describe('bookzenPreset', () => {
+  it('has correct vendor metadata', () => {
+    expect(bookzenPreset.vendor).toBe('bookzen');
+    expect(bookzenPreset.displayName).toBe('Bookzen');
+    expect(bookzenPreset.vertical).toBe('hospitality');
+  });
+
+  it('exposes field and tag schemas', () => {
+    expect(bookzenPreset.fields).toBe(BOOKZEN_FIELDS);
+    expect(bookzenPreset.tags).toBe(BOOKZEN_TAGS);
+  });
+
+  // ============================================================================
+  // Validation
+  // ============================================================================
+
+  describe('validateConfig', () => {
+    it('passes with all required fields', () => {
+      expect(() => bookzenPreset.validateConfig(TEST_CONFIG)).not.toThrow();
+    });
+
+    it('throws RuleConfigError when fields are missing', () => {
+      const incompleteConfig: VendorConsumerConfig = {
+        ...TEST_CONFIG,
+        customFields: {
+          [BOOKZEN_FIELDS.guestFirstName]: 100001,
+        },
+      };
+
+      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(RuleConfigError);
+    });
+
+    it('error message lists the missing fields', () => {
+      const incompleteConfig: VendorConsumerConfig = {
+        ...TEST_CONFIG,
+        customFields: {},
+      };
+
+      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(
+        /bookzenPreset.*guestFirstName/
+      );
+    });
+  });
+
+  // ============================================================================
+  // getRequiredFields
+  // ============================================================================
+
+  describe('getRequiredFields', () => {
+    it('returns all fields with descriptions', () => {
+      const fields = bookzenPreset.getRequiredFields();
+
+      expect(fields.length).toBe(Object.keys(BOOKZEN_FIELDS).length);
+
+      for (const field of fields) {
+        expect(field.logicalName).toBeTruthy();
+        expect(field.fieldName).toBeTruthy();
+        expect(field.description).toBeTruthy();
+        expect(BOOKZEN_FIELDS[field.logicalName as keyof typeof BOOKZEN_FIELDS]).toBe(
+          field.fieldName
+        );
+      }
+    });
+  });
+
+  // ============================================================================
+  // getAutomations
+  // ============================================================================
+
+  describe('getAutomations', () => {
+    it('returns 5 automations', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      expect(automations).toHaveLength(5);
+    });
+
+    it('returns automations with unique IDs', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const ids = automations.map((a) => a.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+
+    it('all automations have trigger tags from BOOKZEN_TAGS', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const validTags = new Set(Object.values(BOOKZEN_TAGS));
+
+      for (const automation of automations) {
+        expect(validTags.has(automation.triggerTag)).toBe(true);
+      }
+    });
+
+    it('all automations produce valid RCML documents', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+
+      for (const automation of automations) {
+        const doc = automation.templateBuilder({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://myhotel.example.com',
+        });
+        assertValidRCMLDocument(doc);
+      }
+    });
+
+    it('RCML contains Bookzen field placeholders', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const confirmation = automations.find(
+        (a) => a.id === 'bookzen-reservation-confirmation'
+      )!;
+
+      const doc = confirmation.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://myhotel.example.com',
+      });
+      const json = JSON.stringify(doc);
+
+      expect(json).toContain('[CustomField:100002]'); // bookingRef
+      expect(json).toContain('[CustomField:100004]'); // checkInDate
+    });
+
+    it('throws RuleConfigError for incomplete config', () => {
+      expect(() =>
+        bookzenPreset.getAutomations({
+          ...TEST_CONFIG,
+          customFields: {},
+        })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('reminder has a delay', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const reminder = automations.find((a) => a.id === 'bookzen-reservation-reminder')!;
+
+      expect(reminder.delayInSeconds).toBe('86400');
+    });
+
+    it('feedback request has a delay', () => {
+      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+      const feedback = automations.find((a) => a.id === 'bookzen-feedback-request')!;
+
+      expect(feedback.delayInSeconds).toBe('172800');
+    });
+  });
+
+  // ============================================================================
+  // getAutomation
+  // ============================================================================
+
+  describe('getAutomation', () => {
+    it('returns a single automation by ID', () => {
+      const automation = bookzenPreset.getAutomation(
+        'bookzen-reservation-confirmation',
+        TEST_CONFIG
+      );
+      expect(automation).toBeDefined();
+      expect(automation!.id).toBe('bookzen-reservation-confirmation');
+    });
+
+    it('returns undefined for unknown ID', () => {
+      const automation = bookzenPreset.getAutomation('nonexistent', TEST_CONFIG);
+      expect(automation).toBeUndefined();
+    });
+  });
+});
+
+// ============================================================================
+// Field and tag constants
+// ============================================================================
+
+describe('BOOKZEN_FIELDS', () => {
+  it('all values are non-empty strings', () => {
+    for (const value of Object.values(BOOKZEN_FIELDS)) {
+      expect(typeof value).toBe('string');
+      expect(value.length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe('BOOKZEN_TAGS', () => {
+  it('all values are non-empty strings', () => {
+    for (const value of Object.values(BOOKZEN_TAGS)) {
+      expect(typeof value).toBe('string');
+      expect(value.length).toBeGreaterThan(0);
+    }
+  });
+});

@@ -194,3 +194,26 @@ export {
 } from './automation-configs-v2';
 
 export type { AutomationConfigV2, TemplateConfigV2 } from './automation-configs-v2';
+
+// Vendor presets
+export {
+  shopifyPreset,
+  SHOPIFY_FIELDS,
+  SHOPIFY_TAGS,
+  bookzenPreset,
+  BOOKZEN_FIELDS,
+  BOOKZEN_TAGS,
+} from './vendors';
+
+export type {
+  VendorPreset,
+  VendorFieldSchema,
+  VendorTagSchema,
+  VendorConsumerConfig,
+  VendorAutomation,
+  VendorFieldInfo,
+  ShopifyFieldNames,
+  ShopifyTagNames,
+  BookzenFieldNames,
+  BookzenTagNames,
+} from './vendors';
