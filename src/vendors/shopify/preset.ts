@@ -23,7 +23,8 @@
  */
 
 import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '../types';
-import type { AutomationConfigV2, TemplateConfigV2 } from '../../automation-configs-v2';
+import { resolveVendorAutomations } from '../types';
+import type { AutomationConfigV2 } from '../../automation-configs-v2';
 import type { ShopifyFieldSchema, ShopifyFieldNames } from './fields';
 import type { ShopifyTagSchema } from './tags';
 import { SHOPIFY_FIELDS } from './fields';
@@ -70,18 +71,7 @@ function validateShopifyConfig(config: VendorConsumerConfig): void {
 }
 
 function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
-  return createShopifyAutomations().map((a) => ({
-    id: a.id,
-    name: a.name,
-    description: a.description,
-    triggerTag: a.triggerTag,
-    delayInSeconds: a.delayInSeconds,
-    conditions: a.conditions,
-    subject: a.subject,
-    preheader: a.preheader,
-    templateBuilder: (overrides: TemplateConfigV2) =>
-      a.templateBuilder({ ...config, ...overrides, customFields: { ...config.customFields, ...overrides.customFields } }),
-  }));
+  return resolveVendorAutomations(createShopifyAutomations(), config);
 }
 
 /**

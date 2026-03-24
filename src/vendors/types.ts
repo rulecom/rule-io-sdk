@@ -110,6 +110,41 @@ export interface VendorAutomation {
 }
 
 // ============================================================================
+// Shared Utilities
+// ============================================================================
+
+/**
+ * Resolve vendor automations into standard `AutomationConfigV2` objects.
+ *
+ * Maps each `VendorAutomation` to an `AutomationConfigV2` whose
+ * `templateBuilder` merges the caller's `TemplateConfigV2` overrides
+ * with the captured consumer config.
+ *
+ * @internal Used by vendor preset implementations.
+ */
+export function resolveVendorAutomations(
+  automations: VendorAutomation[],
+  config: VendorConsumerConfig,
+): AutomationConfigV2[] {
+  return automations.map((a) => ({
+    id: a.id,
+    name: a.name,
+    description: a.description,
+    triggerTag: a.triggerTag,
+    delayInSeconds: a.delayInSeconds,
+    conditions: a.conditions,
+    subject: a.subject,
+    preheader: a.preheader,
+    templateBuilder: (overrides: TemplateConfigV2) =>
+      a.templateBuilder({
+        ...config,
+        ...overrides,
+        customFields: { ...config.customFields, ...overrides.customFields },
+      }),
+  }));
+}
+
+// ============================================================================
 // Vendor Preset
 // ============================================================================
 
