@@ -34,4 +34,8 @@ export const SHOPIFY_FIELDS = {
   currency: 'Order.Currency',
 } as const satisfies VendorFieldSchema;
 
-export type ShopifyFieldNames = typeof SHOPIFY_FIELDS;
+/** Object type of the Shopify field schema. */
+export type ShopifyFieldSchema = typeof SHOPIFY_FIELDS;
+
+/** Union of logical Shopify field name keys. */
+export type ShopifyFieldNames = keyof ShopifyFieldSchema;

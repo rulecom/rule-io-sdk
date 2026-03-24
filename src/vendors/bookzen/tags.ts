@@ -37,4 +37,8 @@ export const BOOKZEN_TAGS = {
   returningCustomer: 'returning-customer',
 } as const satisfies VendorTagSchema;
 
-export type BookzenTagNames = typeof BOOKZEN_TAGS;
+/** Object type of the Bookzen tag schema. */
+export type BookzenTagSchema = typeof BOOKZEN_TAGS;
+
+/** Union of logical Bookzen tag name keys. */
+export type BookzenTagNames = keyof BookzenTagSchema;

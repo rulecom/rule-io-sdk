@@ -29,8 +29,8 @@ export type {
 
 // Shopify (e-commerce)
 export { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from './shopify';
-export type { ShopifyFieldNames, ShopifyTagNames } from './shopify';
+export type { ShopifyFieldSchema, ShopifyFieldNames, ShopifyTagSchema, ShopifyTagNames } from './shopify';
 
 // Bookzen (hospitality)
 export { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from './bookzen';
-export type { BookzenFieldNames, BookzenTagNames } from './bookzen';
+export type { BookzenFieldSchema, BookzenFieldNames, BookzenTagSchema, BookzenTagNames } from './bookzen';

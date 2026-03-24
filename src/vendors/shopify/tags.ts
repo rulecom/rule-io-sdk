@@ -29,4 +29,8 @@ export const SHOPIFY_TAGS = {
   returningCustomer: 'returning-customer',
 } as const satisfies VendorTagSchema;
 
-export type ShopifyTagNames = typeof SHOPIFY_TAGS;
+/** Object type of the Shopify tag schema. */
+export type ShopifyTagSchema = typeof SHOPIFY_TAGS;
+
+/** Union of logical Shopify tag name keys. */
+export type ShopifyTagNames = keyof ShopifyTagSchema;

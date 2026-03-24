@@ -212,8 +212,12 @@ export type {
   VendorConsumerConfig,
   VendorAutomation,
   VendorFieldInfo,
+  ShopifyFieldSchema,
   ShopifyFieldNames,
+  ShopifyTagSchema,
   ShopifyTagNames,
+  BookzenFieldSchema,
   BookzenFieldNames,
+  BookzenTagSchema,
   BookzenTagNames,
 } from './vendors';

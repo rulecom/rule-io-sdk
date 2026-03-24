@@ -7,5 +7,5 @@
 export { bookzenPreset } from './preset';
 export { BOOKZEN_FIELDS } from './fields';
 export { BOOKZEN_TAGS } from './tags';
-export type { BookzenFieldNames } from './fields';
-export type { BookzenTagNames } from './tags';
+export type { BookzenFieldSchema, BookzenFieldNames } from './fields';
+export type { BookzenTagSchema, BookzenTagNames } from './tags';

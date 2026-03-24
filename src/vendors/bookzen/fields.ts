@@ -32,4 +32,8 @@ export const BOOKZEN_FIELDS = {
   roomName: 'Booking.RoomName',
 } as const satisfies VendorFieldSchema;
 
-export type BookzenFieldNames = typeof BOOKZEN_FIELDS;
+/** Object type of the Bookzen field schema. */
+export type BookzenFieldSchema = typeof BOOKZEN_FIELDS;
+
+/** Union of logical Bookzen field name keys. */
+export type BookzenFieldNames = keyof BookzenFieldSchema;

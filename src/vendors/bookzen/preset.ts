@@ -24,14 +24,14 @@
 
 import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '../types';
 import type { AutomationConfigV2, TemplateConfigV2 } from '../../automation-configs-v2';
-import type { BookzenFieldNames } from './fields';
-import type { BookzenTagNames } from './tags';
+import type { BookzenFieldSchema, BookzenFieldNames } from './fields';
+import type { BookzenTagSchema } from './tags';
 import { BOOKZEN_FIELDS } from './fields';
 import { BOOKZEN_TAGS } from './tags';
 import { createBookzenAutomations } from './automations';
 import { RuleConfigError } from '../../errors';
 
-const FIELD_DESCRIPTIONS: Record<keyof BookzenFieldNames, string> = {
+const FIELD_DESCRIPTIONS: Record<BookzenFieldNames, string> = {
   guestFirstName: 'Guest first name',
   bookingRef: 'Booking reference number',
   serviceType: 'Service type (accommodation, restaurant, experience)',
@@ -41,6 +41,20 @@ const FIELD_DESCRIPTIONS: Record<keyof BookzenFieldNames, string> = {
   totalPrice: 'Total booking price',
   roomName: 'Room or table name',
 };
+
+function validateBookzenConfig(config: VendorConsumerConfig): void {
+  const missingFields: string[] = [];
+  for (const [logicalName, fieldName] of Object.entries(BOOKZEN_FIELDS)) {
+    if (config.customFields[fieldName] === undefined) {
+      missingFields.push(`${logicalName} ("${fieldName}")`);
+    }
+  }
+  if (missingFields.length > 0) {
+    throw new RuleConfigError(
+      `bookzenPreset: missing customFields entries for: ${missingFields.join(', ')}`
+    );
+  }
+}
 
 function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
   return createBookzenAutomations().map((a) => ({
@@ -64,7 +78,7 @@ function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] 
  * reservation confirmation, cancellation, reminder, feedback request,
  * and reservation request (pending approval).
  */
-export const bookzenPreset: VendorPreset<BookzenFieldNames, BookzenTagNames> = {
+export const bookzenPreset: VendorPreset<BookzenFieldSchema, BookzenTagSchema> = {
   vendor: 'bookzen',
   displayName: 'Bookzen',
   vertical: 'hospitality',
@@ -72,34 +86,22 @@ export const bookzenPreset: VendorPreset<BookzenFieldNames, BookzenTagNames> = {
   tags: BOOKZEN_TAGS,
 
   getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
-    this.validateConfig(config);
+    validateBookzenConfig(config);
     return resolveAutomations(config);
   },
 
   getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
-    this.validateConfig(config);
+    validateBookzenConfig(config);
     return resolveAutomations(config).find((a) => a.id === id);
   },
 
-  validateConfig(config: VendorConsumerConfig): void {
-    const missingFields: string[] = [];
-    for (const [logicalName, fieldName] of Object.entries(BOOKZEN_FIELDS)) {
-      if (config.customFields[fieldName] === undefined) {
-        missingFields.push(`${logicalName} ("${fieldName}")`);
-      }
-    }
-    if (missingFields.length > 0) {
-      throw new RuleConfigError(
-        `bookzenPreset: missing customFields entries for: ${missingFields.join(', ')}`
-      );
-    }
-  },
+  validateConfig: validateBookzenConfig,
 
   getRequiredFields(): readonly VendorFieldInfo[] {
     return Object.entries(BOOKZEN_FIELDS).map(([logicalName, fieldName]) => ({
       logicalName,
       fieldName,
-      description: FIELD_DESCRIPTIONS[logicalName as keyof BookzenFieldNames],
+      description: FIELD_DESCRIPTIONS[logicalName as BookzenFieldNames],
     }));
   },
 };

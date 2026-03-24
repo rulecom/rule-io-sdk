@@ -24,14 +24,14 @@
 
 import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '../types';
 import type { AutomationConfigV2, TemplateConfigV2 } from '../../automation-configs-v2';
-import type { ShopifyFieldNames } from './fields';
-import type { ShopifyTagNames } from './tags';
+import type { ShopifyFieldSchema, ShopifyFieldNames } from './fields';
+import type { ShopifyTagSchema } from './tags';
 import { SHOPIFY_FIELDS } from './fields';
 import { SHOPIFY_TAGS } from './tags';
 import { createShopifyAutomations } from './automations';
 import { RuleConfigError } from '../../errors';
 
-const FIELD_DESCRIPTIONS: Record<keyof ShopifyFieldNames, string> = {
+const FIELD_DESCRIPTIONS: Record<ShopifyFieldNames, string> = {
   customerFirstName: 'Customer first name from Shopify order',
   customerEmail: 'Customer email address',
   orderRef: 'Shopify order reference number',
@@ -42,6 +42,20 @@ const FIELD_DESCRIPTIONS: Record<keyof ShopifyFieldNames, string> = {
   estimatedDelivery: 'Estimated delivery date',
   currency: 'Order currency code',
 };
+
+function validateShopifyConfig(config: VendorConsumerConfig): void {
+  const missingFields: string[] = [];
+  for (const [logicalName, fieldName] of Object.entries(SHOPIFY_FIELDS)) {
+    if (config.customFields[fieldName] === undefined) {
+      missingFields.push(`${logicalName} ("${fieldName}")`);
+    }
+  }
+  if (missingFields.length > 0) {
+    throw new RuleConfigError(
+      `shopifyPreset: missing customFields entries for: ${missingFields.join(', ')}`
+    );
+  }
+}
 
 function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
   return createShopifyAutomations().map((a) => ({
@@ -65,7 +79,7 @@ function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] 
  * flows: order confirmation, shipping update, abandoned cart, and
  * order cancellation.
  */
-export const shopifyPreset: VendorPreset<ShopifyFieldNames, ShopifyTagNames> = {
+export const shopifyPreset: VendorPreset<ShopifyFieldSchema, ShopifyTagSchema> = {
   vendor: 'shopify',
   displayName: 'Shopify',
   vertical: 'ecommerce',
@@ -73,34 +87,22 @@ export const shopifyPreset: VendorPreset<ShopifyFieldNames, ShopifyTagNames> = {
   tags: SHOPIFY_TAGS,
 
   getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
-    this.validateConfig(config);
+    validateShopifyConfig(config);
     return resolveAutomations(config);
   },
 
   getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
-    this.validateConfig(config);
+    validateShopifyConfig(config);
     return resolveAutomations(config).find((a) => a.id === id);
   },
 
-  validateConfig(config: VendorConsumerConfig): void {
-    const missingFields: string[] = [];
-    for (const [logicalName, fieldName] of Object.entries(SHOPIFY_FIELDS)) {
-      if (config.customFields[fieldName] === undefined) {
-        missingFields.push(`${logicalName} ("${fieldName}")`);
-      }
-    }
-    if (missingFields.length > 0) {
-      throw new RuleConfigError(
-        `shopifyPreset: missing customFields entries for: ${missingFields.join(', ')}`
-      );
-    }
-  },
+  validateConfig: validateShopifyConfig,
 
   getRequiredFields(): readonly VendorFieldInfo[] {
     return Object.entries(SHOPIFY_FIELDS).map(([logicalName, fieldName]) => ({
       logicalName,
       fieldName,
-      description: FIELD_DESCRIPTIONS[logicalName as keyof ShopifyFieldNames],
+      description: FIELD_DESCRIPTIONS[logicalName as ShopifyFieldNames],
     }));
   },
 };

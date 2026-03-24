@@ -9,8 +9,8 @@
  */
 
 import type { RCMLDocument } from '../types';
-import type { BrandStyleConfig, CustomFieldMap, FooterConfig } from '../rcml';
-import type { AutomationConfigV2 } from '../automation-configs-v2';
+import type { FooterConfig } from '../rcml';
+import type { AutomationConfigV2, TemplateConfigV2 } from '../automation-configs-v2';
 
 // ============================================================================
 // Schema Types
@@ -70,13 +70,7 @@ export interface VendorTagSchema {
  * };
  * ```
  */
-export interface VendorConsumerConfig {
-  /** Brand style from the consumer's Rule.io account */
-  brandStyle: BrandStyleConfig;
-  /** Maps field name strings to their Rule.io numeric IDs */
-  customFields: CustomFieldMap;
-  /** Consumer's website base URL */
-  websiteUrl: string;
+export interface VendorConsumerConfig extends TemplateConfigV2 {
   /** Optional footer configuration for localization */
   footer?: FooterConfig;
 }
