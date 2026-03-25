@@ -11,14 +11,16 @@ export const RULE_API_V3_BASE_URL = 'https://app.rule.io/api/v3';
 /**
  * Common Rule.io tags for e-commerce and hospitality.
  *
- * These are suggested tag names — you can use any string as a tag.
- * Using consistent tags across your automations makes segmentation easier.
+ * @deprecated Prefer vendor-specific tags instead (e.g., `SHOPIFY_TAGS`, `BOOKZEN_TAGS`).
+ * These generic tags are kept for backward compatibility.
  *
  * @example
  * ```typescript
+ * // Prefer vendor-specific tags:
+ * import { SHOPIFY_TAGS } from 'rule-io-sdk';
  * await client.syncSubscriber({
  *   email: 'customer@example.com',
- *   tags: [RuleTags.ORDER_COMPLETED, RuleTags.NEW_CUSTOMER],
+ *   tags: [SHOPIFY_TAGS.orderCompleted],
  * });
  * ```
  */
