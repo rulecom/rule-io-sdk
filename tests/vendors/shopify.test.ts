@@ -28,15 +28,37 @@ const TEST_BRAND_STYLE: BrandStyleConfig = {
 };
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
+  // Customer
   [SHOPIFY_FIELDS.customerFirstName]: 200001,
-  [SHOPIFY_FIELDS.customerEmail]: 200002,
-  [SHOPIFY_FIELDS.orderRef]: 200003,
-  [SHOPIFY_FIELDS.totalPrice]: 200004,
-  [SHOPIFY_FIELDS.items]: 200005,
-  [SHOPIFY_FIELDS.shippingAddress]: 200006,
-  [SHOPIFY_FIELDS.trackingNumber]: 200007,
-  [SHOPIFY_FIELDS.estimatedDelivery]: 200008,
-  [SHOPIFY_FIELDS.currency]: 200009,
+  [SHOPIFY_FIELDS.customerFullName]: 200002,
+  [SHOPIFY_FIELDS.customerEmail]: 200003,
+  // Order
+  [SHOPIFY_FIELDS.orderRef]: 200004,
+  [SHOPIFY_FIELDS.orderDate]: 200005,
+  [SHOPIFY_FIELDS.currency]: 200006,
+  [SHOPIFY_FIELDS.paymentMethod]: 200007,
+  // Financials
+  [SHOPIFY_FIELDS.subtotal]: 200008,
+  [SHOPIFY_FIELDS.discountAmount]: 200009,
+  [SHOPIFY_FIELDS.taxAmount]: 200010,
+  [SHOPIFY_FIELDS.shippingCost]: 200011,
+  [SHOPIFY_FIELDS.totalPrice]: 200012,
+  // Shipping
+  [SHOPIFY_FIELDS.shippingAddress]: 200013,
+  [SHOPIFY_FIELDS.billingAddress]: 200014,
+  [SHOPIFY_FIELDS.trackingNumber]: 200015,
+  [SHOPIFY_FIELDS.estimatedDelivery]: 200016,
+  [SHOPIFY_FIELDS.shippingCarrier]: 200017,
+  // Seller
+  [SHOPIFY_FIELDS.companyName]: 200018,
+  [SHOPIFY_FIELDS.vatNumber]: 200019,
+  // Line items
+  [SHOPIFY_FIELDS.items]: 200020,
+  [SHOPIFY_FIELDS.itemName]: 200021,
+  [SHOPIFY_FIELDS.itemQuantity]: 200022,
+  [SHOPIFY_FIELDS.itemUnitPrice]: 200023,
+  [SHOPIFY_FIELDS.itemTotal]: 200024,
+  [SHOPIFY_FIELDS.itemSku]: 200025,
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
@@ -76,6 +98,23 @@ describe('shopifyPreset', () => {
   describe('validateConfig', () => {
     it('passes with all required fields', () => {
       expect(() => shopifyPreset.validateConfig(TEST_CONFIG)).not.toThrow();
+    });
+
+    it('passes without new optional fields (backward compat)', () => {
+      const minimalConfig: VendorConsumerConfig = {
+        ...TEST_CONFIG,
+        customFields: {
+          [SHOPIFY_FIELDS.customerFirstName]: 1,
+          [SHOPIFY_FIELDS.orderRef]: 2,
+          [SHOPIFY_FIELDS.totalPrice]: 3,
+          [SHOPIFY_FIELDS.items]: 4,
+          [SHOPIFY_FIELDS.shippingAddress]: 5,
+          [SHOPIFY_FIELDS.trackingNumber]: 6,
+          [SHOPIFY_FIELDS.estimatedDelivery]: 7,
+          // All new fields omitted
+        },
+      };
+      expect(() => shopifyPreset.validateConfig(minimalConfig)).not.toThrow();
     });
 
     it('passes without optional fields (customerEmail, currency)', () => {
@@ -200,7 +239,7 @@ describe('shopifyPreset', () => {
 
       // Should use the overridden field ID, not the original
       expect(json).toContain('[CustomField:999999]');
-      expect(json).not.toContain('[CustomField:200003]');
+      expect(json).not.toContain('[CustomField:200004]');
     });
 
     it('RCML contains Shopify field placeholders', () => {
@@ -217,8 +256,8 @@ describe('shopifyPreset', () => {
       const json = JSON.stringify(doc);
 
       // Should contain field ID placeholders
-      expect(json).toContain('[CustomField:200003]'); // orderRef
-      expect(json).toContain('[CustomField:200004]'); // totalPrice
+      expect(json).toContain('[CustomField:200004]'); // orderRef
+      expect(json).toContain('[CustomField:200012]'); // totalPrice
     });
 
     it('throws RuleConfigError for incomplete config', () => {
@@ -228,6 +267,53 @@ describe('shopifyPreset', () => {
           customFields: {},
         })
       ).toThrow(RuleConfigError);
+    });
+
+    it('order confirmation contains rc-loop for line items', () => {
+      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+      const orderConfirmation = automations.find(
+        (a) => a.id === 'shopify-order-confirmation'
+      )!;
+
+      const doc = orderConfirmation.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://myshop.example.com',
+      });
+      const json = JSON.stringify(doc);
+
+      expect(json).toContain('rc-loop');
+      expect(json).toContain('custom-field');
+      expect(json).toContain('200020'); // Items field ID
+      expect(json).toContain('200021'); // Item Name
+    });
+
+    it('shipping update contains rc-loop and receipt fields', () => {
+      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+      const shippingUpdate = automations.find(
+        (a) => a.id === 'shopify-shipping-update'
+      )!;
+
+      const doc = shippingUpdate.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://myshop.example.com',
+      });
+      const json = JSON.stringify(doc);
+
+      // Loop
+      expect(json).toContain('rc-loop');
+      expect(json).toContain('200020'); // Items loop
+
+      // Receipt fields
+      expect(json).toContain('200008'); // Subtotal
+      expect(json).toContain('200010'); // Tax
+      expect(json).toContain('200012'); // Total
+      expect(json).toContain('200018'); // CompanyName
+      expect(json).toContain('200019'); // VATNumber
+
+      // Legal text
+      expect(json).toContain('official receipt');
     });
 
     it('abandoned cart has delay and conditions', () => {
@@ -270,6 +356,10 @@ describe('SHOPIFY_FIELDS', () => {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }
+  });
+
+  it('has 25 fields (9 original + 16 new)', () => {
+    expect(Object.keys(SHOPIFY_FIELDS)).toHaveLength(25);
   });
 });
 

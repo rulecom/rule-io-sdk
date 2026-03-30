@@ -33,15 +33,42 @@ import { createShopifyAutomations } from './automations';
 import { RuleConfigError } from '../../errors';
 
 const FIELD_DESCRIPTIONS: Record<ShopifyFieldNames, string> = {
+  // Customer
   customerFirstName: 'Customer first name from Shopify order',
+  customerFullName: 'Customer full name for legal identification',
   customerEmail: 'Customer email address',
+
+  // Order
   orderRef: 'Shopify order reference number',
+  orderDate: 'Order/transaction date',
+  currency: 'Order currency code (e.g., USD, EUR)',
+  paymentMethod: 'Payment method used (e.g., credit card, PayPal)',
+
+  // Financials
+  subtotal: 'Pre-tax subtotal',
+  discountAmount: 'Discount amount applied',
+  taxAmount: 'Tax amount',
+  shippingCost: 'Shipping cost',
   totalPrice: 'Order total price',
-  items: 'Order line items',
+
+  // Shipping
   shippingAddress: 'Shipping address',
+  billingAddress: 'Billing address',
   trackingNumber: 'Shipment tracking number',
   estimatedDelivery: 'Estimated delivery date',
-  currency: 'Order currency code',
+  shippingCarrier: 'Shipping carrier name (e.g., UPS, FedEx)',
+
+  // Seller
+  companyName: 'Seller company name',
+  vatNumber: 'VAT/tax registration number',
+
+  // Line items
+  items: 'Order line items (repeatable field)',
+  itemName: 'Line item product name',
+  itemQuantity: 'Line item quantity',
+  itemUnitPrice: 'Line item unit price',
+  itemTotal: 'Line item total (qty × unit price)',
+  itemSku: 'Line item SKU/product code',
 };
 
 /** Fields actually used by the shipped automations (required in customFields). */

@@ -626,6 +626,60 @@ export function createDivider(options?: CreateDividerOptions): RCMLDivider {
   };
 }
 
+// ============================================================================
+// Loop Element
+// ============================================================================
+
+export interface CreateLoopOptions {
+  /** The numeric Rule.io custom field ID for the repeatable field */
+  fieldId: number;
+  /** Maximum number of iterations (optional) */
+  maxIterations?: number;
+  /** Start index for range-based iteration (optional) */
+  rangeStart?: number;
+  /** End index for range-based iteration (optional) */
+  rangeEnd?: number;
+}
+
+/**
+ * Create a loop element that iterates over a repeatable custom field.
+ *
+ * Uses `loop-type: 'custom-field'` to iterate over array-style fields
+ * (e.g., order line items). Each iteration renders the provided sections.
+ *
+ * @param options - Loop configuration with the repeatable field ID
+ * @param children - Sections to render for each iteration
+ *
+ * @example
+ * ```typescript
+ * createLoop(
+ *   { fieldId: 200005, maxIterations: 20 },
+ *   [
+ *     createCenteredSection({
+ *       children: [createText('Item name here')]
+ *     })
+ *   ]
+ * )
+ * ```
+ */
+export function createLoop(options: CreateLoopOptions, children: RCMLSection[]): RCMLLoop {
+  return {
+    tagName: 'rc-loop',
+    attributes: {
+      'loop-type': 'custom-field',
+      'loop-value': String(options.fieldId),
+      ...(options.maxIterations !== undefined && { 'loop-max-iterations': options.maxIterations }),
+      ...(options.rangeStart !== undefined && { 'loop-range-start': options.rangeStart }),
+      ...(options.rangeEnd !== undefined && { 'loop-range-end': options.rangeEnd }),
+    },
+    children,
+  };
+}
+
+// ============================================================================
+// Video Element
+// ============================================================================
+
 export interface CreateVideoOptions {
   alt?: string;
   width?: string;

@@ -29,7 +29,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLDocument, RCMLProseMirrorDoc } from '../types';
+import type { RCMLDocument, RCMLProseMirrorDoc, RCMLLoop, RCMLSection } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
@@ -602,6 +602,46 @@ export function createContentSection(
       },
     ],
   } as RCMLDocument['children'][1]['children'][0];
+}
+
+/**
+ * Create a brand-aware loop element that iterates over a repeatable custom field.
+ *
+ * Wraps the low-level `createLoop` with UUID generation for the RCML node ID,
+ * consistent with other brand-template builders.
+ *
+ * @param fieldId - The numeric Rule.io custom field ID for the repeatable field
+ * @param children - Sections to render for each iteration
+ * @param options - Optional loop configuration (max iterations, range)
+ *
+ * @example
+ * ```typescript
+ * createBrandLoop(200005, [
+ *   createContentSection([
+ *     createBrandText(createDocWithPlaceholders([
+ *       createPlaceholder('Order.Items.Name', 200010),
+ *     ])),
+ *   ]),
+ * ], { maxIterations: 20 })
+ * ```
+ */
+export function createBrandLoop(
+  fieldId: number,
+  children: RCMLSection[],
+  options?: { maxIterations?: number; rangeStart?: number; rangeEnd?: number }
+): RCMLLoop {
+  return {
+    tagName: 'rc-loop',
+    id: generateId(),
+    attributes: {
+      'loop-type': 'custom-field',
+      'loop-value': String(fieldId),
+      ...(options?.maxIterations !== undefined && { 'loop-max-iterations': options.maxIterations }),
+      ...(options?.rangeStart !== undefined && { 'loop-range-start': options.rangeStart }),
+      ...(options?.rangeEnd !== undefined && { 'loop-range-end': options.rangeEnd }),
+    },
+    children,
+  };
 }
 
 export interface FooterConfig {

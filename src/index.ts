@@ -116,6 +116,7 @@ export {
   createVideo,
   createSpacer,
   createDivider,
+  createLoop,
 } from './rcml';
 
 // RCML option types
@@ -131,6 +132,7 @@ export type {
   CreateLogoOptions,
   CreateVideoOptions,
   CreateDividerOptions,
+  CreateLoopOptions,
 } from './rcml';
 
 // Brand template utilities
@@ -143,6 +145,7 @@ export {
   createBrandButton,
   createContentSection,
   createFooterSection,
+  createBrandLoop,
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
