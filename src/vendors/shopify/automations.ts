@@ -29,6 +29,9 @@ const ORDER_CONFIRMATION_TEXT = {
   shippingLabel: 'Shipping to',
   ctaButton: 'View Order',
   lineItemsHeading: 'Items Ordered',
+  itemQuantityLabel: 'Qty:',
+  itemPriceLabel: 'Price:',
+  itemSubtotalLabel: 'Subtotal:',
 } as const;
 
 /** Default English text for Shopify shipping update / receipt emails. */
@@ -47,6 +50,10 @@ const SHIPPING_UPDATE_TEXT = {
   taxLabel: 'Tax',
   totalLabel: 'Total',
   legalText: 'This email serves as your official receipt for this transaction.',
+  itemSkuLabel: 'SKU:',
+  itemQuantityLabel: 'Qty:',
+  itemUnitPriceLabel: 'Unit price:',
+  itemLineTotalLabel: 'Line total:',
 } as const;
 
 /** Default English text for Shopify abandoned cart emails. */
