@@ -111,6 +111,36 @@ export function createPlaceholder(
 }
 
 /**
+ * Create a ProseMirror placeholder node for a loop sub-field (JSON key).
+ *
+ * Used inside `rc-loop` blocks to reference properties of the current
+ * iteration item. Unlike `createPlaceholder`, this uses a JSON key name
+ * (string) instead of a numeric field ID.
+ *
+ * @param jsonKey - The JSON property key (e.g., 'title', 'price', 'quantity')
+ *
+ * @example
+ * ```typescript
+ * // Inside an rc-loop over Order.Products:
+ * createLoopFieldPlaceholder('title')   // → product title
+ * createLoopFieldPlaceholder('price')   // → product price
+ * ```
+ */
+export function createLoopFieldPlaceholder(
+  jsonKey: string
+): { type: 'placeholder'; attrs: { type: string; original: string; name: string; value: string } } {
+  return {
+    type: 'placeholder',
+    attrs: {
+      type: 'CustomField',
+      original: `[CustomField:${jsonKey}]`,
+      name: jsonKey,
+      value: jsonKey,
+    },
+  };
+}
+
+/**
  * Create a text node for use in ProseMirror documents.
  */
 export function createTextNode(text: string): { type: 'text'; text: string } {
@@ -607,7 +637,7 @@ export function createContentSection(
 /**
  * Create a brand-aware loop element that iterates over a repeatable custom field.
  *
- * Wraps the low-level `createLoop` with UUID generation for the RCML node ID,
+ * Constructs an RCML loop with UUID generation for the RCML node ID,
  * consistent with other brand-template builders.
  *
  * @param fieldId - The numeric Rule.io custom field ID for the repeatable field

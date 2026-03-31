@@ -23,6 +23,7 @@ import {
   createContentSection,
   createFooterSection,
   createPlaceholder,
+  createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
   type BrandStyleConfig,
@@ -30,6 +31,7 @@ import {
   type FooterConfig,
   validateCustomFields,
 } from './brand-template';
+import { sanitizeUrl } from './utils';
 
 // ============================================================================
 // Order Confirmation Template
@@ -95,7 +97,9 @@ export interface OrderConfirmationConfig {
  * ```
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createOrderConfirmationEmail');
+  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
+  const { itemName, itemQuantity, itemUnitPrice, itemTotal, ...regularFields } = config.fieldNames;
+  validateCustomFields(config.customFields, regularFields, 'createOrderConfirmationEmail');
   const { customFields, fieldNames, text } = config;
 
   const detailRows: ReturnType<typeof createBrandText>[] = [
@@ -115,7 +119,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     const loopChildren: ReturnType<typeof createBrandText>[] = [
       createBrandText(
         createDocWithPlaceholders([
-          createPlaceholder(fieldNames.itemName, customFields[fieldNames.itemName]),
+          createLoopFieldPlaceholder(fieldNames.itemName),
         ])
       ),
     ];
@@ -125,7 +129,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Qty: '),
-            createPlaceholder(fieldNames.itemQuantity, customFields[fieldNames.itemQuantity]),
+            createLoopFieldPlaceholder(fieldNames.itemQuantity),
           ])
         )
       );
@@ -136,7 +140,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Price: '),
-            createPlaceholder(fieldNames.itemUnitPrice, customFields[fieldNames.itemUnitPrice]),
+            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
           ])
         )
       );
@@ -147,7 +151,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Subtotal: '),
-            createPlaceholder(fieldNames.itemTotal, customFields[fieldNames.itemTotal]),
+            createLoopFieldPlaceholder(fieldNames.itemTotal),
           ])
         )
       );
@@ -362,7 +366,9 @@ export interface ShippingUpdateConfig {
  * financial summary, legal text), renders a full legally-binding receipt.
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createShippingUpdateEmail');
+  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
+  const { itemName, itemQuantity, itemUnitPrice, itemTotal, itemSku, ...regularFields } = config.fieldNames;
+  validateCustomFields(config.customFields, regularFields, 'createShippingUpdateEmail');
   const { customFields, fieldNames, text } = config;
 
   /** Helper to create a detail row from an optional field + label pair. */
@@ -453,7 +459,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     const loopChildren: ReturnType<typeof createBrandText>[] = [
       createBrandText(
         createDocWithPlaceholders([
-          createPlaceholder(fieldNames.itemName, customFields[fieldNames.itemName]),
+          createLoopFieldPlaceholder(fieldNames.itemName),
         ])
       ),
     ];
@@ -463,7 +469,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('SKU: '),
-            createPlaceholder(fieldNames.itemSku, customFields[fieldNames.itemSku]),
+            createLoopFieldPlaceholder(fieldNames.itemSku),
           ])
         )
       );
@@ -474,7 +480,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Qty: '),
-            createPlaceholder(fieldNames.itemQuantity, customFields[fieldNames.itemQuantity]),
+            createLoopFieldPlaceholder(fieldNames.itemQuantity),
           ])
         )
       );
@@ -485,7 +491,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Unit price: '),
-            createPlaceholder(fieldNames.itemUnitPrice, customFields[fieldNames.itemUnitPrice]),
+            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
           ])
         )
       );
@@ -496,7 +502,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         createBrandText(
           createDocWithPlaceholders([
             createTextNode('Line total: '),
-            createPlaceholder(fieldNames.itemTotal, customFields[fieldNames.itemTotal]),
+            createLoopFieldPlaceholder(fieldNames.itemTotal),
           ])
         )
       );
@@ -570,41 +576,47 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
   }
 
   if (text.returnPolicyText && text.returnPolicyUrl) {
-    legalChildren.push(
-      createBrandText({
-        type: 'doc',
-        content: [{
-          type: 'paragraph',
+    const safeReturnPolicyUrl = sanitizeUrl(text.returnPolicyUrl);
+    if (safeReturnPolicyUrl) {
+      legalChildren.push(
+        createBrandText({
+          type: 'doc',
           content: [{
-            type: 'text',
-            text: text.returnPolicyText,
-            marks: [{
-              type: 'link',
-              attrs: { href: text.returnPolicyUrl, target: '_blank' },
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              text: text.returnPolicyText,
+              marks: [{
+                type: 'link',
+                attrs: { href: safeReturnPolicyUrl, target: '_blank' },
+              }],
             }],
           }],
-        }],
-      }, { align: 'center' })
-    );
+        }, { align: 'center' })
+      );
+    }
   }
 
   if (text.termsText && text.termsUrl) {
-    legalChildren.push(
-      createBrandText({
-        type: 'doc',
-        content: [{
-          type: 'paragraph',
+    const safeTermsUrl = sanitizeUrl(text.termsUrl);
+    if (safeTermsUrl) {
+      legalChildren.push(
+        createBrandText({
+          type: 'doc',
           content: [{
-            type: 'text',
-            text: text.termsText,
-            marks: [{
-              type: 'link',
-              attrs: { href: text.termsUrl, target: '_blank' },
+            type: 'paragraph',
+            content: [{
+              type: 'text',
+              text: text.termsText,
+              marks: [{
+                type: 'link',
+                attrs: { href: safeTermsUrl, target: '_blank' },
+              }],
             }],
           }],
-        }],
-      }, { align: 'center' })
-    );
+        }, { align: 'center' })
+      );
+    }
   }
 
   if (legalChildren.length > 0) {
