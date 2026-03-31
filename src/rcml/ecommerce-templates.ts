@@ -52,6 +52,8 @@ export interface OrderConfirmationConfig {
     totalLabel: string;
     shippingLabel?: string;
     ctaButton: string;
+    /** Heading above the line items loop section */
+    lineItemsHeading?: string;
   };
   fieldNames: {
     firstName: string;
@@ -157,11 +159,13 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       );
     }
 
-    lineItemsSection = createBrandLoop(
+    const lineItemsLoop = createBrandLoop(
       customFields[fieldNames.items],
       [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
       { maxIterations: 20 }
     );
+
+    lineItemsSection = lineItemsLoop;
   } else if (fieldNames.items && text.itemsLabel) {
     // Fallback: single placeholder for items field
     detailRows.push(
@@ -224,6 +228,14 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
   ];
 
   if (lineItemsSection) {
+    if (text.lineItemsHeading) {
+      sections.push(
+        createContentSection(
+          [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+          { padding: '10px 0' }
+        )
+      );
+    }
     sections.push(lineItemsSection);
   }
 
