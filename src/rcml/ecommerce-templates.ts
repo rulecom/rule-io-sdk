@@ -52,14 +52,6 @@ export interface OrderConfirmationConfig {
     totalLabel: string;
     shippingLabel?: string;
     ctaButton: string;
-    /** Label prefix for line item quantity (e.g. "Qty:") */
-    itemQuantityLabel?: string;
-    /** Label prefix for line item unit price (e.g. "Price:") */
-    itemPriceLabel?: string;
-    /** Label prefix for line item subtotal (e.g. "Subtotal:") */
-    itemSubtotalLabel?: string;
-    /** Heading above the line items section */
-    lineItemsHeading?: string;
   };
   fieldNames: {
     firstName: string;
@@ -133,24 +125,36 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     ];
 
     if (fieldNames.itemQuantity) {
-      const nodes = text.itemQuantityLabel
-        ? [createTextNode(`${text.itemQuantityLabel} `), createLoopFieldPlaceholder(fieldNames.itemQuantity)]
-        : [createLoopFieldPlaceholder(fieldNames.itemQuantity)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Qty: '),
+            createLoopFieldPlaceholder(fieldNames.itemQuantity),
+          ])
+        )
+      );
     }
 
     if (fieldNames.itemUnitPrice) {
-      const nodes = text.itemPriceLabel
-        ? [createTextNode(`${text.itemPriceLabel} `), createLoopFieldPlaceholder(fieldNames.itemUnitPrice)]
-        : [createLoopFieldPlaceholder(fieldNames.itemUnitPrice)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Price: '),
+            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+          ])
+        )
+      );
     }
 
     if (fieldNames.itemTotal) {
-      const nodes = text.itemSubtotalLabel
-        ? [createTextNode(`${text.itemSubtotalLabel} `), createLoopFieldPlaceholder(fieldNames.itemTotal)]
-        : [createLoopFieldPlaceholder(fieldNames.itemTotal)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Subtotal: '),
+            createLoopFieldPlaceholder(fieldNames.itemTotal),
+          ])
+        )
+      );
     }
 
     lineItemsSection = createBrandLoop(
@@ -301,14 +305,6 @@ export interface ShippingUpdateConfig {
     termsText?: string;
     /** Terms and conditions URL */
     termsUrl?: string;
-    /** Label prefix for line item SKU (e.g. "SKU:") */
-    itemSkuLabel?: string;
-    /** Label prefix for line item quantity (e.g. "Qty:") */
-    itemQuantityLabel?: string;
-    /** Label prefix for line item unit price (e.g. "Unit price:") */
-    itemUnitPriceLabel?: string;
-    /** Label prefix for line item line total (e.g. "Line total:") */
-    itemLineTotalLabel?: string;
   };
   fieldNames: {
     firstName: string;
@@ -469,31 +465,47 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     ];
 
     if (fieldNames.itemSku) {
-      const nodes = text.itemSkuLabel
-        ? [createTextNode(`${text.itemSkuLabel} `), createLoopFieldPlaceholder(fieldNames.itemSku)]
-        : [createLoopFieldPlaceholder(fieldNames.itemSku)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('SKU: '),
+            createLoopFieldPlaceholder(fieldNames.itemSku),
+          ])
+        )
+      );
     }
 
     if (fieldNames.itemQuantity) {
-      const nodes = text.itemQuantityLabel
-        ? [createTextNode(`${text.itemQuantityLabel} `), createLoopFieldPlaceholder(fieldNames.itemQuantity)]
-        : [createLoopFieldPlaceholder(fieldNames.itemQuantity)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Qty: '),
+            createLoopFieldPlaceholder(fieldNames.itemQuantity),
+          ])
+        )
+      );
     }
 
     if (fieldNames.itemUnitPrice) {
-      const nodes = text.itemUnitPriceLabel
-        ? [createTextNode(`${text.itemUnitPriceLabel} `), createLoopFieldPlaceholder(fieldNames.itemUnitPrice)]
-        : [createLoopFieldPlaceholder(fieldNames.itemUnitPrice)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Unit price: '),
+            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+          ])
+        )
+      );
     }
 
     if (fieldNames.itemTotal) {
-      const nodes = text.itemLineTotalLabel
-        ? [createTextNode(`${text.itemLineTotalLabel} `), createLoopFieldPlaceholder(fieldNames.itemTotal)]
-        : [createLoopFieldPlaceholder(fieldNames.itemTotal)];
-      loopChildren.push(createBrandText(createDocWithPlaceholders(nodes)));
+      loopChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode('Line total: '),
+            createLoopFieldPlaceholder(fieldNames.itemTotal),
+          ])
+        )
+      );
     }
 
     if (text.lineItemsHeading) {
