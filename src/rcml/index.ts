@@ -23,6 +23,7 @@ export {
   createVideo,
   createSpacer,
   createDivider,
+  createLoop,
 } from './elements';
 
 // Element option types
@@ -38,6 +39,7 @@ export type {
   CreateLogoOptions,
   CreateVideoOptions,
   CreateDividerOptions,
+  CreateLoopOptions,
 } from './elements';
 
 // Brand template utilities
@@ -53,6 +55,7 @@ export {
   createBrandButton,
   createContentSection,
   createFooterSection,
+  createBrandLoop,
   // Placeholder helpers
   createPlaceholder,
   createTextNode,

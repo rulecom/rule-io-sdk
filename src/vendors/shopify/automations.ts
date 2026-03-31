@@ -4,6 +4,8 @@
  * Pre-configured automations for Shopify e-commerce flows.
  * Each automation wires Shopify-specific field names and default
  * English text into the generic e-commerce template builders.
+ *
+ * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
 import type { VendorAutomation, VendorConsumerConfig } from '../types';
@@ -13,7 +15,6 @@ import {
   createOrderConfirmationEmail,
   createShippingUpdateEmail,
   createAbandonedCartEmail,
-  createOrderCancellationEmail,
 } from '../../rcml';
 
 /** Default English text for Shopify order confirmation emails. */
@@ -27,18 +28,25 @@ const ORDER_CONFIRMATION_TEXT = {
   totalLabel: 'Total',
   shippingLabel: 'Shipping to',
   ctaButton: 'View Order',
+  lineItemsHeading: 'Items Ordered',
 } as const;
 
-/** Default English text for Shopify shipping update emails. */
+/** Default English text for Shopify shipping update / receipt emails. */
 const SHIPPING_UPDATE_TEXT = {
   preheader: 'Your order is on its way!',
-  heading: 'Shipping Update',
+  heading: 'Shipping Confirmation & Receipt',
   greeting: 'Hi',
   message: 'your order has been shipped!',
   orderRefLabel: 'Order',
-  trackingLabel: 'Tracking',
-  estimatedDeliveryLabel: 'Estimated delivery',
-  ctaButton: 'Track Shipment',
+  ctaButton: 'View Order',
+  // Receipt labels
+  orderDateLabel: 'Order date',
+  shippingAddressLabel: 'Shipping to',
+  lineItemsHeading: 'Items',
+  discountLabel: 'Discount',
+  taxLabel: 'Tax',
+  totalLabel: 'Total',
+  legalText: 'This email serves as your official receipt for this transaction.',
 } as const;
 
 /** Default English text for Shopify abandoned cart emails. */
@@ -48,17 +56,6 @@ const ABANDONED_CART_TEXT = {
   message: 'It looks like you left some items in your cart.',
   reminder: 'Complete your purchase before they sell out!',
   ctaButton: 'Return to Cart',
-} as const;
-
-/** Default English text for Shopify order cancellation emails. */
-const ORDER_CANCELLATION_TEXT = {
-  preheader: 'Your order has been cancelled',
-  heading: 'Order Cancelled',
-  greeting: 'Hi',
-  message: 'Your order has been cancelled as requested.',
-  orderRefLabel: 'Order',
-  followUp: 'If you have any questions, please contact our support team.',
-  ctaButton: 'Visit Store',
 } as const;
 
 /**
@@ -85,11 +82,19 @@ export function createShopifyAutomations(): VendorAutomation[] {
           footer: config.footer,
           text: ORDER_CONFIRMATION_TEXT,
           fieldNames: {
-            firstName: SHOPIFY_FIELDS.customerFirstName,
-            orderRef: SHOPIFY_FIELDS.orderRef,
+            firstName: SHOPIFY_FIELDS.firstName,
+            orderRef: SHOPIFY_FIELDS.orderNumber,
             totalPrice: SHOPIFY_FIELDS.totalPrice,
-            items: SHOPIFY_FIELDS.items,
-            shippingAddress: SHOPIFY_FIELDS.shippingAddress,
+            // Optional fields — only include when mapped in customFields
+            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
+              items: SHOPIFY_FIELDS.products,
+              itemName: SHOPIFY_FIELDS.itemName,
+              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
+              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
+              shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
+            }),
           },
         }),
     },
@@ -108,10 +113,34 @@ export function createShopifyAutomations(): VendorAutomation[] {
           footer: config.footer,
           text: SHIPPING_UPDATE_TEXT,
           fieldNames: {
-            firstName: SHOPIFY_FIELDS.customerFirstName,
-            orderRef: SHOPIFY_FIELDS.orderRef,
-            trackingNumber: SHOPIFY_FIELDS.trackingNumber,
-            estimatedDelivery: SHOPIFY_FIELDS.estimatedDelivery,
+            firstName: SHOPIFY_FIELDS.firstName,
+            orderRef: SHOPIFY_FIELDS.orderNumber,
+            // Receipt fields — only include when mapped in customFields
+            ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
+              orderDate: SHOPIFY_FIELDS.orderDate,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.currency] !== undefined && {
+              currency: SHOPIFY_FIELDS.currency,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.discount] !== undefined && {
+              discountAmount: SHOPIFY_FIELDS.discount,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalTax] !== undefined && {
+              taxAmount: SHOPIFY_FIELDS.totalTax,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
+              shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalPrice] !== undefined && {
+              totalPrice: SHOPIFY_FIELDS.totalPrice,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
+              items: SHOPIFY_FIELDS.products,
+              itemName: SHOPIFY_FIELDS.itemName,
+              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
+              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+              itemSku: SHOPIFY_FIELDS.itemSku,
+            }),
           },
         }),
     },
@@ -134,27 +163,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
           footer: config.footer,
           text: ABANDONED_CART_TEXT,
           fieldNames: {
-            firstName: SHOPIFY_FIELDS.customerFirstName,
-          },
-        }),
-    },
-    {
-      id: 'shopify-order-cancellation',
-      name: 'Shopify Order Cancellation',
-      description: 'Sent when a Shopify order is cancelled',
-      triggerTag: SHOPIFY_TAGS.orderCancelled,
-      subject: 'Order Cancelled',
-      preheader: ORDER_CANCELLATION_TEXT.preheader,
-      templateBuilder: (config: VendorConsumerConfig) =>
-        createOrderCancellationEmail({
-          brandStyle: config.brandStyle,
-          customFields: config.customFields,
-          websiteUrl: config.websiteUrl,
-          footer: config.footer,
-          text: ORDER_CANCELLATION_TEXT,
-          fieldNames: {
-            firstName: SHOPIFY_FIELDS.customerFirstName,
-            orderRef: SHOPIFY_FIELDS.orderRef,
+            firstName: SHOPIFY_FIELDS.firstName,
           },
         }),
     },

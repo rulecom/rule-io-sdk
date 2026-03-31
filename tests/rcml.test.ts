@@ -18,6 +18,8 @@ import {
   createSpacer,
   createDivider,
   createProseMirrorDoc,
+  createLoop,
+  createBrandLoop,
 } from '../src/rcml';
 
 describe('RCML Utils', () => {
@@ -399,6 +401,78 @@ describe('RCML Elements', () => {
       expect(divider.attributes?.['border-color']).toBe('#FF0000');
       expect(divider.attributes?.['border-style']).toBe('dashed');
       expect(divider.attributes?.['border-width']).toBe('2px');
+    });
+  });
+
+  // ==========================================================================
+  // Loop Element
+  // ==========================================================================
+
+  describe('createLoop', () => {
+    it('should create a valid rc-loop element', () => {
+      const section = createCenteredSection({
+        children: [createText('Item')],
+      });
+      const loop = createLoop({ fieldId: 200005 }, [section]);
+
+      expect(loop.tagName).toBe('rc-loop');
+      expect(loop.attributes['loop-type']).toBe('custom-field');
+      expect(loop.attributes['loop-value']).toBe('200005');
+      expect(loop.children).toHaveLength(1);
+      expect(loop.children[0].tagName).toBe('rc-section');
+    });
+
+    it('should set optional attributes when provided', () => {
+      const loop = createLoop(
+        { fieldId: 100, maxIterations: 10, rangeStart: 0, rangeEnd: 5 },
+        []
+      );
+
+      expect(loop.attributes['loop-max-iterations']).toBe(10);
+      expect(loop.attributes['loop-range-start']).toBe(0);
+      expect(loop.attributes['loop-range-end']).toBe(5);
+    });
+
+    it('should not include optional attributes when not provided', () => {
+      const loop = createLoop({ fieldId: 100 }, []);
+
+      expect(loop.attributes).not.toHaveProperty('loop-max-iterations');
+      expect(loop.attributes).not.toHaveProperty('loop-range-start');
+      expect(loop.attributes).not.toHaveProperty('loop-range-end');
+    });
+
+    it('should not have an id (low-level builder)', () => {
+      const loop = createLoop({ fieldId: 100 }, []);
+      expect(loop).not.toHaveProperty('id');
+    });
+  });
+
+  describe('createBrandLoop', () => {
+    it('should create an rc-loop with a UUID id', () => {
+      const loop = createBrandLoop(200005, []);
+
+      expect(loop.tagName).toBe('rc-loop');
+      expect(loop.id).toBeDefined();
+      expect(loop.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      );
+    });
+
+    it('should set loop attributes correctly', () => {
+      const loop = createBrandLoop(200005, [], { maxIterations: 20 });
+
+      expect(loop.attributes['loop-type']).toBe('custom-field');
+      expect(loop.attributes['loop-value']).toBe('200005');
+      expect(loop.attributes['loop-max-iterations']).toBe(20);
+    });
+
+    it('should preserve children sections', () => {
+      const section = createCenteredSection({
+        children: [createText('Product')],
+      });
+      const loop = createBrandLoop(100, [section]);
+
+      expect(loop.children).toHaveLength(1);
     });
   });
 });

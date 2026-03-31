@@ -23,15 +23,42 @@ import type { VendorFieldSchema } from '../types';
  * ```
  */
 export const SHOPIFY_FIELDS = {
+  // Customer
   customerFirstName: 'Order.CustomerName',
+  customerFullName: 'Order.CustomerFullName',
   customerEmail: 'Order.CustomerEmail',
+
+  // Order
   orderRef: 'Order.OrderRef',
+  orderDate: 'Order.OrderDate',
+  currency: 'Order.Currency',
+  paymentMethod: 'Order.PaymentMethod',
+
+  // Financials
+  subtotal: 'Order.Subtotal',
+  discountAmount: 'Order.DiscountAmount',
+  taxAmount: 'Order.TaxAmount',
+  shippingCost: 'Order.ShippingCost',
   totalPrice: 'Order.Total',
-  items: 'Order.Items',
+
+  // Shipping
   shippingAddress: 'Order.ShippingAddress',
+  billingAddress: 'Order.BillingAddress',
   trackingNumber: 'Order.TrackingNumber',
   estimatedDelivery: 'Order.EstimatedDelivery',
-  currency: 'Order.Currency',
+  shippingCarrier: 'Order.ShippingCarrier',
+
+  // Seller
+  companyName: 'Order.CompanyName',
+  vatNumber: 'Order.VATNumber',
+
+  // Line items (repeatable sub-fields within Order.Items)
+  items: 'Order.Items',
+  itemName: 'Order.Items.Name',
+  itemQuantity: 'Order.Items.Quantity',
+  itemUnitPrice: 'Order.Items.UnitPrice',
+  itemTotal: 'Order.Items.Total',
+  itemSku: 'Order.Items.SKU',
 } as const satisfies VendorFieldSchema;
 
 /** Object type of the Shopify field schema. */

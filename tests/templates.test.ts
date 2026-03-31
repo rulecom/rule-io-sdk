@@ -64,12 +64,30 @@ const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   'Booking.TotalPrice': 100007,
   'Booking.RoomName': 100008,
   'Order.CustomerName': 200001,
-  'Order.OrderRef': 200002,
-  'Order.Total': 200003,
-  'Order.Items': 200004,
-  'Order.ShippingAddress': 200005,
-  'Order.TrackingNumber': 200006,
-  'Order.EstimatedDelivery': 200007,
+  'Order.CustomerFullName': 200002,
+  'Order.CustomerEmail': 200003,
+  'Order.OrderRef': 200004,
+  'Order.OrderDate': 200005,
+  'Order.Currency': 200006,
+  'Order.PaymentMethod': 200007,
+  'Order.Subtotal': 200008,
+  'Order.DiscountAmount': 200009,
+  'Order.TaxAmount': 200010,
+  'Order.ShippingCost': 200011,
+  'Order.Total': 200012,
+  'Order.ShippingAddress': 200013,
+  'Order.BillingAddress': 200014,
+  'Order.TrackingNumber': 200015,
+  'Order.EstimatedDelivery': 200016,
+  'Order.ShippingCarrier': 200017,
+  'Order.CompanyName': 200018,
+  'Order.VATNumber': 200019,
+  'Order.Items': 200020,
+  'Order.Items.Name': 200021,
+  'Order.Items.Quantity': 200022,
+  'Order.Items.UnitPrice': 200023,
+  'Order.Items.Total': 200024,
+  'Order.Items.SKU': 200025,
 };
 
 // ============================================================================
@@ -715,7 +733,7 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Order Summary');
       expect(json).toContain('200001'); // CustomerName field ID
-      expect(json).toContain('200002'); // OrderRef field ID
+      expect(json).toContain('200004'); // OrderRef field ID
     });
 
     it('should include optional items and shipping fields', () => {
@@ -747,8 +765,8 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Items');
       expect(json).toContain('Ship to');
-      expect(json).toContain('200004'); // Items field ID
-      expect(json).toContain('200005'); // ShippingAddress field ID
+      expect(json).toContain('200020'); // Items field ID
+      expect(json).toContain('200013'); // ShippingAddress field ID
     });
 
     it('should work without optional fields', () => {
@@ -777,6 +795,80 @@ describe('E-commerce Templates', () => {
       // Should NOT have items/shipping labels
       expect(json).not.toContain('Items');
       expect(json).not.toContain('Ship to');
+    });
+
+    it('should render rc-loop when item sub-fields are provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+        },
+        fieldNames: {
+          firstName: 'Order.CustomerName',
+          orderRef: 'Order.OrderRef',
+          totalPrice: 'Order.Total',
+          items: 'Order.Items',
+          itemName: 'Order.Items.Name',
+          itemQuantity: 'Order.Items.Quantity',
+          itemUnitPrice: 'Order.Items.UnitPrice',
+          itemTotal: 'Order.Items.Total',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Loop block present
+      expect(json).toContain('rc-loop');
+      expect(json).toContain('custom-field');
+      expect(json).toContain('200020'); // Items field as loop-value
+
+      // Line item sub-fields
+      expect(json).toContain('200021'); // Item Name
+      expect(json).toContain('200022'); // Item Quantity
+      expect(json).toContain('200023'); // Item UnitPrice
+      expect(json).toContain('200024'); // Item Total
+    });
+
+    it('should fall back to single-field items when no sub-fields', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          itemsLabel: 'Items',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+        },
+        fieldNames: {
+          firstName: 'Order.CustomerName',
+          orderRef: 'Order.OrderRef',
+          totalPrice: 'Order.Total',
+          items: 'Order.Items',
+          // No itemName etc. — should use single placeholder
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Should NOT have a loop
+      expect(json).not.toContain('rc-loop');
+      // Should have the items field as a single placeholder
+      expect(json).toContain('200020'); // Items field ID
     });
   });
 
@@ -808,7 +900,7 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Track Package');
       expect(json).toContain('https://track.example.com');
-      expect(json).toContain('200006'); // TrackingNumber field ID
+      expect(json).toContain('200015'); // TrackingNumber field ID
     });
 
     it('should work without optional tracking fields', () => {
@@ -831,6 +923,120 @@ describe('E-commerce Templates', () => {
       });
 
       assertValidRCMLDocument(doc);
+    });
+
+    it('should render receipt sections when receipt fields provided', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipping Confirmation & Receipt',
+          greeting: 'Hi',
+          message: 'your order has been shipped!',
+          orderRefLabel: 'Order',
+          trackingLabel: 'Tracking',
+          estimatedDeliveryLabel: 'Est. delivery',
+          ctaButton: 'Track Shipment',
+          companyLabel: 'Seller',
+          vatLabel: 'VAT',
+          orderDateLabel: 'Date',
+          paymentMethodLabel: 'Payment',
+          customerEmailLabel: 'Email',
+          shippingAddressLabel: 'Ship to',
+          carrierLabel: 'Carrier',
+          lineItemsHeading: 'Items',
+          subtotalLabel: 'Subtotal',
+          taxLabel: 'Tax',
+          discountLabel: 'Discount',
+          shippingCostLabel: 'Shipping',
+          totalLabel: 'Total',
+          billingAddressLabel: 'Bill to',
+          legalText: 'This is your receipt.',
+          returnPolicyText: 'Return Policy',
+          returnPolicyUrl: 'https://shop.example.com/returns',
+          termsText: 'Terms',
+          termsUrl: 'https://shop.example.com/terms',
+        },
+        fieldNames: {
+          firstName: 'Order.CustomerName',
+          orderRef: 'Order.OrderRef',
+          trackingNumber: 'Order.TrackingNumber',
+          estimatedDelivery: 'Order.EstimatedDelivery',
+          customerFullName: 'Order.CustomerFullName',
+          customerEmail: 'Order.CustomerEmail',
+          orderDate: 'Order.OrderDate',
+          billingAddress: 'Order.BillingAddress',
+          companyName: 'Order.CompanyName',
+          vatNumber: 'Order.VATNumber',
+          paymentMethod: 'Order.PaymentMethod',
+          currency: 'Order.Currency',
+          subtotal: 'Order.Subtotal',
+          taxAmount: 'Order.TaxAmount',
+          discountAmount: 'Order.DiscountAmount',
+          shippingCost: 'Order.ShippingCost',
+          shippingAddress: 'Order.ShippingAddress',
+          shippingCarrier: 'Order.ShippingCarrier',
+          totalPrice: 'Order.Total',
+          items: 'Order.Items',
+          itemName: 'Order.Items.Name',
+          itemQuantity: 'Order.Items.Quantity',
+          itemUnitPrice: 'Order.Items.UnitPrice',
+          itemTotal: 'Order.Items.Total',
+          itemSku: 'Order.Items.SKU',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Receipt sections present
+      expect(json).toContain('Seller');
+      expect(json).toContain('VAT');
+      expect(json).toContain('Subtotal');
+      expect(json).toContain('Tax');
+      expect(json).toContain('Total');
+      expect(json).toContain('This is your receipt.');
+      expect(json).toContain('Return Policy');
+      expect(json).toContain('https://shop.example.com/returns');
+
+      // Loop block for line items
+      expect(json).toContain('rc-loop');
+      expect(json).toContain('custom-field');
+      expect(json).toContain('200020'); // Items field ID as loop-value
+
+      // Line item sub-fields in loop
+      expect(json).toContain('200021'); // Item Name
+      expect(json).toContain('200025'); // Item SKU
+    });
+
+    it('should render identically to base when no receipt fields provided', () => {
+      const baseDoc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipped',
+          greeting: 'Hi',
+          message: 'shipped.',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+        },
+        fieldNames: {
+          firstName: 'Order.CustomerName',
+          orderRef: 'Order.OrderRef',
+        },
+      });
+
+      assertValidRCMLDocument(baseDoc);
+      const json = docToString(baseDoc);
+
+      // No receipt content
+      expect(json).not.toContain('rc-loop');
+      expect(json).not.toContain('Subtotal');
+      expect(json).not.toContain('receipt');
     });
   });
 
@@ -885,7 +1091,7 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Order Cancelled');
       expect(json).toContain('Shop Again');
-      expect(json).toContain('200002'); // OrderRef field ID
+      expect(json).toContain('200004'); // OrderRef field ID
     });
   });
 });
