@@ -259,7 +259,7 @@ describe('shopifyPreset', () => {
       expect(json).toContain('rc-loop');
       expect(json).toContain('custom-field');
       expect(json).toContain('200014'); // Products field ID
-      expect(json).toContain('[CustomField:name]'); // loop sub-field
+      expect(json).toContain('[LoopValue:name]'); // loop sub-field
     });
 
     it('shipping update contains rc-loop and receipt fields', () => {

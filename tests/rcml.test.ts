@@ -20,6 +20,7 @@ import {
   createProseMirrorDoc,
   createLoop,
   createBrandLoop,
+  createLoopFieldPlaceholder,
 } from '../src/rcml';
 
 describe('RCML Utils', () => {
@@ -473,6 +474,25 @@ describe('RCML Elements', () => {
       const loop = createBrandLoop(100, [section]);
 
       expect(loop.children).toHaveLength(1);
+    });
+  });
+
+  describe('createLoopFieldPlaceholder', () => {
+    it('should create a placeholder with JSON key name', () => {
+      const node = createLoopFieldPlaceholder('title');
+
+      expect(node.type).toBe('placeholder');
+      expect(node.attrs.type).toBe('LoopValue');
+      expect(node.attrs.name).toBe('title');
+      expect(node.attrs.value).toBe('title');
+      expect(node.attrs.original).toBe('[LoopValue:title]');
+    });
+
+    it('should handle snake_case JSON keys', () => {
+      const node = createLoopFieldPlaceholder('variant_title');
+
+      expect(node.attrs.name).toBe('variant_title');
+      expect(node.attrs.original).toBe('[LoopValue:variant_title]');
     });
   });
 });
