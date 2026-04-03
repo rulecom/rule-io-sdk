@@ -1,8 +1,9 @@
 /**
  * Shopify Custom Field Definitions
  *
- * Every Shopify integration uses these same field names because
- * the webhook payload structure is the same across all stores.
+ * Field names match the actual Shopify→Rule.io integration exactly.
+ * @see https://help.rule.io/en/articles/349484-shopify-integration
+ *
  * Consumers provide the numeric IDs from their Rule.io account.
  */
 
@@ -16,49 +17,51 @@ import type { VendorFieldSchema } from '../types';
  * import { SHOPIFY_FIELDS } from 'rule-io-sdk';
  *
  * const customFields = {
- *   [SHOPIFY_FIELDS.customerFirstName]: 169233,
- *   [SHOPIFY_FIELDS.orderRef]: 169234,
+ *   [SHOPIFY_FIELDS.firstName]: 169233,
+ *   [SHOPIFY_FIELDS.orderNumber]: 169234,
  *   // ... map all fields to your Rule.io numeric IDs
  * };
  * ```
  */
 export const SHOPIFY_FIELDS = {
-  // Customer
-  customerFirstName: 'Order.CustomerName',
-  customerFullName: 'Order.CustomerFullName',
-  customerEmail: 'Order.CustomerEmail',
+  // Subscriber fields
+  firstName: 'Subscriber.FirstName',
+  lastName: 'Subscriber.LastName',
+  source: 'Subscriber.Source',
+  zipcode: 'Subscriber.Zipcode',
+  city: 'Subscriber.City',
+  address1: 'Subscriber.Address1',
+  address2: 'Subscriber.Address2',
+  number: 'Subscriber.Number',
+  country: 'Subscriber.Country',
 
-  // Order
-  orderRef: 'Order.OrderRef',
-  orderDate: 'Order.OrderDate',
+  // Order fields
+  orderNumber: 'Order.Number',
+  orderDate: 'Order.Date',
   currency: 'Order.Currency',
-  paymentMethod: 'Order.PaymentMethod',
-
-  // Financials
-  subtotal: 'Order.Subtotal',
-  discountAmount: 'Order.DiscountAmount',
-  taxAmount: 'Order.TaxAmount',
-  shippingCost: 'Order.ShippingCost',
-  totalPrice: 'Order.Total',
+  totalPrice: 'Order.TotalPrice',
+  totalWeight: 'Order.TotalWeight',
+  totalTax: 'Order.TotalTax',
+  productCount: 'Order.ProductCount',
+  discount: 'Order.Discount',
+  names: 'Order.Names',
+  gateway: 'Order.Gateway',
+  skus: 'Order.Skus',
+  products: 'Order.Products',
+  cartUrl: 'Order.CartUrl',
 
   // Shipping
-  shippingAddress: 'Order.ShippingAddress',
-  billingAddress: 'Order.BillingAddress',
-  trackingNumber: 'Order.TrackingNumber',
-  estimatedDelivery: 'Order.EstimatedDelivery',
-  shippingCarrier: 'Order.ShippingCarrier',
+  shippingAddress1: 'Order.ShippingAddress1',
+  shippingAddress2: 'Order.ShippingAddress2',
+  shippingCity: 'Order.ShippingCity',
+  shippingZip: 'Order.ShippingZip',
+  shippingCountryCode: 'Order.ShippingCountryCode',
 
-  // Seller
-  companyName: 'Order.CompanyName',
-  vatNumber: 'Order.VATNumber',
-
-  // Line items (repeatable sub-fields within Order.Items)
-  items: 'Order.Items',
-  itemName: 'Order.Items.Name',
-  itemQuantity: 'Order.Items.Quantity',
-  itemUnitPrice: 'Order.Items.UnitPrice',
-  itemTotal: 'Order.Items.Total',
-  itemSku: 'Order.Items.SKU',
+  // Line item sub-fields (JSON keys within Order.Products loop)
+  itemName: 'name',
+  itemQuantity: 'quantity',
+  itemPrice: 'price',
+  itemSku: 'sku',
 } as const satisfies VendorFieldSchema;
 
 /** Object type of the Shopify field schema. */

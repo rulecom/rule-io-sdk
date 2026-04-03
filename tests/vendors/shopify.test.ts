@@ -99,8 +99,6 @@ describe('shopifyPreset', () => {
           [SHOPIFY_FIELDS.firstName]: 1,
           [SHOPIFY_FIELDS.orderNumber]: 2,
           [SHOPIFY_FIELDS.totalPrice]: 3,
-          [SHOPIFY_FIELDS.products]: 4,
-          [SHOPIFY_FIELDS.shippingAddress1]: 5,
         },
       };
       expect(() => {
@@ -142,7 +140,7 @@ describe('shopifyPreset', () => {
     it('returns all required fields with descriptions', () => {
       const fields = shopifyPreset.getRequiredFields();
 
-      expect(fields.length).toBe(5);
+      expect(fields.length).toBe(3);
 
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
@@ -330,8 +328,8 @@ describe('SHOPIFY_FIELDS', () => {
     }
   });
 
-  it('has 29 fields', () => {
-    expect(Object.keys(SHOPIFY_FIELDS)).toHaveLength(29);
+  it('has 31 fields', () => {
+    expect(Object.keys(SHOPIFY_FIELDS)).toHaveLength(31);
   });
 });
 

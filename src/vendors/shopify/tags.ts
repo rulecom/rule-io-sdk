@@ -1,7 +1,8 @@
 /**
  * Shopify Tag Definitions
  *
- * Standard tags used by Shopify integrations with Rule.io.
+ * Tags match the actual Shopify→Rule.io integration exactly.
+ * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
 import type { VendorTagSchema } from '../types';
@@ -23,10 +24,7 @@ export const SHOPIFY_TAGS = {
   cartInProgress: 'CartInProgress',
   orderCompleted: 'OrderCompleted',
   orderShipped: 'OrderShipped',
-  orderCancelled: 'OrderCancelled',
   newsletter: 'Newsletter',
-  newCustomer: 'new-customer',
-  returningCustomer: 'returning-customer',
 } as const satisfies VendorTagSchema;
 
 /** Object type of the Shopify tag schema. */
