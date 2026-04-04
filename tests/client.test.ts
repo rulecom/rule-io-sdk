@@ -14,6 +14,7 @@ function createMockResponse(data: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
     headers: new Headers(),
   } as Response;
 }
@@ -525,6 +526,159 @@ describe('RuleClient', () => {
 
       await expect(client.listAutomails()).rejects.toThrow(RuleApiError);
       await expect(client.listAutomails()).rejects.toThrow('Invalid Rule.io API key');
+    });
+  });
+
+  describe('v3 Custom Field Data API (Deprecated)', () => {
+    it('should get custom field data for a subscriber', async () => {
+      const mockData = {
+        data: [
+          {
+            id: 1,
+            group_id: 10,
+            group_name: 'Order',
+            values: [{ field_id: 100, field_name: 'Ref', field_type: 'text', field_value: 'ORD-1' }],
+          },
+        ],
+        meta: { page: 1, per_page: 15 },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getCustomFieldData(42);
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].group_name).toBe('Order');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/custom-field-data/42');
+      expect(url).not.toContain('?');
+    });
+
+    it('should get custom field data with pagination and group filters', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [], meta: { page: 2, per_page: 10 } }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getCustomFieldData(42, {
+        page: 2,
+        per_page: 10,
+        groups_id: [1, 2],
+        groups_name: ['Order', 'Profile'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('page=2');
+      expect(url).toContain('per_page=10');
+      expect(url).toContain('groups_id%5B%5D=1');
+      expect(url).toContain('groups_id%5B%5D=2');
+      expect(url).toContain('groups_name%5B%5D=Order');
+      expect(url).toContain('groups_name%5B%5D=Profile');
+    });
+
+    it('should create custom field data', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }, 201));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const request = {
+        groups: [{
+          group: 'Order',
+          create_if_not_exists: true,
+          values: [{ field: 'Ref', create_if_not_exists: true, value: 'ORD-123' }],
+        }],
+      };
+      await client.createCustomFieldData(42, request);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('/custom-field-data/42');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.groups[0].group).toBe('Order');
+      expect(body.groups[0].values[0].value).toBe('ORD-123');
+    });
+
+    it('should update custom field data', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse(null, 204));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const request = {
+        identifier: { group: 'Order', field: 'Ref', value: 'ORD-123' },
+        values: [{ field: 'Status', value: 'shipped' }],
+      };
+      const result = await client.updateCustomFieldData(42, request);
+
+      expect(result.success).toBe(true);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('/custom-field-data/42');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.identifier.group).toBe('Order');
+      expect(body.values[0].field).toBe('Status');
+    });
+
+    it('should get custom field data by group name', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getCustomFieldDataByGroup(42, 'Order');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/custom-field-data/42/group/Order');
+    });
+
+    it('should get custom field data by group ID', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getCustomFieldDataByGroup(42, 5, { page: 1, fields: ['Ref', 'Status'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/custom-field-data/42/group/5');
+      expect(url).toContain('page=1');
+      expect(url).toContain('fields%5B%5D=Ref');
+      expect(url).toContain('fields%5B%5D=Status');
+    });
+
+    it('should delete custom field data by group', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteCustomFieldDataByGroup(42, 'Order');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('/custom-field-data/42/group/Order');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should search custom field data', async () => {
+      const mockData = {
+        data: { id: 1, group_name: 'Order', values: [] },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.searchCustomFieldData(42, {
+        group: 'Order',
+        field: 'Ref',
+        value: 'ORD-123',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result!.data!.group_name).toBe('Order');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/custom-field-data/42/search');
+      expect(url).toContain('group=Order');
+      expect(url).toContain('field=Ref');
+      expect(url).toContain('value=ORD-123');
+    });
+
+    it('should return null when search finds no results (404)', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.searchCustomFieldData(42, { data_id: 999 });
+
+      expect(result).toBeNull();
     });
   });
 });
