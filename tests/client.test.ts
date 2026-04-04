@@ -1052,6 +1052,23 @@ describe('RuleClient', () => {
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/12345?identified_by=id');
     });
 
+    it('should default to email when deleting a subscriber via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSubscriberV3('old@example.com');
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/old%40example.com?identified_by=email');
+      expect(options.method).toBe('DELETE');
+    });
+
     it('should block subscribers via v3', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
