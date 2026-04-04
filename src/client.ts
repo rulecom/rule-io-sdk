@@ -68,6 +68,11 @@ import type {
   RuleCustomFieldDataResponse,
   RuleCustomFieldDataSingleResponse,
   RuleSuppressionRequest,
+  RuleSubscriberV3CreateRequest,
+  RuleSubscriberV3Response,
+  RuleBulkSubscriberIdentifier,
+  RuleBulkTagsRequest,
+  RuleSubscriberTagsV3Request,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1355,6 +1360,275 @@ export class RuleClient {
       method: 'DELETE',
       body: JSON.stringify(request),
     });
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Subscriber API
+  // ==========================================================================
+
+  /**
+   * ## v3 Subscriber Methods
+   *
+   * The v3 subscriber endpoints extend the v2 subscriber API with new
+   * capabilities including block/unblock management, bulk tag operations,
+   * and flexible identifier options (`identified_by`).
+   *
+   * **Overlap with v2:** Several v3 methods mirror existing v2 helpers.
+   * Where they overlap, the v3 versions use a `V3` suffix to avoid
+   * naming collisions:
+   *
+   * | v2 method               | v3 equivalent             |
+   * |-------------------------|---------------------------|
+   * | `syncSubscriber()`      | `createSubscriberV3()`    |
+   * | `deleteSubscriber()`    | `deleteSubscriberV3()`    |
+   * | `addSubscriberTags()`   | `addSubscriberTagsV3()`   |
+   * | `removeSubscriberTag()` | `removeSubscriberTagV3()` |
+   *
+   * **v3-only operations** (no v2 equivalent):
+   * - `blockSubscribers()` / `unblockSubscribers()` — manage subscriber
+   *   block status
+   * - `bulkAddTags()` / `bulkRemoveTags()` — tag operations across
+   *   multiple subscribers in a single request
+   *
+   * **Key behavioral differences from v2:**
+   * - Bulk operations are asynchronous and return `204 No Content` rather
+   *   than an immediate resource payload.
+   * - Some v3 delete operations use `DELETE` with a JSON request body.
+   * - The `identifiedBy` parameter defaults to `'email'` but supports
+   *   `'phone_number'`, `'id'`, and `'custom_identifier'`.
+   *
+   * The v2 methods remain available for backward compatibility. Choose v3
+   * when you need the additional capabilities listed above.
+   */
+
+  /**
+   * Create a subscriber via the v3 API.
+   *
+   * @param subscriber - Subscriber data (email, phone_number, status, etc.)
+   * @returns API response with the created subscriber data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createSubscriberV3({
+   *   email: 'customer@example.com',
+   *   status: 'ACTIVE',
+   *   language: 'sv',
+   * });
+   * console.log(result.id);
+   * ```
+   */
+  async createSubscriberV3(
+    subscriber: RuleSubscriberV3CreateRequest
+  ): Promise<RuleSubscriberV3Response> {
+    return this.requestV3<RuleSubscriberV3Response>('/subscribers', {
+      method: 'POST',
+      body: JSON.stringify(subscriber),
+    });
+  }
+
+  /**
+   * Delete a subscriber via the v3 API.
+   *
+   * Returns `{ success: true }` on successful deletion (HTTP 204).
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
+   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
+   * @returns API response indicating success
+   *
+   * @example
+   * ```typescript
+   * // Delete by email (default)
+   * await client.deleteSubscriberV3('customer@example.com');
+   *
+   * // Delete by ID
+   * await client.deleteSubscriberV3(12345, 'id');
+   * ```
+   */
+  async deleteSubscriberV3(
+    subscriber: string | number,
+    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
+  ): Promise<RuleApiResponse> {
+    const idParam = `?identified_by=${identifiedBy}`;
+    await this.fetchV3(`/subscribers/${encodeURIComponent(subscriber)}${idParam}`, {
+      method: 'DELETE',
+    });
+    return { success: true };
+  }
+
+  /**
+   * Block multiple subscribers in bulk via the v3 API.
+   *
+   * This is an asynchronous operation (HTTP 204). The block is processed
+   * in the background by Rule.io.
+   *
+   * @param subscribers - Array of subscriber identifiers to block
+   * @param callbackUrl - Optional webhook URL to notify when the async operation completes
+   * @returns API response indicating the request was accepted
+   *
+   * @example
+   * ```typescript
+   * await client.blockSubscribers([
+   *   { email: 'spam@example.com' },
+   *   { id: 456 },
+   * ]);
+   * ```
+   */
+  async blockSubscribers(
+    subscribers: RuleBulkSubscriberIdentifier[],
+    callbackUrl?: string
+  ): Promise<RuleApiResponse> {
+    const payload: Record<string, unknown> = { subscribers };
+    if (callbackUrl) payload.callback_url = callbackUrl;
+    await this.fetchV3('/subscribers/block', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Unblock multiple subscribers in bulk via the v3 API.
+   *
+   * This is an asynchronous operation (HTTP 204). The unblock is processed
+   * in the background by Rule.io.
+   *
+   * @param subscribers - Array of subscriber identifiers to unblock
+   * @param callbackUrl - Optional webhook URL to notify when the async operation completes
+   * @returns API response indicating the request was accepted
+   *
+   * @example
+   * ```typescript
+   * await client.unblockSubscribers([
+   *   { email: 'restored@example.com' },
+   *   { phone_number: '+46701234567' },
+   * ]);
+   * ```
+   */
+  async unblockSubscribers(
+    subscribers: RuleBulkSubscriberIdentifier[],
+    callbackUrl?: string
+  ): Promise<RuleApiResponse> {
+    const payload: Record<string, unknown> = { subscribers };
+    if (callbackUrl) payload.callback_url = callbackUrl;
+    await this.fetchV3('/subscribers/unblock', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Add tags to multiple subscribers in bulk via the v3 API.
+   *
+   * This is an asynchronous operation (HTTP 204). Tags are applied
+   * in the background by Rule.io.
+   *
+   * @param request - Subscribers and tags to apply
+   * @returns API response indicating the request was accepted
+   *
+   * @example
+   * ```typescript
+   * await client.bulkAddTags({
+   *   subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+   *   tags: ['newsletter', 'promo-2024'],
+   * });
+   * ```
+   */
+  async bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+    await this.fetchV3('/subscribers/tags', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Remove tags from multiple subscribers in bulk via the v3 API.
+   *
+   * This is an asynchronous operation (HTTP 204). Tags are removed
+   * in the background by Rule.io.
+   *
+   * Note: This sends a DELETE request with a JSON body.
+   *
+   * @param request - Subscribers and tags to remove
+   * @returns API response indicating the request was accepted
+   *
+   * @example
+   * ```typescript
+   * await client.bulkRemoveTags({
+   *   subscribers: [{ email: 'a@example.com' }],
+   *   tags: ['old-campaign'],
+   * });
+   * ```
+   */
+  async bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+    await this.fetchV3('/subscribers/tags', {
+      method: 'DELETE',
+      body: JSON.stringify(request),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Add tags to a single subscriber via the v3 API.
+   *
+   * Supports automation triggering and optional subscriber sync.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
+   * @param request - Tags to add and optional automation/sync settings
+   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
+   * @returns API response indicating success
+   *
+   * @example
+   * ```typescript
+   * await client.addSubscriberTagsV3('customer@example.com', {
+   *   tags: ['vip', 'returning'],
+   *   automation: 'force',
+   * }, 'email');
+   * ```
+   */
+  async addSubscriberTagsV3(
+    subscriber: string | number,
+    request: RuleSubscriberTagsV3Request,
+    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
+  ): Promise<RuleApiResponse> {
+    const idParam = `?identified_by=${identifiedBy}`;
+    await this.fetchV3(
+      `/subscribers/${encodeURIComponent(subscriber)}/tags${idParam}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(request),
+      }
+    );
+    return { success: true };
+  }
+
+  /**
+   * Remove a single tag from a subscriber via the v3 API.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
+   * @param tag - Tag name or ID to remove
+   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
+   * @returns API response indicating success
+   *
+   * @example
+   * ```typescript
+   * await client.removeSubscriberTagV3('customer@example.com', 'old-promo', 'email');
+   * ```
+   */
+  async removeSubscriberTagV3(
+    subscriber: string | number,
+    tag: string | number,
+    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
+  ): Promise<RuleApiResponse> {
+    const idParam = `?identified_by=${identifiedBy}`;
+    await this.fetchV3(
+      `/subscribers/${encodeURIComponent(subscriber)}/tags/${encodeURIComponent(String(tag))}${idParam}`,
+      {
+        method: 'DELETE',
+      }
+    );
     return { success: true };
   }
 

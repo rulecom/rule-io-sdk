@@ -500,6 +500,24 @@ export interface RuleCampaign {
   updated_at?: string;
 }
 
+// ============================================================================
+// v3 Subscriber API Types
+// ============================================================================
+
+/**
+ * Subscriber as returned by the v3 API.
+ */
+export interface RuleSubscriberV3 {
+  id: number;
+  email?: string | null;
+  phone?: string | null;
+  custom_identifier?: string | null;
+  status?: string;
+  language?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 /**
  * Request body for creating a campaign.
  *
@@ -611,6 +629,59 @@ export interface RuleSuppressionRequest {
   message_types?: ('email' | 'text_message')[];
   /** URL called via GET when async processing completes */
   callback_url?: string;
+}
+
+/**
+ * Request body for creating a subscriber via the v3 API.
+ */
+export interface RuleSubscriberV3CreateRequest {
+  email?: string;
+  phone_number?: string;
+  custom_identifier?: string;
+  status?: 'ACTIVE' | 'BLOCKED' | 'PENDING';
+  language?: string;
+}
+
+/**
+ * Response from the v3 subscriber create endpoint.
+ *
+ * Note: The API returns subscriber fields directly at the top level,
+ * not nested inside a `data` property.
+ */
+export interface RuleSubscriberV3Response extends RuleApiResponse {
+  id?: number;
+  email?: string | null;
+  phone?: string | null;
+  status?: string;
+  language?: string;
+}
+
+/**
+ * Identifier for a subscriber in bulk v3 operations.
+ * Provide exactly one of the identifier fields.
+ */
+export interface RuleBulkSubscriberIdentifier {
+  email?: string;
+  phone_number?: string;
+  id?: number;
+  custom_identifier?: string;
+}
+
+/**
+ * Request body for bulk tag operations (add/remove tags for multiple subscribers).
+ */
+export interface RuleBulkTagsRequest {
+  subscribers: RuleBulkSubscriberIdentifier[];
+  tags: (string | number)[];
+}
+
+/**
+ * Request body for adding tags to a single subscriber via the v3 API.
+ */
+export interface RuleSubscriberTagsV3Request {
+  tags: (string | number)[];
+  automation?: 'send' | 'force' | 'reset' | null;
+  sync_subscriber?: boolean;
 }
 
 // ============================================================================

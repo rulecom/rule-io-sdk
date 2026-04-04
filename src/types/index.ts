@@ -66,6 +66,12 @@ export type {
   RuleCustomFieldDataSearchParams,
   RuleSuppressionSubscriberIdentifier,
   RuleSuppressionRequest,
+  RuleSubscriberV3,
+  RuleSubscriberV3CreateRequest,
+  RuleSubscriberV3Response,
+  RuleBulkSubscriberIdentifier,
+  RuleBulkTagsRequest,
+  RuleSubscriberTagsV3Request,
 } from './api';
 
 // RCML types
