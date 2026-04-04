@@ -18,6 +18,15 @@ function createMockResponse(data: unknown, status = 200): Response {
   } as Response;
 }
 
+function createMockTextResponse(text: string, status = 200): Response {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    text: () => Promise.resolve(text),
+    headers: new Headers(),
+  } as Response;
+}
+
 describe('RuleClient', () => {
   beforeEach(() => {
     mockFetch.mockReset();
@@ -356,6 +365,155 @@ describe('RuleClient', () => {
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
+    });
+  });
+
+  describe('v3 List, Update & Render API', () => {
+    it('should list automails with query params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Auto 1' },
+            { id: 2, name: 'Auto 2' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listAutomails({ page: 2, per_page: 20, active: true });
+
+      expect(result.data).toHaveLength(2);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/editor/automail?');
+      expect(url).toContain('page=2');
+      expect(url).toContain('per_page=20');
+      expect(url).toContain('active=true');
+    });
+
+    it('should list automails without params', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAutomails();
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
+      expect(url).not.toContain('?');
+    });
+
+    it('should list automails with search query', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [{ id: 1, name: 'Welcome' }] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAutomails({ query: 'Welcome' });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('query=Welcome');
+    });
+
+    it('should list messages with required dispatcher params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 10, name: 'Msg 1', subject: 'Test' }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
+
+      expect(result.data).toHaveLength(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('id=123');
+      expect(url).toContain('dispatcher_type=automail');
+    });
+
+    it('should list templates with pagination', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 100, name: 'Tmpl 1' }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listTemplates({ page: 1, per_page: 50 });
+
+      expect(result.data).toHaveLength(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('page=1');
+      expect(url).toContain('per_page=50');
+    });
+
+    it('should list dynamic sets with required message_id', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 200, message_id: 456, template_id: 789 }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listDynamicSets({ message_id: 456 });
+
+      expect(result.data).toHaveLength(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('message_id=456');
+    });
+
+    it('should update a dynamic set', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 200, message_id: 456, template_id: 101 },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateDynamicSet(200, {
+        message_id: 456,
+        template_id: 101,
+        active: true,
+      });
+
+      expect(result.data?.id).toBe(200);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/dynamic-set/200');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.message_id).toBe(456);
+      expect(body.template_id).toBe(101);
+      expect(body.active).toBe(true);
+    });
+
+    it('should render a template and return HTML', async () => {
+      const html = '<html><body><h1>Hello</h1></body></html>';
+      mockFetch.mockResolvedValueOnce(createMockTextResponse(html));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.renderTemplate(42);
+
+      expect(result).toBe(html);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/editor/template/42/render');
+    });
+
+    it('should render a template with subscriber_id', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockTextResponse('<html><body>Hello Anna</body></html>')
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.renderTemplate(42, { subscriber_id: 1001 });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/template/42/render?');
+      expect(url).toContain('subscriber_id=1001');
+    });
+
+    it('should return null when rendering a non-existent template', async () => {
+      mockFetch.mockResolvedValueOnce(createMockTextResponse('Not found', 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.renderTemplate(99999);
+
+      expect(result).toBeNull();
     });
   });
 });

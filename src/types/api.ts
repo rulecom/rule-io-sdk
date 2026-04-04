@@ -215,6 +215,109 @@ export interface RuleDynamicSetResponse extends RuleApiResponse {
 }
 
 // ============================================================================
+// v3 Editor API Types - List / Pagination
+// ============================================================================
+
+/**
+ * Pagination parameters for v3 list endpoints.
+ */
+export interface RulePaginationParams {
+  page?: number;
+  per_page?: number;
+}
+
+/**
+ * Generic list response wrapper for v3 endpoints that return arrays.
+ */
+export interface RuleListResponse<T> extends RuleApiResponse {
+  data?: T[];
+}
+
+/**
+ * Query parameters for listing automails.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.listAutomails({ page: 1, per_page: 20, active: true });
+ * ```
+ */
+export interface RuleAutomailListParams extends RulePaginationParams {
+  /** Full-text search by name */
+  query?: string;
+  /** Filter by active status */
+  active?: boolean;
+  /** Filter by message type: 1 = email, 2 = text_message */
+  message_type?: 1 | 2;
+}
+
+export type RuleAutomailListResponse = RuleListResponse<RuleAutomail>;
+
+/**
+ * Query parameters for listing messages.
+ * Both fields are required — the API filters messages by their parent dispatcher.
+ */
+export interface RuleMessageListParams {
+  /** Dispatcher ID (automail or campaign ID) */
+  id: number;
+  /** Dispatcher type */
+  dispatcher_type: 'campaign' | 'automail';
+}
+
+export type RuleMessageListResponse = RuleListResponse<RuleMessage>;
+
+/**
+ * Query parameters for listing templates.
+ */
+export type RuleTemplateListParams = RulePaginationParams;
+
+export type RuleTemplateListResponse = RuleListResponse<RuleTemplate>;
+
+/**
+ * Query parameters for listing dynamic sets.
+ * The message_id is required — the API returns all dynamic sets for a given message.
+ */
+export interface RuleDynamicSetListParams {
+  /** Message ID to filter by */
+  message_id: number;
+}
+
+export type RuleDynamicSetListResponse = RuleListResponse<RuleDynamicSet>;
+
+/**
+ * Request body for updating a dynamic set.
+ *
+ * Note: If a duplicate active dynamic set with the same trigger already exists,
+ * the updated one may be automatically deactivated by the API.
+ */
+export interface RuleDynamicSetUpdateRequest {
+  message_id: number;
+  template_id?: number;
+  name?: string;
+  subject?: string;
+  pre_header?: string;
+  utm_campaign?: string;
+  utm_term?: string;
+  active?: boolean;
+  sender?: {
+    email?: string | null;
+    phone_number?: string | null;
+    name?: string | null;
+  };
+  trigger?: {
+    type: 'TAG' | 'SEGMENT';
+    id: number;
+  } | null;
+}
+
+/**
+ * Query parameters for rendering a template.
+ */
+export interface RuleRenderTemplateParams {
+  /** If provided, merge tags are substituted with the subscriber's field values */
+  subscriber_id?: number;
+}
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 
