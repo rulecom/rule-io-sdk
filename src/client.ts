@@ -35,16 +35,29 @@ import type {
   RuleAutomailCreateRequest,
   RuleAutomailUpdateRequest,
   RuleAutomailResponse,
+  RuleAutomailListParams,
+  RuleAutomailListResponse,
   RuleMessageCreateRequest,
   RuleMessageResponse,
+  RuleMessageListParams,
+  RuleMessageListResponse,
   RuleTemplateCreateRequest,
   RuleTemplateResponse,
+  RuleTemplateListParams,
+  RuleTemplateListResponse,
   RuleDynamicSetCreateRequest,
+  RuleDynamicSetUpdateRequest,
   RuleDynamicSetResponse,
+  RuleDynamicSetListParams,
+  RuleDynamicSetListResponse,
+  RuleRenderTemplateParams,
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
 } from './types';
+
+/** Flat query-param bag accepted by `buildQueryString`. */
+type QueryParamValues = Record<string, string | number | boolean | null | undefined>;
 
 /**
  * Rule.io API Client
@@ -194,10 +207,7 @@ export class RuleClient {
     }
   }
 
-  private async requestV3<T extends RuleApiResponse>(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<T> {
+  private async fetchV3(endpoint: string, options: RequestInit): Promise<Response> {
     const url = `${this.config.baseUrlV3}${endpoint}`;
     this.log('Request V3:', options.method, url);
 
@@ -237,9 +247,7 @@ export class RuleClient {
         throw new RuleApiError(message, response.status);
       }
 
-      const data = (await response.json()) as T;
-      this.log('Response V3:', data);
-      return data;
+      return response;
     } catch (error) {
       if (error instanceof RuleApiError) {
         throw error;
@@ -247,6 +255,36 @@ export class RuleClient {
       this.log('Rule.io v3 API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
+  }
+
+  private async requestV3<T extends RuleApiResponse>(
+    endpoint: string,
+    options: RequestInit
+  ): Promise<T> {
+    const response = await this.fetchV3(endpoint, options);
+    const data = (await response.json()) as T;
+    this.log('Response V3:', data);
+    return data;
+  }
+
+  private async requestV3Text(
+    endpoint: string,
+    options: RequestInit
+  ): Promise<string> {
+    const response = await this.fetchV3(endpoint, options);
+    const text = await response.text();
+    this.log('Response V3 (text):', text.slice(0, 200));
+    return text;
+  }
+
+  private static buildQueryString(
+    params: QueryParamValues
+  ): string {
+    const entries = Object.entries(params).filter(
+      ([, v]) => v !== undefined && v !== null
+    );
+    if (entries.length === 0) return '';
+    return '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join('&');
   }
 
   // ==========================================================================
@@ -537,6 +575,33 @@ export class RuleClient {
     });
   }
 
+  /**
+   * List automails with optional filtering and pagination.
+   *
+   * @param params - Optional query parameters for filtering and pagination
+   * @returns List of automails
+   *
+   * @example
+   * ```typescript
+   * // List all automails
+   * const all = await client.listAutomails();
+   *
+   * // List active email automails, page 2
+   * const filtered = await client.listAutomails({
+   *   active: true,
+   *   message_type: 1,
+   *   page: 2,
+   *   per_page: 20,
+   * });
+   * ```
+   */
+  async listAutomails(params?: RuleAutomailListParams): Promise<RuleAutomailListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleAutomailListResponse>(`/editor/automail${qs}`, {
+      method: 'GET',
+    });
+  }
+
   // ==========================================================================
   // v3 Editor API - Message
   // ==========================================================================
@@ -588,6 +653,29 @@ export class RuleClient {
   async deleteMessage(id: number): Promise<RuleApiResponse> {
     return this.requestV3<RuleApiResponse>(`/editor/message/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  /**
+   * List messages for a dispatcher (automail or campaign).
+   *
+   * Both `id` and `dispatcher_type` are required by the API.
+   *
+   * @param params - Dispatcher ID and type
+   * @returns List of messages for the dispatcher
+   *
+   * @example
+   * ```typescript
+   * const messages = await client.listMessages({
+   *   id: 123,
+   *   dispatcher_type: 'automail',
+   * });
+   * ```
+   */
+  async listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleMessageListResponse>(`/editor/message${qs}`, {
+      method: 'GET',
     });
   }
 
@@ -645,6 +733,59 @@ export class RuleClient {
     });
   }
 
+  /**
+   * List templates with optional pagination.
+   *
+   * @param params - Optional pagination parameters
+   * @returns List of templates
+   *
+   * @example
+   * ```typescript
+   * const templates = await client.listTemplates({ page: 1, per_page: 50 });
+   * ```
+   */
+  async listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleTemplateListResponse>(`/editor/template${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Render a template to HTML.
+   *
+   * Optionally pass a subscriber_id to substitute merge tags with the subscriber's
+   * field values (e.g., `{{Booking.FirstName}}` becomes their actual name).
+   *
+   * @param id - Template ID
+   * @param params - Optional parameters (subscriber_id for merge tag substitution)
+   * @returns Rendered HTML string, or null if the template is not found
+   *
+   * @example
+   * ```typescript
+   * const html = await client.renderTemplate(42);
+   *
+   * // With subscriber data for merge tag substitution
+   * const personalized = await client.renderTemplate(42, { subscriber_id: 1001 });
+   * ```
+   */
+  async renderTemplate(
+    id: number,
+    params?: RuleRenderTemplateParams
+  ): Promise<string | null> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    try {
+      return await this.requestV3Text(`/editor/template/${id}/render${qs}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   // ==========================================================================
   // v3 Editor API - Dynamic Set
   // ==========================================================================
@@ -683,6 +824,55 @@ export class RuleClient {
   async deleteDynamicSet(id: number): Promise<RuleApiResponse> {
     return this.requestV3<RuleApiResponse>(`/editor/dynamic-set/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  /**
+   * List dynamic sets for a message.
+   *
+   * The `message_id` is required — the API returns all dynamic sets for that message.
+   *
+   * @param params - Query parameters with required message_id
+   * @returns List of dynamic sets
+   *
+   * @example
+   * ```typescript
+   * const sets = await client.listDynamicSets({ message_id: 456 });
+   * ```
+   */
+  async listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleDynamicSetListResponse>(`/editor/dynamic-set${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Update a dynamic set.
+   *
+   * Note: If a duplicate active dynamic set with the same trigger already exists
+   * and this one has `active: true`, the API may automatically deactivate it.
+   *
+   * @param id - Dynamic set ID
+   * @param update - Update request body
+   * @returns Updated dynamic set
+   *
+   * @example
+   * ```typescript
+   * await client.updateDynamicSet(789, {
+   *   message_id: 456,
+   *   template_id: 101,
+   *   active: true,
+   * });
+   * ```
+   */
+  async updateDynamicSet(
+    id: number,
+    update: RuleDynamicSetUpdateRequest
+  ): Promise<RuleDynamicSetResponse> {
+    return this.requestV3<RuleDynamicSetResponse>(`/editor/dynamic-set/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(update),
     });
   }
 
