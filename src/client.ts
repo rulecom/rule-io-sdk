@@ -1585,7 +1585,7 @@ export class RuleClient {
    * await client.addSubscriberTagsV3('customer@example.com', {
    *   tags: ['vip', 'returning'],
    *   automation: 'force',
-   * }, 'email');
+   * });
    * ```
    */
   async addSubscriberTagsV3(
@@ -1614,7 +1614,7 @@ export class RuleClient {
    *
    * @example
    * ```typescript
-   * await client.removeSubscriberTagV3('customer@example.com', 'old-promo', 'email');
+   * await client.removeSubscriberTagV3('customer@example.com', 'old-promo');
    * ```
    */
   async removeSubscriberTagV3(

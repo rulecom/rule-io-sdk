@@ -506,6 +506,9 @@ export interface RuleCampaign {
 
 /**
  * Subscriber as returned by the v3 API.
+ *
+ * Note: The API returns `phone` in responses but accepts `phone_number` in requests.
+ * This matches the Rule.io API naming convention.
  */
 export interface RuleSubscriberV3 {
   id: number;
@@ -647,6 +650,9 @@ export interface RuleSubscriberV3CreateRequest {
  *
  * Note: The API returns subscriber fields directly at the top level,
  * not nested inside a `data` property.
+ *
+ * Note: The API returns `phone` in responses but accepts `phone_number` in requests.
+ * This matches the Rule.io API naming convention.
  */
 export interface RuleSubscriberV3Response extends RuleApiResponse {
   id?: number;
@@ -658,7 +664,11 @@ export interface RuleSubscriberV3Response extends RuleApiResponse {
 
 /**
  * Identifier for a subscriber in bulk v3 operations.
- * Provide exactly one of the identifier fields.
+ *
+ * Exactly one identifier field must be provided. The API validates this
+ * server-side and rejects requests with zero or multiple identifiers.
+ * All fields are typed as optional to keep the interface ergonomic for
+ * consumers who build the object dynamically.
  */
 export interface RuleBulkSubscriberIdentifier {
   email?: string;
