@@ -681,4 +681,171 @@ describe('RuleClient', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('v3 Campaign API', () => {
+    it('should create a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Spring Sale' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createCampaign({
+        message_type: 1,
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      expect(result.data?.id).toBe(10);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.message_type).toBe(1);
+      expect(body.tags).toEqual([{ id: 42, negative: false }]);
+    });
+
+    it('should get a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Spring Sale' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getCampaign(10);
+
+      expect(result?.data?.id).toBe(10);
+      expect(result?.data?.name).toBe('Spring Sale');
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
+    });
+
+    it('should return null for non-existent campaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getCampaign(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should update a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Updated Sale' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateCampaign(10, {
+        name: 'Updated Sale',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
+      });
+
+      expect(result.data?.name).toBe('Updated Sale');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('Updated Sale');
+      expect(body.sendout_type).toBe(1);
+      expect(body.tags).toEqual([{ id: 42, negative: false }]);
+      expect(body.segments).toEqual([]);
+      expect(body.subscribers).toEqual([]);
+    });
+
+    it('should delete a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteCampaign(10);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should list campaigns with params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Campaign 1' },
+            { id: 2, name: 'Campaign 2' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listCampaigns({ page: 2, per_page: 10, message_type: 1 });
+
+      expect(result.data).toHaveLength(2);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/editor/campaign?');
+      expect(url).toContain('page=2');
+      expect(url).toContain('per_page=10');
+      expect(url).toContain('message_type=1');
+    });
+
+    it('should list campaigns without params', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listCampaigns();
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
+      expect(url).not.toContain('?');
+    });
+
+    it('should copy a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 11, name: 'Spring Sale (copy)' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.copyCampaign(10);
+
+      expect(result.data?.id).toBe(11);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/copy');
+      expect(options.method).toBe('POST');
+    });
+
+    it('should schedule a campaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.scheduleCampaign(10, {
+        type: 'schedule',
+        datetime: '2025-06-15 10:00:00',
+      });
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/schedule');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.type).toBe('schedule');
+      expect(body.datetime).toBe('2025-06-15 10:00:00');
+    });
+
+    it('should cancel a campaign schedule', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.scheduleCampaign(10, { type: null });
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/schedule');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.type).toBeNull();
+    });
+  });
 });
