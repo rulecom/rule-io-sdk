@@ -1256,7 +1256,7 @@ export class RuleClient {
    * // Schedule for later
    * await client.scheduleCampaign(123, {
    *   type: 'schedule',
-   *   datetime: '2025-06-15T10:00:00Z',
+   *   datetime: '2025-06-15 10:00:00',
    * });
    *
    * // Cancel schedule

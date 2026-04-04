@@ -824,7 +824,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await client.scheduleCampaign(10, {
         type: 'schedule',
-        datetime: '2025-06-15T10:00:00Z',
+        datetime: '2025-06-15 10:00:00',
       });
 
       const [url, options] = mockFetch.mock.calls[0];
@@ -832,7 +832,7 @@ describe('RuleClient', () => {
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
       expect(body.type).toBe('schedule');
-      expect(body.datetime).toBe('2025-06-15T10:00:00Z');
+      expect(body.datetime).toBe('2025-06-15 10:00:00');
     });
 
     it('should cancel a campaign schedule', async () => {
