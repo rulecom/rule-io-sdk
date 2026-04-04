@@ -517,7 +517,7 @@ export interface RuleCampaignCreateRequest {
   /** 1 = email, 2 = text_message */
   message_type: 1 | 2;
   /** 1 = marketing, 2 = transactional */
-  sendout_type?: 1 | 2;
+  sendout_type?: RuleSendoutType;
   tags?: RuleCampaignRecipientTag[];
   segments?: RuleCampaignRecipientSegment[];
   subscribers?: number[];
@@ -530,7 +530,7 @@ export interface RuleCampaignCreateRequest {
 export interface RuleCampaignUpdateRequest {
   name: string;
   /** 1 = marketing, 2 = transactional */
-  sendout_type: 1 | 2;
+  sendout_type: RuleSendoutType;
   tags: RuleCampaignRecipientTag[];
   segments: RuleCampaignRecipientSegment[];
   subscribers: number[];
@@ -556,11 +556,16 @@ export interface RuleCampaignListParams extends RulePaginationParams {
 export type RuleCampaignListResponse = RuleListResponse<RuleCampaign>;
 
 /**
- * Request body for scheduling (or cancelling) a campaign send.
+ * Schedule request for a campaign.
  *
- * - `type: 'now'` — send immediately
- * - `type: 'schedule'` with `datetime` — schedule for a specific time
- * - `type: null` — cancel a previously scheduled send
+ * Valid combinations:
+ * - `{ type: 'now' }` — send immediately
+ * - `{ type: 'schedule', datetime: '2024-01-01 00:00:00' }` — schedule for later
+ * - `{ type: null }` — cancel a scheduled send (moves back to draft)
+ *
+ * Note: The flat interface is intentional. A discriminated union would overcomplicate
+ * consumer usage for little benefit, since the Rule.io API itself validates the
+ * combinations and returns clear error messages for invalid requests.
  */
 export interface RuleCampaignScheduleRequest {
   type?: 'now' | 'schedule' | null;
