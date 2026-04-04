@@ -54,6 +54,13 @@ import type {
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
+  RuleCustomFieldDataListParams,
+  RuleCustomFieldDataCreateRequest,
+  RuleCustomFieldDataUpdateRequest,
+  RuleCustomFieldDataGroupParams,
+  RuleCustomFieldDataSearchParams,
+  RuleCustomFieldDataResponse,
+  RuleCustomFieldDataSingleResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -874,6 +881,208 @@ export class RuleClient {
       method: 'PUT',
       body: JSON.stringify(update),
     });
+  }
+
+  // ==========================================================================
+  // v3 Custom Field Data API (Deprecated)
+  // ==========================================================================
+
+  /**
+   * Get custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param params - Optional pagination and group filters
+   * @returns Custom field data records for the subscriber
+   *
+   * @example
+   * ```typescript
+   * const data = await client.getCustomFieldData(42);
+   * const filtered = await client.getCustomFieldData(42, {
+   *   page: 1,
+   *   per_page: 10,
+   *   groups_id: [1, 2],
+   * });
+   * ```
+   */
+  async getCustomFieldData(
+    subscriberId: number,
+    params?: RuleCustomFieldDataListParams
+  ): Promise<RuleCustomFieldDataResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+    if (params?.groups_id) {
+      params.groups_id.forEach((id) => searchParams.append('groups_id[]', String(id)));
+    }
+    if (params?.groups_name) {
+      params.groups_name.forEach((name) => searchParams.append('groups_name[]', name));
+    }
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return this.requestV3<RuleCustomFieldDataResponse>(
+      `/custom-field-data/${subscriberId}${qs}`,
+      { method: 'GET' }
+    );
+  }
+
+  /**
+   * Create custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param request - The field data to create, grouped by field group
+   * @returns API response (201 on success)
+   *
+   * @example
+   * ```typescript
+   * await client.createCustomFieldData(42, {
+   *   groups: [{
+   *     group: 'Order',
+   *     create_if_not_exists: true,
+   *     values: [{ field: 'Ref', create_if_not_exists: true, value: 'ORD-123' }],
+   *   }],
+   * });
+   * ```
+   */
+  async createCustomFieldData(
+    subscriberId: number,
+    request: RuleCustomFieldDataCreateRequest
+  ): Promise<RuleApiResponse> {
+    return this.requestV3<RuleApiResponse>(
+      `/custom-field-data/${subscriberId}`,
+      { method: 'POST', body: JSON.stringify(request) }
+    );
+  }
+
+  /**
+   * Update custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param request - The identifier for the record to update and new values
+   * @returns API response (204 on success)
+   *
+   * @example
+   * ```typescript
+   * await client.updateCustomFieldData(42, {
+   *   identifier: { group: 'Order', field: 'Ref', value: 'ORD-123' },
+   *   values: [{ field: 'Status', value: 'shipped' }],
+   * });
+   * ```
+   */
+  async updateCustomFieldData(
+    subscriberId: number,
+    request: RuleCustomFieldDataUpdateRequest
+  ): Promise<RuleApiResponse> {
+    await this.fetchV3(`/custom-field-data/${subscriberId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Get custom field data for a subscriber filtered by group.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param group - Group ID (number) or group name (string)
+   * @param params - Optional pagination and field filters
+   * @returns Custom field data records in the specified group
+   *
+   * @example
+   * ```typescript
+   * const data = await client.getCustomFieldDataByGroup(42, 'Order');
+   * const byId = await client.getCustomFieldDataByGroup(42, 5, {
+   *   page: 1,
+   *   per_page: 10,
+   *   fields: ['Ref', 'Status'],
+   * });
+   * ```
+   */
+  async getCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string,
+    params?: RuleCustomFieldDataGroupParams
+  ): Promise<RuleCustomFieldDataResponse> {
+    const searchParams = new URLSearchParams();
+    if (params?.page) searchParams.set('page', String(params.page));
+    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+    if (params?.fields) {
+      params.fields.forEach((f) => searchParams.append('fields[]', f));
+    }
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    return this.requestV3<RuleCustomFieldDataResponse>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`,
+      { method: 'GET' }
+    );
+  }
+
+  /**
+   * Delete all custom field data for a subscriber in a specific group.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param group - Group ID (number) or group name (string)
+   * @returns API response
+   *
+   * @example
+   * ```typescript
+   * await client.deleteCustomFieldDataByGroup(42, 'Order');
+   * await client.deleteCustomFieldDataByGroup(42, 5);
+   * ```
+   */
+  async deleteCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string
+  ): Promise<RuleApiResponse> {
+    return this.requestV3<RuleApiResponse>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}`,
+      { method: 'DELETE' }
+    );
+  }
+
+  /**
+   * Search custom field data for a subscriber by identifier.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   * @param subscriberId - The subscriber's numeric ID
+   * @param params - Search parameters (data_id, group, field, value)
+   * @returns A single matching record, or null if not found
+   *
+   * @example
+   * ```typescript
+   * const record = await client.searchCustomFieldData(42, {
+   *   group: 'Order',
+   *   field: 'Ref',
+   *   value: 'ORD-123',
+   * });
+   * if (record) {
+   *   console.log(record.data?.values);
+   * }
+   * ```
+   */
+  async searchCustomFieldData(
+    subscriberId: number,
+    params: RuleCustomFieldDataSearchParams
+  ): Promise<RuleCustomFieldDataSingleResponse | null> {
+    const searchParams = new URLSearchParams();
+    if (params.data_id !== undefined) searchParams.set('data_id', String(params.data_id));
+    if (params.group !== undefined) searchParams.set('group', String(params.group));
+    if (params.field !== undefined) searchParams.set('field', String(params.field));
+    if (params.value !== undefined) searchParams.set('value', params.value);
+    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    try {
+      return await this.requestV3<RuleCustomFieldDataSingleResponse>(
+        `/custom-field-data/${subscriberId}/search${qs}`,
+        { method: 'GET' }
+      );
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
   }
 
   // ==========================================================================

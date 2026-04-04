@@ -71,6 +71,15 @@ export type {
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
+  RuleCustomFieldValue,
+  RuleCustomFieldDataRecord,
+  RuleCustomFieldDataResponse,
+  RuleCustomFieldDataSingleResponse,
+  RuleCustomFieldDataListParams,
+  RuleCustomFieldDataGroupParams,
+  RuleCustomFieldDataCreateRequest,
+  RuleCustomFieldDataUpdateRequest,
+  RuleCustomFieldDataSearchParams,
 } from './types';
 
 // Types - RCML
