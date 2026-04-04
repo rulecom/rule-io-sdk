@@ -1114,6 +1114,42 @@ describe('RuleClient', () => {
       expect(body.subscribers).toHaveLength(2);
     });
 
+    it('should block subscribers with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.blockSubscribers(
+        [{ email: 'spam@example.com' }],
+        'https://example.com/webhook'
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/webhook');
+      expect(body.subscribers).toHaveLength(1);
+    });
+
+    it('should unblock subscribers with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.unblockSubscribers(
+        [{ email: 'restored@example.com' }],
+        'https://example.com/webhook'
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/webhook');
+      expect(body.subscribers).toHaveLength(1);
+    });
+
     it('should bulk add tags via v3', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: true,
