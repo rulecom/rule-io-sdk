@@ -958,6 +958,7 @@ describe('RuleClient', () => {
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.message_types).toEqual(['email']);
     });
+
     it('should reject createSuppressions with empty subscribers array', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await expect(
