@@ -993,4 +993,288 @@ describe('RuleClient', () => {
       ).rejects.toThrow('subscribers array must not exceed 1000 items');
     });
   });
+
+  describe('v3 Subscriber API', () => {
+    it('should create a subscriber via v3', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ id: 100, email: 'new@example.com', status: 'ACTIVE' })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createSubscriberV3({
+        email: 'new@example.com',
+        status: 'ACTIVE',
+        language: 'sv',
+      });
+
+      expect(result.id).toBe(100);
+      expect(result.email).toBe('new@example.com');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.email).toBe('new@example.com');
+      expect(body.status).toBe('ACTIVE');
+      expect(body.language).toBe('sv');
+    });
+
+    it('should delete a subscriber by email via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSubscriberV3('old@example.com', 'email');
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/old%40example.com?identified_by=email');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should delete a subscriber by ID via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSubscriberV3(12345, 'id');
+
+      expect(result.success).toBe(true);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/12345?identified_by=id');
+    });
+
+    it('should default to email when deleting a subscriber via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSubscriberV3('old@example.com');
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/old%40example.com?identified_by=email');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should block subscribers via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.blockSubscribers([
+        { email: 'spam@example.com' },
+        { id: 456 },
+      ]);
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/block');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(2);
+      expect(body.subscribers[0].email).toBe('spam@example.com');
+    });
+
+    it('should unblock subscribers via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.unblockSubscribers([
+        { email: 'restored@example.com' },
+        { phone_number: '+46701234567' },
+      ]);
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/unblock');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(2);
+    });
+
+    it('should block subscribers with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.blockSubscribers(
+        [{ email: 'spam@example.com' }],
+        'https://example.com/webhook'
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/webhook');
+      expect(body.subscribers).toHaveLength(1);
+    });
+
+    it('should unblock subscribers with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.unblockSubscribers(
+        [{ email: 'restored@example.com' }],
+        'https://example.com/webhook'
+      );
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/webhook');
+      expect(body.subscribers).toHaveLength(1);
+    });
+
+    it('should bulk add tags via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.bulkAddTags({
+        subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+        tags: ['newsletter', 'promo-2024'],
+      });
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/tags');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(2);
+      expect(body.tags).toEqual(['newsletter', 'promo-2024']);
+    });
+
+    it('should bulk remove tags via v3 (DELETE with body)', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.bulkRemoveTags({
+        subscribers: [{ email: 'a@example.com' }],
+        tags: ['old-campaign'],
+      });
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/tags');
+      expect(options.method).toBe('DELETE');
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(1);
+      expect(body.tags).toEqual(['old-campaign']);
+    });
+
+    it('should add tags to a subscriber via v3 with automation param', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.addSubscriberTagsV3(
+        'customer@example.com',
+        { tags: ['vip', 'returning'], automation: 'force' },
+        'email'
+      );
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags?identified_by=email'
+      );
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.tags).toEqual(['vip', 'returning']);
+      expect(body.automation).toBe('force');
+    });
+
+    it('should remove a tag from a subscriber via v3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.removeSubscriberTagV3(
+        'customer@example.com',
+        'old-promo',
+        'email'
+      );
+
+      expect(result.success).toBe(true);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags/old-promo?identified_by=email'
+      );
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should default to email when adding tags via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/user%40example.com/tags?identified_by=email'
+      );
+    });
+
+    it('should default to email when removing a tag via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.removeSubscriberTagV3('user@example.com', 'old-tag');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/user%40example.com/tags/old-tag?identified_by=email'
+      );
+    });
+  });
 });
