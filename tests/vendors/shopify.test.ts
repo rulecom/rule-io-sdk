@@ -99,8 +99,6 @@ describe('shopifyPreset', () => {
           [SHOPIFY_FIELDS.firstName]: 1,
           [SHOPIFY_FIELDS.orderNumber]: 2,
           [SHOPIFY_FIELDS.totalPrice]: 3,
-          [SHOPIFY_FIELDS.products]: 4,
-          [SHOPIFY_FIELDS.shippingAddress1]: 5,
         },
       };
       expect(() => {
@@ -142,7 +140,7 @@ describe('shopifyPreset', () => {
     it('returns all required fields with descriptions', () => {
       const fields = shopifyPreset.getRequiredFields();
 
-      expect(fields.length).toBe(5);
+      expect(fields.length).toBe(3);
 
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
@@ -259,7 +257,7 @@ describe('shopifyPreset', () => {
       expect(json).toContain('rc-loop');
       expect(json).toContain('custom-field');
       expect(json).toContain('200014'); // Products field ID
-      expect(json).toContain('[CustomField:name]'); // loop sub-field
+      expect(json).toContain('[LoopValue:name]'); // loop sub-field
     });
 
     it('shipping update contains rc-loop and receipt fields', () => {
@@ -330,8 +328,8 @@ describe('SHOPIFY_FIELDS', () => {
     }
   });
 
-  it('has 29 fields', () => {
-    expect(Object.keys(SHOPIFY_FIELDS)).toHaveLength(29);
+  it('has 31 fields', () => {
+    expect(Object.keys(SHOPIFY_FIELDS)).toHaveLength(31);
   });
 });
 

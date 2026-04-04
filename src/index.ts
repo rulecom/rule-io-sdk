@@ -147,6 +147,7 @@ export {
   createFooterSection,
   createBrandLoop,
   createPlaceholder,
+  createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
 } from './rcml';

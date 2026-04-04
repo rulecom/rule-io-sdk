@@ -63,31 +63,44 @@ const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   'Booking.TotalGuests': 100006,
   'Booking.TotalPrice': 100007,
   'Booking.RoomName': 100008,
-  'Order.CustomerName': 200001,
-  'Order.CustomerFullName': 200002,
-  'Order.CustomerEmail': 200003,
-  'Order.OrderRef': 200004,
-  'Order.OrderDate': 200005,
-  'Order.Currency': 200006,
-  'Order.PaymentMethod': 200007,
-  'Order.Subtotal': 200008,
-  'Order.DiscountAmount': 200009,
-  'Order.TaxAmount': 200010,
-  'Order.ShippingCost': 200011,
-  'Order.Total': 200012,
-  'Order.ShippingAddress': 200013,
-  'Order.BillingAddress': 200014,
-  'Order.TrackingNumber': 200015,
-  'Order.EstimatedDelivery': 200016,
-  'Order.ShippingCarrier': 200017,
-  'Order.CompanyName': 200018,
-  'Order.VATNumber': 200019,
-  'Order.Items': 200020,
-  'Order.Items.Name': 200021,
-  'Order.Items.Quantity': 200022,
-  'Order.Items.UnitPrice': 200023,
-  'Order.Items.Total': 200024,
-  'Order.Items.SKU': 200025,
+  // Subscriber fields
+  'Subscriber.FirstName': 200001,
+  'Subscriber.LastName': 200002,
+  // Order fields
+  'Order.Number': 200003,
+  'Order.Date': 200004,
+  'Order.TotalPrice': 200005,
+  'Order.TotalTax': 200006,
+  'Order.TotalWeight': 200007,
+  'Order.Discount': 200008,
+  'Order.Currency': 200009,
+  'Order.Gateway': 200010,
+  'Order.ProductCount': 200011,
+  'Order.Names': 200012,
+  'Order.Skus': 200013,
+  'Order.Products': 200014,
+  'Order.CartUrl': 200015,
+  // Shipping address
+  'Order.ShippingAddress1': 200016,
+  'Order.ShippingAddress2': 200017,
+  'Order.ShippingCity': 200018,
+  'Order.ShippingZip': 200019,
+  'Order.ShippingCountryCode': 200020,
+  // Additional test-only fields for generic template tests
+  'Order.TrackingNumber': 200021,
+  'Order.EstimatedDelivery': 200022,
+  'Order.CustomerFullName': 200023,
+  'Order.CustomerEmail': 200024,
+  'Order.OrderDate': 200025,
+  'Order.BillingAddress': 200026,
+  'Order.CompanyName': 200027,
+  'Order.VATNumber': 200028,
+  'Order.PaymentMethod': 200029,
+  'Order.Subtotal': 200030,
+  'Order.TaxAmount': 200031,
+  'Order.DiscountAmount': 200032,
+  'Order.ShippingCost': 200033,
+  'Order.ShippingCarrier': 200034,
 };
 
 // ============================================================================
@@ -115,11 +128,11 @@ function docToString(doc: RCMLDocument): string {
 describe('Brand Template Utilities', () => {
   describe('createPlaceholder', () => {
     it('should create a placeholder node with field name and ID', () => {
-      const node = createPlaceholder('Order.CustomerName', 200001);
+      const node = createPlaceholder('Subscriber.FirstName', 200001);
 
       expect(node.type).toBe('placeholder');
       expect(node.attrs.type).toBe('CustomField');
-      expect(node.attrs.name).toBe('Order.CustomerName');
+      expect(node.attrs.name).toBe('Subscriber.FirstName');
       expect(node.attrs.value).toBe(200001);
       expect(node.attrs.original).toBe('[CustomField:200001]');
     });
@@ -138,7 +151,7 @@ describe('Brand Template Utilities', () => {
     it('should create a ProseMirror doc with mixed content', () => {
       const doc = createDocWithPlaceholders([
         createTextNode('Hello '),
-        createPlaceholder('Order.CustomerName', 200001),
+        createPlaceholder('Subscriber.FirstName', 200001),
         createTextNode('!'),
       ]);
 
@@ -723,17 +736,17 @@ describe('E-commerce Templates', () => {
           ctaButton: 'View Order',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
-          totalPrice: 'Order.Total',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
         },
       });
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
       expect(json).toContain('Order Summary');
-      expect(json).toContain('200001'); // CustomerName field ID
-      expect(json).toContain('200004'); // OrderRef field ID
+      expect(json).toContain('200001'); // FirstName field ID
+      expect(json).toContain('200003'); // Order.Number field ID
     });
 
     it('should include optional items and shipping fields', () => {
@@ -753,11 +766,11 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Track Order',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
-          totalPrice: 'Order.Total',
-          items: 'Order.Items',
-          shippingAddress: 'Order.ShippingAddress',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          shippingAddress: 'Order.ShippingAddress1',
         },
       });
 
@@ -765,8 +778,8 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Items');
       expect(json).toContain('Ship to');
-      expect(json).toContain('200020'); // Items field ID
-      expect(json).toContain('200013'); // ShippingAddress field ID
+      expect(json).toContain('200014'); // Products field ID
+      expect(json).toContain('200016'); // ShippingAddress1 field ID
     });
 
     it('should work without optional fields', () => {
@@ -784,9 +797,9 @@ describe('E-commerce Templates', () => {
           ctaButton: 'View',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
-          totalPrice: 'Order.Total',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
         },
       });
 
@@ -812,14 +825,14 @@ describe('E-commerce Templates', () => {
           ctaButton: 'View',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
-          totalPrice: 'Order.Total',
-          items: 'Order.Items',
-          itemName: 'Order.Items.Name',
-          itemQuantity: 'Order.Items.Quantity',
-          itemUnitPrice: 'Order.Items.UnitPrice',
-          itemTotal: 'Order.Items.Total',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
         },
       });
 
@@ -829,13 +842,13 @@ describe('E-commerce Templates', () => {
       // Loop block present
       expect(json).toContain('rc-loop');
       expect(json).toContain('custom-field');
-      expect(json).toContain('200020'); // Items field as loop-value
+      expect(json).toContain('200014'); // Products field as loop-value
 
-      // Line item sub-fields
-      expect(json).toContain('200021'); // Item Name
-      expect(json).toContain('200022'); // Item Quantity
-      expect(json).toContain('200023'); // Item UnitPrice
-      expect(json).toContain('200024'); // Item Total
+      // Line item sub-fields (JSON key names, not numeric IDs)
+      expect(json).toContain('[LoopValue:name]');
+      expect(json).toContain('[LoopValue:quantity]');
+      expect(json).toContain('[LoopValue:price]');
+      expect(json).toContain('[LoopValue:total]');
     });
 
     it('should fall back to single-field items when no sub-fields', () => {
@@ -854,10 +867,10 @@ describe('E-commerce Templates', () => {
           ctaButton: 'View',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
-          totalPrice: 'Order.Total',
-          items: 'Order.Items',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
           // No itemName etc. — should use single placeholder
         },
       });
@@ -868,7 +881,7 @@ describe('E-commerce Templates', () => {
       // Should NOT have a loop
       expect(json).not.toContain('rc-loop');
       // Should have the items field as a single placeholder
-      expect(json).toContain('200020'); // Items field ID
+      expect(json).toContain('200014'); // Products field ID
     });
   });
 
@@ -889,8 +902,8 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Track Package',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
           trackingNumber: 'Order.TrackingNumber',
           estimatedDelivery: 'Order.EstimatedDelivery',
         },
@@ -900,7 +913,7 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Track Package');
       expect(json).toContain('https://track.example.com');
-      expect(json).toContain('200015'); // TrackingNumber field ID
+      expect(json).toContain('200021'); // TrackingNumber field ID
     });
 
     it('should work without optional tracking fields', () => {
@@ -917,8 +930,8 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Track',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
         },
       });
 
@@ -960,8 +973,8 @@ describe('E-commerce Templates', () => {
           termsUrl: 'https://shop.example.com/terms',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
           trackingNumber: 'Order.TrackingNumber',
           estimatedDelivery: 'Order.EstimatedDelivery',
           customerFullName: 'Order.CustomerFullName',
@@ -976,15 +989,15 @@ describe('E-commerce Templates', () => {
           taxAmount: 'Order.TaxAmount',
           discountAmount: 'Order.DiscountAmount',
           shippingCost: 'Order.ShippingCost',
-          shippingAddress: 'Order.ShippingAddress',
+          shippingAddress: 'Order.ShippingAddress1',
           shippingCarrier: 'Order.ShippingCarrier',
-          totalPrice: 'Order.Total',
-          items: 'Order.Items',
-          itemName: 'Order.Items.Name',
-          itemQuantity: 'Order.Items.Quantity',
-          itemUnitPrice: 'Order.Items.UnitPrice',
-          itemTotal: 'Order.Items.Total',
-          itemSku: 'Order.Items.SKU',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+          itemSku: 'sku',
         },
       });
 
@@ -1004,11 +1017,11 @@ describe('E-commerce Templates', () => {
       // Loop block for line items
       expect(json).toContain('rc-loop');
       expect(json).toContain('custom-field');
-      expect(json).toContain('200020'); // Items field ID as loop-value
+      expect(json).toContain('200014'); // Products field ID as loop-value
 
-      // Line item sub-fields in loop
-      expect(json).toContain('200021'); // Item Name
-      expect(json).toContain('200025'); // Item SKU
+      // Line item sub-fields in loop (JSON key names)
+      expect(json).toContain('[LoopValue:name]');
+      expect(json).toContain('[LoopValue:sku]');
     });
 
     it('should render identically to base when no receipt fields provided', () => {
@@ -1025,8 +1038,8 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Track',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
         },
       });
 
@@ -1054,7 +1067,7 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Return to Cart',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
+          firstName: 'Subscriber.FirstName',
         },
       });
 
@@ -1082,8 +1095,8 @@ describe('E-commerce Templates', () => {
           ctaButton: 'Shop Again',
         },
         fieldNames: {
-          firstName: 'Order.CustomerName',
-          orderRef: 'Order.OrderRef',
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
         },
       });
 
@@ -1091,7 +1104,7 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).toContain('Order Cancelled');
       expect(json).toContain('Shop Again');
-      expect(json).toContain('200004'); // OrderRef field ID
+      expect(json).toContain('200003'); // Order.Number field ID
     });
   });
 });

@@ -132,8 +132,8 @@ export function createLoopFieldPlaceholder(
   return {
     type: 'placeholder',
     attrs: {
-      type: 'CustomField',
-      original: `[CustomField:${jsonKey}]`,
+      type: 'LoopValue',
+      original: `[LoopValue:${jsonKey}]`,
       name: jsonKey,
       value: jsonKey,
     },

@@ -58,6 +58,7 @@ export {
   createBrandLoop,
   // Placeholder helpers
   createPlaceholder,
+  createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
 } from './brand-template';

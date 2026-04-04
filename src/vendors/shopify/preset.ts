@@ -10,8 +10,8 @@
  * const config = {
  *   brandStyle: myBrandStyle,
  *   customFields: {
- *     [SHOPIFY_FIELDS.customerFirstName]: 169233,
- *     [SHOPIFY_FIELDS.orderRef]: 169234,
+ *     [SHOPIFY_FIELDS.firstName]: 169233,
+ *     [SHOPIFY_FIELDS.orderNumber]: 169234,
  *     // ...
  *   },
  *   websiteUrl: 'https://myshop.com',
@@ -33,53 +33,51 @@ import { createShopifyAutomations } from './automations';
 import { RuleConfigError } from '../../errors';
 
 const FIELD_DESCRIPTIONS: Record<ShopifyFieldNames, string> = {
-  // Customer
-  customerFirstName: 'Customer first name from Shopify order',
-  customerFullName: 'Customer full name for legal identification',
-  customerEmail: 'Customer email address',
+  // Subscriber
+  firstName: 'Customer first name',
+  lastName: 'Customer last name',
+  source: 'Subscriber source',
+  zipcode: 'Subscriber zip/postal code',
+  city: 'Subscriber city',
+  address1: 'Subscriber address line 1',
+  address2: 'Subscriber address line 2',
+  number: 'Subscriber phone number',
+  country: 'Subscriber country',
 
   // Order
-  orderRef: 'Shopify order reference number',
-  orderDate: 'Order/transaction date',
-  currency: 'Order currency code (e.g., USD, EUR)',
-  paymentMethod: 'Payment method used (e.g., credit card, PayPal)',
-
-  // Financials
-  subtotal: 'Pre-tax subtotal',
-  discountAmount: 'Discount amount applied',
-  taxAmount: 'Tax amount',
-  shippingCost: 'Shipping cost',
+  orderNumber: 'Shopify order number',
+  orderDate: 'Order date',
+  currency: 'Order currency code (e.g., SEK, EUR)',
   totalPrice: 'Order total price',
+  totalWeight: 'Order total weight',
+  totalTax: 'Order total tax',
+  productCount: 'Number of products in order',
+  discount: 'Discount amount applied',
+  names: 'Product names (comma-separated)',
+  gateway: 'Payment gateway used',
+  skus: 'Product SKUs (comma-separated)',
+  products: 'Order line items (JSON, repeatable field)',
+  cartUrl: 'Abandoned cart URL (CartInProgress only)',
 
   // Shipping
-  shippingAddress: 'Shipping address',
-  billingAddress: 'Billing address',
-  trackingNumber: 'Shipment tracking number',
-  estimatedDelivery: 'Estimated delivery date',
-  shippingCarrier: 'Shipping carrier name (e.g., UPS, FedEx)',
+  shippingAddress1: 'Shipping address line 1',
+  shippingAddress2: 'Shipping address line 2',
+  shippingCity: 'Shipping city',
+  shippingZip: 'Shipping zip/postal code',
+  shippingCountryCode: 'Shipping country code',
 
-  // Seller
-  companyName: 'Seller company name',
-  vatNumber: 'VAT/tax registration number',
-
-  // Line items
-  items: 'Order line items (repeatable field)',
-  itemName: 'Line item product name',
-  itemQuantity: 'Line item quantity',
-  itemUnitPrice: 'Line item unit price',
-  itemTotal: 'Line item total (qty × unit price)',
-  itemSku: 'Line item SKU/product code',
+  // Line item sub-fields
+  itemName: 'Line item product name (JSON key)',
+  itemQuantity: 'Line item quantity (JSON key)',
+  itemPrice: 'Line item price (JSON key)',
+  itemSku: 'Line item SKU (JSON key)',
 };
 
-/** Fields actually used by the shipped automations (required in customFields). */
+/** Fields required by the automations (must be mapped in customFields). */
 const REQUIRED_FIELDS: readonly ShopifyFieldNames[] = [
-  'customerFirstName',
-  'orderRef',
+  'firstName',
+  'orderNumber',
   'totalPrice',
-  'items',
-  'shippingAddress',
-  'trackingNumber',
-  'estimatedDelivery',
 ];
 
 function validateShopifyConfig(config: VendorConsumerConfig): void {
@@ -105,8 +103,7 @@ function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] 
  * Shopify vendor preset for Rule.io.
  *
  * Provides pre-configured automations for the standard Shopify e-commerce
- * flows: order confirmation, shipping update, abandoned cart, and
- * order cancellation.
+ * flows: order confirmation, shipping update, and abandoned cart.
  */
 export const shopifyPreset: VendorPreset<ShopifyFieldSchema, ShopifyTagSchema> = {
   vendor: 'shopify',
