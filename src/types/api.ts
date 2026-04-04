@@ -581,6 +581,11 @@ export interface RuleCampaignScheduleRequest {
  *
  * At least one identifier must be provided. The API resolves the subscriber
  * using whichever identifier is supplied.
+ *
+ * **Note:** All properties are marked optional for ergonomic use, but the
+ * Rule.io API requires at least one identifier (email, phone_number, id, or
+ * custom_identifier) per subscriber. Requests with empty identifier objects
+ * will be rejected server-side.
  */
 export interface RuleSuppressionSubscriberIdentifier {
   /** Subscriber email address */
