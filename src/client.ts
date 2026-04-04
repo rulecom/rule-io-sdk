@@ -910,8 +910,8 @@ export class RuleClient {
     params?: RuleCustomFieldDataListParams
   ): Promise<RuleCustomFieldDataResponse> {
     const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+    if (params?.page != null) searchParams.set('page', String(params.page));
+    if (params?.per_page != null) searchParams.set('per_page', String(params.per_page));
     if (params?.groups_id) {
       params.groups_id.forEach((id) => searchParams.append('groups_id[]', String(id)));
     }
@@ -1006,8 +1006,8 @@ export class RuleClient {
     params?: RuleCustomFieldDataGroupParams
   ): Promise<RuleCustomFieldDataResponse> {
     const searchParams = new URLSearchParams();
-    if (params?.page) searchParams.set('page', String(params.page));
-    if (params?.per_page) searchParams.set('per_page', String(params.per_page));
+    if (params?.page != null) searchParams.set('page', String(params.page));
+    if (params?.per_page != null) searchParams.set('per_page', String(params.per_page));
     if (params?.fields) {
       params.fields.forEach((f) => searchParams.append('fields[]', f));
     }

@@ -322,6 +322,17 @@ export interface RuleRenderTemplateParams {
 // ============================================================================
 
 /**
+ * Value types supported by custom field data.
+ *
+ * @deprecated Custom Field Data API is deprecated by Rule.io.
+ */
+export type RuleCustomFieldDataValue =
+  | string
+  | string[]
+  | Record<string, unknown>
+  | Record<string, unknown>[];
+
+/**
  * A single custom field value within a custom field data record.
  *
  * @deprecated Custom Field Data API is deprecated by Rule.io.
@@ -330,7 +341,7 @@ export interface RuleCustomFieldValue {
   field_id: number;
   field_name: string;
   field_type: 'text' | 'datetime' | 'date' | 'time' | 'multiple' | 'json';
-  field_value: string | string[] | Record<string, unknown> | Record<string, unknown>[];
+  field_value: RuleCustomFieldDataValue;
 }
 
 /**
@@ -402,7 +413,7 @@ export interface RuleCustomFieldDataCreateRequest {
     values: Array<{
       field: number | string;
       create_if_not_exists?: boolean;
-      value: string | Record<string, unknown>[];
+      value: RuleCustomFieldDataValue;
     }>;
   }>;
 }
@@ -422,7 +433,7 @@ export interface RuleCustomFieldDataUpdateRequest {
   values: Array<{
     field: number | string;
     create_if_not_exists?: boolean;
-    value: string | Record<string, unknown>[];
+    value: RuleCustomFieldDataValue;
   }>;
 }
 
