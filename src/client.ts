@@ -51,6 +51,12 @@ import type {
   RuleDynamicSetListParams,
   RuleDynamicSetListResponse,
   RuleRenderTemplateParams,
+  RuleCampaignCreateRequest,
+  RuleCampaignUpdateRequest,
+  RuleCampaignResponse,
+  RuleCampaignListParams,
+  RuleCampaignListResponse,
+  RuleCampaignScheduleRequest,
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
@@ -1083,6 +1089,188 @@ export class RuleClient {
       }
       throw error;
     }
+  }
+
+  // ==========================================================================
+  // v3 Editor API - Campaign
+  // ==========================================================================
+
+  /**
+   * List campaigns with optional filtering and pagination.
+   *
+   * @param params - Optional query parameters for filtering and pagination
+   * @returns List of campaigns
+   *
+   * @example
+   * ```typescript
+   * // List all campaigns
+   * const all = await client.listCampaigns();
+   *
+   * // List email campaigns, page 2
+   * const filtered = await client.listCampaigns({
+   *   message_type: 1,
+   *   page: 2,
+   *   per_page: 20,
+   * });
+   * ```
+   */
+  async listCampaigns(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleCampaignListResponse>(`/editor/campaign${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a campaign (one-off email send) in Rule.io.
+   *
+   * @param campaign - Campaign creation request
+   * @returns Created campaign data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createCampaign({
+   *   message_type: 1, // email
+   *   sendout_type: 1, // marketing
+   *   tags: [{ id: 42, negative: false }],
+   * });
+   * console.log(result.data?.id);
+   * ```
+   */
+  async createCampaign(campaign: RuleCampaignCreateRequest): Promise<RuleCampaignResponse> {
+    return this.requestV3<RuleCampaignResponse>('/editor/campaign', {
+      method: 'POST',
+      body: JSON.stringify(campaign),
+    });
+  }
+
+  /**
+   * Get a campaign by ID.
+   *
+   * @param id - Campaign ID
+   * @returns Campaign data or null if not found
+   *
+   * @example
+   * ```typescript
+   * const campaign = await client.getCampaign(123);
+   * if (campaign) {
+   *   console.log(campaign.data?.name);
+   * }
+   * ```
+   */
+  async getCampaign(id: number): Promise<RuleCampaignResponse | null> {
+    try {
+      return await this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update a campaign.
+   *
+   * All recipient arrays (tags, segments, subscribers) are required in the
+   * request body. Pass empty arrays for unused recipient types.
+   *
+   * @param id - Campaign ID
+   * @param update - Update request with name, sendout_type, and recipient arrays
+   * @returns Updated campaign data
+   *
+   * @example
+   * ```typescript
+   * await client.updateCampaign(123, {
+   *   name: 'Spring Sale',
+   *   sendout_type: 1,
+   *   tags: [{ id: 42, negative: false }],
+   *   segments: [],
+   *   subscribers: [],
+   * });
+   * ```
+   */
+  async updateCampaign(
+    id: number,
+    update: RuleCampaignUpdateRequest
+  ): Promise<RuleCampaignResponse> {
+    return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(update),
+    });
+  }
+
+  /**
+   * Delete a campaign.
+   *
+   * @param id - Campaign ID
+   * @returns API response
+   *
+   * @example
+   * ```typescript
+   * await client.deleteCampaign(123);
+   * ```
+   */
+  async deleteCampaign(id: number): Promise<RuleApiResponse> {
+    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  /**
+   * Copy (duplicate) a campaign.
+   *
+   * @param id - Campaign ID to copy
+   * @returns The newly created campaign copy
+   *
+   * @example
+   * ```typescript
+   * const copy = await client.copyCampaign(123);
+   * console.log(copy.data?.id); // new campaign ID
+   * ```
+   */
+  async copyCampaign(id: number): Promise<RuleCampaignResponse> {
+    return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}/copy`, {
+      method: 'POST',
+    });
+  }
+
+  /**
+   * Schedule, send immediately, or cancel the schedule of a campaign.
+   *
+   * - `type: 'now'` sends the campaign immediately
+   * - `type: 'schedule'` with a `datetime` schedules it for later
+   * - `type: null` cancels a previously scheduled send
+   *
+   * @param id - Campaign ID
+   * @param schedule - Schedule configuration
+   * @returns API response
+   *
+   * @example
+   * ```typescript
+   * // Send now
+   * await client.scheduleCampaign(123, { type: 'now' });
+   *
+   * // Schedule for later
+   * await client.scheduleCampaign(123, {
+   *   type: 'schedule',
+   *   datetime: '2025-06-15T10:00:00Z',
+   * });
+   *
+   * // Cancel schedule
+   * await client.scheduleCampaign(123, { type: null });
+   * ```
+   */
+  async scheduleCampaign(
+    id: number,
+    schedule: RuleCampaignScheduleRequest
+  ): Promise<RuleApiResponse> {
+    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}/schedule`, {
+      method: 'POST',
+      body: JSON.stringify(schedule),
+    });
   }
 
   // ==========================================================================
