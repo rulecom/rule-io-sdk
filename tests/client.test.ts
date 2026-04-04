@@ -1244,5 +1244,37 @@ describe('RuleClient', () => {
       );
       expect(options.method).toBe('DELETE');
     });
+
+    it('should default to email when adding tags via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/user%40example.com/tags?identified_by=email'
+      );
+    });
+
+    it('should default to email when removing a tag via v3 without identifiedBy', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 204,
+        headers: new Headers(),
+      } as Response);
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.removeSubscriberTagV3('user@example.com', 'old-tag');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/user%40example.com/tags/old-tag?identified_by=email'
+      );
+    });
   });
 });
