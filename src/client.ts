@@ -67,6 +67,7 @@ import type {
   RuleCustomFieldDataSearchParams,
   RuleCustomFieldDataResponse,
   RuleCustomFieldDataSingleResponse,
+  RuleSuppressionRequest,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1271,6 +1272,90 @@ export class RuleClient {
       method: 'POST',
       body: JSON.stringify(schedule),
     });
+  }
+
+  // ==========================================================================
+  // v3 Suppressions API
+  // ==========================================================================
+
+  /**
+   * Create suppressions to prevent subscribers from receiving marketing sendouts.
+   *
+   * The request is processed asynchronously by the Rule.io API. Already-suppressed
+   * subscribers are silently skipped (idempotent). A maximum of 1000 subscribers
+   * can be included per request.
+   *
+   * @param request - Suppression request with subscriber identifiers and optional filters
+   * @returns A success response (actual processing happens asynchronously)
+   *
+   * @example
+   * ```typescript
+   * // Suppress all channels for two subscribers
+   * await client.createSuppressions({
+   *   subscribers: [
+   *     { email: 'user1@example.com' },
+   *     { email: 'user2@example.com' },
+   *   ],
+   * });
+   *
+   * // Suppress only email channel with a callback
+   * await client.createSuppressions({
+   *   subscribers: [{ email: 'user@example.com' }],
+   *   message_types: ['email'],
+   *   callback_url: 'https://example.com/webhook/suppression-done',
+   * });
+   * ```
+   */
+  async createSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
+    if (!request.subscribers?.length) {
+      throw new RuleConfigError('subscribers array must not be empty');
+    }
+    if (request.subscribers.length > 1000) {
+      throw new RuleConfigError('subscribers array must not exceed 1000 items');
+    }
+    await this.fetchV3('/suppressions/', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+    return { success: true };
+  }
+
+  /**
+   * Delete suppressions to allow subscribers to receive marketing sendouts again.
+   *
+   * The request is processed asynchronously by the Rule.io API. If `message_types`
+   * is omitted, all channel suppressions are removed for the specified subscribers.
+   *
+   * @param request - Unsuppression request with subscriber identifiers and optional filters
+   * @returns A success response (actual processing happens asynchronously)
+   *
+   * @example
+   * ```typescript
+   * // Remove all suppressions for a subscriber
+   * await client.deleteSuppressions({
+   *   subscribers: [{ email: 'user@example.com' }],
+   * });
+   *
+   * // Remove only text_message suppression with a callback
+   * await client.deleteSuppressions({
+   *   subscribers: [{ email: 'user@example.com' }],
+   *   message_types: ['text_message'],
+   *   callback_url: 'https://example.com/webhook/unsuppression-done',
+   * });
+   * ```
+   */
+  async deleteSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
+    if (!request.subscribers?.length) {
+      throw new RuleConfigError('subscribers array must not be empty');
+    }
+    if (request.subscribers.length > 1000) {
+      throw new RuleConfigError('subscribers array must not exceed 1000 items');
+    }
+    await this.fetchV3('/suppressions/', {
+      method: 'DELETE',
+      body: JSON.stringify(request),
+    });
+    return { success: true };
   }
 
   // ==========================================================================

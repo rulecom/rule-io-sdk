@@ -91,6 +91,8 @@ export type {
   RuleCustomFieldDataCreateRequest,
   RuleCustomFieldDataUpdateRequest,
   RuleCustomFieldDataSearchParams,
+  RuleSuppressionSubscriberIdentifier,
+  RuleSuppressionRequest,
 } from './types';
 
 // Types - RCML

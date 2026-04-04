@@ -19,6 +19,17 @@ function createMockResponse(data: unknown, status = 200): Response {
   } as Response;
 }
 
+/** Mock for 204 No Content — json() rejects to enforce no-body contract. */
+function createMock204Response(): Response {
+  return {
+    ok: true,
+    status: 204,
+    json: () => Promise.reject(new SyntaxError('Unexpected end of JSON input')),
+    text: () => Promise.resolve(''),
+    headers: new Headers(),
+  } as Response;
+}
+
 function createMockTextResponse(text: string, status = 200): Response {
   return {
     ok: status >= 200 && status < 300,
@@ -517,7 +528,7 @@ describe('RuleClient', () => {
       expect(result).toBeNull();
     });
 
-    it('should throw RuleApiError on 401 for list endpoints', async () => {
+    it('should throw RuleApiError on 401 for list endpoints (v3)', async () => {
       mockFetch
         .mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401))
         .mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
@@ -846,6 +857,140 @@ describe('RuleClient', () => {
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
       expect(body.type).toBeNull();
+    });
+  });
+
+  describe('v3 Suppressions API', () => {
+    it('should create suppressions with POST to /suppressions/', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createSuppressions({
+        subscribers: [
+          { email: 'user1@example.com' },
+          { email: 'user2@example.com' },
+        ],
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
+      expect(options.method).toBe('POST');
+      expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
+
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(2);
+      expect(body.subscribers[0]).toEqual({ email: 'user1@example.com' });
+      expect(body.subscribers[1]).toEqual({ email: 'user2@example.com' });
+    });
+
+    it('should create suppressions with message_types filter', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.createSuppressions({
+        subscribers: [{ email: 'user@example.com' }],
+        message_types: ['email'],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.message_types).toEqual(['email']);
+    });
+
+    it('should delete suppressions with DELETE and request body', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSuppressions({
+        subscribers: [{ email: 'user@example.com' }],
+      });
+
+      expect(result).toEqual({ success: true });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
+      expect(options.method).toBe('DELETE');
+      expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
+
+      const body = JSON.parse(options.body);
+      expect(body.subscribers).toHaveLength(1);
+      expect(body.subscribers[0]).toEqual({ email: 'user@example.com' });
+    });
+
+    it('should delete suppressions with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteSuppressions({
+        subscribers: [{ email: 'user@example.com' }],
+        callback_url: 'https://example.com/webhook/done',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/webhook/done');
+    });
+
+    it('should create suppressions with callback_url', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.createSuppressions({
+        subscribers: [{ email: 'test@example.com' }],
+        callback_url: 'https://example.com/callback',
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.callback_url).toBe('https://example.com/callback');
+    });
+
+    it('should delete suppressions with message_types filter', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteSuppressions({
+        subscribers: [{ email: 'test@example.com' }],
+        message_types: ['email'],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.message_types).toEqual(['email']);
+    });
+
+    it('should reject createSuppressions with empty subscribers array', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createSuppressions({ subscribers: [] }),
+      ).rejects.toThrow('subscribers array must not be empty');
+    });
+
+    it('should reject createSuppressions with more than 1000 subscribers', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const subscribers = Array.from({ length: 1001 }, (_, i) => ({
+        email: `user${i}@example.com`,
+      }));
+      await expect(
+        client.createSuppressions({ subscribers }),
+      ).rejects.toThrow('subscribers array must not exceed 1000 items');
+    });
+
+    it('should reject deleteSuppressions with empty subscribers array', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.deleteSuppressions({ subscribers: [] }),
+      ).rejects.toThrow('subscribers array must not be empty');
+    });
+
+    it('should reject deleteSuppressions with more than 1000 subscribers', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const subscribers = Array.from({ length: 1001 }, (_, i) => ({
+        email: `user${i}@example.com`,
+      }));
+      await expect(
+        client.deleteSuppressions({ subscribers }),
+      ).rejects.toThrow('subscribers array must not exceed 1000 items');
     });
   });
 });
