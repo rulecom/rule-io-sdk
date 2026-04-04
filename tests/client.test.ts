@@ -515,5 +515,16 @@ describe('RuleClient', () => {
 
       expect(result).toBeNull();
     });
+
+    it('should throw RuleApiError on 401 for list endpoints', async () => {
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401))
+        .mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
+      await expect(client.listAutomails()).rejects.toThrow(RuleApiError);
+      await expect(client.listAutomails()).rejects.toThrow('Invalid Rule.io API key');
+    });
   });
 });

@@ -56,6 +56,9 @@ import type {
   CreateAutomationEmailResult,
 } from './types';
 
+/** Flat query-param bag accepted by `buildQueryString`. */
+type QueryParamValues = Record<string, string | number | boolean | null | undefined>;
+
 /**
  * Rule.io API Client
  *
@@ -204,10 +207,7 @@ export class RuleClient {
     }
   }
 
-  private async requestV3<T extends RuleApiResponse>(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<T> {
+  private async fetchV3(endpoint: string, options: RequestInit): Promise<Response> {
     const url = `${this.config.baseUrlV3}${endpoint}`;
     this.log('Request V3:', options.method, url);
 
@@ -247,9 +247,7 @@ export class RuleClient {
         throw new RuleApiError(message, response.status);
       }
 
-      const data = (await response.json()) as T;
-      this.log('Response V3:', data);
-      return data;
+      return response;
     } catch (error) {
       if (error instanceof RuleApiError) {
         throw error;
@@ -257,64 +255,31 @@ export class RuleClient {
       this.log('Rule.io v3 API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
+  }
+
+  private async requestV3<T extends RuleApiResponse>(
+    endpoint: string,
+    options: RequestInit
+  ): Promise<T> {
+    const response = await this.fetchV3(endpoint, options);
+    const data = (await response.json()) as T;
+    this.log('Response V3:', data);
+    return data;
   }
 
   private async requestV3Text(
     endpoint: string,
     options: RequestInit
   ): Promise<string> {
-    const url = `${this.config.baseUrlV3}${endpoint}`;
-    this.log('Request V3 (text):', options.method, url);
-
-    try {
-      const response = await this.config.fetch(url, {
-        ...options,
-        headers: {
-          ...this.getAuthHeadersV3(),
-          ...options.headers,
-        },
-      });
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') || '60';
-        this.log('Rate limited. Retry after', retryAfter, 'seconds');
-        throw new RuleApiError('Rate limited by Rule.io API', 429);
-      }
-
-      if (response.status === 401) {
-        throw new RuleApiError('Invalid Rule.io API key', 401);
-      }
-
-      if (!response.ok) {
-        let message = 'Rule.io v3 API error';
-        try {
-          const text = await response.text();
-          this.log('Error response body:', text);
-          if (text) {
-            const errorData = JSON.parse(text) as { error?: string; message?: string };
-            if (errorData?.error || errorData?.message) {
-              message = errorData.error || errorData.message || message;
-            }
-          }
-        } catch {
-          // Response body is not valid JSON
-        }
-        throw new RuleApiError(message, response.status);
-      }
-
-      const text = await response.text();
-      this.log('Response V3 (text):', text.slice(0, 200));
-      return text;
-    } catch (error) {
-      if (error instanceof RuleApiError) {
-        throw error;
-      }
-      this.log('Rule.io v3 API request failed:', error);
-      throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
-    }
+    const response = await this.fetchV3(endpoint, options);
+    const text = await response.text();
+    this.log('Response V3 (text):', text.slice(0, 200));
+    return text;
   }
 
-  private static buildQueryString(params: object): string {
+  private static buildQueryString(
+    params: QueryParamValues
+  ): string {
     const entries = Object.entries(params).filter(
       ([, v]) => v !== undefined && v !== null
     );
@@ -631,7 +596,7 @@ export class RuleClient {
    * ```
    */
   async listAutomails(params?: RuleAutomailListParams): Promise<RuleAutomailListResponse> {
-    const qs = params ? RuleClient.buildQueryString(params) : '';
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
     return this.requestV3<RuleAutomailListResponse>(`/editor/automail${qs}`, {
       method: 'GET',
     });
@@ -708,7 +673,7 @@ export class RuleClient {
    * ```
    */
   async listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
-    const qs = RuleClient.buildQueryString(params);
+    const qs = RuleClient.buildQueryString({ ...params });
     return this.requestV3<RuleMessageListResponse>(`/editor/message${qs}`, {
       method: 'GET',
     });
@@ -780,7 +745,7 @@ export class RuleClient {
    * ```
    */
   async listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
-    const qs = params ? RuleClient.buildQueryString(params) : '';
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
     return this.requestV3<RuleTemplateListResponse>(`/editor/template${qs}`, {
       method: 'GET',
     });
@@ -808,7 +773,7 @@ export class RuleClient {
     id: number,
     params?: RuleRenderTemplateParams
   ): Promise<string | null> {
-    const qs = params ? RuleClient.buildQueryString(params) : '';
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
     try {
       return await this.requestV3Text(`/editor/template/${id}/render${qs}`, {
         method: 'GET',
@@ -876,7 +841,7 @@ export class RuleClient {
    * ```
    */
   async listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
-    const qs = RuleClient.buildQueryString(params);
+    const qs = RuleClient.buildQueryString({ ...params });
     return this.requestV3<RuleDynamicSetListResponse>(`/editor/dynamic-set${qs}`, {
       method: 'GET',
     });
