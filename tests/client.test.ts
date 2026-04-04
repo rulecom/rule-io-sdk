@@ -14,6 +14,7 @@ function createMockResponse(data: unknown, status = 200): Response {
     ok: status >= 200 && status < 300,
     status,
     json: () => Promise.resolve(data),
+    text: () => Promise.resolve(JSON.stringify(data)),
     headers: new Headers(),
   } as Response;
 }
