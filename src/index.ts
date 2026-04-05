@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * import { RuleClient, RuleTags, createOrderConfirmationEmail } from 'rule-io-sdk';
+ * import { RuleClient } from 'rule-io-sdk';
  *
  * const client = new RuleClient({ apiKey: 'your-api-key' });
  *

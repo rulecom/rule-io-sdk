@@ -437,7 +437,7 @@ export class RuleClient {
   /**
    * Remove tags from a subscriber
    *
-   * @deprecated Use {@link removeSubscriberTagV3} instead. v3 supports more identifier types.
+   * @deprecated Use {@link removeSubscriberTagV3} for single-tag removal (loop for multiple), or {@link bulkRemoveTags} for bulk operations. v3 supports more identifier types.
    * @param email - Subscriber email address
    * @param tags - Tags to remove
    */
