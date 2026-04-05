@@ -344,6 +344,10 @@ export class RuleClient {
     options: RequestInit
   ): Promise<T> {
     const response = await this.fetchV3(endpoint, options);
+    if (response.status === 204) {
+      this.log('Response V3: 204 No Content');
+      return { success: true } as T;
+    }
     const data = (await response.json()) as T;
     this.log('Response V3:', data);
     return data;
@@ -2076,12 +2080,24 @@ export class RuleClient {
     const searchParams = new URLSearchParams();
     searchParams.set('date_from', params.date_from);
     searchParams.set('date_to', params.date_to);
-    searchParams.set('object_type', params.object_type);
-    for (const id of params.object_ids) {
-      searchParams.append('object_ids[]', id);
-    }
-    for (const metric of params.metrics) {
-      searchParams.append('metrics[]', metric);
+    if ('object_type' in params) {
+      if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
+        throw new RuleConfigError(
+          'object_ids must be a non-empty array when object_type is provided'
+        );
+      }
+      if (!Array.isArray(params.metrics) || params.metrics.length === 0) {
+        throw new RuleConfigError(
+          'metrics must be a non-empty array when object_type is provided'
+        );
+      }
+      searchParams.set('object_type', params.object_type);
+      for (const id of params.object_ids) {
+        searchParams.append('object_ids[]', id);
+      }
+      for (const metric of params.metrics) {
+        searchParams.append('metrics[]', metric);
+      }
     }
     if (params.message_type != null) {
       searchParams.set('message_type', params.message_type);

@@ -2189,6 +2189,86 @@ describe('RuleClient', () => {
         })
       ).rejects.toThrow(RuleApiError);
     });
+
+    it('should throw RuleConfigError when object_type given without object_ids', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: [],
+          metrics: ['sent'],
+        })
+      ).rejects.toThrow('object_ids must be a non-empty array');
+    });
+
+    it('should throw RuleConfigError when object_type given without metrics', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: ['1'],
+          metrics: [],
+        })
+      ).rejects.toThrow('metrics must be a non-empty array');
+    });
+
+    it('should handle minimal params (only dates)', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(url).not.toContain('object_type');
+      expect(url).not.toContain('object_ids');
+      expect(url).not.toContain('metrics');
+    });
+  });
+
+  describe('v3 Delete 204 handling', () => {
+    it('should handle 204 No Content for deleteAutomail', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteAutomail(1);
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle 204 No Content for deleteMessage', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteMessage(1);
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle 204 No Content for deleteTemplate', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteTemplate(1);
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle 204 No Content for deleteDynamicSet', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteDynamicSet(1);
+      expect(result.success).toBe(true);
+    });
+
+    it('should handle 204 No Content for deleteCampaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteCampaign(1);
+      expect(result.success).toBe(true);
+    });
   });
 
   describe('v3 Export API', () => {
