@@ -73,6 +73,12 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleExportDispatcherParams,
+  RuleExportDispatcherResponse,
+  RuleExportStatisticsParams,
+  RuleExportStatisticsResponse,
+  RuleExportSubscriberParams,
+  RuleExportSubscriberResponse,
   RuleAnalyticsParams,
   RuleAnalyticsResponse,
   RuleRecipientsListParams,
@@ -1873,6 +1879,111 @@ export class RuleClient {
       method: 'DELETE',
     });
     return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Export API
+  // ==========================================================================
+
+  /**
+   * Export dispatchers for a given date range.
+   *
+   * Note: The API enforces a maximum 1-day range between `date_from` and `date_to`.
+   *
+   * @param params - Date range (both required)
+   * @returns List of dispatcher records
+   *
+   * @example
+   * ```typescript
+   * const result = await client.exportDispatchers({
+   *   date_from: '2024-01-01',
+   *   date_to: '2024-01-02',
+   * });
+   * console.log(result.data); // RuleExportDispatcherRecord[]
+   * ```
+   */
+  async exportDispatchers(
+    params: RuleExportDispatcherParams
+  ): Promise<RuleExportDispatcherResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleExportDispatcherResponse>(`/export/dispatcher${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Export statistics for a given date range with optional type filters.
+   *
+   * Uses token-based pagination: if the response includes a `next_page_token`,
+   * pass it in the next call to retrieve the following page.
+   *
+   * @param params - Date range (required), optional statistic_types filter, optional next_page_token
+   * @returns List of statistic records and optional next_page_token
+   *
+   * @example
+   * ```typescript
+   * // First page
+   * let result = await client.exportStatistics({
+   *   date_from: '2024-01-01',
+   *   date_to: '2024-01-31',
+   *   statistic_types: ['open', 'link'],
+   * });
+   *
+   * // Subsequent pages
+   * while (result.next_page_token) {
+   *   result = await client.exportStatistics({
+   *     date_from: '2024-01-01',
+   *     date_to: '2024-01-31',
+   *     next_page_token: result.next_page_token,
+   *   });
+   * }
+   * ```
+   */
+  async exportStatistics(
+    params: RuleExportStatisticsParams
+  ): Promise<RuleExportStatisticsResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('date_from', params.date_from);
+    searchParams.set('date_to', params.date_to);
+
+    if (params.statistic_types) {
+      for (const type of params.statistic_types) {
+        searchParams.append('statistic_types[]', type);
+      }
+    }
+
+    if (params.next_page_token) {
+      searchParams.set('next_page_token', params.next_page_token);
+    }
+
+    return this.requestV3<RuleExportStatisticsResponse>(
+      `/export/statistics?${searchParams.toString()}`,
+      { method: 'GET' }
+    );
+  }
+
+  /**
+   * Export subscribers for a given date range.
+   *
+   * @param params - Date range (both required)
+   * @returns List of subscriber records
+   *
+   * @example
+   * ```typescript
+   * const result = await client.exportSubscribers({
+   *   date_from: '2024-01-01',
+   *   date_to: '2024-01-31',
+   * });
+   * console.log(result.data); // RuleExportSubscriberRecord[]
+   * ```
+   */
+  async exportSubscribers(
+    params: RuleExportSubscriberParams
+  ): Promise<RuleExportSubscriberResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleExportSubscriberResponse>(`/export/subscriber${qs}`, {
+      method: 'GET',
+    });
   }
 
   // ==========================================================================
