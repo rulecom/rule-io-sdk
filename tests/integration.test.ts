@@ -40,7 +40,10 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   const cleanup: Array<() => Promise<void>> = [];
 
   beforeAll(() => {
-    client = new RuleClient({ apiKey: API_KEY!, debug: true });
+    client = new RuleClient({
+      apiKey: API_KEY!,
+      debug: process.env.DEBUG_INTEGRATION === '1',
+    });
   });
 
   afterAll(async () => {
@@ -109,6 +112,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
   describe('v2 Subscriber API', () => {
     const testEmail = `integration-${RUN_ID}@test.example.com`;
+    let subscriberDeleted = false;
 
     it('should create a subscriber via syncSubscriber', async () => {
       const result = await client.syncSubscriber({
@@ -123,7 +127,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       // Register cleanup so the subscriber is removed even if later tests fail
       cleanup.push(async () => {
-        await client.deleteSubscriber(testEmail);
+        if (!subscriberDeleted) await client.deleteSubscriber(testEmail);
       });
     });
 
@@ -165,6 +169,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should delete subscriber', async () => {
       await client.deleteSubscriber(testEmail);
+      subscriberDeleted = true;
     });
   });
 
@@ -174,6 +179,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
   describe('v3 Subscriber API', () => {
     const testEmail = `v3-integration-${RUN_ID}@test.example.com`;
+    let subscriberV3Deleted = false;
 
     it('should create a subscriber via v3', async () => {
       const result = await client.createSubscriberV3({
@@ -182,7 +188,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(result).toBeDefined();
 
       cleanup.push(async () => {
-        await client.deleteSubscriberV3(testEmail);
+        if (!subscriberV3Deleted) await client.deleteSubscriberV3(testEmail);
       });
     });
 
@@ -198,6 +204,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should delete subscriber via v3', async () => {
       await client.deleteSubscriberV3(testEmail);
+      subscriberV3Deleted = true;
     });
   });
 
