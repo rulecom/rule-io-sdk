@@ -72,6 +72,11 @@ export type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAccount,
+  RuleAccountCreateRequest,
+  RuleAccountResponse,
+  RuleAccountListResponse,
+  RuleAccountListParams,
 } from './api';
 
 // RCML types

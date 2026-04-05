@@ -1277,4 +1277,138 @@ describe('RuleClient', () => {
       );
     });
   });
+
+  describe('v3 Account API', () => {
+    it('should list accounts', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Account 1' },
+            { id: 2, name: 'Account 2' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listAccounts();
+
+      expect(result.data).toHaveLength(2);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should list accounts with includes[] query param', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: ['sitoo_credentials'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/accounts?includes[]=sitoo_credentials'
+      );
+    });
+
+    it('should list accounts with multiple includes', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: ['sitoo_credentials', 'other'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('includes[]=sitoo_credentials');
+      expect(url).toContain('includes[]=other');
+    });
+
+    it('should list accounts without includes when array is empty', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: [] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(url).not.toContain('?');
+    });
+
+    it('should create an account', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 5, name: 'New Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createAccount({ name: 'New Account' });
+
+      expect(result.data?.id).toBe(5);
+      expect(result.data?.name).toBe('New Account');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('New Account');
+    });
+
+    it('should get an account by ID', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 42, name: 'My Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(42);
+
+      expect(result?.data?.id).toBe(42);
+      expect(result?.data?.name).toBe('My Account');
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+    });
+
+    it('should get the current account with "show"', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'Current Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount('show');
+
+      expect(result?.data?.id).toBe(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/show');
+    });
+
+    it('should return null for non-existent account', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should delete an account', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteAccount(42);
+
+      expect(result).toEqual({ success: true });
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on 401 for account endpoints', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
+      await expect(client.listAccounts()).rejects.toThrow('Invalid Rule.io API key');
+    });
+  });
 });

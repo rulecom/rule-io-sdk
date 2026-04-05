@@ -695,6 +695,51 @@ export interface RuleSubscriberTagsV3Request {
 }
 
 // ============================================================================
+// v3 Account API Types
+// ============================================================================
+
+/**
+ * Account as returned by the Rule.io v3 API.
+ */
+export interface RuleAccount {
+  id?: number;
+  name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Request body for creating an account.
+ *
+ * Requires Super Admin role.
+ */
+export interface RuleAccountCreateRequest {
+  name: string;
+}
+
+/**
+ * Response from account endpoints that return a single account.
+ */
+export interface RuleAccountResponse extends RuleApiResponse {
+  data?: RuleAccount;
+}
+
+/**
+ * Response from the list accounts endpoint.
+ */
+export interface RuleAccountListResponse extends RuleApiResponse {
+  data?: RuleAccount[];
+}
+
+/**
+ * Query parameters for listing accounts.
+ */
+export interface RuleAccountListParams {
+  /** Include additional relations (e.g., 'sitoo_credentials') */
+  includes?: string[];
+}
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 

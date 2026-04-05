@@ -73,6 +73,10 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAccountCreateRequest,
+  RuleAccountResponse,
+  RuleAccountListResponse,
+  RuleAccountListParams,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1629,6 +1633,114 @@ export class RuleClient {
         method: 'DELETE',
       }
     );
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Account API
+  // ==========================================================================
+
+  /**
+   * List all accounts accessible with the current user-level API key.
+   *
+   * Supports the `includes[]` query parameter to fetch additional relations
+   * (e.g., `sitoo_credentials`).
+   *
+   * @param params - Optional query parameters (includes)
+   * @returns List of accounts
+   *
+   * @example
+   * ```typescript
+   * // List all accounts
+   * const accounts = await client.listAccounts();
+   * console.log(accounts.data);
+   *
+   * // Include additional relations
+   * const withCreds = await client.listAccounts({ includes: ['sitoo_credentials'] });
+   * ```
+   */
+  async listAccounts(params?: RuleAccountListParams): Promise<RuleAccountListResponse> {
+    let qs = '';
+    if (params?.includes?.length) {
+      const parts = params.includes.map(
+        (inc) => `includes[]=${encodeURIComponent(inc)}`
+      );
+      qs = '?' + parts.join('&');
+    }
+    return this.requestV3<RuleAccountListResponse>(`/accounts${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new account.
+   *
+   * **Requires Super Admin role.** This endpoint uses user-level API keys,
+   * not account-level keys.
+   *
+   * @param account - Account creation request
+   * @returns Created account data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createAccount({ name: 'New Sub-Account' });
+   * console.log(result.data?.id);
+   * ```
+   */
+  async createAccount(account: RuleAccountCreateRequest): Promise<RuleAccountResponse> {
+    return this.requestV3<RuleAccountResponse>('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(account),
+    });
+  }
+
+  /**
+   * Get an account by ID, or pass `"show"` to retrieve the current account.
+   *
+   * @param accountId - Numeric account ID, or the string `"show"` for the current account
+   * @returns Account data, or null if not found
+   *
+   * @example
+   * ```typescript
+   * // Get current account
+   * const current = await client.getAccount('show');
+   *
+   * // Get a specific account
+   * const account = await client.getAccount(42);
+   * ```
+   */
+  async getAccount(accountId: number | 'show'): Promise<RuleAccountResponse | null> {
+    try {
+      return await this.requestV3<RuleAccountResponse>(`/accounts/${accountId}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an account by ID.
+   *
+   * **Requires Super Admin role.** The deletion is queued and processed
+   * asynchronously — the account is not removed immediately.
+   *
+   * @param accountId - Account ID to delete
+   * @returns API response confirming the deletion was queued
+   *
+   * @example
+   * ```typescript
+   * // Requires Super Admin role; deletion is queued, not immediate
+   * await client.deleteAccount(42);
+   * ```
+   */
+  async deleteAccount(accountId: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/accounts/${accountId}`, {
+      method: 'DELETE',
+    });
     return { success: true };
   }
 
