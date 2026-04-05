@@ -966,9 +966,7 @@ export interface RuleBrandStyleResponse extends RuleApiResponse {
 /**
  * Response for listing brand styles.
  */
-export interface RuleBrandStyleListResponse extends RuleApiResponse {
-  data?: RuleBrandStyleListItem[];
-}
+export type RuleBrandStyleListResponse = RuleListResponse<RuleBrandStyleListItem>;
 
 // ============================================================================
 // v3 API Keys API Types
@@ -1011,9 +1009,7 @@ export interface RuleApiKeyResponse extends RuleApiResponse {
 /**
  * Response for listing API keys.
  */
-export interface RuleApiKeyListResponse extends RuleApiResponse {
-  data?: RuleApiKey[];
-}
+export type RuleApiKeyListResponse = RuleListResponse<RuleApiKey>;
 
 // ============================================================================
 // Client Configuration
