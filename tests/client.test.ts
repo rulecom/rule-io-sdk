@@ -1277,4 +1277,375 @@ describe('RuleClient', () => {
       );
     });
   });
+
+  describe('v3 Brand Styles API', () => {
+    it('should list brand styles', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Default', is_default: true },
+            { id: 2, name: 'Secondary', is_default: false },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listBrandStyles();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data?.[0]?.is_default).toBe(true);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should create a brand style from domain', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 5,
+            name: 'Example Brand',
+            domain: 'example.com',
+            colors: { primary: '#FF0000' },
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createBrandStyleFromDomain({
+        url: 'https://example.com',
+      });
+
+      expect(result.data?.id).toBe(5);
+      expect(result.data?.domain).toBe('example.com');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/from-domain');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.url).toBe('https://example.com');
+    });
+
+    it('should create a brand style manually', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 6,
+            name: 'My Brand',
+            colors: { primary: '#FF0000', secondary: '#00FF00' },
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createBrandStyleManually({
+        name: 'My Brand',
+        colors: { primary: '#FF0000', secondary: '#00FF00' },
+      });
+
+      expect(result.data?.id).toBe(6);
+      expect(result.data?.name).toBe('My Brand');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/manually');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('My Brand');
+      expect(body.colors.primary).toBe('#FF0000');
+    });
+
+    it('should get a brand style by ID', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 5, name: 'Example Brand' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getBrandStyle(5);
+
+      expect(result?.data?.id).toBe(5);
+      expect(result?.data?.name).toBe('Example Brand');
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/5');
+    });
+
+    it('should return null for non-existent brand style', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getBrandStyle(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should update a brand style with PATCH', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 5,
+            name: 'Updated Brand',
+            colors: { primary: '#0000FF' },
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateBrandStyle(5, {
+        name: 'Updated Brand',
+        colors: { primary: '#0000FF' },
+      });
+
+      expect(result.data?.name).toBe('Updated Brand');
+      expect(result.data?.colors?.primary).toBe('#0000FF');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/5');
+      expect(options.method).toBe('PATCH');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('Updated Brand');
+      expect(body.colors.primary).toBe('#0000FF');
+    });
+
+    it('should delete a brand style', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteBrandStyle(5);
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/5');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on server error', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Internal Server Error' }, 500)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.getBrandStyle(5)).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('v3 Account API', () => {
+    it('should list accounts', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Account 1' },
+            { id: 2, name: 'Account 2' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listAccounts();
+
+      expect(result.data).toHaveLength(2);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should list accounts with includes[] query param', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: ['sitoo_credentials'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/accounts?includes[]=sitoo_credentials'
+      );
+    });
+
+    it('should list accounts with multiple includes', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: ['sitoo_credentials', 'other'] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('includes[]=sitoo_credentials');
+      expect(url).toContain('includes[]=other');
+    });
+
+    it('should list accounts without includes when array is empty', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listAccounts({ includes: [] });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(url).not.toContain('?');
+    });
+
+    it('should create an account', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 5, name: 'New Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createAccount({ name: 'New Account' });
+
+      expect(result.data?.id).toBe(5);
+      expect(result.data?.name).toBe('New Account');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('New Account');
+    });
+
+    it('should get an account by ID', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 42, name: 'My Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(42);
+
+      expect(result?.data?.id).toBe(42);
+      expect(result?.data?.name).toBe('My Account');
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+    });
+
+    it('should get the current account with "show"', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'Current Account' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount('show');
+
+      expect(result?.data?.id).toBe(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/show');
+    });
+
+    it('should return null for non-existent account', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should delete an account', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteAccount(42);
+
+      expect(result).toEqual({ success: true });
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on 401 for account endpoints', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
+      await expect(client.listAccounts()).rejects.toThrow('Invalid Rule.io API key');
+    });
+  });
+
+  describe('v3 API Key Management', () => {
+    it('should list API keys', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Production Key' },
+            { id: 2, name: 'Staging Key' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listApiKeys();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data?.[0].name).toBe('Production Key');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should create an API key', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 3, name: 'New Key', key: 'secret-key-value' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createApiKey({ name: 'New Key' });
+
+      expect(result.data?.id).toBe(3);
+      expect(result.data?.name).toBe('New Key');
+      expect(result.data?.key).toBe('secret-key-value');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('New Key');
+    });
+
+    it('should update an API key', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 3, name: 'Renamed Key' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateApiKey(3, { name: 'Renamed Key' });
+
+      expect(result.data?.name).toBe('Renamed Key');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys/3');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('Renamed Key');
+    });
+
+    it('should delete an API key', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteApiKey(42);
+
+      expect(result).toEqual({ success: true });
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys/42');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on 401 for listApiKeys', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Unauthorized' }, 401)
+      );
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+      await expect(client.listApiKeys()).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on 404 for deleteApiKey', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Not found' }, 404)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.deleteApiKey(99999)).rejects.toThrow(RuleApiError);
+    });
+  });
 });

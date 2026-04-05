@@ -695,6 +695,212 @@ export interface RuleSubscriberTagsV3Request {
 }
 
 // ============================================================================
+// v3 Brand Styles API Types
+// ============================================================================
+
+/**
+ * Brand style colors as returned by the Rule.io API.
+ * All color fields are optional since the API may return a partial set.
+ */
+export interface RuleBrandStyleColors {
+  primary?: string;
+  secondary?: string;
+  tertiary?: string;
+  background?: string;
+  text?: string;
+  link?: string;
+}
+
+/**
+ * Brand style font configuration.
+ */
+export interface RuleBrandStyleFont {
+  name?: string;
+  url?: string;
+  fallback?: string;
+}
+
+/**
+ * A brand style entity in Rule.io.
+ *
+ * Brand styles define visual identity (colors, fonts, logo) for email templates.
+ * Each account has a default brand style that is returned first in list responses.
+ */
+export interface RuleBrandStyle {
+  id?: number;
+  name?: string;
+  domain?: string;
+  logo_url?: string;
+  colors?: RuleBrandStyleColors;
+  fonts?: RuleBrandStyleFont[];
+  is_default?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Request body for creating a brand style from a domain URL.
+ *
+ * Uses the BrandFetch API to auto-detect brand colors, fonts, and logo
+ * from the given URL.
+ *
+ * @example
+ * ```typescript
+ * await client.createBrandStyleFromDomain({ url: 'https://example.com' });
+ * ```
+ */
+export interface RuleBrandStyleFromDomainRequest {
+  /** The URL to extract brand information from */
+  url: string;
+}
+
+/**
+ * Request body for creating a brand style manually.
+ *
+ * Accepts base64-encoded images and custom font definitions.
+ *
+ * @example
+ * ```typescript
+ * await client.createBrandStyleManually({
+ *   name: 'My Brand',
+ *   colors: { primary: '#FF0000', secondary: '#00FF00' },
+ * });
+ * ```
+ */
+export interface RuleBrandStyleManualRequest {
+  name?: string;
+  /** Base64-encoded logo image */
+  logo?: string;
+  colors?: RuleBrandStyleColors;
+  fonts?: RuleBrandStyleFont[];
+}
+
+/**
+ * Request body for updating a brand style via PATCH.
+ *
+ * Only provided fields are updated; omitted fields remain unchanged.
+ */
+export interface RuleBrandStyleUpdateRequest {
+  name?: string;
+  /** Base64-encoded logo image */
+  logo?: string;
+  colors?: RuleBrandStyleColors;
+  fonts?: RuleBrandStyleFont[];
+}
+
+/**
+ * Response from single brand style endpoints (get, create, update).
+ */
+export interface RuleBrandStyleResponse extends RuleApiResponse {
+  data?: RuleBrandStyle;
+}
+
+/**
+ * Response from the list brand styles endpoint.
+ *
+ * The default brand style is always returned first in the list.
+ */
+export interface RuleBrandStyleListResponse extends RuleApiResponse {
+  data?: RuleBrandStyle[];
+}
+
+// ============================================================================
+// v3 Account API Types
+// ============================================================================
+
+/**
+ * Account as returned by the Rule.io v3 API.
+ */
+export interface RuleAccount {
+  id?: number;
+  name?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Request body for creating an account.
+ *
+ * Requires Super Admin role.
+ */
+export interface RuleAccountCreateRequest {
+  name: string;
+}
+
+/**
+ * Response from account endpoints that return a single account.
+ */
+export interface RuleAccountResponse extends RuleApiResponse {
+  data?: RuleAccount;
+}
+
+/**
+ * Response from the list accounts endpoint.
+ */
+export interface RuleAccountListResponse extends RuleApiResponse {
+  data?: RuleAccount[];
+}
+
+/**
+ * Query parameters for listing accounts.
+ */
+export interface RuleAccountListParams {
+  /** Include additional relations (e.g., 'sitoo_credentials') */
+  includes?: string[];
+}
+
+// ============================================================================
+// v3 API Key Management Types
+// ============================================================================
+
+/**
+ * An API key entity in Rule.io.
+ *
+ * The `key` field (the actual secret) is only returned on creation.
+ */
+export interface RuleApiKey {
+  id?: number;
+  name?: string;
+  /** The actual API key value — only returned on creation */
+  key?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Request body for creating an API key.
+ *
+ * @example
+ * ```typescript
+ * await client.createApiKey({ name: 'Production Key' });
+ * ```
+ */
+export interface RuleApiKeyCreateRequest {
+  name: string;
+}
+
+/**
+ * Request body for updating an API key.
+ */
+export interface RuleApiKeyUpdateRequest {
+  name?: string;
+}
+
+/**
+ * Response from single API key endpoints (create, update).
+ */
+export interface RuleApiKeyResponse extends RuleApiResponse {
+  data?: RuleApiKey;
+}
+
+/**
+ * Response from the list API keys endpoint.
+ */
+export interface RuleApiKeyListResponse extends RuleApiResponse {
+  data?: RuleApiKey[];
+}
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 

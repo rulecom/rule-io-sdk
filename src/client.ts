@@ -73,6 +73,19 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleBrandStyleFromDomainRequest,
+  RuleBrandStyleManualRequest,
+  RuleBrandStyleUpdateRequest,
+  RuleBrandStyleResponse,
+  RuleBrandStyleListResponse,
+  RuleAccountCreateRequest,
+  RuleAccountResponse,
+  RuleAccountListResponse,
+  RuleAccountListParams,
+  RuleApiKeyCreateRequest,
+  RuleApiKeyUpdateRequest,
+  RuleApiKeyResponse,
+  RuleApiKeyListResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1629,6 +1642,352 @@ export class RuleClient {
         method: 'DELETE',
       }
     );
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Brand Styles API
+  // ==========================================================================
+
+  /**
+   * List all brand styles for the account.
+   *
+   * The default brand style is always returned first in the list.
+   *
+   * @returns List of brand styles
+   *
+   * @example
+   * ```typescript
+   * const styles = await client.listBrandStyles();
+   * console.log(styles.data?.[0]?.name); // default brand style
+   * ```
+   */
+  async listBrandStyles(): Promise<RuleBrandStyleListResponse> {
+    return this.requestV3<RuleBrandStyleListResponse>('/brand-styles', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a brand style by auto-detecting brand from a domain URL.
+   *
+   * Uses the BrandFetch API to extract colors, fonts, and logo from the
+   * given URL.
+   *
+   * @param request - Request containing the URL to extract brand info from
+   * @returns Created brand style data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createBrandStyleFromDomain({
+   *   url: 'https://example.com',
+   * });
+   * console.log(result.data?.colors?.primary);
+   * ```
+   */
+  async createBrandStyleFromDomain(
+    request: RuleBrandStyleFromDomainRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/from-domain', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Create a brand style manually with custom colors, fonts, and logo.
+   *
+   * Accepts base64-encoded images for the logo and custom font definitions.
+   *
+   * @param request - Brand style data including name, colors, fonts, and logo
+   * @returns Created brand style data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createBrandStyleManually({
+   *   name: 'My Brand',
+   *   colors: { primary: '#FF0000', secondary: '#00FF00' },
+   * });
+   * console.log(result.data?.id);
+   * ```
+   */
+  async createBrandStyleManually(
+    request: RuleBrandStyleManualRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/manually', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Get a brand style by ID.
+   *
+   * @param id - Brand style ID
+   * @returns Brand style data or null if not found
+   *
+   * @example
+   * ```typescript
+   * const style = await client.getBrandStyle(42);
+   * if (style) {
+   *   console.log(style.data?.name);
+   * }
+   * ```
+   */
+  async getBrandStyle(id: number): Promise<RuleBrandStyleResponse | null> {
+    try {
+      return await this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${id}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update a brand style via PATCH.
+   *
+   * Only provided fields are updated; omitted fields remain unchanged.
+   *
+   * @param id - Brand style ID
+   * @param update - Partial update with only the fields to change
+   * @returns Updated brand style data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.updateBrandStyle(42, {
+   *   name: 'Updated Brand',
+   *   colors: { primary: '#0000FF' },
+   * });
+   * console.log(result.data?.colors?.primary); // '#0000FF'
+   * ```
+   */
+  async updateBrandStyle(
+    id: number,
+    update: RuleBrandStyleUpdateRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(update),
+    });
+  }
+
+  /**
+   * Delete a brand style.
+   *
+   * Note: The last brand style for an account cannot be deleted.
+   * The API will return an error if you attempt to delete the only
+   * remaining brand style.
+   *
+   * @param id - Brand style ID
+   *
+   * @example
+   * ```typescript
+   * await client.deleteBrandStyle(42);
+   * ```
+   */
+  async deleteBrandStyle(id: number): Promise<void> {
+    await this.fetchV3(`/brand-styles/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ==========================================================================
+  // v3 Account API
+  // ==========================================================================
+
+  /**
+   * List all accounts accessible with the current user-level API key.
+   *
+   * Supports the `includes[]` query parameter to fetch additional relations
+   * (e.g., `sitoo_credentials`).
+   *
+   * @param params - Optional query parameters (includes)
+   * @returns List of accounts
+   *
+   * @example
+   * ```typescript
+   * // List all accounts
+   * const accounts = await client.listAccounts();
+   * console.log(accounts.data);
+   *
+   * // Include additional relations
+   * const withCreds = await client.listAccounts({ includes: ['sitoo_credentials'] });
+   * ```
+   */
+  async listAccounts(params?: RuleAccountListParams): Promise<RuleAccountListResponse> {
+    let qs = '';
+    if (params?.includes?.length) {
+      const parts = params.includes.map(
+        (inc) => `includes[]=${encodeURIComponent(inc)}`
+      );
+      qs = '?' + parts.join('&');
+    }
+    return this.requestV3<RuleAccountListResponse>(`/accounts${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new account.
+   *
+   * **Requires Super Admin role.** This endpoint uses user-level API keys,
+   * not account-level keys.
+   *
+   * @param account - Account creation request
+   * @returns Created account data
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createAccount({ name: 'New Sub-Account' });
+   * console.log(result.data?.id);
+   * ```
+   */
+  async createAccount(account: RuleAccountCreateRequest): Promise<RuleAccountResponse> {
+    return this.requestV3<RuleAccountResponse>('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(account),
+    });
+  }
+
+  /**
+   * Get an account by ID, or pass `"show"` to retrieve the current account.
+   *
+   * @param accountId - Numeric account ID, or the string `"show"` for the current account
+   * @returns Account data, or null if not found
+   *
+   * @example
+   * ```typescript
+   * // Get current account
+   * const current = await client.getAccount('show');
+   *
+   * // Get a specific account
+   * const account = await client.getAccount(42);
+   * ```
+   */
+  async getAccount(accountId: number | 'show'): Promise<RuleAccountResponse | null> {
+    try {
+      return await this.requestV3<RuleAccountResponse>(`/accounts/${accountId}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an account by ID.
+   *
+   * **Requires Super Admin role.** The deletion is queued and processed
+   * asynchronously — the account is not removed immediately.
+   *
+   * @param accountId - Account ID to delete
+   * @returns API response confirming the deletion was queued
+   *
+   * @example
+   * ```typescript
+   * // Requires Super Admin role; deletion is queued, not immediate
+   * await client.deleteAccount(42);
+   * ```
+   */
+  async deleteAccount(accountId: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/accounts/${accountId}`, {
+      method: 'DELETE',
+    });
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 API Key Management
+  // ==========================================================================
+
+  /**
+   * List all API keys for the current account.
+   *
+   * @returns List of API keys (without the secret key values)
+   *
+   * @example
+   * ```typescript
+   * const keys = await client.listApiKeys();
+   * for (const key of keys.data ?? []) {
+   *   console.log(key.id, key.name);
+   * }
+   * ```
+   */
+  async listApiKeys(): Promise<RuleApiKeyListResponse> {
+    return this.requestV3<RuleApiKeyListResponse>('/api-keys', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new API key.
+   *
+   * The response includes the `key` field with the actual secret value.
+   * This is the only time the secret is returned — store it securely.
+   *
+   * @param request - API key creation request with a name
+   * @returns The created API key including the secret value
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createApiKey({ name: 'Production Key' });
+   * console.log(result.data?.key); // Store this securely!
+   * ```
+   */
+  async createApiKey(request: RuleApiKeyCreateRequest): Promise<RuleApiKeyResponse> {
+    return this.requestV3<RuleApiKeyResponse>('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Update an existing API key.
+   *
+   * @param id - API key ID
+   * @param request - Fields to update (e.g., name)
+   * @returns The updated API key
+   *
+   * @example
+   * ```typescript
+   * const result = await client.updateApiKey(42, { name: 'Renamed Key' });
+   * console.log(result.data?.name);
+   * ```
+   */
+  async updateApiKey(
+    id: number,
+    request: RuleApiKeyUpdateRequest
+  ): Promise<RuleApiKeyResponse> {
+    return this.requestV3<RuleApiKeyResponse>(`/api-keys/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Delete an API key.
+   *
+   * Returns `{ success: true }` on successful deletion (HTTP 204).
+   *
+   * @param id - API key ID to delete
+   * @returns API response indicating success
+   *
+   * @example
+   * ```typescript
+   * await client.deleteApiKey(42);
+   * ```
+   */
+  async deleteApiKey(id: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/api-keys/${id}`, {
+      method: 'DELETE',
+    });
     return { success: true };
   }
 
