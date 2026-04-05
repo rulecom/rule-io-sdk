@@ -22,7 +22,7 @@ npm install rule-io-sdk
 If the package isn't published to npm yet, install directly from GitHub:
 
 ```bash
-npm install github:swesam/rule-io-sdk
+npm install github:rulecom/rule-io-sdk
 ```
 
 The `prepare` script will automatically build the TypeScript source on install.
