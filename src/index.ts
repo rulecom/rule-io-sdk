@@ -99,6 +99,14 @@ export type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleSitooCredential,
+  RuleAccount,
+  RuleAccountSimple,
+  RuleAccountCreateRequest,
+  RuleAccountGetParams,
+  RuleAccountResponse,
+  RuleAccountCreateResponse,
+  RuleAccountListResponse,
 } from './types';
 
 // Types - RCML

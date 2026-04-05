@@ -73,6 +73,11 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAccountCreateRequest,
+  RuleAccountGetParams,
+  RuleAccountResponse,
+  RuleAccountCreateResponse,
+  RuleAccountListResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1780,5 +1785,125 @@ export class RuleClient {
       }
       throw error;
     }
+  }
+
+  // ==========================================================================
+  // v3 Account API
+  // ==========================================================================
+
+  /**
+   * List all accounts visible to the authenticated user.
+   *
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @returns List of accounts (simplified representation without nested relations)
+   *
+   * @example
+   * ```typescript
+   * const response = await client.listAccounts();
+   * for (const account of response.data ?? []) {
+   *   console.log(account.id, account.name);
+   * }
+   * ```
+   */
+  async listAccounts(): Promise<RuleAccountListResponse> {
+    return this.requestV3<RuleAccountListResponse>('/accounts', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new account.
+   *
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @param request - Account name and language code
+   * @returns The created account (simplified representation)
+   *
+   * @example
+   * ```typescript
+   * const response = await client.createAccount({
+   *   name: 'My New Account',
+   *   language: 'en',
+   * });
+   * console.log('Created account:', response.data?.id);
+   * ```
+   */
+  async createAccount(request: RuleAccountCreateRequest): Promise<RuleAccountCreateResponse> {
+    return this.requestV3<RuleAccountCreateResponse>('/accounts', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Get a single account by ID.
+   *
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * Pass `'show'` as the accountId to retrieve the currently authenticated account.
+   * Use the `includes` parameter to load related data such as Sitoo credentials.
+   *
+   * @param accountId - Numeric account ID or `'show'` for the current account
+   * @param params - Optional query parameters (e.g. `{ includes: ['sitoo_credentials'] }`)
+   * @returns The account with optional nested relations, or `null` if not found
+   *
+   * @example
+   * ```typescript
+   * // Get current account
+   * const me = await client.getAccount('show');
+   *
+   * // Get account with Sitoo credentials
+   * const account = await client.getAccount(42, {
+   *   includes: ['sitoo_credentials'],
+   * });
+   * ```
+   */
+  async getAccount(
+    accountId: number | 'show',
+    params?: RuleAccountGetParams
+  ): Promise<RuleAccountResponse | null> {
+    let endpoint = `/accounts/${accountId}`;
+
+    if (params?.includes?.length) {
+      const searchParams = new URLSearchParams();
+      for (const inc of params.includes) {
+        searchParams.append('includes[]', inc);
+      }
+      endpoint += `?${searchParams.toString()}`;
+    }
+
+    try {
+      return await this.requestV3<RuleAccountResponse>(endpoint, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Delete an account.
+   *
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * This is a destructive operation that cannot be undone.
+   *
+   * @param accountId - Numeric account ID to delete
+   * @returns API response indicating success
+   *
+   * @example
+   * ```typescript
+   * await client.deleteAccount(42);
+   * ```
+   */
+  async deleteAccount(accountId: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/accounts/${accountId}`, {
+      method: 'DELETE',
+    });
+    return { success: true };
   }
 }
