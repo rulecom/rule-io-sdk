@@ -1874,9 +1874,12 @@ export class RuleClient {
     }
 
     try {
-      return await this.requestV3<RuleAccountResponse>(endpoint, {
+      const response = await this.fetchV3(endpoint, {
         method: 'GET',
       });
+      const data = (await response.json()) as RuleAccountResponse;
+      this.log('getAccount response received (body omitted for security)');
+      return data;
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;

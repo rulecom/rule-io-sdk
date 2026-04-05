@@ -704,6 +704,7 @@ export interface RuleSubscriberTagsV3Request {
 export interface RuleSitooCredential {
   account_id: number;
   api_id: string;
+  /** Sitoo password. Sensitive: avoid logging or storing in plaintext. */
   password: string;
   created_at?: string | null;
   updated_at?: string | null;
