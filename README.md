@@ -4,7 +4,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 
 ## Features
 
-- **Full API Coverage** — v2 Subscriber API and v3 Editor API (77 methods)
+- **Full API Coverage** — v2 Subscriber API and v3 API (77 methods)
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
@@ -398,6 +398,9 @@ const tagId = await client.getTagIdByName('order-confirmed');
 > **Note:** The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
 
 ```typescript
+// The subscriber's numeric ID (from createSubscriberV3 or other lookup)
+const subscriberId = 12345;
+
 // CRUD for custom field data
 const data = await client.getCustomFieldData(subscriberId);
 await client.createCustomFieldData(subscriberId, {
@@ -448,7 +451,8 @@ Create tags beforehand using the v2 API:
 
 ```typescript
 // Create tags via the v2 REST API directly
-await fetch(`${baseUrlV2}/tags`, {
+const apiKey = process.env.RULE_IO_API_KEY!;
+await fetch('https://app.rule.io/api/v2/tags', {
   method: 'POST',
   headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
   body: JSON.stringify({ tags: ['order-confirmed', 'shipping-update'] }),
