@@ -277,19 +277,43 @@ export class RuleClient {
 
       if (!response.ok) {
         let message = 'Rule.io v3 API error';
+        let validationErrors: Record<string, string[]> | undefined;
         try {
           const text = await response.text();
           this.log('Error response body:', text);
           if (text) {
-            const errorData = JSON.parse(text) as { error?: string; message?: string };
-            if (errorData?.error || errorData?.message) {
+            const errorData = JSON.parse(text) as {
+              error?: string;
+              message?: string;
+              errors?: Record<string, string[]>;
+            };
+
+            // Extract field-level validation errors (e.g. { errors: { field: ["msg"] } })
+            if (errorData?.errors && typeof errorData.errors === 'object') {
+              validationErrors = errorData.errors;
+              const fieldMessages = Object.entries(errorData.errors)
+                .map(([field, messages]) => {
+                  if (Array.isArray(messages)) {
+                    return messages.map((msg) => `${field}: ${msg}`).join('; ');
+                  }
+                  return `${field}: ${String(messages)}`;
+                })
+                .join('; ');
+              if (fieldMessages) {
+                message = fieldMessages;
+              }
+            } else if (errorData?.error || errorData?.message) {
               message = errorData.error || errorData.message || message;
             }
           }
         } catch {
           // Response body is not valid JSON
         }
-        throw new RuleApiError(message, response.status);
+        const error = new RuleApiError(message, response.status);
+        if (validationErrors) {
+          error.validationErrors = validationErrors;
+        }
+        throw error;
       }
 
       return response;

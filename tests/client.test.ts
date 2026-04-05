@@ -538,6 +538,92 @@ describe('RuleClient', () => {
       await expect(client.listAutomails()).rejects.toThrow(RuleApiError);
       await expect(client.listAutomails()).rejects.toThrow('Invalid Rule.io API key');
     });
+
+    it('should parse field-level validation errors from v3 API', async () => {
+      const errorBody = {
+        errors: {
+          automail_setting: [
+            'The automail setting field is required when dispatcher.type is automail.',
+          ],
+          name: ['The name field is required.'],
+        },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listAutomails();
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        const apiError = error as RuleApiError;
+        expect(apiError.statusCode).toBe(422);
+        expect(apiError.isValidationError()).toBe(true);
+        expect(apiError.message).toContain('automail_setting:');
+        expect(apiError.message).toContain('The automail setting field is required');
+        expect(apiError.message).toContain('name:');
+        expect(apiError.message).toContain('The name field is required.');
+        expect(apiError.validationErrors).toEqual(errorBody.errors);
+      }
+    });
+
+    it('should flatten multiple messages per field in validation errors', async () => {
+      const errorBody = {
+        errors: {
+          email: ['The email field is required.', 'The email must be valid.'],
+        },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listAutomails();
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        const apiError = error as RuleApiError;
+        expect(apiError.message).toContain('email: The email field is required.');
+        expect(apiError.message).toContain('email: The email must be valid.');
+        expect(apiError.validationErrors).toEqual(errorBody.errors);
+      }
+    });
+
+    it('should fall back to .error/.message when no .errors object', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Something went wrong' }, 500)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listAutomails();
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        const apiError = error as RuleApiError;
+        expect(apiError.message).toBe('Something went wrong');
+        expect(apiError.validationErrors).toBeUndefined();
+      }
+    });
+
+    it('should handle empty errors object gracefully', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ errors: {} }, 422));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listAutomails();
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        const apiError = error as RuleApiError;
+        // Empty errors object produces no field messages, falls back to default
+        expect(apiError.message).toBe('Rule.io v3 API error');
+        expect(apiError.validationErrors).toEqual({});
+      }
+    });
   });
 
   describe('v3 Custom Field Data API (Deprecated)', () => {

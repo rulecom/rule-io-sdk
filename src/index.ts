@@ -26,6 +26,7 @@ export { RuleClient } from './client';
 
 // Errors
 export { RuleApiError, RuleConfigError } from './errors';
+export type { RuleValidationErrors } from './errors';
 
 // Constants
 export {
