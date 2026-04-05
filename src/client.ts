@@ -1890,10 +1890,12 @@ export class RuleClient {
    *
    * **Requires Super Admin privileges.** Regular API keys will receive a 403.
    *
-   * This is a destructive operation that cannot be undone.
+   * This request queues account deletion asynchronously; deletion is not immediate
+   * and may take time to complete. Once processed, this is a destructive operation
+   * that cannot be undone.
    *
    * @param accountId - Numeric account ID to delete
-   * @returns API response indicating success
+   * @returns API response indicating the deletion request was accepted successfully
    *
    * @example
    * ```typescript
