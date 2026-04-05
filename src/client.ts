@@ -78,6 +78,14 @@ import type {
   RuleAccountResponse,
   RuleAccountCreateResponse,
   RuleAccountListResponse,
+  RuleBrandStyleFromDomainRequest,
+  RuleBrandStyleManualRequest,
+  RuleBrandStyleResponse,
+  RuleBrandStyleListResponse,
+  RuleApiKeyCreateRequest,
+  RuleApiKeyUpdateRequest,
+  RuleApiKeyResponse,
+  RuleApiKeyListResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1634,6 +1642,229 @@ export class RuleClient {
         method: 'DELETE',
       }
     );
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Brand Styles API
+  // ==========================================================================
+
+  /**
+   * List all brand styles for the account.
+   *
+   * @returns List of brand style summary items
+   *
+   * @example
+   * ```typescript
+   * const result = await client.listBrandStyles();
+   * console.log(result.data); // [{ id: 1, name: 'My Brand', ... }]
+   * ```
+   */
+  async listBrandStyles(): Promise<RuleBrandStyleListResponse> {
+    return this.requestV3<RuleBrandStyleListResponse>('/brand-styles', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Get a brand style by ID.
+   *
+   * @param brandStyleId - Brand style ID
+   * @returns Full brand style detail, or null if not found
+   *
+   * @example
+   * ```typescript
+   * const style = await client.getBrandStyle(42);
+   * if (style) {
+   *   console.log(style.data?.colours);
+   * }
+   * ```
+   */
+  async getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null> {
+    try {
+      return await this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${brandStyleId}`, {
+        method: 'GET',
+      });
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create a brand style from a domain. The API will fetch brand assets
+   * (colors, fonts, logos, social links) from the given domain.
+   *
+   * Note: Returns 409 if a brand style for this domain already exists,
+   * and 424 if the domain could not be fetched.
+   *
+   * @param request - Request with the domain to fetch brand assets from
+   * @returns The created brand style
+   *
+   * @example
+   * ```typescript
+   * const style = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+   * console.log(style.data?.colours);
+   * ```
+   */
+  async createBrandStyleFromDomain(
+    request: RuleBrandStyleFromDomainRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/from-domain', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Create a brand style manually with custom values.
+   *
+   * @param request - Brand style data (name, colours, fonts, links, images)
+   * @returns The created brand style
+   *
+   * @example
+   * ```typescript
+   * const style = await client.createBrandStyleManually({
+   *   name: 'My Brand',
+   *   colours: [{ type: 'brand', hex: '#FF5733', brightness: 50 }],
+   *   links: [{ type: 'website', link: 'https://example.com' }],
+   * });
+   * ```
+   */
+  async createBrandStyleManually(
+    request: RuleBrandStyleManualRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/manually', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Update an existing brand style (partial update via PATCH).
+   *
+   * @param brandStyleId - Brand style ID
+   * @param request - Fields to update
+   * @returns The updated brand style
+   *
+   * @example
+   * ```typescript
+   * const updated = await client.updateBrandStyle(42, {
+   *   name: 'Updated Brand',
+   *   colours: [{ type: 'brand', hex: '#00FF00', brightness: 70 }],
+   * });
+   * ```
+   */
+  async updateBrandStyle(
+    brandStyleId: number,
+    request: RuleBrandStyleManualRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${brandStyleId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Delete a brand style.
+   *
+   * Note: Returns 403 if this is the last brand style on the account
+   * (at least one must remain).
+   *
+   * @param brandStyleId - Brand style ID
+   * @returns Success response
+   *
+   * @example
+   * ```typescript
+   * await client.deleteBrandStyle(42);
+   * ```
+   */
+  async deleteBrandStyle(brandStyleId: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/brand-styles/${brandStyleId}`, {
+      method: 'DELETE',
+    });
+    return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 API Keys API
+  // ==========================================================================
+
+  /**
+   * List all API keys for the account.
+   *
+   * @returns List of API keys
+   *
+   * @example
+   * ```typescript
+   * const result = await client.listApiKeys();
+   * console.log(result.data); // [{ id: 1, name: 'Production', key: '...' }]
+   * ```
+   */
+  async listApiKeys(): Promise<RuleApiKeyListResponse> {
+    return this.requestV3<RuleApiKeyListResponse>('/api-keys', {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Create a new API key.
+   *
+   * @param request - Request with a name for the key (max 255 characters)
+   * @returns The created API key (including the key value)
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createApiKey({ name: 'Production Key' });
+   * console.log(result.data?.key); // The generated API key
+   * ```
+   */
+  async createApiKey(request: RuleApiKeyCreateRequest): Promise<RuleApiKeyResponse> {
+    return this.requestV3<RuleApiKeyResponse>('/api-keys', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Update an API key's name.
+   *
+   * @param apiKeyId - API key ID
+   * @param request - Request with the new name (max 255 characters)
+   * @returns The updated API key
+   *
+   * @example
+   * ```typescript
+   * const result = await client.updateApiKey(5, { name: 'Staging Key' });
+   * ```
+   */
+  async updateApiKey(
+    apiKeyId: number,
+    request: RuleApiKeyUpdateRequest
+  ): Promise<RuleApiKeyResponse> {
+    return this.requestV3<RuleApiKeyResponse>(`/api-keys/${apiKeyId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  /**
+   * Delete an API key.
+   *
+   * @param apiKeyId - API key ID
+   * @returns Success response
+   *
+   * @example
+   * ```typescript
+   * await client.deleteApiKey(5);
+   * ```
+   */
+  async deleteApiKey(apiKeyId: number): Promise<RuleApiResponse> {
+    await this.fetchV3(`/api-keys/${apiKeyId}`, {
+      method: 'DELETE',
+    });
     return { success: true };
   }
 
