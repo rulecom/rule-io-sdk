@@ -73,6 +73,8 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAnalyticsParams,
+  RuleAnalyticsResponse,
   RuleRecipientsListParams,
   RuleSegmentListResponse,
   RuleRecipientSubscriberListResponse,
@@ -1871,6 +1873,55 @@ export class RuleClient {
       method: 'DELETE',
     });
     return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Analytics API
+  // ==========================================================================
+
+  /**
+   * Retrieve analytics (dispatcher statistics) for one or more objects.
+   *
+   * Returns metric values (opens, clicks, bounces, etc.) for the specified
+   * objects within the given date range.
+   *
+   * @param params - Analytics query parameters
+   * @returns Analytics response with per-object metric data
+   *
+   * @example
+   * ```typescript
+   * const stats = await client.getAnalytics({
+   *   date_from: '2024-01-01',
+   *   date_to: '2024-01-31',
+   *   object_type: 'CAMPAIGN',
+   *   object_ids: ['123', '456'],
+   *   metrics: ['sent', 'open_uniq', 'click_uniq'],
+   * });
+   *
+   * for (const stat of stats.data ?? []) {
+   *   console.log(`Object ${stat.id}:`, stat.metrics);
+   * }
+   * ```
+   */
+  async getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
+    const searchParams = new URLSearchParams();
+    searchParams.set('date_from', params.date_from);
+    searchParams.set('date_to', params.date_to);
+    searchParams.set('object_type', params.object_type);
+    for (const id of params.object_ids) {
+      searchParams.append('object_ids[]', id);
+    }
+    for (const metric of params.metrics) {
+      searchParams.append('metrics[]', metric);
+    }
+    if (params.message_type != null) {
+      searchParams.set('message_type', params.message_type);
+    }
+    const queryString = searchParams.toString();
+    const qs = queryString ? `?${queryString}` : '';
+    return this.requestV3<RuleAnalyticsResponse>(`/analytics${qs}`, {
+      method: 'GET',
+    });
   }
 
   // ==========================================================================
