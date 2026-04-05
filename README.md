@@ -4,7 +4,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 
 ## Features
 
-- **Full API Coverage** — v2 Subscriber API and v3 Editor API
+- **Full API Coverage** — v2 + v3 Subscriber API and v3 Editor API
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
@@ -43,19 +43,21 @@ RULE_IO_API_KEY=your-api-key-here
 ## Quick Start
 
 ```typescript
-import { RuleClient, RuleTags } from 'rule-io-sdk';
+import { RuleClient } from 'rule-io-sdk';
 
 // Create a client with your API key
 const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY! });
 
-// Sync a subscriber with tags and custom fields
-await client.syncSubscriber({
+// Create a subscriber
+await client.createSubscriberV3({
   email: 'customer@example.com',
-  fields: {
-    FirstName: 'Anna',
-    OrderRef: 'ORD-456',
-  },
-  tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
+  status: 'ACTIVE',
+});
+
+// Add tags and trigger automations
+await client.addSubscriberTagsV3('customer@example.com', {
+  tags: ['order-confirmed', 'new-customer'],
+  automation: 'force',
 });
 ```
 
@@ -76,32 +78,47 @@ const client = new RuleClient({
 
 The client validates the API key on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
 
-## Subscriber Management (v2 API)
+## Subscriber Management
+
+### v3 API (recommended)
 
 ```typescript
-// Create or update subscriber
-await client.syncSubscriber({
+// Create a subscriber
+await client.createSubscriberV3({
   email: 'customer@example.com',
-  fields: { FirstName: 'Anna' },
-  tags: ['order-confirmed'],
+  status: 'ACTIVE',
+  language: 'en',
 });
 
-// Add tags (and trigger automations)
-await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
+// Add tags (with automation trigger)
+await client.addSubscriberTagsV3('customer@example.com', {
+  tags: ['vip', 'returning'],
+  automation: 'force',
+});
 
-// Remove tags
-await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
-
-// Get subscriber
-const subscriber = await client.getSubscriber('customer@example.com');
-
-// Get subscriber tags
-const tags = await client.getSubscriberTags('customer@example.com');
-
-// Get subscriber custom fields
-const fields = await client.getSubscriberFields('customer@example.com');
+// Remove a tag
+await client.removeSubscriberTagV3('customer@example.com', 'temporary-tag');
 
 // Delete subscriber
+await client.deleteSubscriberV3('customer@example.com');
+
+// Get subscriber (v2 — no v3 equivalent)
+const subscriber = await client.getSubscriber('customer@example.com');
+
+// Get subscriber tags (v2 — no v3 equivalent)
+const tags = await client.getSubscriberTags('customer@example.com');
+
+// Get subscriber custom fields (v2 — no v3 equivalent)
+const fields = await client.getSubscriberFields('customer@example.com');
+```
+
+### v2 API (deprecated — use v3 methods above)
+
+```typescript
+// These methods still work but are deprecated
+await client.syncSubscriber({ email: 'customer@example.com', fields: { FirstName: 'Anna' }, tags: ['order-confirmed'] });
+await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
+await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
 await client.deleteSubscriber('customer@example.com');
 ```
 
@@ -485,7 +502,7 @@ These are suggestions — you can use any string as a tag.
 import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 
 try {
-  await client.syncSubscriber({ ... });
+  await client.createSubscriberV3({ email: 'user@example.com' });
 } catch (error) {
   if (error instanceof RuleApiError) {
     if (error.statusCode === 401) {

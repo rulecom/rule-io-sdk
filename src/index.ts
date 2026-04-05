@@ -11,11 +11,10 @@
  *
  * const client = new RuleClient({ apiKey: 'your-api-key' });
  *
- * // Sync a subscriber
- * await client.syncSubscriber({
+ * // Create a subscriber
+ * await client.createSubscriberV3({
  *   email: 'customer@example.com',
- *   fields: { FirstName: 'Anna', OrderRef: 'ORD-123' },
- *   tags: [RuleTags.ORDER_COMPLETED, RuleTags.NEWSLETTER],
+ *   status: 'ACTIVE',
  * });
  * ```
  *
