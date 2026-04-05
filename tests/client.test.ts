@@ -380,6 +380,59 @@ describe('RuleClient', () => {
     });
   });
 
+  describe('v3 get methods return null on 404', () => {
+    it('should return null for non-existent automail', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAutomail(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for non-existent message', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getMessage(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for non-existent template', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTemplate(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null for non-existent dynamic set', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getDynamicSet(99999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should still throw RuleApiError for non-404 errors on all v3 get methods', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const getMethods = [
+        (id: number) => client.getAutomail(id),
+        (id: number) => client.getMessage(id),
+        (id: number) => client.getTemplate(id),
+        (id: number) => client.getDynamicSet(id),
+      ];
+
+      for (const getMethod of getMethods) {
+        mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+        await expect(getMethod(123)).rejects.toThrow(RuleApiError);
+      }
+    });
+  });
+
   describe('v3 List, Update & Render API', () => {
     it('should list automails with query params', async () => {
       mockFetch.mockResolvedValueOnce(
