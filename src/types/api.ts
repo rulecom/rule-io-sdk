@@ -909,7 +909,7 @@ export type RuleAnalyticsMessageType = 'email' | 'text_message';
  * Base date range shared by all analytics queries.
  * All date strings must be in `YYYY-MM-DD` format.
  */
-interface RuleAnalyticsDateRange {
+export interface RuleAnalyticsDateRange {
   /** Start date (inclusive), e.g. "2024-01-01" */
   date_from: string;
   /** End date (inclusive), e.g. "2024-01-31" */
@@ -922,7 +922,7 @@ interface RuleAnalyticsDateRange {
  * Full analytics query with object type, IDs, and metrics.
  * `object_ids` are strings (not numbers), matching the OpenAPI spec.
  */
-interface RuleAnalyticsFullQuery extends RuleAnalyticsDateRange {
+export interface RuleAnalyticsFullQuery extends RuleAnalyticsDateRange {
   /** The type of object to query analytics for */
   object_type: RuleAnalyticsObjectType;
   /** IDs of the objects to query (string array, not numbers) */

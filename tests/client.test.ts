@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client';
 import { RuleApiError, RuleConfigError } from '../src/errors';
+import type { RuleAnalyticsParams } from '../src/types';
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -2214,6 +2215,18 @@ describe('RuleClient', () => {
           metrics: [],
         })
       ).rejects.toThrow('metrics must be a non-empty array');
+    });
+
+    it('should throw RuleConfigError when object_ids/metrics given without object_type', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_ids: ['1'],
+          metrics: ['sent'],
+        } as RuleAnalyticsParams)
+      ).rejects.toThrow('object_ids and metrics require object_type');
     });
 
     it('should handle minimal params (only dates)', async () => {

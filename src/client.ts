@@ -2080,6 +2080,14 @@ export class RuleClient {
     const searchParams = new URLSearchParams();
     searchParams.set('date_from', params.date_from);
     searchParams.set('date_to', params.date_to);
+    if (!('object_type' in params)) {
+      const p = params as unknown as Record<string, unknown>;
+      if (p.object_ids != null || p.metrics != null) {
+        throw new RuleConfigError(
+          'object_ids and metrics require object_type to be provided'
+        );
+      }
+    }
     if ('object_type' in params) {
       if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
         throw new RuleConfigError(

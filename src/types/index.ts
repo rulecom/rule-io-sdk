@@ -89,6 +89,8 @@ export type {
   RuleAnalyticsObjectType,
   RuleAnalyticsMetric,
   RuleAnalyticsMessageType,
+  RuleAnalyticsDateRange,
+  RuleAnalyticsFullQuery,
   RuleAnalyticsParams,
   RuleAnalyticsStat,
   RuleAnalyticsResponse,
