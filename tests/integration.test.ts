@@ -531,7 +531,6 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       // First ensure we have a tag to trigger on
       const tagsResult = await client.getTags();
       if (!tagsResult.tags || tagsResult.tags.length === 0) {
-        console.log('Skipping automation workflow — no tags available');
         return;
       }
 
