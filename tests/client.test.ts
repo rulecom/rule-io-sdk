@@ -1788,4 +1788,143 @@ describe('RuleClient', () => {
       expect(options.body).toBeUndefined();
     });
   });
+
+  describe('getAnalytics', () => {
+    it('should fetch analytics with required params', async () => {
+      const mockData = {
+        data: [
+          {
+            id: 123,
+            metrics: [
+              { metric: 'sent', value: 1000 },
+              { metric: 'open_uniq', value: 450 },
+            ],
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['123'],
+        metrics: ['sent', 'open_uniq'],
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].id).toBe(123);
+      expect(result.data![0].metrics).toHaveLength(2);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/analytics?');
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(url).toContain('object_type=CAMPAIGN');
+      expect(url).toContain('object_ids%5B%5D=123');
+      expect(url).toContain('metrics%5B%5D=sent');
+      expect(url).toContain('metrics%5B%5D=open_uniq');
+    });
+
+    it('should include message_type when provided', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'AUTOMAIL',
+        object_ids: ['1'],
+        metrics: ['click'],
+        message_type: 'email',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('message_type=email');
+    });
+
+    it('should not include message_type when omitted', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['1'],
+        metrics: ['sent'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).not.toContain('message_type');
+    });
+
+    it('should handle multiple object_ids', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'JOURNEY',
+        object_ids: ['10', '20', '30'],
+        metrics: ['delivered'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      const matches = url.match(/object_ids%5B%5D/g) ?? [];
+      expect(matches).toHaveLength(3);
+    });
+
+    it('should handle multiple metrics', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'AB_TEST',
+        object_ids: ['5'],
+        metrics: ['open', 'click', 'unsubscribe', 'spam'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      const matches = url.match(/metrics%5B%5D/g) ?? [];
+      expect(matches).toHaveLength(4);
+    });
+
+    it('should use GET method', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'TRANSACTIONAL_NAME',
+        object_ids: ['1'],
+        metrics: ['sent'],
+      });
+
+      const options = mockFetch.mock.calls[0][1] as RequestInit;
+      expect(options.method).toBe('GET');
+    });
+
+    it('should throw RuleApiError on failure', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Invalid date range' }, 422)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-31',
+          date_to: '2024-01-01',
+          object_type: 'CAMPAIGN',
+          object_ids: ['1'],
+          metrics: ['sent'],
+        })
+      ).rejects.toThrow(RuleApiError);
+    });
+  });
 });
