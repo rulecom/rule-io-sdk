@@ -115,6 +115,11 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', () => {
         tags: [`${RUN_ID}`],
       });
       expect(result).toBeDefined();
+
+      // Register cleanup so the subscriber is removed even if later tests fail
+      cleanup.push(async () => {
+        await client.deleteSubscriber(testEmail);
+      });
     });
 
     it('should retrieve subscriber fields', async () => {

@@ -344,6 +344,10 @@ export class RuleClient {
     options: RequestInit
   ): Promise<T> {
     const response = await this.fetchV3(endpoint, options);
+    if (response.status === 204) {
+      this.log('Response V3: 204 No Content');
+      return { success: true } as T;
+    }
     const data = (await response.json()) as T;
     this.log('Response V3:', data);
     return data;
@@ -671,10 +675,9 @@ export class RuleClient {
    * Delete an automail
    */
   async deleteAutomail(id: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/editor/automail/${id}`, {
+    return this.requestV3<RuleApiResponse>(`/editor/automail/${id}`, {
       method: 'DELETE',
     });
-    return { success: true };
   }
 
   /**
@@ -753,10 +756,9 @@ export class RuleClient {
    * Delete a message
    */
   async deleteMessage(id: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/editor/message/${id}`, {
+    return this.requestV3<RuleApiResponse>(`/editor/message/${id}`, {
       method: 'DELETE',
     });
-    return { success: true };
   }
 
   /**
@@ -831,10 +833,9 @@ export class RuleClient {
    * Delete a template
    */
   async deleteTemplate(id: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/editor/template/${id}`, {
+    return this.requestV3<RuleApiResponse>(`/editor/template/${id}`, {
       method: 'DELETE',
     });
-    return { success: true };
   }
 
   /**
@@ -926,10 +927,9 @@ export class RuleClient {
    * Delete a dynamic set
    */
   async deleteDynamicSet(id: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/editor/dynamic-set/${id}`, {
+    return this.requestV3<RuleApiResponse>(`/editor/dynamic-set/${id}`, {
       method: 'DELETE',
     });
-    return { success: true };
   }
 
   /**
@@ -1308,10 +1308,9 @@ export class RuleClient {
    * ```
    */
   async deleteCampaign(id: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/editor/campaign/${id}`, {
+    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}`, {
       method: 'DELETE',
     });
-    return { success: true };
   }
 
   /**
