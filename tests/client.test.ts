@@ -1669,4 +1669,123 @@ describe('RuleClient', () => {
       await expect(client.listApiKeys()).rejects.toThrow(RuleApiError);
     });
   });
+
+  describe('v3 Recipients API', () => {
+    it('should list segments without params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Active Users' },
+            { id: 2, name: 'VIP Customers' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSegments();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![0].name).toBe('Active Users');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/segments');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should list segments with pagination params as query parameters', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 3, name: 'Segment 3', has_next_item: true }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSegments({ page: 1, per_page: 10 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].has_next_item).toBe(true);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/segments?page=1&per_page=10');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should list recipient subscribers without params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 10, email: 'user@example.com', phone: null },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listRecipientSubscribers();
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].email).toBe('user@example.com');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/subscribers');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should list recipient subscribers with pagination params as query parameters', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 10, email: 'a@test.com', phone: null, has_next_item: true },
+            { id: 11, email: null, phone: '+46700000000', has_next_item: false },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listRecipientSubscribers({ per_page: 2 });
+
+      expect(result.data).toHaveLength(2);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/subscribers?per_page=2');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should list recipient tags without params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 100, name: 'newsletter' },
+            { id: 101, name: 'abandoned-cart' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listRecipientTags();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![1].name).toBe('abandoned-cart');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/tags');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+
+    it('should list recipient tags with pagination params as query parameters', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 100, name: 'newsletter', has_next_item: false }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listRecipientTags({ page: 1, per_page: 5 });
+
+      expect(result.data).toHaveLength(1);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/tags?page=1&per_page=5');
+      expect(options.method).toBe('GET');
+      expect(options.body).toBeUndefined();
+    });
+  });
 });

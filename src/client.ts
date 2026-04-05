@@ -73,6 +73,10 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleRecipientsListParams,
+  RuleSegmentListResponse,
+  RuleRecipientSubscriberListResponse,
+  RuleRecipientTagListResponse,
   RuleAccountCreateRequest,
   RuleAccountGetParams,
   RuleAccountResponse,
@@ -1867,6 +1871,82 @@ export class RuleClient {
       method: 'DELETE',
     });
     return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Recipients API
+  // ==========================================================================
+
+  /**
+   * List available segments for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters
+   * @returns List of segments
+   *
+   * @example
+   * ```typescript
+   * const result = await client.listSegments();
+   * for (const segment of result.data ?? []) {
+   *   console.log(segment.id, segment.name);
+   * }
+   * ```
+   */
+  async listSegments(params?: RuleRecipientsListParams): Promise<RuleSegmentListResponse> {
+    const qs = RuleClient.buildQueryString({
+      page: params?.page,
+      per_page: params?.per_page,
+    });
+    return this.requestV3<RuleSegmentListResponse>(`/editor/recipients/segments${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * List subscribers available for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters
+   * @returns List of subscribers
+   *
+   * @example
+   * ```typescript
+   * const result = await client.listRecipientSubscribers({ per_page: 50 });
+   * for (const subscriber of result.data ?? []) {
+   *   console.log(subscriber.id, subscriber.email);
+   * }
+   * ```
+   */
+  async listRecipientSubscribers(params?: RuleRecipientsListParams): Promise<RuleRecipientSubscriberListResponse> {
+    const qs = RuleClient.buildQueryString({
+      page: params?.page,
+      per_page: params?.per_page,
+    });
+    return this.requestV3<RuleRecipientSubscriberListResponse>(`/editor/recipients/subscribers${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * List tags available for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters
+   * @returns List of tags
+   *
+   * @example
+   * ```typescript
+   * const result = await client.listRecipientTags();
+   * for (const tag of result.data ?? []) {
+   *   console.log(tag.id, tag.name);
+   * }
+   * ```
+   */
+  async listRecipientTags(params?: RuleRecipientsListParams): Promise<RuleRecipientTagListResponse> {
+    const qs = RuleClient.buildQueryString({
+      page: params?.page,
+      per_page: params?.per_page,
+    });
+    return this.requestV3<RuleRecipientTagListResponse>(`/editor/recipients/tags${qs}`, {
+      method: 'GET',
+    });
   }
 
   // ==========================================================================
