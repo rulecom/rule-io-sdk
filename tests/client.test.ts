@@ -1426,4 +1426,247 @@ describe('RuleClient', () => {
       await expect(client.deleteAccount(42)).rejects.toThrow(RuleApiError);
     });
   });
+
+  // ==========================================================================
+  // Brand Styles
+  // ==========================================================================
+
+  describe('v3 Brand Styles API', () => {
+    it('should list brand styles', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Brand A', is_default: true, created_at: '2024-01-01', updated_at: '2024-01-01' },
+            { id: 2, name: 'Brand B', is_default: false, created_at: '2024-01-02', updated_at: '2024-01-02' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listBrandStyles();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![0].name).toBe('Brand A');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should get a brand style by ID', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 42,
+            account_id: 1,
+            name: 'My Brand',
+            is_default: true,
+            colours: [{ id: 1, brand_style_id: 42, type: 'brand', hex: '#FF5733', brightness: 50, created_at: '2024-01-01', updated_at: '2024-01-01' }],
+            created_at: '2024-01-01',
+            updated_at: '2024-01-01',
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getBrandStyle(42);
+
+      expect(result).not.toBeNull();
+      expect(result!.data?.name).toBe('My Brand');
+      expect(result!.data?.colours).toHaveLength(1);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
+    });
+
+    it('should return null for non-existent brand style', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Not found' }, 404)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getBrandStyle(999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should create a brand style from domain', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, account_id: 1, name: 'example.com', domain: 'example.com', is_default: false, created_at: '2024-01-01', updated_at: '2024-01-01' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+
+      expect(result.data?.domain).toBe('example.com');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/from-domain');
+      expect(options.method).toBe('POST');
+      expect(JSON.parse(options.body)).toEqual({ domain: 'example.com' });
+    });
+
+    it('should create a brand style manually', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 11, account_id: 1, name: 'Custom Brand', is_default: false, created_at: '2024-01-01', updated_at: '2024-01-01' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createBrandStyleManually({
+        name: 'Custom Brand',
+        colours: [{ type: 'brand', hex: '#00FF00', brightness: 70 }],
+      });
+
+      expect(result.data?.name).toBe('Custom Brand');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/manually');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('Custom Brand');
+      expect(body.colours).toEqual([{ type: 'brand', hex: '#00FF00', brightness: 70 }]);
+    });
+
+    it('should update a brand style with PATCH', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 42, account_id: 1, name: 'Updated Brand', is_default: true, created_at: '2024-01-01', updated_at: '2024-01-02' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateBrandStyle(42, { name: 'Updated Brand' });
+
+      expect(result.data?.name).toBe('Updated Brand');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
+      expect(options.method).toBe('PATCH');
+      expect(JSON.parse(options.body)).toEqual({ name: 'Updated Brand' });
+    });
+
+    it('should delete a brand style', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteBrandStyle(42);
+
+      expect(result).toEqual({ success: true });
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw on 403 when deleting last brand style', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Cannot delete the last brand style' }, 403)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.deleteBrandStyle(42)).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on 424 (failed to fetch domain)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Failed to fetch brand data from domain' }, 424)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createBrandStyleFromDomain({ domain: 'nonexistent.example' })
+      ).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw on 409 when domain brand style already exists', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Brand style already exists for this domain' }, 409)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createBrandStyleFromDomain({ domain: 'example.com' })
+      ).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  // ==========================================================================
+  // API Keys
+  // ==========================================================================
+
+  describe('v3 API Keys API', () => {
+    it('should list API keys', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, name: 'Production', key: 'abc123', created_at: '2024-01-01', updated_at: '2024-01-01' },
+            { id: 2, name: 'Staging', key: 'def456', created_at: '2024-01-02', updated_at: '2024-01-02' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listApiKeys();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![0].name).toBe('Production');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should create an API key', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 3, name: 'New Key', key: 'ghi789', created_at: '2024-01-03', updated_at: '2024-01-03' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createApiKey({ name: 'New Key' });
+
+      expect(result.data?.name).toBe('New Key');
+      expect(result.data?.key).toBe('ghi789');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys');
+      expect(options.method).toBe('POST');
+      expect(JSON.parse(options.body)).toEqual({ name: 'New Key' });
+    });
+
+    it('should update an API key', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 5, name: 'Renamed Key', created_at: '2024-01-01', updated_at: '2024-01-04' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateApiKey(5, { name: 'Renamed Key' });
+
+      expect(result.data?.name).toBe('Renamed Key');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys/5');
+      expect(options.method).toBe('PUT');
+      expect(JSON.parse(options.body)).toEqual({ name: 'Renamed Key' });
+    });
+
+    it('should delete an API key', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteApiKey(5);
+
+      expect(result).toEqual({ success: true });
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/api-keys/5');
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on 401', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Unauthorized' }, 401)
+      );
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+      await expect(client.listApiKeys()).rejects.toThrow(RuleApiError);
+    });
+  });
 });
