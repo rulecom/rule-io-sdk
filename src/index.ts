@@ -119,6 +119,8 @@ export type {
   RuleBrandStyle,
   RuleBrandStyleListItem,
   RuleBrandStyleFromDomainRequest,
+  RuleBrandStyleCreateRequest,
+  RuleBrandStyleUpdateRequest,
   RuleBrandStyleManualRequest,
   RuleBrandStyleResponse,
   RuleBrandStyleListResponse,

@@ -79,7 +79,8 @@ import type {
   RuleAccountCreateResponse,
   RuleAccountListResponse,
   RuleBrandStyleFromDomainRequest,
-  RuleBrandStyleManualRequest,
+  RuleBrandStyleCreateRequest,
+  RuleBrandStyleUpdateRequest,
   RuleBrandStyleResponse,
   RuleBrandStyleListResponse,
   RuleApiKeyCreateRequest,
@@ -1734,7 +1735,7 @@ export class RuleClient {
    * ```
    */
   async createBrandStyleManually(
-    request: RuleBrandStyleManualRequest
+    request: RuleBrandStyleCreateRequest
   ): Promise<RuleBrandStyleResponse> {
     return this.requestV3<RuleBrandStyleResponse>('/brand-styles/manually', {
       method: 'POST',
@@ -1759,7 +1760,7 @@ export class RuleClient {
    */
   async updateBrandStyle(
     brandStyleId: number,
-    request: RuleBrandStyleManualRequest
+    request: RuleBrandStyleUpdateRequest
   ): Promise<RuleBrandStyleResponse> {
     return this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${brandStyleId}`, {
       method: 'PATCH',

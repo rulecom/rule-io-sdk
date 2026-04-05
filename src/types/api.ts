@@ -904,10 +904,33 @@ export interface RuleBrandStyleFromDomainRequest {
 }
 
 /**
- * Request body for manually creating or updating (PATCH) a brand style.
- * All fields are optional for PATCH updates.
+ * Request body for creating a brand style manually (POST). `name` is required.
  */
-export interface RuleBrandStyleManualRequest {
+export interface RuleBrandStyleCreateRequest {
+  name: string;
+  description?: string | null;
+  domain?: string | null;
+  is_default?: boolean | null;
+  colours?: Array<{ type: RuleBrandStyleColourType; hex: string; brightness: number }> | null;
+  links?: Array<{ type: RuleBrandStyleLinkType; link: string }> | null;
+  fonts?: Array<{
+    type: RuleBrandStyleFontType;
+    name: string;
+    origin: RuleBrandStyleFontOrigin;
+    origin_id?: string | null;
+    weights?: string[] | null;
+    font?: { name?: string; file: string };
+  }> | null;
+  images?: Array<{
+    type: RuleBrandStyleImageType;
+    image?: { name?: string; file: string };
+  }> | null;
+}
+
+/**
+ * Request body for updating a brand style (PATCH). All fields are optional.
+ */
+export interface RuleBrandStyleUpdateRequest {
   name?: string;
   description?: string | null;
   domain?: string | null;
@@ -927,6 +950,11 @@ export interface RuleBrandStyleManualRequest {
     image?: { name?: string; file: string };
   }> | null;
 }
+
+/**
+ * @deprecated Use {@link RuleBrandStyleCreateRequest} or {@link RuleBrandStyleUpdateRequest} instead.
+ */
+export type RuleBrandStyleManualRequest = RuleBrandStyleUpdateRequest;
 
 /**
  * Response for a single brand style (detail).

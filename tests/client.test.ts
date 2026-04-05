@@ -1565,6 +1565,17 @@ describe('RuleClient', () => {
       await expect(client.deleteBrandStyle(42)).rejects.toThrow(RuleApiError);
     });
 
+    it('should throw RuleApiError on 424 (failed to fetch domain)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Failed to fetch brand data from domain' }, 424)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createBrandStyleFromDomain({ domain: 'nonexistent.example' })
+      ).rejects.toThrow(RuleApiError);
+    });
+
     it('should throw on 409 when domain brand style already exists', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({ error: 'Brand style already exists for this domain' }, 409)
