@@ -235,7 +235,8 @@ const message = await client.createMessage({
   type: 1, // 1 = email
   subject: 'Welcome!',
 });
-await client.updateMessage(message.data!.id!, { ...message.data!, subject: 'Updated' });
+const fetched = await client.getMessage(message.data!.id!);
+await client.updateMessage(message.data!.id!, { subject: 'Updated' });
 await client.deleteMessage(message.data!.id!);
 ```
 
@@ -249,7 +250,13 @@ const template = await client.createTemplate({
   message_type: 'email',
   template: rcmlDocument,            // RCMLDocument object
 });
-await client.updateTemplate(template.data!.id!, { ...template.data! });
+const fetchedTpl = await client.getTemplate(template.data!.id!);
+await client.updateTemplate(template.data!.id!, {
+  message_id: 456,
+  name: template.data!.name,
+  message_type: 'email',
+  template: template.data!.content,
+});
 await client.deleteTemplate(template.data!.id!);
 
 // Render a template to HTML (with optional merge-tag substitution)
@@ -263,6 +270,7 @@ Connect messages to templates:
 ```typescript
 const sets = await client.listDynamicSets({ message_id: 456 });
 const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
+const fetchedDs = await client.getDynamicSet(ds.data!.id!);
 await client.updateDynamicSet(ds.data!.id!, { message_id: 456, template_id: 790 });
 await client.deleteDynamicSet(ds.data!.id!);
 ```
