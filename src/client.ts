@@ -2088,7 +2088,7 @@ export class RuleClient {
         );
       }
     }
-    if ('object_type' in params) {
+    if ('object_type' in params && params.object_type) {
       if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
         throw new RuleConfigError(
           'object_ids must be a non-empty array when object_type is provided'
