@@ -417,12 +417,19 @@ describe('RuleClient', () => {
       expect(result).toBeNull();
     });
 
-    it('should still throw RuleApiError for non-404 errors on v3 get methods', async () => {
-      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
-
+    it('should still throw RuleApiError for non-404 errors on all v3 get methods', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const getMethods = [
+        (id: number) => client.getAutomail(id),
+        (id: number) => client.getMessage(id),
+        (id: number) => client.getTemplate(id),
+        (id: number) => client.getDynamicSet(id),
+      ];
 
-      await expect(client.getAutomail(123)).rejects.toThrow(RuleApiError);
+      for (const getMethod of getMethods) {
+        mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+        await expect(getMethod(123)).rejects.toThrow(RuleApiError);
+      }
     });
   });
 
