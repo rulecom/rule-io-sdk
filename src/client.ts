@@ -68,6 +68,12 @@ import type {
   RuleCustomFieldDataResponse,
   RuleCustomFieldDataSingleResponse,
   RuleSuppressionRequest,
+  RuleExportDispatcherParams,
+  RuleExportDispatcherResponse,
+  RuleExportStatisticsParams,
+  RuleExportStatisticsResponse,
+  RuleExportSubscriberParams,
+  RuleExportSubscriberResponse,
   RuleSubscriberV3CreateRequest,
   RuleSubscriberV3Response,
   RuleBulkSubscriberIdentifier,
@@ -1630,6 +1636,95 @@ export class RuleClient {
       }
     );
     return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Enterprise Export API
+  // ==========================================================================
+
+  /**
+   * Export dispatcher (send) records for a given date range.
+   *
+   * **Important:** The maximum date range is 1 day. The API will reject
+   * requests where `date_to` is more than 1 day after `date_from`.
+   *
+   * These endpoints may return large datasets. Use `page` and `limit`
+   * parameters to paginate through the results.
+   *
+   * @param params - Date range (max 1 day) and optional pagination
+   * @returns Dispatcher export records
+   *
+   * @example
+   * ```typescript
+   * const result = await client.exportDispatchers({
+   *   date_from: '2024-06-15',
+   *   date_to: '2024-06-15',
+   *   page: 1,
+   *   limit: 100,
+   * });
+   * console.log(result.data); // RuleDispatcherExportRecord[]
+   * ```
+   */
+  async exportDispatchers(
+    params: RuleExportDispatcherParams
+  ): Promise<RuleExportDispatcherResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleExportDispatcherResponse>(`/export/dispatcher${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Export statistics records for a given date range.
+   *
+   * Records are sorted by ID. Each event may have multiple stat records.
+   * Use `page` and `limit` parameters to paginate through large datasets.
+   *
+   * @param params - Date range and optional pagination
+   * @returns Statistics export records
+   *
+   * @example
+   * ```typescript
+   * const result = await client.exportStatistics({
+   *   date_from: '2024-06-01',
+   *   date_to: '2024-06-30',
+   *   page: 1,
+   *   limit: 50,
+   * });
+   * console.log(result.data); // RuleStatisticsExportRecord[]
+   * ```
+   */
+  async exportStatistics(
+    params: RuleExportStatisticsParams
+  ): Promise<RuleExportStatisticsResponse> {
+    const qs = RuleClient.buildQueryString({ ...params });
+    return this.requestV3<RuleExportStatisticsResponse>(`/export/statistics${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * Export subscriber records with optional pagination.
+   *
+   * This endpoint may return large datasets. Use `page` and `limit`
+   * parameters to paginate through the results.
+   *
+   * @param params - Optional pagination parameters
+   * @returns Subscriber export records
+   *
+   * @example
+   * ```typescript
+   * const result = await client.exportSubscribers({ page: 1, limit: 100 });
+   * console.log(result.data); // RuleSubscriberExportRecord[]
+   * ```
+   */
+  async exportSubscribers(
+    params?: RuleExportSubscriberParams
+  ): Promise<RuleExportSubscriberResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleExportSubscriberResponse>(`/export/subscriber${qs}`, {
+      method: 'GET',
+    });
   }
 
   // ==========================================================================

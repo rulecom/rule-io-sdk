@@ -1277,4 +1277,126 @@ describe('RuleClient', () => {
       );
     });
   });
+
+  describe('v3 Enterprise Export API', () => {
+    it('should export dispatchers with date range and pagination', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 1, type: 'campaign', name: 'Summer Sale', status: 'sent', sent_at: '2024-06-15T10:00:00Z' },
+            { id: 2, type: 'automail', name: 'Welcome', status: 'sent', sent_at: '2024-06-15T12:00:00Z' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportDispatchers({
+        date_from: '2024-06-15',
+        date_to: '2024-06-15',
+        page: 1,
+        limit: 100,
+      });
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![0].name).toBe('Summer Sale');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/export/dispatcher?');
+      expect(url).toContain('date_from=2024-06-15');
+      expect(url).toContain('date_to=2024-06-15');
+      expect(url).toContain('page=1');
+      expect(url).toContain('limit=100');
+
+      const options = mockFetch.mock.calls[0][1] as RequestInit;
+      expect(options.method).toBe('GET');
+    });
+
+    it('should export dispatchers with only required date params', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.exportDispatchers({
+        date_from: '2024-06-15',
+        date_to: '2024-06-15',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('date_from=2024-06-15');
+      expect(url).toContain('date_to=2024-06-15');
+      expect(url).not.toContain('page=');
+      expect(url).not.toContain('limit=');
+    });
+
+    it('should export statistics with date range and pagination', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 10, dispatcher_id: 1, event_type: 'open' },
+            { id: 11, dispatcher_id: 1, event_type: 'click' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-06-01',
+        date_to: '2024-06-30',
+        page: 1,
+        limit: 50,
+      });
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data![0].event_type).toBe('open');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/export/statistics?');
+      expect(url).toContain('date_from=2024-06-01');
+      expect(url).toContain('date_to=2024-06-30');
+      expect(url).toContain('page=1');
+      expect(url).toContain('limit=50');
+    });
+
+    it('should export subscribers with pagination', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            { id: 100, email: 'user@example.com', status: 'active', created_at: '2024-01-01' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportSubscribers({ page: 1, limit: 100 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].email).toBe('user@example.com');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/export/subscriber?');
+      expect(url).toContain('page=1');
+      expect(url).toContain('limit=100');
+    });
+
+    it('should export subscribers without params', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.exportSubscribers();
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/export/subscriber');
+      expect(url).not.toContain('?');
+    });
+
+    it('should throw RuleApiError on export failure', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Unauthorized' }, 401)
+      );
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+      await expect(
+        client.exportDispatchers({ date_from: '2024-06-15', date_to: '2024-06-15' })
+      ).rejects.toThrow(RuleApiError);
+    });
+  });
 });

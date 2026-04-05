@@ -695,6 +695,131 @@ export interface RuleSubscriberTagsV3Request {
 }
 
 // ============================================================================
+// v3 Enterprise Export API Types
+// ============================================================================
+
+/**
+ * Common date range parameters for export endpoints.
+ */
+export interface RuleExportDateParams {
+  /** Start date (inclusive), e.g. '2024-01-01' */
+  date_from: string;
+  /** End date (inclusive), e.g. '2024-01-01' */
+  date_to: string;
+}
+
+/**
+ * Query parameters for the dispatcher export endpoint.
+ *
+ * **Important:** The maximum date range is 1 day. The API will reject
+ * requests where `date_to` is more than 1 day after `date_from`.
+ *
+ * @example
+ * ```typescript
+ * const params: RuleExportDispatcherParams = {
+ *   date_from: '2024-06-15',
+ *   date_to: '2024-06-15',
+ *   page: 1,
+ *   limit: 100,
+ * };
+ * ```
+ */
+export interface RuleExportDispatcherParams extends RuleExportDateParams {
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * A single dispatcher record from the export endpoint.
+ * All fields are optional as the API may omit them.
+ */
+export interface RuleDispatcherExportRecord {
+  id?: number;
+  type?: string;
+  name?: string;
+  status?: string;
+  sent_at?: string;
+}
+
+/**
+ * Response from the dispatcher export endpoint.
+ */
+export interface RuleExportDispatcherResponse extends RuleApiResponse {
+  data?: RuleDispatcherExportRecord[];
+}
+
+/**
+ * Query parameters for the statistics export endpoint.
+ *
+ * @example
+ * ```typescript
+ * const params: RuleExportStatisticsParams = {
+ *   date_from: '2024-06-01',
+ *   date_to: '2024-06-30',
+ *   page: 1,
+ *   limit: 50,
+ * };
+ * ```
+ */
+export interface RuleExportStatisticsParams extends RuleExportDateParams {
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * A single statistics record from the export endpoint.
+ * Each event may have multiple stat records. Records are sorted by ID.
+ * All fields are optional as the API may omit them.
+ */
+export interface RuleStatisticsExportRecord {
+  id?: number;
+  dispatcher_id?: number;
+  event_type?: string;
+}
+
+/**
+ * Response from the statistics export endpoint.
+ */
+export interface RuleExportStatisticsResponse extends RuleApiResponse {
+  data?: RuleStatisticsExportRecord[];
+}
+
+/**
+ * Query parameters for the subscriber export endpoint.
+ *
+ * @example
+ * ```typescript
+ * const params: RuleExportSubscriberParams = {
+ *   page: 1,
+ *   limit: 100,
+ * };
+ * ```
+ */
+export interface RuleExportSubscriberParams {
+  page?: number;
+  limit?: number;
+}
+
+/**
+ * A single subscriber record from the export endpoint.
+ * All fields are optional as the API may omit them.
+ */
+export interface RuleSubscriberExportRecord {
+  id?: number;
+  email?: string;
+  phone?: string;
+  status?: string;
+  created_at?: string;
+}
+
+/**
+ * Response from the subscriber export endpoint.
+ */
+export interface RuleExportSubscriberResponse extends RuleApiResponse {
+  data?: RuleSubscriberExportRecord[];
+}
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 
