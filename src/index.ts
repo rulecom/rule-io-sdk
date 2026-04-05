@@ -45,6 +45,7 @@ export type {
   RuleSubscriberTagsResponse,
   RuleAutomail,
   RuleAutomailCreateRequest,
+  RuleAutomailUpdateRequest,
   RuleAutomailResponse,
   RuleAutomailListParams,
   RuleAutomailListResponse,
