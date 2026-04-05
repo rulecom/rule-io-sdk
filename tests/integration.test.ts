@@ -8,7 +8,12 @@
  *
  *   RULE_API_KEY=<key> RUN_INTEGRATION=1 npm run test -- tests/integration.test.ts
  *
- * Skipped automatically when either variable is missing, so the suite
+ * **Optional env vars:**
+ *   - `RULE_FROM_EMAIL` — Sender email for message/automation tests (default: `test@example.com`)
+ *   - `RULE_FROM_NAME`  — Sender name for message/automation tests (default: `SDK Test`)
+ *   - `DEBUG_INTEGRATION=1` — Enable debug logging (request/response payloads)
+ *
+ * Skipped automatically when either required variable is missing, so the suite
  * never runs accidentally in CI or local environments where the key
  * happens to be set for other tooling.
  */
