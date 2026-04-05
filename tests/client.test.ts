@@ -547,6 +547,64 @@ describe('RuleClient', () => {
       expect(body.active).toBe(true);
     });
 
+    it('should update an automail with all fields', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'Updated', active: true },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateAutomail(1, {
+        name: 'Updated',
+        active: true,
+        trigger: { type: 'TAG', id: 42 },
+        sendout_type: 2,
+      });
+
+      expect(result.data?.name).toBe('Updated');
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
+      expect(body.name).toBe('Updated');
+      expect(body.active).toBe(true);
+      expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
+      expect(body.sendout_type).toBe(2);
+    });
+
+    it('should update an automail with partial fields (name only)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'Renamed' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateAutomail(1, { name: 'Renamed' });
+
+      expect(result.data?.name).toBe('Renamed');
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ name: 'Renamed' });
+      expect(body).not.toHaveProperty('active');
+      expect(body).not.toHaveProperty('trigger');
+      expect(body).not.toHaveProperty('sendout_type');
+    });
+
+    it('should update an automail with partial fields (active only)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'Test', active: false },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.updateAutomail(1, { active: false });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ active: false });
+    });
+
     it('should render a template and return HTML', async () => {
       const html = '<html><body><h1>Hello</h1></body></html>';
       mockFetch.mockResolvedValueOnce(createMockTextResponse(html));
@@ -940,6 +998,39 @@ describe('RuleClient', () => {
       expect(body.tags).toEqual([{ id: 42, negative: false }]);
       expect(body.segments).toEqual([]);
       expect(body.subscribers).toEqual([]);
+    });
+
+    it('should update a campaign with partial fields (name only)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Renamed Campaign' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateCampaign(10, { name: 'Renamed Campaign' });
+
+      expect(result.data?.name).toBe('Renamed Campaign');
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ name: 'Renamed Campaign' });
+      expect(body).not.toHaveProperty('sendout_type');
+      expect(body).not.toHaveProperty('tags');
+      expect(body).not.toHaveProperty('segments');
+      expect(body).not.toHaveProperty('subscribers');
+    });
+
+    it('should update a campaign with partial fields (sendout_type only)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Sale' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.updateCampaign(10, { sendout_type: 2 });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ sendout_type: 2 });
     });
 
     it('should delete a campaign', async () => {

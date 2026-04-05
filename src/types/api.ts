@@ -116,6 +116,9 @@ export interface RuleAutomailCreateRequest {
 /**
  * Request to update an automail with trigger and sendout type.
  * The trigger.type must be uppercase ("TAG" or "SEGMENT").
+ *
+ * Tip: The `updateAutomail()` method accepts `Partial<RuleAutomailUpdateRequest>`
+ * so you can pass only the fields you want to change.
  */
 export interface RuleAutomailUpdateRequest {
   name: string;
@@ -546,7 +549,9 @@ export interface RuleCampaignCreateRequest {
 
 /**
  * Request body for updating a campaign.
- * All recipient arrays are required (pass empty arrays if not used).
+ *
+ * Tip: The `updateCampaign()` method accepts `Partial<RuleCampaignUpdateRequest>`
+ * so you can pass only the fields you want to change.
  */
 export interface RuleCampaignUpdateRequest {
   name: string;

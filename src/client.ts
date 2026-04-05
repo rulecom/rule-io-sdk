@@ -634,17 +634,32 @@ export class RuleClient {
   }
 
   /**
-   * Update an automail with trigger and sendout type.
+   * Update an automail. Supports partial updates — only include the fields
+   * you want to change.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
    * The API error messages incorrectly suggest lowercase, but uppercase is required.
    *
    * @param id - Automail ID
-   * @param update - Update request with name, active, trigger, and sendout_type
+   * @param update - Partial update request (all fields optional)
+   *
+   * @example
+   * ```typescript
+   * // Partial update — only change the name
+   * await client.updateAutomail(123, { name: 'New Name' });
+   *
+   * // Full update
+   * await client.updateAutomail(123, {
+   *   name: 'New Name',
+   *   active: true,
+   *   trigger: { type: 'TAG', id: 42 },
+   *   sendout_type: 2,
+   * });
+   * ```
    */
   async updateAutomail(
     id: number,
-    update: RuleAutomailUpdateRequest
+    update: Partial<RuleAutomailUpdateRequest>
   ): Promise<RuleAutomailResponse> {
     return this.requestV3<RuleAutomailResponse>(`/editor/automail/${id}`, {
       method: 'PUT',
@@ -1245,17 +1260,19 @@ export class RuleClient {
   }
 
   /**
-   * Update a campaign.
-   *
-   * All recipient arrays (tags, segments, subscribers) are required in the
-   * request body. Pass empty arrays for unused recipient types.
+   * Update a campaign. Supports partial updates — only include the fields
+   * you want to change.
    *
    * @param id - Campaign ID
-   * @param update - Update request with name, sendout_type, and recipient arrays
+   * @param update - Partial update request (all fields optional)
    * @returns Updated campaign data
    *
    * @example
    * ```typescript
+   * // Partial update — only change the name
+   * await client.updateCampaign(123, { name: 'Spring Sale' });
+   *
+   * // Full update with recipients
    * await client.updateCampaign(123, {
    *   name: 'Spring Sale',
    *   sendout_type: 1,
@@ -1267,7 +1284,7 @@ export class RuleClient {
    */
   async updateCampaign(
     id: number,
-    update: RuleCampaignUpdateRequest
+    update: Partial<RuleCampaignUpdateRequest>
   ): Promise<RuleCampaignResponse> {
     return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
       method: 'PUT',
