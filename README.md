@@ -4,7 +4,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 
 ## Features
 
-- **Full API Coverage** — v2 Subscriber API and v3 API (77 methods)
+- **Full API Coverage** — v2 + v3 Subscriber API and v3 API (77 methods)
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
@@ -43,19 +43,21 @@ RULE_IO_API_KEY=your-api-key-here
 ## Quick Start
 
 ```typescript
-import { RuleClient, RuleTags } from 'rule-io-sdk';
+import { RuleClient } from 'rule-io-sdk';
 
 // Create a client with your API key
 const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY! });
 
-// Sync a subscriber with tags and custom fields
-await client.syncSubscriber({
+// Create a subscriber
+await client.createSubscriberV3({
   email: 'customer@example.com',
-  fields: {
-    FirstName: 'Anna',
-    OrderRef: 'ORD-456',
-  },
-  tags: [RuleTags.ORDER_CONFIRMED, RuleTags.NEW_CUSTOMER],
+  status: 'ACTIVE',
+});
+
+// Add tags and trigger automations
+await client.addSubscriberTagsV3('customer@example.com', {
+  tags: ['order-confirmed', 'new-customer'],
+  automation: 'force',
 });
 ```
 
@@ -80,35 +82,31 @@ The client checks that an API key is provided on construction and throws `RuleCo
 
 ## API Reference
 
-### Subscribers (v3)
-
-The primary subscriber API. Use these methods for creating, deleting, blocking, and tagging subscribers.
+### Subscribers (v3 — recommended)
 
 ```typescript
 // Create a subscriber
 await client.createSubscriberV3({
-  email: 'user@example.com',
+  email: 'customer@example.com',
+  status: 'ACTIVE',
   language: 'en',
 });
 
-// Delete a subscriber (supports email, phone_number, id, custom_identifier)
-await client.deleteSubscriberV3('user@example.com', 'email');
-
-// Block/unblock subscribers in bulk (async, max per request varies)
-await client.blockSubscribers([
-  { email: 'spam@example.com' },
-  { id: 12345 },
-]);
-await client.unblockSubscribers([{ email: 'restored@example.com' }]);
-
-// Add tags to a single subscriber (with automation trigger control)
-await client.addSubscriberTagsV3('user@example.com', {
-  tags: ['vip', 'newsletter'],
+// Add tags (with automation trigger)
+await client.addSubscriberTagsV3('customer@example.com', {
+  tags: ['vip', 'returning'],
   automation: 'force', // 'send' | 'force' | 'reset' | null
 });
 
-// Remove a tag from a subscriber
-await client.removeSubscriberTagV3('user@example.com', 'temporary-tag');
+// Remove a tag
+await client.removeSubscriberTagV3('customer@example.com', 'temporary-tag');
+
+// Delete subscriber (supports email, phone_number, id, custom_identifier)
+await client.deleteSubscriberV3('customer@example.com', 'email');
+
+// Block/unblock subscribers in bulk (async)
+await client.blockSubscribers([{ email: 'spam@example.com' }, { id: 12345 }]);
+await client.unblockSubscribers([{ email: 'restored@example.com' }]);
 
 // Bulk tag operations (async)
 await client.bulkAddTags({
@@ -119,36 +117,24 @@ await client.bulkRemoveTags({
   subscribers: [{ email: 'a@example.com' }],
   tags: ['old-tag'],
 });
-```
 
-### Subscribers (v2 — Legacy)
-
-The v2 subscriber API provides sync, field lookups, and tag management:
-
-```typescript
-// Create or update subscriber
-await client.syncSubscriber({
-  email: 'customer@example.com',
-  fields: { FirstName: 'Anna' },
-  tags: ['order-confirmed'],
-});
-
-// Add tags (and trigger automations)
-await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
-
-// Remove tags
-await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
-
-// Get subscriber
+// Get subscriber (v2 — no v3 equivalent)
 const subscriber = await client.getSubscriber('customer@example.com');
 
-// Get subscriber tags
+// Get subscriber tags (v2 — no v3 equivalent)
 const tags = await client.getSubscriberTags('customer@example.com');
 
-// Get subscriber custom fields
+// Get subscriber custom fields (v2 — no v3 equivalent)
 const fields = await client.getSubscriberFields('customer@example.com');
+```
 
-// Delete subscriber
+### Subscribers (v2 — deprecated)
+
+```typescript
+// These methods still work but v3 equivalents are preferred
+await client.syncSubscriber({ email: 'customer@example.com', fields: { FirstName: 'Anna' }, tags: ['order-confirmed'] });
+await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
+await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
 await client.deleteSubscriber('customer@example.com');
 ```
 
@@ -811,7 +797,7 @@ These are suggestions — you can use any string as a tag.
 import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 
 try {
-  await client.syncSubscriber({ ... });
+  await client.createSubscriberV3({ email: 'user@example.com' });
 } catch (error) {
   if (error instanceof RuleApiError) {
     if (error.statusCode === 401) {

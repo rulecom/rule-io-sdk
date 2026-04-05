@@ -339,6 +339,7 @@ export class RuleClient {
   /**
    * Create or update a subscriber in Rule.io
    *
+   * @deprecated Use {@link createSubscriberV3} instead. v3 supports more identifier types.
    * @param subscriber - Subscriber data including email, fields, and tags
    * @returns API response with subscriber data
    *
@@ -398,6 +399,7 @@ export class RuleClient {
   /**
    * Add tags to a subscriber and optionally trigger automations
    *
+   * @deprecated Use {@link addSubscriberTagsV3} instead. v3 supports more identifier types.
    * @param email - Subscriber email address
    * @param tags - Tags to add
    * @param triggerAutomation - How to handle automations: 'force' (always trigger),
@@ -435,6 +437,7 @@ export class RuleClient {
   /**
    * Remove tags from a subscriber
    *
+   * @deprecated Use {@link removeSubscriberTagV3} for single-tag removal (loop for multiple), or {@link bulkRemoveTags} for bulk operations. v3 supports more identifier types.
    * @param email - Subscriber email address
    * @param tags - Tags to remove
    */
@@ -474,6 +477,7 @@ export class RuleClient {
   /**
    * Delete a subscriber from Rule.io
    *
+   * @deprecated Use {@link deleteSubscriberV3} instead. v3 supports more identifier types.
    * @param email - Subscriber email address
    */
   async deleteSubscriber(email: string): Promise<RuleApiResponse> {
