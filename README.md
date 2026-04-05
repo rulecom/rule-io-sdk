@@ -74,7 +74,7 @@ const client = new RuleClient({
 });
 ```
 
-The client validates the API key on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
+The client checks that an API key is provided on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
 
 ---
 
