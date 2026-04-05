@@ -671,9 +671,10 @@ export class RuleClient {
    * Delete an automail
    */
   async deleteAutomail(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/automail/${id}`, {
+    await this.fetchV3(`/editor/automail/${id}`, {
       method: 'DELETE',
     });
+    return { success: true };
   }
 
   /**
@@ -752,9 +753,10 @@ export class RuleClient {
    * Delete a message
    */
   async deleteMessage(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/message/${id}`, {
+    await this.fetchV3(`/editor/message/${id}`, {
       method: 'DELETE',
     });
+    return { success: true };
   }
 
   /**
@@ -829,9 +831,10 @@ export class RuleClient {
    * Delete a template
    */
   async deleteTemplate(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/template/${id}`, {
+    await this.fetchV3(`/editor/template/${id}`, {
       method: 'DELETE',
     });
+    return { success: true };
   }
 
   /**
@@ -923,9 +926,10 @@ export class RuleClient {
    * Delete a dynamic set
    */
   async deleteDynamicSet(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/dynamic-set/${id}`, {
+    await this.fetchV3(`/editor/dynamic-set/${id}`, {
       method: 'DELETE',
     });
+    return { success: true };
   }
 
   /**
@@ -1304,9 +1308,10 @@ export class RuleClient {
    * ```
    */
   async deleteCampaign(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}`, {
+    await this.fetchV3(`/editor/campaign/${id}`, {
       method: 'DELETE',
     });
+    return { success: true };
   }
 
   /**
@@ -2076,11 +2081,13 @@ export class RuleClient {
     const searchParams = new URLSearchParams();
     searchParams.set('date_from', params.date_from);
     searchParams.set('date_to', params.date_to);
-    searchParams.set('object_type', params.object_type);
-    for (const id of params.object_ids) {
+    if (params.object_type) {
+      searchParams.set('object_type', params.object_type);
+    }
+    for (const id of params.object_ids ?? []) {
       searchParams.append('object_ids[]', id);
     }
-    for (const metric of params.metrics) {
+    for (const metric of params.metrics ?? []) {
       searchParams.append('metrics[]', metric);
     }
     if (params.message_type != null) {

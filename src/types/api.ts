@@ -917,11 +917,11 @@ export interface RuleAnalyticsParams {
   /** End date (inclusive), e.g. "2024-01-31" */
   date_to: string;
   /** The type of object to query analytics for */
-  object_type: RuleAnalyticsObjectType;
+  object_type?: RuleAnalyticsObjectType;
   /** IDs of the objects to query (string array, not numbers) */
-  object_ids: string[];
-  /** Metrics to retrieve (at least one required) */
-  metrics: RuleAnalyticsMetric[];
+  object_ids?: string[];
+  /** Metrics to retrieve */
+  metrics?: RuleAnalyticsMetric[];
   /** Optional filter by message type */
   message_type?: RuleAnalyticsMessageType;
 }
