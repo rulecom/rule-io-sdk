@@ -115,16 +115,16 @@ export interface RuleAutomailCreateRequest {
 
 /**
  * Request to update an automail with trigger and sendout type.
- * All fields are optional to support partial updates — only include the
- * fields you want to change.
- *
  * The trigger.type must be uppercase ("TAG" or "SEGMENT").
+ *
+ * Tip: The `updateAutomail()` method accepts `Partial<RuleAutomailUpdateRequest>`
+ * so you can pass only the fields you want to change.
  */
 export interface RuleAutomailUpdateRequest {
-  name?: string;
-  active?: boolean;
-  trigger?: RuleAutomailTrigger;
-  sendout_type?: RuleSendoutType;
+  name: string;
+  active: boolean;
+  trigger: RuleAutomailTrigger;
+  sendout_type: RuleSendoutType;
 }
 
 export interface RuleAutomailResponse extends RuleApiResponse {
@@ -549,16 +549,17 @@ export interface RuleCampaignCreateRequest {
 
 /**
  * Request body for updating a campaign.
- * All fields are optional to support partial updates — only include the
- * fields you want to change.
+ *
+ * Tip: The `updateCampaign()` method accepts `Partial<RuleCampaignUpdateRequest>`
+ * so you can pass only the fields you want to change.
  */
 export interface RuleCampaignUpdateRequest {
-  name?: string;
+  name: string;
   /** 1 = marketing, 2 = transactional */
-  sendout_type?: RuleSendoutType;
-  tags?: RuleCampaignRecipientTag[];
-  segments?: RuleCampaignRecipientSegment[];
-  subscribers?: number[];
+  sendout_type: RuleSendoutType;
+  tags: RuleCampaignRecipientTag[];
+  segments: RuleCampaignRecipientSegment[];
+  subscribers: number[];
 }
 
 export interface RuleCampaignResponse extends RuleApiResponse {

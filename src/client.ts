@@ -622,7 +622,7 @@ export class RuleClient {
    */
   async updateAutomail(
     id: number,
-    update: RuleAutomailUpdateRequest
+    update: Partial<RuleAutomailUpdateRequest>
   ): Promise<RuleAutomailResponse> {
     return this.requestV3<RuleAutomailResponse>(`/editor/automail/${id}`, {
       method: 'PUT',
@@ -1247,7 +1247,7 @@ export class RuleClient {
    */
   async updateCampaign(
     id: number,
-    update: RuleCampaignUpdateRequest
+    update: Partial<RuleCampaignUpdateRequest>
   ): Promise<RuleCampaignResponse> {
     return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
       method: 'PUT',
