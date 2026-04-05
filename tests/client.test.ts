@@ -2191,7 +2191,7 @@ describe('RuleClient', () => {
       ).rejects.toThrow(RuleApiError);
     });
 
-    it('should throw RuleConfigError when object_type given without object_ids', async () => {
+    it('should throw RuleConfigError when object_ids is empty', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await expect(
         client.getAnalytics({
@@ -2204,7 +2204,7 @@ describe('RuleClient', () => {
       ).rejects.toThrow('object_ids must be a non-empty array');
     });
 
-    it('should throw RuleConfigError when object_type given without metrics', async () => {
+    it('should throw RuleConfigError when metrics is empty', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await expect(
         client.getAnalytics({

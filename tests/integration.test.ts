@@ -275,8 +275,8 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         },
         type: 1, // email
         subject: 'Integration Test Subject',
-        from_name: 'SDK Test',
-        from_email: 'test@example.com',
+        from_name: process.env.RULE_FROM_NAME ?? 'SDK Test',
+        from_email: process.env.RULE_FROM_EMAIL ?? 'test@example.com',
         automail_setting: {
           active: true,
           delay_in_seconds: '0',
@@ -543,8 +543,8 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           triggerType: 'tag',
           triggerValue: triggerTagName,
           subject: 'Integration Test Email',
-          fromName: 'SDK Test',
-          fromEmail: 'test@example.com',
+          fromName: process.env.RULE_FROM_NAME ?? 'SDK Test',
+          fromEmail: process.env.RULE_FROM_EMAIL ?? 'test@example.com',
           template: minimalRCML(),
         });
 
