@@ -73,6 +73,12 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleSegmentListParams,
+  RuleSegmentListResponse,
+  RuleRecipientSubscriberListParams,
+  RuleRecipientSubscriberListResponse,
+  RuleRecipientTagListParams,
+  RuleRecipientTagListResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1276,6 +1282,76 @@ export class RuleClient {
     return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}/schedule`, {
       method: 'POST',
       body: JSON.stringify(schedule),
+    });
+  }
+
+  // ==========================================================================
+  // v3 Editor API - Recipients
+  // ==========================================================================
+
+  /**
+   * List available segments for targeting recipients.
+   *
+   * @param params - Optional pagination parameters
+   * @returns List of segments
+   *
+   * @example
+   * ```typescript
+   * // List all segments
+   * const all = await client.listSegments();
+   *
+   * // Paginate
+   * const page2 = await client.listSegments({ page: 2, per_page: 20 });
+   * ```
+   */
+  async listSegments(params?: RuleSegmentListParams): Promise<RuleSegmentListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleSegmentListResponse>(`/editor/recipients/segments${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * List subscribers available as recipients.
+   *
+   * @param params - Optional pagination and search parameters
+   * @returns List of recipient subscribers
+   *
+   * @example
+   * ```typescript
+   * // List all recipient subscribers
+   * const all = await client.listRecipientSubscribers();
+   *
+   * // Search by email
+   * const filtered = await client.listRecipientSubscribers({ query: 'anna@' });
+   * ```
+   */
+  async listRecipientSubscribers(params?: RuleRecipientSubscriberListParams): Promise<RuleRecipientSubscriberListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleRecipientSubscriberListResponse>(`/editor/recipients/subscribers${qs}`, {
+      method: 'GET',
+    });
+  }
+
+  /**
+   * List tags available for targeting recipients.
+   *
+   * @param params - Optional pagination parameters
+   * @returns List of recipient tags
+   *
+   * @example
+   * ```typescript
+   * // List all recipient tags
+   * const all = await client.listRecipientTags();
+   *
+   * // Paginate
+   * const page2 = await client.listRecipientTags({ page: 2, per_page: 10 });
+   * ```
+   */
+  async listRecipientTags(params?: RuleRecipientTagListParams): Promise<RuleRecipientTagListResponse> {
+    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+    return this.requestV3<RuleRecipientTagListResponse>(`/editor/recipients/tags${qs}`, {
+      method: 'GET',
     });
   }
 

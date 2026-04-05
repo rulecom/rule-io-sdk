@@ -695,6 +695,82 @@ export interface RuleSubscriberTagsV3Request {
 }
 
 // ============================================================================
+// v3 Editor API Types - Recipients
+// ============================================================================
+
+/**
+ * A segment as returned by the recipients/segments endpoint.
+ */
+export interface RuleSegment {
+  id: number;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Query parameters for listing segments.
+ *
+ * @example
+ * ```typescript
+ * const segments = await client.listSegments({ page: 1, per_page: 20 });
+ * ```
+ */
+export type RuleSegmentListParams = RulePaginationParams;
+
+export type RuleSegmentListResponse = RuleListResponse<RuleSegment>;
+
+/**
+ * A subscriber as returned by the recipients/subscribers endpoint.
+ */
+export interface RuleRecipientSubscriber {
+  id: number;
+  email?: string | null;
+  phone_number?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Query parameters for listing recipient subscribers.
+ *
+ * @example
+ * ```typescript
+ * const subs = await client.listRecipientSubscribers({ page: 1, per_page: 50 });
+ * ```
+ */
+export interface RuleRecipientSubscriberListParams extends RulePaginationParams {
+  /** Full-text search by email or phone number */
+  query?: string;
+}
+
+export type RuleRecipientSubscriberListResponse = RuleListResponse<RuleRecipientSubscriber>;
+
+/**
+ * A tag as returned by the recipients/tags endpoint.
+ */
+export interface RuleRecipientTag {
+  id: number;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Query parameters for listing recipient tags.
+ *
+ * @example
+ * ```typescript
+ * const tags = await client.listRecipientTags({ page: 1, per_page: 20 });
+ * ```
+ */
+export type RuleRecipientTagListParams = RulePaginationParams;
+
+export type RuleRecipientTagListResponse = RuleListResponse<RuleRecipientTag>;
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 
