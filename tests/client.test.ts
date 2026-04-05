@@ -624,6 +624,39 @@ describe('RuleClient', () => {
         expect(apiError.validationErrors).toEqual({});
       }
     });
+
+    it('should normalize malformed errors where values are strings instead of arrays', async () => {
+      const errorBody = {
+        errors: {
+          field_a: 'not-an-array',
+          field_b: ['already an array'],
+          field_c: 12345,
+        },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listAutomails();
+        expect.fail('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        const apiError = error as RuleApiError;
+        expect(apiError.statusCode).toBe(422);
+        // String values should be wrapped in an array
+        expect(apiError.validationErrors?.field_a).toEqual(['not-an-array']);
+        // Array values should remain as-is
+        expect(apiError.validationErrors?.field_b).toEqual(['already an array']);
+        // Non-string, non-array values should be dropped
+        expect(apiError.validationErrors?.field_c).toBeUndefined();
+        // Message should contain the normalized fields
+        expect(apiError.message).toContain('field_a: not-an-array');
+        expect(apiError.message).toContain('field_b: already an array');
+        // Numeric field should not appear in message
+        expect(apiError.message).not.toContain('field_c');
+      }
+    });
   });
 
   describe('v3 Custom Field Data API (Deprecated)', () => {
