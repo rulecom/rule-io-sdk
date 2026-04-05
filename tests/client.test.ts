@@ -2229,6 +2229,19 @@ describe('RuleClient', () => {
       ).rejects.toThrow('object_ids and metrics require object_type');
     });
 
+    it('should throw RuleConfigError when object_type is undefined with object_ids/metrics', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: undefined,
+          object_ids: ['1'],
+          metrics: ['sent'],
+        } as RuleAnalyticsParams)
+      ).rejects.toThrow('object_ids and metrics require object_type');
+    });
+
     it('should handle minimal params (only dates)', async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 

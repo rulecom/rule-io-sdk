@@ -128,10 +128,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     });
 
     it('should retrieve subscriber fields', async () => {
-      // Small delay to let Rule.io propagate
-      await new Promise((r) => setTimeout(r, 2000));
-
-      const fields = await client.getSubscriberFields(testEmail);
+      // Poll until the subscriber is propagated (max 5s)
+      let fields = null;
+      for (let i = 0; i < 10; i++) {
+        fields = await client.getSubscriberFields(testEmail);
+        if (fields) break;
+        await new Promise((r) => setTimeout(r, 500));
+      }
       expect(fields).not.toBeNull();
       if (fields) {
         expect(typeof fields).toBe('object');
