@@ -2080,14 +2080,14 @@ export class RuleClient {
     const searchParams = new URLSearchParams();
     searchParams.set('date_from', params.date_from);
     searchParams.set('date_to', params.date_to);
-    if (params.object_type) {
+    if ('object_type' in params) {
       searchParams.set('object_type', params.object_type);
-    }
-    for (const id of params.object_ids ?? []) {
-      searchParams.append('object_ids[]', id);
-    }
-    for (const metric of params.metrics ?? []) {
-      searchParams.append('metrics[]', metric);
+      for (const id of params.object_ids) {
+        searchParams.append('object_ids[]', id);
+      }
+      for (const metric of params.metrics) {
+        searchParams.append('metrics[]', metric);
+      }
     }
     if (params.message_type != null) {
       searchParams.set('message_type', params.message_type);

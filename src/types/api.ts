@@ -906,25 +906,38 @@ export type RuleAnalyticsMetric =
 export type RuleAnalyticsMessageType = 'email' | 'text_message';
 
 /**
- * Query parameters for the analytics endpoint.
- *
+ * Base date range shared by all analytics queries.
  * All date strings must be in `YYYY-MM-DD` format.
- * `object_ids` are strings (not numbers), matching the OpenAPI spec.
  */
-export interface RuleAnalyticsParams {
+interface RuleAnalyticsDateRange {
   /** Start date (inclusive), e.g. "2024-01-01" */
   date_from: string;
   /** End date (inclusive), e.g. "2024-01-31" */
   date_to: string;
-  /** The type of object to query analytics for */
-  object_type?: RuleAnalyticsObjectType;
-  /** IDs of the objects to query (string array, not numbers) */
-  object_ids?: string[];
-  /** Metrics to retrieve */
-  metrics?: RuleAnalyticsMetric[];
   /** Optional filter by message type */
   message_type?: RuleAnalyticsMessageType;
 }
+
+/**
+ * Full analytics query with object type, IDs, and metrics.
+ * `object_ids` are strings (not numbers), matching the OpenAPI spec.
+ */
+interface RuleAnalyticsFullQuery extends RuleAnalyticsDateRange {
+  /** The type of object to query analytics for */
+  object_type: RuleAnalyticsObjectType;
+  /** IDs of the objects to query (string array, not numbers) */
+  object_ids: string[];
+  /** Metrics to retrieve (at least one required) */
+  metrics: RuleAnalyticsMetric[];
+}
+
+/**
+ * Query parameters for the analytics endpoint.
+ *
+ * Either provide just a date range, or a full query with object_type,
+ * object_ids, and metrics together.
+ */
+export type RuleAnalyticsParams = RuleAnalyticsDateRange | RuleAnalyticsFullQuery;
 
 /**
  * A single object's analytics statistics.

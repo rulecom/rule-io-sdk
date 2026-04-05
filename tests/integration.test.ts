@@ -4,9 +4,13 @@
  * These tests use a real API key and hit the actual Rule.io endpoints.
  * They verify the SDK methods produce correct requests and parse real responses.
  *
- * Run with: RULE_API_KEY=<key> npm run test -- tests/integration.test.ts
+ * **Requires both** an API key and an explicit opt-in flag to run:
  *
- * Skipped automatically when RULE_API_KEY is not set.
+ *   RULE_API_KEY=<key> RUN_INTEGRATION=1 npm run test -- tests/integration.test.ts
+ *
+ * Skipped automatically when either variable is missing, so the suite
+ * never runs accidentally in CI or local environments where the key
+ * happens to be set for other tooling.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -14,8 +18,9 @@ import { RuleClient, RuleApiError } from '../src';
 import type { RCMLDocument } from '../src';
 
 const API_KEY = process.env.RULE_API_KEY;
+const OPT_IN = process.env.RUN_INTEGRATION === '1';
 
-const runIntegration = !!API_KEY;
+const runIntegration = !!API_KEY && OPT_IN;
 
 // Unique suffix to avoid collisions across test runs
 const RUN_ID = `sdk-test-${Date.now()}`;
@@ -28,7 +33,7 @@ function minimalRCML(): RCMLDocument {
   };
 }
 
-describe.skipIf(!runIntegration)('Integration: Live Rule.io API', () => {
+describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_000 }, () => {
   let client: RuleClient;
 
   // Track resources to clean up
