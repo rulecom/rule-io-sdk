@@ -4,7 +4,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 
 ## Features
 
-- **Full API Coverage** — v2 Subscriber API and v3 Editor API
+- **Full API Coverage** — v2 Subscriber API and v3 Editor API (77 methods)
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
@@ -76,7 +76,54 @@ const client = new RuleClient({
 
 The client validates the API key on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
 
-## Subscriber Management (v2 API)
+---
+
+## API Reference
+
+### Subscribers (v3)
+
+The primary subscriber API. Use these methods for creating, deleting, blocking, and tagging subscribers.
+
+```typescript
+// Create a subscriber
+await client.createSubscriberV3({
+  email: 'user@example.com',
+  language: 'en',
+});
+
+// Delete a subscriber (supports email, phone_number, id, custom_identifier)
+await client.deleteSubscriberV3('user@example.com', 'email');
+
+// Block/unblock subscribers in bulk (async, max per request varies)
+await client.blockSubscribers([
+  { email: 'spam@example.com' },
+  { id: 12345 },
+]);
+await client.unblockSubscribers([{ email: 'restored@example.com' }]);
+
+// Add tags to a single subscriber (with automation trigger control)
+await client.addSubscriberTagsV3('user@example.com', {
+  tags: ['vip', 'newsletter'],
+  automation: 'force', // 'send' | 'force' | 'reset' | null
+});
+
+// Remove a tag from a subscriber
+await client.removeSubscriberTagV3('user@example.com', 'temporary-tag');
+
+// Bulk tag operations (async)
+await client.bulkAddTags({
+  subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+  tags: ['campaign-2024'],
+});
+await client.bulkRemoveTags({
+  subscribers: [{ email: 'a@example.com' }],
+  tags: ['old-tag'],
+});
+```
+
+### Subscribers (v2 — Legacy)
+
+The v2 subscriber API provides sync, field lookups, and tag management:
 
 ```typescript
 // Create or update subscriber
@@ -104,6 +151,314 @@ const fields = await client.getSubscriberFields('customer@example.com');
 // Delete subscriber
 await client.deleteSubscriber('customer@example.com');
 ```
+
+### Campaigns
+
+Create and manage one-off email campaigns:
+
+```typescript
+// List campaigns
+const campaigns = await client.listCampaigns({ page: 1, per_page: 20 });
+
+// Create a campaign
+const campaign = await client.createCampaign({
+  message_type: 1, // 1 = email, 2 = text_message
+  sendout_type: 1, // 1 = marketing, 2 = transactional
+  tags: [{ id: 42, negative: false }],
+});
+
+// Get, update, delete
+const existing = await client.getCampaign(123);
+await client.updateCampaign(123, {
+  name: 'Spring Sale',
+  sendout_type: 1,
+  tags: [{ id: 42, negative: false }],
+  segments: [],
+  subscribers: [],
+});
+await client.deleteCampaign(123);
+
+// Duplicate a campaign
+await client.copyCampaign(123);
+
+// Schedule, send immediately, or cancel
+await client.scheduleCampaign(123, { type: 'now' });
+await client.scheduleCampaign(123, { type: 'schedule', datetime: '2024-06-01 09:00:00' });
+await client.scheduleCampaign(123, { type: null }); // cancel
+```
+
+### Suppressions
+
+Suppress or unsuppress subscribers from receiving marketing emails:
+
+```typescript
+// Suppress subscribers (async, max 1000 per request)
+await client.createSuppressions({
+  subscribers: [
+    { email: 'unsubscribed@example.com' },
+    { id: 12345 },
+  ],
+  message_types: ['email'], // optional — omit to suppress all channels
+});
+
+// Remove suppressions
+await client.deleteSuppressions({
+  subscribers: [{ email: 'resubscribed@example.com' }],
+});
+```
+
+### Editor Resources
+
+Low-level CRUD for the v3 editor API. These are the building blocks used by `createAutomationEmail()`.
+
+#### Automails (Automation Workflows)
+
+```typescript
+const automails = await client.listAutomails({ page: 1, active: true });
+const automail = await client.createAutomail({ name: 'Welcome Series' });
+const fetched = await client.getAutomail(automail.data!.id!);
+await client.updateAutomail(automail.data!.id!, {
+  name: 'Welcome Series',
+  active: true,
+  trigger: { type: 'TAG', id: 42 }, // type must be UPPERCASE
+  sendout_type: 2,                   // 1 = marketing, 2 = transactional
+});
+await client.deleteAutomail(automail.data!.id!);
+```
+
+#### Messages
+
+```typescript
+const messages = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
+const message = await client.createMessage({
+  dispatcher: { id: 123, type: 'automail' },
+  type: 1, // 1 = email
+  subject: 'Welcome!',
+});
+await client.updateMessage(message.data!.id!, { ...message.data!, subject: 'Updated' });
+await client.deleteMessage(message.data!.id!);
+```
+
+#### Templates
+
+```typescript
+const templates = await client.listTemplates({ page: 1, per_page: 10 });
+const template = await client.createTemplate({
+  message_id: 456,
+  name: `My Template ${Date.now()}`, // names must be unique
+  message_type: 'email',
+  template: rcmlDocument,            // RCMLDocument object
+});
+await client.updateTemplate(template.data!.id!, { ...template.data! });
+await client.deleteTemplate(template.data!.id!);
+
+// Render a template to HTML (with optional merge-tag substitution)
+const html = await client.renderTemplate(789, { subscriber_id: 12345 });
+```
+
+#### Dynamic Sets
+
+Connect messages to templates:
+
+```typescript
+const sets = await client.listDynamicSets({ message_id: 456 });
+const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
+await client.updateDynamicSet(ds.data!.id!, { message_id: 456, template_id: 790 });
+await client.deleteDynamicSet(ds.data!.id!);
+```
+
+### Brand Styles
+
+Manage brand styles for consistent email theming:
+
+```typescript
+// List all brand styles
+const styles = await client.listBrandStyles();
+
+// Get a specific brand style
+const style = await client.getBrandStyle(123);
+
+// Create from a domain (auto-detects colors, fonts, logo)
+const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+
+// Create manually
+const manual = await client.createBrandStyleManually({
+  name: 'My Brand',
+  colours: [{ type: 'accent', hex: '#0066CC', brightness: 50 }],
+  fonts: [{ type: 'title', name: 'Helvetica', origin: 'system' }],
+});
+
+// Update (partial update via PATCH)
+await client.updateBrandStyle(123, { name: 'Updated Brand' });
+
+// Delete (fails if it's the last brand style)
+await client.deleteBrandStyle(123);
+```
+
+### API Keys
+
+Manage API keys for the account:
+
+```typescript
+const keys = await client.listApiKeys();
+const newKey = await client.createApiKey({ name: 'Production' });
+await client.updateApiKey(newKey.data!.id!, { name: 'Production v2' });
+await client.deleteApiKey(newKey.data!.id!);
+```
+
+### Analytics
+
+Retrieve dispatcher statistics (opens, clicks, bounces, etc.):
+
+```typescript
+const stats = await client.getAnalytics({
+  date_from: '2024-01-01',
+  date_to: '2024-01-31',
+  object_type: 'CAMPAIGN',
+  object_ids: ['123', '456'],
+  metrics: ['open', 'click', 'sent', 'hard_bounce'],
+});
+```
+
+### Export (Enterprise)
+
+Export dispatchers, statistics, and subscribers for a date range:
+
+```typescript
+// Export dispatchers (max 1-day range)
+const dispatchers = await client.exportDispatchers({
+  date_from: '2024-01-01',
+  date_to: '2024-01-01',
+});
+
+// Export statistics (with token-based pagination)
+let stats = await client.exportStatistics({
+  date_from: '2024-01-01',
+  date_to: '2024-01-01',
+  statistic_types: ['open', 'link'],
+});
+while (stats.next_page_token) {
+  stats = await client.exportStatistics({
+    date_from: '2024-01-01',
+    date_to: '2024-01-01',
+    next_page_token: stats.next_page_token,
+  });
+}
+
+// Export subscribers
+const subscribers = await client.exportSubscribers({
+  date_from: '2024-01-01',
+  date_to: '2024-01-01',
+});
+```
+
+### Recipients
+
+List segments, subscribers, and tags available for recipient targeting:
+
+```typescript
+const segments = await client.listSegments({ page: 1, per_page: 50 });
+const subscribers = await client.listRecipientSubscribers({ page: 1 });
+const tags = await client.listRecipientTags({ page: 1 });
+```
+
+### Accounts (Super Admin)
+
+Manage accounts (requires Super Admin privileges):
+
+```typescript
+const accounts = await client.listAccounts();
+const account = await client.createAccount({ name: 'New Client', language: 'en' });
+const detail = await client.getAccount(account.data!.id, {
+  includes: ['sitoo_credentials'],
+});
+await client.deleteAccount(account.data!.id); // async, destructive
+```
+
+### Tags (v2)
+
+```typescript
+// Get all tags
+const allTags = await client.getTags();
+
+// Look up a tag's numeric ID by name
+const tagId = await client.getTagIdByName('order-confirmed');
+```
+
+### Custom Field Data (Deprecated)
+
+> **Note:** The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
+
+```typescript
+// CRUD for custom field data
+const data = await client.getCustomFieldData(subscriberId);
+await client.createCustomFieldData(subscriberId, {
+  groups: [{
+    group: 'Order',
+    create_if_not_exists: true,
+    values: [{ field: 'OrderRef', create_if_not_exists: true, value: 'ORD-123' }],
+  }],
+});
+await client.updateCustomFieldData(subscriberId, {
+  identifier: { group: 'Order', field: 'OrderRef', value: 'ORD-123' },
+  values: [{ field: 'Status', value: 'shipped' }],
+});
+
+// Query by group or search
+const grouped = await client.getCustomFieldDataByGroup(subscriberId, 'Order');
+const found = await client.searchCustomFieldData(subscriberId, {
+  group: 'Order', field: 'OrderRef', value: 'ORD-123',
+});
+await client.deleteCustomFieldDataByGroup(subscriberId, 'Order');
+```
+
+---
+
+## Automation Workflows
+
+Create complete email automations triggered by tags using the high-level helper:
+
+```typescript
+const result = await client.createAutomationEmail({
+  name: 'Order Confirmation',
+  triggerType: 'tag',
+  triggerValue: 'order-confirmed',
+  subject: 'Your order is confirmed!',
+  template: email, // any RCMLDocument
+});
+
+console.log('Created:', result.automailId, result.messageId, result.templateId);
+```
+
+The high-level `createAutomationEmail` helper handles the full 4-step process (automail → message → template → dynamic set) and cleans up on failure.
+
+### Prerequisites
+
+**Trigger tags must exist before creating automations.** The SDK looks up the tag ID by name via `getTagIdByName()`. If the tag doesn't exist on the account, automation creation will fail with a 404 error.
+
+Create tags beforehand using the v2 API:
+
+```typescript
+// Create tags via the v2 REST API directly
+await fetch(`${baseUrlV2}/tags`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+  body: JSON.stringify({ tags: ['order-confirmed', 'shipping-update'] }),
+});
+```
+
+### Return Value
+
+```typescript
+interface CreateAutomationEmailResult {
+  automailId: number;
+  messageId: number;
+  templateId: number;
+  dynamicSetId: number;
+}
+```
+
+---
 
 ## Email Templates
 
@@ -244,6 +599,7 @@ const placeholderFields: CustomFieldMap = {
 };
 ```
 
+```typescript
 const template = createBrandTemplate({
   brandStyle: myBrand,
   preheader: 'Your order is confirmed!',
@@ -409,49 +765,7 @@ const email = createOrderCancellationEmail({
 });
 ```
 
-## Automation Workflows (v3 API)
-
-Create complete email automations triggered by tags:
-
-```typescript
-const result = await client.createAutomationEmail({
-  name: 'Order Confirmation',
-  triggerType: 'tag',
-  triggerValue: 'order-confirmed',
-  subject: 'Your order is confirmed!',
-  template: email, // any RCMLDocument
-});
-
-console.log('Created:', result.automailId, result.messageId, result.templateId);
-```
-
-The high-level `createAutomationEmail` helper handles the full 4-step process (automail → message → template → dynamic set) and cleans up on failure.
-
-### Prerequisites
-
-**Trigger tags must exist before creating automations.** The SDK looks up the tag ID by name via `getTagIdByName()`. If the tag doesn't exist on the account, automation creation will fail with a 404 error.
-
-Create tags beforehand using the v2 API:
-
-```typescript
-// Create tags via the v2 REST API directly
-await fetch(`${baseUrlV2}/tags`, {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ tags: ['order-confirmed', 'shipping-update'] }),
-});
-```
-
-### Return Value
-
-```typescript
-interface CreateAutomationEmailResult {
-  automailId: number;
-  messageId: number;
-  templateId: number;
-  dynamicSetId: number;
-}
-```
+---
 
 ## Tags
 
@@ -516,6 +830,10 @@ npm run build        # Build with tsup (CJS + ESM)
 npm run test         # Run tests with Vitest
 npm run type-check   # TypeScript strict mode
 ```
+
+## API Documentation
+
+The Rule.io v3 API spec is available at the [OpenAPI endpoint](https://app.rule.io/redoc/api-v3.json).
 
 ## License
 
