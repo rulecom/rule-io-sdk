@@ -1277,4 +1277,153 @@ describe('RuleClient', () => {
       );
     });
   });
+
+  // ============================================================================
+  // Account API
+  // ============================================================================
+
+  describe('listAccounts', () => {
+    it('should GET /accounts and return account list', async () => {
+      const mockData = {
+        data: [
+          { id: 1, name: 'Account A', created_at: '2024-01-01T00:00:00Z', updated_at: null },
+          { id: 2, name: 'Account B', created_at: '2024-02-01T00:00:00Z', updated_at: null },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listAccounts();
+
+      expect(result.data).toHaveLength(2);
+      expect(result.data?.[0].name).toBe('Account A');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(mockFetch.mock.calls[0][1].method).toBe('GET');
+    });
+
+    it('should throw RuleApiError on 401', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+      await expect(client.listAccounts()).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('createAccount', () => {
+    it('should POST /accounts with name and language', async () => {
+      const mockData = {
+        data: { id: 99, name: 'New Account', created_at: '2024-06-01T00:00:00Z', updated_at: null },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createAccount({ name: 'New Account', language: 'en' });
+
+      expect(result.data?.id).toBe(99);
+      expect(result.data?.name).toBe('New Account');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts');
+      expect(mockFetch.mock.calls[0][1].method).toBe('POST');
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ name: 'New Account', language: 'en' });
+    });
+
+    it('should throw RuleApiError on server error', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.createAccount({ name: 'Test', language: 'sv' })).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('getAccount', () => {
+    it('should GET /accounts/{id} and return account', async () => {
+      const mockData = {
+        data: { id: 42, name: 'My Account', created_at: '2024-01-01T00:00:00Z', updated_at: null },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(42);
+
+      expect(result?.data?.id).toBe(42);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+    });
+
+    it('should accept "show" as accountId', async () => {
+      const mockData = { data: { id: 1, name: 'Current', created_at: null, updated_at: null } };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAccount('show');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/show');
+    });
+
+    it('should append includes[] query params', async () => {
+      const mockData = {
+        data: {
+          id: 42,
+          name: 'Account',
+          created_at: null,
+          updated_at: null,
+          sitoo_credentials: [{ account_id: 42, api_id: 'abc', password: 'secret', created_at: null, updated_at: null }],
+        },
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(42, { includes: ['sitoo_credentials'] });
+
+      expect(result?.data?.sitoo_credentials).toHaveLength(1);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42?includes%5B%5D=sitoo_credentials');
+    });
+
+    it('should return null on 404', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAccount(999);
+
+      expect(result).toBeNull();
+    });
+
+    it('should throw RuleApiError on non-404 errors', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.getAccount(42)).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('should DELETE /accounts/{id} and return success', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteAccount(42);
+
+      expect(result).toEqual({ success: true });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
+      expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
+    });
+
+    it('should throw RuleApiError on 403', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Forbidden' }, 403));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(client.deleteAccount(42)).rejects.toThrow(RuleApiError);
+    });
+  });
 });
