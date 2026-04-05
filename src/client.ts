@@ -24,7 +24,7 @@
  */
 
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants';
-import { RuleApiError, RuleConfigError } from './errors';
+import { RuleApiError, RuleConfigError, type RuleValidationErrors } from './errors';
 import type {
   RuleApiResponse,
   RuleSubscriber,
@@ -277,19 +277,56 @@ export class RuleClient {
 
       if (!response.ok) {
         let message = 'Rule.io v3 API error';
+        let validationErrors: RuleValidationErrors | undefined;
         try {
           const text = await response.text();
           this.log('Error response body:', text);
           if (text) {
-            const errorData = JSON.parse(text) as { error?: string; message?: string };
-            if (errorData?.error || errorData?.message) {
+            const errorData = JSON.parse(text) as {
+              error?: string;
+              message?: string;
+              errors?: Record<string, unknown>;
+            };
+
+            // Extract field-level validation errors (e.g. { errors: { field: ["msg"] } })
+            if (
+              errorData?.errors &&
+              typeof errorData.errors === 'object' &&
+              !Array.isArray(errorData.errors)
+            ) {
+              // Normalize each field value into string[] to satisfy RuleValidationErrors.
+              // The API may return a bare string instead of an array for some fields.
+              const normalized: RuleValidationErrors = {};
+              for (const [field, value] of Object.entries(errorData.errors)) {
+                if (Array.isArray(value)) {
+                  normalized[field] = value.map((v) => String(v));
+                } else if (typeof value === 'string') {
+                  normalized[field] = [value];
+                }
+                // Skip non-string, non-array values
+              }
+              validationErrors = normalized;
+
+              const fieldMessages = Object.entries(normalized)
+                .map(([field, messages]) =>
+                  messages.map((msg) => `${field}: ${msg}`).join('; ')
+                )
+                .join('; ');
+              if (fieldMessages) {
+                message = fieldMessages;
+              }
+            } else if (errorData?.error || errorData?.message) {
               message = errorData.error || errorData.message || message;
             }
           }
         } catch {
           // Response body is not valid JSON
         }
-        throw new RuleApiError(message, response.status);
+        const error = new RuleApiError(message, response.status);
+        if (validationErrors) {
+          error.validationErrors = validationErrors;
+        }
+        throw error;
       }
 
       return response;

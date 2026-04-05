@@ -3,9 +3,42 @@
  */
 
 /**
+ * Field-level validation errors returned by the Rule.io v3 API.
+ *
+ * Maps field names to arrays of error messages.
+ *
+ * @example
+ * ```typescript
+ * // { automail_setting: ["The automail setting field is required..."] }
+ * ```
+ */
+export type RuleValidationErrors = Record<string, string[]>;
+
+/**
  * Custom error class for Rule.io API errors
  */
 export class RuleApiError extends Error {
+  /**
+   * Field-level validation errors from the v3 API, if present.
+   *
+   * When the API returns an `errors` object with field-specific messages,
+   * they are captured here for programmatic access.
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   await client.updateAutomail(id, data);
+   * } catch (error) {
+   *   if (error instanceof RuleApiError && error.validationErrors) {
+   *     for (const [field, messages] of Object.entries(error.validationErrors)) {
+   *       console.log(`${field}: ${messages.join(', ')}`);
+   *     }
+   *   }
+   * }
+   * ```
+   */
+  public validationErrors?: RuleValidationErrors;
+
   constructor(
     message: string,
     public statusCode: number,
