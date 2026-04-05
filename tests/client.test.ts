@@ -1927,4 +1927,172 @@ describe('RuleClient', () => {
       ).rejects.toThrow(RuleApiError);
     });
   });
+
+  describe('v3 Export API', () => {
+    it('should export dispatchers with date range', async () => {
+      const mockData = {
+        data: [
+          {
+            created_at: '2024-01-01T00:00:00Z',
+            updated_at: '2024-01-01T12:00:00Z',
+            account_id: 1,
+            account_name: 'Test Account',
+            dispatcher_id: 100,
+            dispatcher_name: 'Welcome Email',
+            dispatcher_type: 'automail',
+            channel: 'email',
+            tags: null,
+            filters: '',
+            utm_campaign: 'welcome',
+            utm_term: '',
+            utm_content: null,
+            journey_id: '1',
+            journey_name: 'Onboarding',
+            variable_set_ids: '10,20',
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportDispatchers({
+        date_from: '2024-01-01',
+        date_to: '2024-01-02',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].dispatcher_id).toBe(100);
+      expect(result.data![0].dispatcher_name).toBe('Welcome Email');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('/api/v3/export/dispatcher');
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-02');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should export statistics with date range', async () => {
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-1',
+            statistic_type: 'open',
+            event_id: 'evt-1',
+            subscriber_id: 'sub-1',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'camp-1',
+              name: 'January Campaign',
+              type: 'campaign',
+            },
+          },
+        ],
+        next_page_token: 'token-abc',
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].statistic_type).toBe('open');
+      expect(result.data![0].object.type).toBe('campaign');
+      expect(result.next_page_token).toBe('token-abc');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/api/v3/export/statistics');
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+    });
+
+    it('should export statistics with statistic_types filter', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        statistic_types: ['open', 'link'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('statistic_types%5B%5D=open');
+      expect(url).toContain('statistic_types%5B%5D=link');
+    });
+
+    it('should export statistics with next_page_token for pagination', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [], next_page_token: null }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        next_page_token: 'token-abc',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('next_page_token=token-abc');
+    });
+
+    it('should export subscribers with date range', async () => {
+      const mockData = {
+        data: [
+          {
+            created_at: '2024-01-10T08:00:00Z',
+            updated_at: '2024-01-10T08:00:00Z',
+            account_id: 1,
+            account_name: 'Test Account',
+            subscriber_id: 500,
+            email: 'user@example.com',
+            phone_number: '+46701234567',
+            opt_in_date: '2024-01-10T08:00:00Z',
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportSubscribers({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].subscriber_id).toBe(500);
+      expect(result.data![0].email).toBe('user@example.com');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toContain('/api/v3/export/subscriber');
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should handle empty export results', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportDispatchers({
+        date_from: '2024-01-01',
+        date_to: '2024-01-02',
+      });
+
+      expect(result.data).toEqual([]);
+    });
+
+    it('should handle API errors for export endpoints', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Unauthorized' }, 401)
+      );
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+      await expect(
+        client.exportDispatchers({ date_from: '2024-01-01', date_to: '2024-01-02' })
+      ).rejects.toThrow(RuleApiError);
+    });
+  });
 });
