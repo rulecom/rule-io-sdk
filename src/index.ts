@@ -99,6 +99,12 @@ export type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAnalyticsObjectType,
+  RuleAnalyticsMetric,
+  RuleAnalyticsMessageType,
+  RuleAnalyticsParams,
+  RuleAnalyticsRecord,
+  RuleAnalyticsResponse,
 } from './types';
 
 // Types - RCML

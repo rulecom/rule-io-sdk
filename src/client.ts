@@ -73,6 +73,8 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleAnalyticsParams,
+  RuleAnalyticsResponse,
 } from './types';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
@@ -1630,6 +1632,58 @@ export class RuleClient {
       }
     );
     return { success: true };
+  }
+
+  // ==========================================================================
+  // v3 Analytics API
+  // ==========================================================================
+
+  /**
+   * Retrieve email performance analytics for one or more objects.
+   *
+   * Array query parameters (`object_ids[]`, `metrics[]`) are serialised in
+   * bracket notation as required by the Rule.io API.
+   *
+   * @param params - Analytics query parameters including date range, object type/IDs, and metrics
+   * @returns Analytics response containing metric data for each requested object
+   *
+   * @example
+   * ```typescript
+   * const analytics = await client.getAnalytics({
+   *   date_from: '2024-01-01',
+   *   date_to: '2024-01-31',
+   *   object_type: 'CAMPAIGN',
+   *   object_ids: [101, 102],
+   *   metrics: ['sent', 'open_uniq', 'click_uniq'],
+   * });
+   * console.log(analytics.data); // [{ object_id: 101, sent: 500, ... }, ...]
+   * ```
+   */
+  async getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
+    // Build query string manually because buildQueryString does not handle array params
+    const parts: string[] = [
+      `date_from=${encodeURIComponent(params.date_from)}`,
+      `date_to=${encodeURIComponent(params.date_to)}`,
+      `object_type=${encodeURIComponent(params.object_type)}`,
+    ];
+
+    for (const id of params.object_ids) {
+      parts.push(`object_ids[]=${encodeURIComponent(String(id))}`);
+    }
+
+    for (const metric of params.metrics) {
+      parts.push(`metrics[]=${encodeURIComponent(metric)}`);
+    }
+
+    if (params.message_type) {
+      parts.push(`message_type=${encodeURIComponent(params.message_type)}`);
+    }
+
+    const qs = `?${parts.join('&')}`;
+
+    return this.requestV3<RuleAnalyticsResponse>(`/analytics${qs}`, {
+      method: 'GET',
+    });
   }
 
   // ==========================================================================

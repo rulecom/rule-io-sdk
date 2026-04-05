@@ -695,6 +695,95 @@ export interface RuleSubscriberTagsV3Request {
 }
 
 // ============================================================================
+// v3 Analytics API Types
+// ============================================================================
+
+/**
+ * Object types available for analytics queries.
+ */
+export type RuleAnalyticsObjectType =
+  | 'AB_TEST'
+  | 'CAMPAIGN'
+  | 'AUTOMAIL'
+  | 'TRANSACTIONAL_NAME'
+  | 'JOURNEY';
+
+/**
+ * Metric names available for analytics queries.
+ */
+export type RuleAnalyticsMetric =
+  | 'open'
+  | 'open_uniq'
+  | 'sent'
+  | 'delivered'
+  | 'click_uniq'
+  | 'spam'
+  | 'unsubscribe'
+  | 'total_bounce'
+  | 'soft_bounce'
+  | 'hard_bounce';
+
+/**
+ * Message types available for analytics queries.
+ */
+export type RuleAnalyticsMessageType = 'email' | 'text_message';
+
+/**
+ * Parameters for the analytics endpoint.
+ *
+ * @example
+ * ```typescript
+ * const params: RuleAnalyticsParams = {
+ *   date_from: '2024-01-01',
+ *   date_to: '2024-01-31',
+ *   object_type: 'CAMPAIGN',
+ *   object_ids: [101, 102],
+ *   metrics: ['sent', 'open_uniq', 'click_uniq'],
+ * };
+ * ```
+ */
+export interface RuleAnalyticsParams {
+  /** Start date for the analytics range (e.g. '2024-01-01') */
+  date_from: string;
+  /** End date for the analytics range (e.g. '2024-01-31') */
+  date_to: string;
+  /** Type of object to retrieve analytics for */
+  object_type: RuleAnalyticsObjectType;
+  /** IDs of the objects to retrieve analytics for */
+  object_ids: number[];
+  /** Metrics to include in the response */
+  metrics: RuleAnalyticsMetric[];
+  /** Optional message type filter */
+  message_type?: RuleAnalyticsMessageType;
+}
+
+/**
+ * A single analytics record containing metric values for one object.
+ *
+ * Each requested metric appears as an optional numeric field.
+ */
+export interface RuleAnalyticsRecord {
+  object_id?: number;
+  open?: number;
+  open_uniq?: number;
+  sent?: number;
+  delivered?: number;
+  click_uniq?: number;
+  spam?: number;
+  unsubscribe?: number;
+  total_bounce?: number;
+  soft_bounce?: number;
+  hard_bounce?: number;
+}
+
+/**
+ * Response from the analytics endpoint.
+ */
+export interface RuleAnalyticsResponse extends RuleApiResponse {
+  data?: RuleAnalyticsRecord[];
+}
+
+// ============================================================================
 // Client Configuration
 // ============================================================================
 

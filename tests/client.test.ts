@@ -1277,4 +1277,136 @@ describe('RuleClient', () => {
       );
     });
   });
+
+  // ============================================================================
+  // Analytics API
+  // ============================================================================
+
+  describe('getAnalytics', () => {
+    it('should fetch analytics with correct query parameters', async () => {
+      const mockData = {
+        data: [
+          { object_id: 101, sent: 500, open_uniq: 200, click_uniq: 50 },
+          { object_id: 102, sent: 300, open_uniq: 120, click_uniq: 30 },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: [101, 102],
+        metrics: ['sent', 'open_uniq', 'click_uniq'],
+      });
+
+      expect(result.data).toEqual(mockData.data);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/analytics?');
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(url).toContain('object_type=CAMPAIGN');
+      expect(url).toContain('object_ids[]=101');
+      expect(url).toContain('object_ids[]=102');
+      expect(url).toContain('metrics[]=sent');
+      expect(url).toContain('metrics[]=open_uniq');
+      expect(url).toContain('metrics[]=click_uniq');
+      expect(url).not.toContain('message_type');
+
+      const [, options] = mockFetch.mock.calls[0];
+      expect(options.method).toBe('GET');
+    });
+
+    it('should include message_type when provided', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'AUTOMAIL',
+        object_ids: [42],
+        metrics: ['sent', 'delivered'],
+        message_type: 'email',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('message_type=email');
+      expect(url).toContain('object_type=AUTOMAIL');
+    });
+
+    it('should handle empty data response', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAnalytics({
+        date_from: '2024-06-01',
+        date_to: '2024-06-30',
+        object_type: 'JOURNEY',
+        object_ids: [999],
+        metrics: ['open'],
+      });
+
+      expect(result.data).toEqual([]);
+    });
+
+    it('should throw RuleApiError on 401', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Unauthorized' }, 401)
+      );
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: [1],
+          metrics: ['sent'],
+        })
+      ).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on rate limit (429)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Too many requests' }, 429)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: [1],
+          metrics: ['sent'],
+        })
+      ).rejects.toThrow(RuleApiError);
+    });
+
+    it('should handle single object and single metric', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: [{ object_id: 5, hard_bounce: 3 }] })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAnalytics({
+        date_from: '2024-03-01',
+        date_to: '2024-03-31',
+        object_type: 'TRANSACTIONAL_NAME',
+        object_ids: [5],
+        metrics: ['hard_bounce'],
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].hard_bounce).toBe(3);
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('object_type=TRANSACTIONAL_NAME');
+    });
+  });
 });
