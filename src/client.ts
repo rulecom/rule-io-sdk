@@ -2081,6 +2081,16 @@ export class RuleClient {
     searchParams.set('date_from', params.date_from);
     searchParams.set('date_to', params.date_to);
     if ('object_type' in params) {
+      if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
+        throw new RuleConfigError(
+          'object_ids must be a non-empty array when object_type is provided'
+        );
+      }
+      if (!Array.isArray(params.metrics) || params.metrics.length === 0) {
+        throw new RuleConfigError(
+          'metrics must be a non-empty array when object_type is provided'
+        );
+      }
       searchParams.set('object_type', params.object_type);
       for (const id of params.object_ids) {
         searchParams.append('object_ids[]', id);

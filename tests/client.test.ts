@@ -2190,6 +2190,32 @@ describe('RuleClient', () => {
       ).rejects.toThrow(RuleApiError);
     });
 
+    it('should throw RuleConfigError when object_type given without object_ids', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: [],
+          metrics: ['sent'],
+        })
+      ).rejects.toThrow('object_ids must be a non-empty array');
+    });
+
+    it('should throw RuleConfigError when object_type given without metrics', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.getAnalytics({
+          date_from: '2024-01-01',
+          date_to: '2024-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: ['1'],
+          metrics: [],
+        })
+      ).rejects.toThrow('metrics must be a non-empty array');
+    });
+
     it('should handle minimal params (only dates)', async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
