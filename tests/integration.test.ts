@@ -253,7 +253,8 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       // Verify trigger was set on creation (no separate update needed)
       const fetched = await client.getAutomail(automailId);
-      expect(fetched.data?.trigger).toBeDefined();
+      expect(fetched).not.toBeNull();
+      expect(fetched!.data?.trigger).toBeDefined();
 
       cleanup.push(async () => {
         if (automailId) await client.deleteAutomail(automailId);
