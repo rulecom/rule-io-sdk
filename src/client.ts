@@ -2239,7 +2239,7 @@ export class RuleClient {
         }
       }
 
-      // Step 1: Create automail (with trigger and sendout_type)
+      // Step 1: Create automail (trigger and sendout_type included when tagId is present)
       // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
       const automailResponse = await this.createAutomail({
         name: config.name,
