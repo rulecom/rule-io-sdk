@@ -2229,6 +2229,12 @@ export class RuleClient {
     try {
       // Step 0: Resolve trigger ID
       // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
+      if ((config.triggerType === 'tag' || config.triggerType === 'segment') && !config.triggerValue) {
+        throw new RuleConfigError(
+          `triggerValue is required when triggerType is "${config.triggerType}".`
+        );
+      }
+
       let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
       if (config.triggerType === 'tag' && config.triggerValue) {
         const tagId = await this.getTagIdByName(config.triggerValue);
