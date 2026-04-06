@@ -1419,6 +1419,10 @@ export class RuleClient {
    * The request is processed asynchronously by the Rule.io API. If `message_types`
    * is omitted, all channel suppressions are removed for the specified subscribers.
    *
+   * **API quirk:** Despite the OpenAPI spec documenting `DELETE /suppressions/`,
+   * the live API returns 405 for that method. The actual endpoint is
+   * `POST /suppressions/delete`.
+   *
    * @param request - Unsuppression request with subscriber identifiers and optional filters
    * @returns A success response (actual processing happens asynchronously)
    *
@@ -1444,8 +1448,8 @@ export class RuleClient {
     if (request.subscribers.length > 1000) {
       throw new RuleConfigError('subscribers array must not exceed 1000 items');
     }
-    await this.fetchV3('/suppressions/', {
-      method: 'DELETE',
+    await this.fetchV3('/suppressions/delete', {
+      method: 'POST',
       body: JSON.stringify(request),
     });
     return { success: true };
