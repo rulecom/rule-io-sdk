@@ -63,9 +63,11 @@ jobs:
 
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const dependencies = Object.keys(pkg.dependencies || {});
+          const optionalDependencies = Object.keys(pkg.optionalDependencies || {});
+          const runtimeDependencies = [...dependencies, ...optionalDependencies];
 
-          if (dependencies.length > 0) {
-            console.error(`ERROR: package.json must not declare runtime dependencies: ${dependencies.join(', ')}`);
+          if (runtimeDependencies.length > 0) {
+            console.error(`ERROR: package.json must not declare runtime dependencies: ${runtimeDependencies.join(', ')}`);
             process.exit(1);
           }
 
@@ -107,6 +109,9 @@ jobs:
               addIfExternal(file, match[1]);
             }
             for (const match of source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
+              addIfExternal(file, match[1]);
+            }
+            for (const match of source.matchAll(/\bexport\s+(?:\*|\{[^}]*\})\s+from\s+['"]([^'"]+)['"]/g)) {
               addIfExternal(file, match[1]);
             }
           }
