@@ -1183,7 +1183,7 @@ describe('RuleClient', () => {
       expect(body.message_types).toEqual(['email']);
     });
 
-    it('should delete suppressions with DELETE and request body', async () => {
+    it('should delete suppressions with POST to /suppressions/delete', async () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1195,8 +1195,8 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
-      expect(options.method).toBe('DELETE');
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
+      expect(options.method).toBe('POST');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
 
       const body = JSON.parse(options.body);
