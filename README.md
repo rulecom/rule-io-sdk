@@ -197,19 +197,19 @@ await client.deleteSuppressions({
 
 Low-level CRUD for the v3 editor API. These are the building blocks used by `createAutomationEmail()`.
 
-#### Automails (Automation Workflows)
+#### Automations (Automation Workflows)
 
 ```typescript
-const automails = await client.listAutomails({ page: 1, active: true });
-const automail = await client.createAutomail({ name: 'Welcome Series' });
-const fetched = await client.getAutomail(automail.data!.id!);
-await client.updateAutomail(automail.data!.id!, {
+const automations = await client.listAutomations({ page: 1, active: true });
+const automation = await client.createAutomation({ name: 'Welcome Series' });
+const fetched = await client.getAutomation(automation.data!.id!);
+await client.updateAutomation(automation.data!.id!, {
   name: 'Welcome Series',
   active: true,
   trigger: { type: 'TAG', id: 42 }, // type must be UPPERCASE
   sendout_type: 2,                   // 1 = marketing, 2 = transactional
 });
-await client.deleteAutomail(automail.data!.id!);
+await client.deleteAutomation(automation.data!.id!);
 ```
 
 #### Messages
@@ -424,10 +424,10 @@ const result = await client.createAutomationEmail({
   template: email, // any RCMLDocument
 });
 
-console.log('Created:', result.automailId, result.messageId, result.templateId);
+console.log('Created:', result.automationId, result.messageId, result.templateId);
 ```
 
-The high-level `createAutomationEmail` helper handles the full 4-step process (automail → message → template → dynamic set) and cleans up on failure.
+The high-level `createAutomationEmail` helper handles the full 4-step process (automation → message → template → dynamic set) and cleans up on failure.
 
 ### Prerequisites
 
@@ -449,7 +449,7 @@ await fetch('https://app.rule.io/api/v2/tags', {
 
 ```typescript
 interface CreateAutomationEmailResult {
-  automailId: number;
+  automationId: number;
   messageId: number;
   templateId: number;
   dynamicSetId: number;
