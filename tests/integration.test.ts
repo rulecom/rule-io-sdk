@@ -222,6 +222,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     let messageId: number;
     let templateId: number;
     let dynamicSetId: number;
+    let tagId: number | undefined;
 
     // --- Automail ---
 
@@ -230,19 +231,19 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(result).toBeDefined();
     });
 
-    it('should create an automail with trigger in single step', async () => {
-      // Get a tag ID to use as trigger
+    it('should have at least one tag for trigger tests', async () => {
       const tags = await client.getTags();
-      const tagId = tags.tags?.[0]?.id;
+      tagId = tags.tags?.[0]?.id;
+      expect(tagId).toBeDefined();
+    });
+
+    it('should create an automail with trigger in single step', async () => {
+      expect(tagId).toBeDefined();
 
       const result = await client.createAutomail({
         name: `Integration Test Automail ${RUN_ID}`,
-        ...(tagId
-          ? {
-              trigger: { type: 'TAG' as const, id: tagId },
-              sendout_type: 2 as const, // transactional
-            }
-          : {}),
+        trigger: { type: 'TAG' as const, id: tagId! },
+        sendout_type: 2 as const, // transactional
       });
       expect(result).toBeDefined();
       // Response wraps data in .data
@@ -251,10 +252,8 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       automailId = result.data!.id!;
 
       // Verify trigger was set on creation (no separate update needed)
-      if (tagId) {
-        const fetched = await client.getAutomail(automailId);
-        expect(fetched.data?.trigger).toBeDefined();
-      }
+      const fetched = await client.getAutomail(automailId);
+      expect(fetched.data?.trigger).toBeDefined();
 
       cleanup.push(async () => {
         if (automailId) await client.deleteAutomail(automailId);
@@ -270,11 +269,12 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should update an automail', async () => {
       expect(automailId).toBeDefined();
+      expect(tagId).toBeDefined();
 
       const result = await client.updateAutomail(automailId, {
         name: `Integration Test Automail Updated ${RUN_ID}`,
         active: false,
-        trigger: { type: 'TAG', id: 1 },
+        trigger: { type: 'TAG', id: tagId! },
         sendout_type: 2,
       });
       expect(result).toBeDefined();
