@@ -69,7 +69,7 @@ v2 accepts `application/json`; v3 requires `application/json;charset=utf-8`. Mos
 ### 11. DELETE requests with JSON bodies
 `DELETE /api/v3/suppressions/` and `DELETE /api/v3/subscribers/tags` require JSON request bodies. DELETE request bodies have no generally defined semantics and are inconsistently supported across HTTP clients, servers, and intermediaries (see RFC 9110), which makes these endpoints less interoperable.
 
-**Suggestion:** Use `POST /suppressions/delete` or `POST /subscribers/tags/remove` patterns instead.
+**Suggestion:** Use `POST /api/v3/suppressions/delete` or `POST /api/v3/subscribers/tags/remove` patterns instead.
 
 ### 12. No batch tag removal in v2
 Removing N tags from a subscriber requires N separate `DELETE /api/v2/subscribers/{email}/tags/{tag}` calls. The SDK parallelizes them, but it's wasteful.
@@ -97,7 +97,7 @@ When the date range exceeds 1 day, the API exhibits inconsistent failure behavio
 **Suggestion:** Document the constraint and return a clear validation error with the allowed range.
 
 ### 17. Async operations return 204 with no tracking
-Bulk operations (suppressions, block/unblock, bulk tags) return `204 No Content` and process asynchronously. There's an optional `callbackUrl` but no job ID or polling endpoint.
+Bulk operations (suppressions, block/unblock, bulk tags) return `204 No Content` and process asynchronously. There's an optional `callback_url` but no job ID or polling endpoint.
 
 **Suggestion:** Return a job ID and provide a status polling endpoint.
 
