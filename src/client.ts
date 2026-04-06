@@ -6,11 +6,11 @@
  *
  * ## API Quirks (Important!)
  *
- * 1. **Trigger type must be UPPERCASE**: When setting automail triggers,
+ * 1. **Trigger type must be UPPERCASE**: When setting automation triggers,
  *    use "TAG" or "SEGMENT" (uppercase), not "tag" or "segment".
  *    The API error message incorrectly suggests lowercase.
  *
- * 2. **Automail creation accepts trigger on POST**: Trigger and sendout_type
+ * 2. **Automation creation accepts trigger on POST**: Trigger and sendout_type
  *    can be set directly on POST /editor/automail. No separate update needed.
  *
  * 3. **Template names must be unique**: Add timestamp to avoid conflicts.
@@ -30,11 +30,11 @@ import type {
   RuleSubscriberFieldsResponse,
   RuleSubscriberTagsResponse,
   RuleTagsResponse,
-  RuleAutomailCreateRequest,
-  RuleAutomailUpdateRequest,
-  RuleAutomailResponse,
-  RuleAutomailListParams,
-  RuleAutomailListResponse,
+  RuleAutomationCreateRequest,
+  RuleAutomationUpdateRequest,
+  RuleAutomationResponse,
+  RuleAutomationListParams,
+  RuleAutomationListResponse,
   RuleMessageCreateRequest,
   RuleMessageResponse,
   RuleMessageListParams,
@@ -605,28 +605,28 @@ export class RuleClient {
   }
 
   // ==========================================================================
-  // v3 Editor API - Automail
+  // v3 Editor API - Automation (formerly "Automail")
   // ==========================================================================
 
   /**
-   * Create an automail (automation workflow) in Rule.io.
+   * Create an automation workflow in Rule.io.
    * Trigger and sendout_type can be set directly on creation.
    *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail/operation/AutomailCreate
    */
-  async createAutomail(automail: RuleAutomailCreateRequest): Promise<RuleAutomailResponse> {
-    return this.requestV3<RuleAutomailResponse>('/editor/automail', {
+  async createAutomation(automation: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
+    return this.requestV3<RuleAutomationResponse>('/editor/automail', {
       method: 'POST',
-      body: JSON.stringify(automail),
+      body: JSON.stringify(automation),
     });
   }
 
   /**
-   * Get an automail by ID
+   * Get an automation by ID.
    */
-  async getAutomail(id: number): Promise<RuleAutomailResponse | null> {
+  async getAutomation(id: number): Promise<RuleAutomationResponse | null> {
     try {
-      return await this.requestV3<RuleAutomailResponse>(`/editor/automail/${id}`, {
+      return await this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
         method: 'GET',
       });
     } catch (error) {
@@ -638,22 +638,22 @@ export class RuleClient {
   }
 
   /**
-   * Update an automail. Supports partial updates — only include the fields
+   * Update an automation. Supports partial updates — only include the fields
    * you want to change.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
    * The API error messages incorrectly suggest lowercase, but uppercase is required.
    *
-   * @param id - Automail ID
+   * @param id - Automation ID
    * @param update - Partial update request (all fields optional)
    *
    * @example
    * ```typescript
    * // Partial update — only change the name
-   * await client.updateAutomail(123, { name: 'New Name' });
+   * await client.updateAutomation(123, { name: 'New Name' });
    *
    * // Full update
-   * await client.updateAutomail(123, {
+   * await client.updateAutomation(123, {
    *   name: 'New Name',
    *   active: true,
    *   trigger: { type: 'TAG', id: 42 },
@@ -661,38 +661,38 @@ export class RuleClient {
    * });
    * ```
    */
-  async updateAutomail(
+  async updateAutomation(
     id: number,
-    update: Partial<RuleAutomailUpdateRequest>
-  ): Promise<RuleAutomailResponse> {
-    return this.requestV3<RuleAutomailResponse>(`/editor/automail/${id}`, {
+    update: Partial<RuleAutomationUpdateRequest>
+  ): Promise<RuleAutomationResponse> {
+    return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
       method: 'PUT',
       body: JSON.stringify(update),
     });
   }
 
   /**
-   * Delete an automail
+   * Delete an automation.
    */
-  async deleteAutomail(id: number): Promise<RuleApiResponse> {
+  async deleteAutomation(id: number): Promise<RuleApiResponse> {
     return this.requestV3<RuleApiResponse>(`/editor/automail/${id}`, {
       method: 'DELETE',
     });
   }
 
   /**
-   * List automails with optional filtering and pagination.
+   * List automations with optional filtering and pagination.
    *
    * @param params - Optional query parameters for filtering and pagination
-   * @returns List of automails
+   * @returns List of automations
    *
    * @example
    * ```typescript
-   * // List all automails
-   * const all = await client.listAutomails();
+   * // List all automations
+   * const all = await client.listAutomations();
    *
-   * // List active email automails, page 2
-   * const filtered = await client.listAutomails({
+   * // List active email automations, page 2
+   * const filtered = await client.listAutomations({
    *   active: true,
    *   message_type: 1,
    *   page: 2,
@@ -700,11 +700,51 @@ export class RuleClient {
    * });
    * ```
    */
-  async listAutomails(params?: RuleAutomailListParams): Promise<RuleAutomailListResponse> {
+  async listAutomations(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
-    return this.requestV3<RuleAutomailListResponse>(`/editor/automail${qs}`, {
+    return this.requestV3<RuleAutomationListResponse>(`/editor/automail${qs}`, {
       method: 'GET',
     });
+  }
+
+  // --- Deprecated aliases (backward compatibility) ---
+
+  /**
+   * @deprecated Use {@link createAutomation} instead.
+   */
+  async createAutomail(automail: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
+    return this.createAutomation(automail);
+  }
+
+  /**
+   * @deprecated Use {@link getAutomation} instead.
+   */
+  async getAutomail(id: number): Promise<RuleAutomationResponse | null> {
+    return this.getAutomation(id);
+  }
+
+  /**
+   * @deprecated Use {@link updateAutomation} instead.
+   */
+  async updateAutomail(
+    id: number,
+    update: Partial<RuleAutomationUpdateRequest>
+  ): Promise<RuleAutomationResponse> {
+    return this.updateAutomation(id, update);
+  }
+
+  /**
+   * @deprecated Use {@link deleteAutomation} instead.
+   */
+  async deleteAutomail(id: number): Promise<RuleApiResponse> {
+    return this.deleteAutomation(id);
+  }
+
+  /**
+   * @deprecated Use {@link listAutomations} instead.
+   */
+  async listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
+    return this.listAutomations(params);
   }
 
   // ==========================================================================
@@ -712,7 +752,7 @@ export class RuleClient {
   // ==========================================================================
 
   /**
-   * Create a message for an automail
+   * Create a message for an automation
    *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Message
    */
@@ -2204,7 +2244,7 @@ export class RuleClient {
 
   /**
    * Create a complete automation email workflow:
-   * 1. Create automail (automation)
+   * 1. Create automation
    * 2. Create message (email metadata)
    * 3. Create template (RCML content)
    * 4. Create dynamic set (connect message and template)
@@ -2315,24 +2355,24 @@ export class RuleClient {
         );
       }
 
-      // Step 1: Create automail (trigger and sendout_type set independently)
-      const automailResponse = await this.createAutomail({
+      // Step 1: Create automation (trigger and sendout_type set on creation)
+      const automationResponse = await this.createAutomation({
         name: config.name,
         description: config.description,
         sendout_type: config.sendoutType || 2, // Default to transactional
         ...(trigger ? { trigger } : {}),
       });
 
-      if (!automailResponse.data?.id) {
-        throw new RuleApiError('Failed to create automail - no ID returned', 500);
+      if (!automationResponse.data?.id) {
+        throw new RuleApiError('Failed to create automation - no ID returned', 500);
       }
-      const automailId = automailResponse.data.id;
-      createdResources.push({ type: 'automail', id: automailId });
+      const automationId = automationResponse.data.id;
+      createdResources.push({ type: 'automail', id: automationId });
 
       // Step 2: Create message
       const messageResponse = await this.createMessage({
         dispatcher: {
-          id: automailId,
+          id: automationId,
           type: 'automail',
         },
         type: 1, // email
@@ -2379,7 +2419,8 @@ export class RuleClient {
       const dynamicSetId = dynamicSetResponse.data.id;
 
       return {
-        automailId,
+        automationId,
+        automailId: automationId, // Deprecated alias
         messageId,
         templateId,
         dynamicSetId,
@@ -2390,7 +2431,7 @@ export class RuleClient {
         try {
           switch (resource.type) {
             case 'automail':
-              await this.deleteAutomail(resource.id);
+              await this.deleteAutomation(resource.id);
               break;
             case 'message':
               await this.deleteMessage(resource.id);

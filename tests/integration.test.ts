@@ -214,20 +214,20 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   });
 
   // ==========================================================================
-  // v3 Automail + Message + Template + Dynamic Set (chained CRUD)
+  // v3 Automation + Message + Template + Dynamic Set (chained CRUD)
   // ==========================================================================
 
   describe('v3 Editor API (chained CRUD)', () => {
-    let automailId: number;
+    let automationId: number;
     let messageId: number;
     let templateId: number;
     let dynamicSetId: number;
     let tagId: number | undefined;
 
-    // --- Automail ---
+    // --- Automation ---
 
-    it('should list automails', async () => {
-      const result = await client.listAutomails();
+    it('should list automations', async () => {
+      const result = await client.listAutomations();
       expect(result).toBeDefined();
     });
 
@@ -237,11 +237,11 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(tagId).toBeDefined();
     });
 
-    it('should create an automail with trigger in single step', async () => {
+    it('should create an automation with trigger in single step', async () => {
       expect(tagId).toBeDefined();
 
-      const result = await client.createAutomail({
-        name: `Integration Test Automail ${RUN_ID}`,
+      const result = await client.createAutomation({
+        name: `Integration Test Automation ${RUN_ID}`,
         trigger: { type: 'TAG' as const, id: tagId! },
         sendout_type: 2 as const, // transactional
       });
@@ -249,33 +249,33 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       // Response wraps data in .data
       expect(result.data).toBeDefined();
       expect(result.data!.id).toBeDefined();
-      automailId = result.data!.id!;
+      automationId = result.data!.id!;
 
       // Verify trigger was set correctly on creation (no separate update needed)
-      const fetched = await client.getAutomail(automailId);
+      const fetched = await client.getAutomation(automationId);
       expect(fetched).not.toBeNull();
       expect(fetched!.data?.trigger).toBeDefined();
       expect(fetched!.data!.trigger!.type).toBe('TAG');
       expect(fetched!.data!.trigger!.id).toBe(tagId);
 
       cleanup.push(async () => {
-        if (automailId) await client.deleteAutomail(automailId);
+        if (automationId) await client.deleteAutomation(automationId);
       });
     });
 
-    it('should get an automail by id', async () => {
-      expect(automailId).toBeDefined();
-      const result = await client.getAutomail(automailId);
+    it('should get an automation by id', async () => {
+      expect(automationId).toBeDefined();
+      const result = await client.getAutomation(automationId);
       expect(result).toBeDefined();
-      expect(result.data?.id).toBe(automailId);
+      expect(result.data?.id).toBe(automationId);
     });
 
-    it('should update an automail', async () => {
-      expect(automailId).toBeDefined();
+    it('should update an automation', async () => {
+      expect(automationId).toBeDefined();
       expect(tagId).toBeDefined();
 
-      const result = await client.updateAutomail(automailId, {
-        name: `Integration Test Automail Updated ${RUN_ID}`,
+      const result = await client.updateAutomation(automationId, {
+        name: `Integration Test Automation Updated ${RUN_ID}`,
         active: false,
         trigger: { type: 'TAG', id: tagId! },
         sendout_type: 2,
@@ -283,13 +283,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(result).toBeDefined();
     });
 
-    // --- Message (requires automail ID) ---
+    // --- Message (requires automation ID) ---
 
-    it('should create a message linked to automail', async () => {
-      expect(automailId).toBeDefined();
+    it('should create a message linked to automation', async () => {
+      expect(automationId).toBeDefined();
       const result = await client.createMessage({
         dispatcher: {
-          id: automailId,
+          id: automationId,
           type: 'automail',
         },
         type: 1, // email
@@ -311,10 +311,10 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       });
     });
 
-    it('should list messages for the automail', async () => {
-      expect(automailId).toBeDefined();
+    it('should list messages for the automation', async () => {
+      expect(automationId).toBeDefined();
       const result = await client.listMessages({
-        id: automailId,
+        id: automationId,
         dispatcher_type: 'automail',
       });
       expect(result).toBeDefined();
@@ -441,10 +441,10 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       messageId = 0;
     });
 
-    it('should delete automail', async () => {
-      if (!automailId) return;
-      await client.deleteAutomail(automailId);
-      automailId = 0;
+    it('should delete automation', async () => {
+      if (!automationId) return;
+      await client.deleteAutomation(automationId);
+      automationId = 0;
     });
   });
 
@@ -568,15 +568,15 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         });
 
         expect(result).toBeDefined();
-        expect(result.automailId).toBeGreaterThan(0);
+        expect(result.automationId).toBeGreaterThan(0);
         expect(result.messageId).toBeGreaterThan(0);
         expect(result.templateId).toBeGreaterThan(0);
         expect(result.dynamicSetId).toBeGreaterThan(0);
 
         // Verify we can read each created resource
-        const automail = await client.getAutomail(result.automailId);
-        expect(automail).toBeDefined();
-        expect(automail.data?.id).toBe(result.automailId);
+        const automation = await client.getAutomation(result.automationId);
+        expect(automation).toBeDefined();
+        expect(automation.data?.id).toBe(result.automationId);
 
         const message = await client.getMessage(result.messageId);
         expect(message).toBeDefined();
@@ -598,8 +598,8 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           if (ids.messageId) {
             await client.deleteMessage(ids.messageId).catch(() => {});
           }
-          if (ids.automailId) {
-            await client.deleteAutomail(ids.automailId).catch(() => {});
+          if (ids.automationId) {
+            await client.deleteAutomation(ids.automationId).catch(() => {});
           }
         }
       }
