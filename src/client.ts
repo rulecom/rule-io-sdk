@@ -10,10 +10,8 @@
  *    use "TAG" or "SEGMENT" (uppercase), not "tag" or "segment".
  *    The API error message incorrectly suggests lowercase.
  *
- * 2. **Two-step automail creation**: Cannot set trigger and sendout_type
- *    during creation. Must create first, then update:
- *    - POST /editor/automail (create)
- *    - PUT /editor/automail/{id} (add trigger + sendout_type)
+ * 2. **Automail creation accepts trigger on POST**: Trigger and sendout_type
+ *    can be set directly on POST /editor/automail. No separate update needed.
  *
  * 3. **Template names must be unique**: Add timestamp to avoid conflicts.
  *
@@ -610,9 +608,10 @@ export class RuleClient {
   // ==========================================================================
 
   /**
-   * Create an automail (automation workflow) in Rule.io
+   * Create an automail (automation workflow) in Rule.io.
+   * Trigger and sendout_type can be set directly on creation.
    *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail
+   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail/operation/AutomailCreate
    */
   async createAutomail(automail: RuleAutomailCreateRequest): Promise<RuleAutomailResponse> {
     return this.requestV3<RuleAutomailResponse>('/editor/automail', {
@@ -2240,10 +2239,20 @@ export class RuleClient {
         }
       }
 
-      // Step 1: Create automail
+      // Step 1: Create automail (with trigger and sendout_type)
+      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
       const automailResponse = await this.createAutomail({
         name: config.name,
         description: config.description,
+        ...(tagId
+          ? {
+              trigger: {
+                type: 'TAG',
+                id: tagId,
+              },
+              sendout_type: config.sendoutType || 2, // Default to transactional
+            }
+          : {}),
       });
 
       if (!automailResponse.data?.id) {
@@ -2251,20 +2260,6 @@ export class RuleClient {
       }
       const automailId = automailResponse.data.id;
       createdResources.push({ type: 'automail', id: automailId });
-
-      // Step 1b: Update automail with trigger and sendout type
-      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
-      if (tagId) {
-        await this.updateAutomail(automailId, {
-          name: config.name,
-          active: false,
-          trigger: {
-            type: 'TAG',
-            id: tagId,
-          },
-          sendout_type: config.sendoutType || 2, // Default to transactional
-        });
-      }
 
       // Step 2: Create message
       const messageResponse = await this.createMessage({

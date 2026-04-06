@@ -252,7 +252,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(result.data?.id).toBe(automailId);
     });
 
-    it('should update an automail (two-step trigger)', async () => {
+    it('should update an automail with trigger', async () => {
       expect(automailId).toBeDefined();
 
       // Get a tag ID to use as trigger
