@@ -1213,7 +1213,10 @@ describe('RuleClient', () => {
         callback_url: 'https://example.com/webhook/done',
       });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
       expect(body.callback_url).toBe('https://example.com/webhook/done');
     });
 
@@ -1239,8 +1242,22 @@ describe('RuleClient', () => {
         message_types: ['email'],
       });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
+      expect(options.method).toBe('POST');
+      const body = JSON.parse(options.body);
       expect(body.message_types).toEqual(['email']);
+    });
+
+    it('should throw RuleApiError when deleteSuppressions fails', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Rate limited' }, 429),
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.deleteSuppressions({ subscribers: [{ email: 'user@example.com' }] }),
+      ).rejects.toThrow(RuleApiError);
     });
 
     it('should reject createSuppressions with empty subscribers array', async () => {
