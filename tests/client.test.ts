@@ -359,7 +359,7 @@ describe('RuleClient', () => {
       expect(Array.isArray(body.template)).toBe(false);
     });
 
-    it('should create automail', async () => {
+    it('should create automation', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 123, name: 'Test Automation' },
@@ -367,7 +367,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.createAutomail({
+      const result = await client.createAutomation({
         name: 'Test Automation',
       });
 
@@ -378,7 +378,7 @@ describe('RuleClient', () => {
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
     });
 
-    it('should create automail with trigger and sendout_type', async () => {
+    it('should create automation with trigger and sendout_type', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 456, name: 'Triggered Automation', trigger: { type: 'TAG', id: 42 } },
@@ -386,7 +386,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.createAutomail({
+      const result = await client.createAutomation({
         name: 'Triggered Automation',
         trigger: { type: 'TAG', id: 42 },
         sendout_type: 2,
@@ -402,11 +402,11 @@ describe('RuleClient', () => {
   });
 
   describe('v3 get methods return null on 404', () => {
-    it('should return null for non-existent automail', async () => {
+    it('should return null for non-existent automation', async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.getAutomail(99999);
+      const result = await client.getAutomation(99999);
 
       expect(result).toBeNull();
     });
@@ -441,7 +441,7 @@ describe('RuleClient', () => {
     it('should still throw RuleApiError for non-404 errors on all v3 get methods', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const getMethods = [
-        (id: number) => client.getAutomail(id),
+        (id: number) => client.getAutomation(id),
         (id: number) => client.getMessage(id),
         (id: number) => client.getTemplate(id),
         (id: number) => client.getDynamicSet(id),
@@ -455,7 +455,7 @@ describe('RuleClient', () => {
   });
 
   describe('v3 List, Update & Render API', () => {
-    it('should list automails with query params', async () => {
+    it('should list automations with query params', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: [
@@ -466,7 +466,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.listAutomails({ page: 2, per_page: 20, active: true });
+      const result = await client.listAutomations({ page: 2, per_page: 20, active: true });
 
       expect(result.data).toHaveLength(2);
       const url = mockFetch.mock.calls[0][0] as string;
@@ -476,22 +476,22 @@ describe('RuleClient', () => {
       expect(url).toContain('active=true');
     });
 
-    it('should list automails without params', async () => {
+    it('should list automations without params', async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      await client.listAutomails();
+      await client.listAutomations();
 
       const url = mockFetch.mock.calls[0][0] as string;
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect(url).not.toContain('?');
     });
 
-    it('should list automails with search query', async () => {
+    it('should list automations with search query', async () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [{ id: 1, name: 'Welcome' }] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      await client.listAutomails({ query: 'Welcome' });
+      await client.listAutomations({ query: 'Welcome' });
 
       const url = mockFetch.mock.calls[0][0] as string;
       expect(url).toContain('query=Welcome');
@@ -568,7 +568,7 @@ describe('RuleClient', () => {
       expect(body.active).toBe(true);
     });
 
-    it('should update an automail with all fields', async () => {
+    it('should update an automation with all fields', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 1, name: 'Updated', active: true },
@@ -576,7 +576,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.updateAutomail(1, {
+      const result = await client.updateAutomation(1, {
         name: 'Updated',
         active: true,
         trigger: { type: 'TAG', id: 42 },
@@ -594,7 +594,7 @@ describe('RuleClient', () => {
       expect(body.sendout_type).toBe(2);
     });
 
-    it('should update an automail with partial fields (name only)', async () => {
+    it('should update an automation with partial fields (name only)', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 1, name: 'Renamed' },
@@ -602,7 +602,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.updateAutomail(1, { name: 'Renamed' });
+      const result = await client.updateAutomation(1, { name: 'Renamed' });
 
       expect(result.data?.name).toBe('Renamed');
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
@@ -612,7 +612,7 @@ describe('RuleClient', () => {
       expect(body).not.toHaveProperty('sendout_type');
     });
 
-    it('should update an automail with partial fields (active only)', async () => {
+    it('should update an automation with partial fields (active only)', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 1, name: 'Test', active: false },
@@ -620,7 +620,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      await client.updateAutomail(1, { active: false });
+      await client.updateAutomation(1, { active: false });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body).toEqual({ active: false });
@@ -667,8 +667,8 @@ describe('RuleClient', () => {
 
       const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
 
-      await expect(client.listAutomails()).rejects.toThrow(RuleApiError);
-      await expect(client.listAutomails()).rejects.toThrow('Invalid Rule.io API key');
+      await expect(client.listAutomations()).rejects.toThrow(RuleApiError);
+      await expect(client.listAutomations()).rejects.toThrow('Invalid Rule.io API key');
     });
 
     it('should parse field-level validation errors from v3 API', async () => {
@@ -685,7 +685,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       try {
-        await client.listAutomails();
+        await client.listAutomations();
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
@@ -711,7 +711,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       try {
-        await client.listAutomails();
+        await client.listAutomations();
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
@@ -730,7 +730,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       try {
-        await client.listAutomails();
+        await client.listAutomations();
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
@@ -746,7 +746,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       try {
-        await client.listAutomails();
+        await client.listAutomations();
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
@@ -770,7 +770,7 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       try {
-        await client.listAutomails();
+        await client.listAutomations();
         expect.fail('Should have thrown');
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
@@ -2298,10 +2298,10 @@ describe('RuleClient', () => {
   });
 
   describe('v3 Delete 204 handling', () => {
-    it('should handle 204 No Content for deleteAutomail', async () => {
+    it('should handle 204 No Content for deleteAutomation', async () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      const result = await client.deleteAutomail(1);
+      const result = await client.deleteAutomation(1);
       expect(result.success).toBe(true);
     });
 
@@ -2566,7 +2566,8 @@ describe('RuleClient', () => {
         brandStyleId: 976,
       });
 
-      expect(result.automailId).toBe(100);
+      expect(result.automationId).toBe(100);
+      expect(result.automailId).toBe(100); // Deprecated alias still works
       expect(result.messageId).toBe(200);
       expect(result.templateId).toBe(300);
       expect(result.dynamicSetId).toBe(400);
@@ -2596,6 +2597,61 @@ describe('RuleClient', () => {
           brandStyleId: 99999,
         })
       ).rejects.toThrow();
+    });
+  });
+
+  describe('Deprecated automail method aliases', () => {
+    it('createAutomail() should delegate to createAutomation()', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Test' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createAutomail({ name: 'Test' });
+
+      expect(result.data?.id).toBe(1);
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
+    });
+
+    it('getAutomail() should delegate to getAutomation()', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Test' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getAutomail(1);
+
+      expect(result?.data?.id).toBe(1);
+    });
+
+    it('updateAutomail() should delegate to updateAutomation()', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.updateAutomail(1, { name: 'Updated' });
+
+      expect(result.data?.name).toBe('Updated');
+    });
+
+    it('deleteAutomail() should delegate to deleteAutomation()', async () => {
+      mockFetch.mockResolvedValueOnce(createMock204Response());
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteAutomail(1);
+
+      expect(result.success).toBe(true);
+    });
+
+    it('listAutomails() should delegate to listAutomations()', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listAutomails();
+
+      expect(result.data).toEqual([]);
     });
   });
 });
