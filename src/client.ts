@@ -2235,10 +2235,15 @@ export class RuleClient {
   async createAutomationEmail(
     config: CreateAutomationEmailConfig
   ): Promise<CreateAutomationEmailResult> {
-    // Validate: must provide template or brandStyleId
+    // Validate: must provide template or brandStyleId, not both
     if (!config.template && !config.brandStyleId) {
       throw new RuleConfigError(
         'createAutomationEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
+      );
+    }
+    if (config.template && config.brandStyleId) {
+      throw new RuleConfigError(
+        'createAutomationEmail: provide either "template" or "brandStyleId", not both.'
       );
     }
 

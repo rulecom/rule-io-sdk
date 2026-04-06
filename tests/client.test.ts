@@ -2498,6 +2498,20 @@ describe('RuleClient', () => {
       ).rejects.toThrow(RuleConfigError);
     });
 
+    it('should throw RuleConfigError when both template and brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createAutomationEmail({
+          name: 'Test',
+          triggerType: 'tag',
+          triggerValue: 'Newsletter',
+          subject: 'Test',
+          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          brandStyleId: 976,
+        })
+      ).rejects.toThrow(RuleConfigError);
+    });
+
     it('should auto-fetch brand style and build RCML when brandStyleId provided', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 

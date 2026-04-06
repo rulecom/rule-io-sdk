@@ -175,7 +175,7 @@ export interface RuleMessageResponse extends RuleApiResponse {
 // v3 Editor API Types - Template
 // ============================================================================
 
-import type { RCMLDocument, RCMLSection } from './rcml';
+import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from './rcml';
 
 /**
  * Template represents an RCML email template in Rule.io's new editor
@@ -1379,10 +1379,11 @@ export interface CreateAutomationEmailConfig {
    */
   brandStyleId?: number;
   /**
-   * Body sections to include when using `brandStyleId`. If omitted,
-   * a single empty section is created as a placeholder.
+   * RCML body children to include when using `brandStyleId`. Supports
+   * sections, loops, and switch blocks. If omitted,
+   * no sections are added automatically.
    */
-  sections?: RCMLSection[];
+  sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
 }
 
 export interface CreateAutomationEmailResult {
