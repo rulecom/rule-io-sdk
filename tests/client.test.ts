@@ -2484,4 +2484,87 @@ describe('RuleClient', () => {
       ).rejects.toThrow(RuleApiError);
     });
   });
+
+  describe('createAutomationEmail', () => {
+    it('should throw RuleConfigError when neither template nor brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createAutomationEmail({
+          name: 'Test',
+          triggerType: 'tag',
+          triggerValue: 'Newsletter',
+          subject: 'Test',
+        })
+      ).rejects.toThrow(RuleConfigError);
+    });
+
+    it('should auto-fetch brand style and build RCML when brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      // Mock responses: 1) getBrandStyle, 2) tags (for trigger), 3) createAutomail, 4) createMessage, 5) createTemplate, 6) createDynamicSet
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({
+          data: {
+            id: 976,
+            account_id: 1,
+            name: 'Test Brand',
+            is_default: true,
+            colours: [
+              { id: 1, brand_style_id: 976, type: 'accent', hex: '#FF0000', brightness: 50 },
+              { id: 2, brand_style_id: 976, type: 'dark', hex: '#111111', brightness: 10 },
+              { id: 3, brand_style_id: 976, type: 'light', hex: '#FAFAFA', brightness: 95 },
+              { id: 4, brand_style_id: 976, type: 'brand', hex: '#0066CC', brightness: 40 },
+            ],
+            fonts: [],
+            images: [],
+          },
+        }))
+        .mockResolvedValueOnce(createMockResponse({
+          tags: [{ id: 10, name: 'Newsletter' }],
+        }))
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automail
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 400 } })); // dynamic set
+
+      const result = await client.createAutomationEmail({
+        name: 'Welcome',
+        triggerType: 'tag',
+        triggerValue: 'Newsletter',
+        subject: 'Welcome!',
+        brandStyleId: 976,
+      });
+
+      expect(result.automailId).toBe(100);
+      expect(result.messageId).toBe(200);
+      expect(result.templateId).toBe(300);
+      expect(result.dynamicSetId).toBe(400);
+
+      // Verify template call (5th call, index 4) includes RCML with brand style
+      const templateCall = mockFetch.mock.calls[4];
+      const templateBody = JSON.parse(templateCall[1].body);
+      const rcml = JSON.stringify(templateBody.template);
+      expect(rcml).toContain('rc-brand-style');
+      expect(rcml).toContain('rcml-h1-style');
+      expect(rcml).toContain('rcml-p-style');
+    });
+
+    it('should throw when brand style not found', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      // Mock: 1) getBrandStyle returns 404 — brand style fetch happens before tag lookup
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      await expect(
+        client.createAutomationEmail({
+          name: 'Test',
+          triggerType: 'tag',
+          triggerValue: 'Newsletter',
+          subject: 'Test',
+          brandStyleId: 99999,
+        })
+      ).rejects.toThrow();
+    });
+  });
 });

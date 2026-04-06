@@ -199,7 +199,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
   }
 
   const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-    createBrandLogo(config.brandStyle.logoUrl),
+    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
     createContentSection(
       [
@@ -395,7 +395,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
   };
 
   const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-    createBrandLogo(config.brandStyle.logoUrl),
+    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
     // Heading + greeting
     createContentSection(
@@ -677,7 +677,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       createContentSection(
         [
@@ -750,7 +750,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       createContentSection(
         [

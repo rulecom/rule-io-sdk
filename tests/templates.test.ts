@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import type { RCMLDocument } from '../src/types';
 import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
-import { validateCustomFields } from '../src/rcml/brand-template';
+import { validateCustomFields, toBrandStyleConfig } from '../src/rcml/brand-template';
 import {
   // Brand template utilities
   createBrandTemplate,
@@ -270,6 +270,125 @@ describe('Brand Template Utilities', () => {
       expect(() =>
         createBrandHead({ ...TEST_BRAND_STYLE, bodyFontUrl: 'data:text/html,<script>' })
       ).toThrow(RuleConfigError);
+    });
+
+    it('should work without logoUrl', () => {
+      const styleNoLogo = { ...TEST_BRAND_STYLE };
+      delete (styleNoLogo as Record<string, unknown>).logoUrl;
+      const head = createBrandHead(styleNoLogo);
+
+      const json = JSON.stringify(head);
+      expect(json).not.toContain('rcml-logo-style');
+      expect(json).toContain('rcml-h1-style');
+    });
+
+    it('should work without font URLs (system fonts)', () => {
+      const styleNoFonts = { ...TEST_BRAND_STYLE };
+      delete (styleNoFonts as Record<string, unknown>).headingFontUrl;
+      delete (styleNoFonts as Record<string, unknown>).bodyFontUrl;
+      const head = createBrandHead(styleNoFonts);
+
+      const json = JSON.stringify(head);
+      expect(json).not.toContain('rc-font');
+      expect(json).toContain('rcml-h1-style');
+      expect(json).toContain('rcml-p-style');
+    });
+  });
+
+  describe('toBrandStyleConfig', () => {
+    it('should map a full brand style response to BrandStyleConfig', () => {
+      const result = toBrandStyleConfig({
+        id: 976,
+        account_id: 1,
+        name: 'Test Brand',
+        is_default: true,
+        colours: [
+          { id: 1, brand_style_id: 976, type: 'accent', hex: '#FF0000', brightness: 50, created_at: '', updated_at: '' },
+          { id: 2, brand_style_id: 976, type: 'dark', hex: '#111111', brightness: 10, created_at: '', updated_at: '' },
+          { id: 3, brand_style_id: 976, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
+          { id: 4, brand_style_id: 976, type: 'brand', hex: '#0066CC', brightness: 40, created_at: '', updated_at: '' },
+        ],
+        fonts: [
+          { id: 1, brand_style_id: 976, type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
+          { id: 2, brand_style_id: 976, type: 'body', name: 'Open Sans', url: 'https://app.rule.io/fonts/2/css', created_at: '', updated_at: '' },
+        ],
+        images: [
+          { id: 1, brand_style_id: 976, type: 'logo', public_path: 'https://cdn.rule.io/logo.png', created_at: '', updated_at: '' },
+        ],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.brandStyleId).toBe('976');
+      expect(result.logoUrl).toBe('https://cdn.rule.io/logo.png');
+      expect(result.buttonColor).toBe('#FF0000');
+      expect(result.bodyBackgroundColor).toBe('#FAFAFA');
+      expect(result.sectionBackgroundColor).toBe('#FFFFFF');
+      expect(result.brandColor).toBe('#0066CC');
+      expect(result.headingFont).toBe("'Montserrat', sans-serif");
+      expect(result.headingFontUrl).toBe('https://app.rule.io/fonts/1/css');
+      expect(result.bodyFont).toBe("'Open Sans', sans-serif");
+      expect(result.bodyFontUrl).toBe('https://app.rule.io/fonts/2/css');
+      expect(result.textColor).toBe('#111111');
+    });
+
+    it('should use defaults for missing colours and fonts', () => {
+      const result = toBrandStyleConfig({
+        id: 100,
+        account_id: 1,
+        name: 'Minimal',
+        is_default: false,
+        colours: [],
+        fonts: [],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.brandStyleId).toBe('100');
+      expect(result.logoUrl).toBeUndefined();
+      expect(result.buttonColor).toBe('#333333');
+      expect(result.bodyBackgroundColor).toBe('#F5F5F5');
+      expect(result.brandColor).toBe('#333333');
+      expect(result.headingFont).toBe("'Helvetica', sans-serif");
+      expect(result.headingFontUrl).toBeUndefined();
+      expect(result.bodyFont).toBe("'Helvetica', sans-serif");
+      expect(result.bodyFontUrl).toBeUndefined();
+      expect(result.textColor).toBe('#0F0F1F');
+    });
+
+    it('should handle null arrays gracefully', () => {
+      const result = toBrandStyleConfig({
+        id: 200,
+        account_id: 1,
+        name: 'Null arrays',
+        is_default: false,
+        colours: null,
+        fonts: null,
+        images: null,
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.brandStyleId).toBe('200');
+      expect(result.logoUrl).toBeUndefined();
+      expect(result.headingFontUrl).toBeUndefined();
+    });
+
+    it('should fall back to first image when no logo type exists', () => {
+      const result = toBrandStyleConfig({
+        id: 300,
+        account_id: 1,
+        name: 'No logo type',
+        is_default: false,
+        images: [
+          { id: 1, brand_style_id: 300, type: 'icon', public_path: 'https://cdn.rule.io/icon.png', created_at: '', updated_at: '' },
+        ],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.logoUrl).toBe('https://cdn.rule.io/icon.png');
     });
   });
 

@@ -98,6 +98,7 @@ import type {
   RuleApiKeyResponse,
   RuleApiKeyListResponse,
 } from './types';
+import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createFooterSection } from './rcml/brand-template';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
 type QueryParamValues = Record<string, string | number | boolean | null | undefined>;
@@ -2211,6 +2212,7 @@ export class RuleClient {
    *
    * @example
    * ```typescript
+   * // Option 1: Provide a full RCML template
    * const result = await client.createAutomationEmail({
    *   name: 'Abandoned Cart',
    *   triggerType: 'tag',
@@ -2218,12 +2220,56 @@ export class RuleClient {
    *   subject: 'You left something behind!',
    *   template: createAbandonedCartEmail(config),
    * });
-   * // result.automailId, result.messageId, result.templateId
+   *
+   * // Option 2: Let the SDK build editor-compatible RCML from a brand style
+   * const result = await client.createAutomationEmail({
+   *   name: 'Welcome Email',
+   *   triggerType: 'tag',
+   *   triggerValue: 'Newsletter',
+   *   subject: 'Welcome!',
+   *   brandStyleId: 976,
+   *   sections: [mySection],
+   * });
    * ```
    */
   async createAutomationEmail(
     config: CreateAutomationEmailConfig
   ): Promise<CreateAutomationEmailResult> {
+    // Validate: must provide template or brandStyleId
+    if (!config.template && !config.brandStyleId) {
+      throw new RuleConfigError(
+        'createAutomationEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
+      );
+    }
+
+    // If brandStyleId provided, auto-fetch and build RCML
+    let resolvedTemplate = config.template;
+    if (!resolvedTemplate && config.brandStyleId) {
+      this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
+      const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+      if (!brandStyleResponse?.data) {
+        throw new RuleApiError(
+          `Brand style ${config.brandStyleId} not found.`,
+          404
+        );
+      }
+      const brandStyleConfig = toBrandStyleConfig(brandStyleResponse.data);
+
+      // Auto-build sections: logo (if available) + user sections + footer
+      const autoSections = [
+        ...(brandStyleConfig.logoUrl ? [createBrandLogo(brandStyleConfig.logoUrl)] : []),
+        ...(config.sections ?? []),
+        createFooterSection(),
+      ];
+
+      resolvedTemplate = createBrandTemplate({
+        brandStyle: brandStyleConfig,
+        preheader: config.preheader,
+        sections: autoSections,
+      });
+      this.log('Built editor-compatible RCML from brand style', config.brandStyleId);
+    }
+
     const createdResources: { type: 'automail' | 'message' | 'template'; id: number }[] = [];
 
     try {
@@ -2303,7 +2349,7 @@ export class RuleClient {
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: config.template,
+        template: resolvedTemplate!,
       });
 
       if (!templateResponse.data?.id) {

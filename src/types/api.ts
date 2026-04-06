@@ -175,7 +175,7 @@ export interface RuleMessageResponse extends RuleApiResponse {
 // v3 Editor API Types - Template
 // ============================================================================
 
-import type { RCMLDocument } from './rcml';
+import type { RCMLDocument, RCMLSection } from './rcml';
 
 /**
  * Template represents an RCML email template in Rule.io's new editor
@@ -1369,7 +1369,20 @@ export interface CreateAutomationEmailConfig {
    * - 2: Transactional (order confirmations, receipts, etc.) - DEFAULT
    */
   sendoutType?: RuleSendoutType;
-  template: RCMLDocument;
+  /**
+   * Full RCML template document. Provide this OR `brandStyleId`, not both.
+   */
+  template?: RCMLDocument;
+  /**
+   * Rule.io brand style ID. When provided (without `template`), the SDK
+   * auto-fetches the brand style and builds editor-compatible RCML.
+   */
+  brandStyleId?: number;
+  /**
+   * Body sections to include when using `brandStyleId`. If omitted,
+   * a single empty section is created as a placeholder.
+   */
+  sections?: RCMLSection[];
 }
 
 export interface CreateAutomationEmailResult {

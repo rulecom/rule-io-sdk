@@ -206,8 +206,8 @@ export function createDocWithPlaceholders(
 export interface BrandStyleConfig {
   /** Brand style ID from Rule.io */
   brandStyleId: string;
-  /** Logo URL */
-  logoUrl: string;
+  /** Logo URL (optional — some brand styles have no logo) */
+  logoUrl?: string;
   /** Button background color */
   buttonColor: string;
   /** Body background color */
@@ -218,14 +218,61 @@ export interface BrandStyleConfig {
   brandColor: string;
   /** Heading font family */
   headingFont: string;
-  /** Heading font URL */
-  headingFontUrl: string;
+  /** Heading font URL (optional — system fonts have no URL) */
+  headingFontUrl?: string;
   /** Body font family */
   bodyFont: string;
-  /** Body font URL */
-  bodyFontUrl: string;
+  /** Body font URL (optional — system fonts have no URL) */
+  bodyFontUrl?: string;
   /** Text color */
   textColor: string;
+}
+
+/**
+ * Convert a Rule.io brand style API response to a `BrandStyleConfig` for template building.
+ *
+ * This maps the API's colour/font/image arrays to the flat config object that
+ * `createBrandHead()` and `createBrandTemplate()` expect.
+ *
+ * @param data - Brand style object from `GET /api/v3/brand-styles/{id}`
+ * @returns A `BrandStyleConfig` ready for use with template builders
+ *
+ * @example
+ * ```typescript
+ * const brandStyle = await client.getBrandStyle(976);
+ * const config = toBrandStyleConfig(brandStyle);
+ * const doc = createBrandTemplate({ brandStyle: config, sections: [...] });
+ * ```
+ */
+export function toBrandStyleConfig(data: import('../types').RuleBrandStyle): BrandStyleConfig {
+  const colours = data.colours ?? [];
+  const fonts = data.fonts ?? [];
+  const images = data.images ?? [];
+
+  const findColour = (type: string): string | undefined =>
+    colours.find((c) => c.type === type)?.hex;
+  const findFont = (type: string) =>
+    fonts.find((f) => f.type === type);
+  const findImage = (type: string) =>
+    images.find((i) => i.type === type);
+
+  const titleFont = findFont('title');
+  const bodyFont = findFont('body');
+  const logoImage = findImage('logo') ?? images[0];
+
+  return {
+    brandStyleId: String(data.id),
+    logoUrl: logoImage?.public_path ?? undefined,
+    buttonColor: findColour('accent') ?? '#333333',
+    bodyBackgroundColor: findColour('light') ?? '#F5F5F5',
+    sectionBackgroundColor: '#FFFFFF',
+    brandColor: findColour('brand') ?? '#333333',
+    headingFont: titleFont ? `'${titleFont.name}', sans-serif` : "'Helvetica', sans-serif",
+    headingFontUrl: titleFont?.url ?? undefined,
+    bodyFont: bodyFont ? `'${bodyFont.name}', sans-serif` : "'Helvetica', sans-serif",
+    bodyFontUrl: bodyFont?.url ?? undefined,
+    textColor: findColour('dark') ?? '#0F0F1F',
+  };
 }
 
 /**
@@ -243,201 +290,82 @@ export function createBrandHead(
   const plainTextContent = options?.plainText
     ?? 'View this email in your browser: %Link:WebBrowser%\n\n---\nUnsubscribe: %Link:Unsubscribe%';
 
-  const sanitizedLogoUrl = sanitizeUrl(brandStyle.logoUrl);
-  if (!sanitizedLogoUrl) {
-    throw new RuleConfigError('createBrandHead: invalid or unsafe logoUrl');
+  // Validate logo URL if provided
+  let sanitizedLogoUrl: string | undefined;
+  if (brandStyle.logoUrl) {
+    sanitizedLogoUrl = sanitizeUrl(brandStyle.logoUrl);
+    if (!sanitizedLogoUrl) {
+      throw new RuleConfigError('createBrandHead: invalid or unsafe logoUrl');
+    }
   }
-  const sanitizedHeadingFontUrl = sanitizeUrl(brandStyle.headingFontUrl);
-  if (!sanitizedHeadingFontUrl) {
-    throw new RuleConfigError('createBrandHead: invalid or unsafe headingFontUrl');
+
+  // Validate font URLs if provided
+  let sanitizedHeadingFontUrl: string | undefined;
+  if (brandStyle.headingFontUrl) {
+    sanitizedHeadingFontUrl = sanitizeUrl(brandStyle.headingFontUrl);
+    if (!sanitizedHeadingFontUrl) {
+      throw new RuleConfigError('createBrandHead: invalid or unsafe headingFontUrl');
+    }
   }
-  const sanitizedBodyFontUrl = sanitizeUrl(brandStyle.bodyFontUrl);
-  if (!sanitizedBodyFontUrl) {
-    throw new RuleConfigError('createBrandHead: invalid or unsafe bodyFontUrl');
+  let sanitizedBodyFontUrl: string | undefined;
+  if (brandStyle.bodyFontUrl) {
+    sanitizedBodyFontUrl = sanitizeUrl(brandStyle.bodyFontUrl);
+    if (!sanitizedBodyFontUrl) {
+      throw new RuleConfigError('createBrandHead: invalid or unsafe bodyFontUrl');
+    }
+  }
+
+  // Build rc-attributes children
+  const attributeChildren: Array<Record<string, unknown>> = [
+    { tagName: 'rc-body', id: generateId(), attributes: { 'background-color': brandStyle.bodyBackgroundColor } },
+    { tagName: 'rc-section', id: generateId(), attributes: { 'background-color': brandStyle.sectionBackgroundColor } },
+    { tagName: 'rc-button', id: generateId(), attributes: { 'background-color': brandStyle.buttonColor } },
+  ];
+
+  if (sanitizedLogoUrl) {
+    attributeChildren.push({
+      tagName: 'rc-class', id: generateId(),
+      attributes: { name: 'rcml-logo-style', src: sanitizedLogoUrl },
+    });
+  }
+
+  attributeChildren.push(
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-brand-color', 'background-color': brandStyle.brandColor } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-p-style', 'font-family': brandStyle.bodyFont, 'font-size': '16px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h1-style', 'font-family': brandStyle.headingFont, 'font-size': '36px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h2-style', 'font-family': brandStyle.headingFont, 'font-size': '28px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h3-style', 'font-family': brandStyle.headingFont, 'font-size': '24px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h4-style', 'font-family': brandStyle.headingFont, 'font-size': '18px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: brandStyle.brandColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+  );
+
+  // Build head children
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RCML head children have varied shapes
+  const headChildren: Array<any> = [
+    { tagName: 'rc-brand-style', id: generateId(), attributes: { id: brandStyle.brandStyleId } },
+    { tagName: 'rc-attributes', id: generateId(), children: attributeChildren },
+    { tagName: 'rc-preview', id: generateId(), ...(options?.preheader ? { content: options.preheader } : {}) },
+    { tagName: 'rc-plain-text', id: generateId(), content: { type: 'text' as const, text: plainTextContent } },
+  ];
+
+  // Add font definitions only when URLs are available (system fonts don't need them)
+  if (sanitizedHeadingFontUrl) {
+    headChildren.push({
+      tagName: 'rc-font', id: generateId(),
+      attributes: { name: brandStyle.headingFont.split(',')[0].trim(), href: sanitizedHeadingFontUrl },
+    });
+  }
+  if (sanitizedBodyFontUrl) {
+    headChildren.push({
+      tagName: 'rc-font', id: generateId(),
+      attributes: { name: brandStyle.bodyFont.split(',')[0].trim(), href: sanitizedBodyFontUrl },
+    });
   }
 
   return {
     tagName: 'rc-head',
     id: generateId(),
-    children: [
-      // Brand style reference (required for editor)
-      {
-        tagName: 'rc-brand-style',
-        id: generateId(),
-        attributes: { id: brandStyle.brandStyleId },
-      },
-      // Full brand style attributes
-      {
-        tagName: 'rc-attributes',
-        id: generateId(),
-        children: [
-          // Body default
-          {
-            tagName: 'rc-body',
-            id: generateId(),
-            attributes: { 'background-color': brandStyle.bodyBackgroundColor },
-          },
-          // Section default
-          {
-            tagName: 'rc-section',
-            id: generateId(),
-            attributes: { 'background-color': brandStyle.sectionBackgroundColor },
-          },
-          // Button default
-          {
-            tagName: 'rc-button',
-            id: generateId(),
-            attributes: { 'background-color': brandStyle.buttonColor },
-          },
-          // Logo style class
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-logo-style',
-              src: sanitizedLogoUrl,
-            },
-          },
-          // Brand color class
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-brand-color',
-              'background-color': brandStyle.brandColor,
-            },
-          },
-          // Paragraph style
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-p-style',
-              'font-family': brandStyle.bodyFont,
-              'font-size': '16px',
-              color: brandStyle.textColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '400',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-          // H1 style
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-h1-style',
-              'font-family': brandStyle.headingFont,
-              'font-size': '36px',
-              color: brandStyle.textColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '700',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-          // H2 style
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-h2-style',
-              'font-family': brandStyle.headingFont,
-              'font-size': '28px',
-              color: brandStyle.textColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '700',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-          // H3 style
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-h3-style',
-              'font-family': brandStyle.headingFont,
-              'font-size': '24px',
-              color: brandStyle.textColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '700',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-          // H4 style
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-h4-style',
-              'font-family': brandStyle.headingFont,
-              'font-size': '18px',
-              color: brandStyle.textColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '700',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-          // Label style (for buttons)
-          {
-            tagName: 'rc-class',
-            id: generateId(),
-            attributes: {
-              name: 'rcml-label-style',
-              'font-family': brandStyle.bodyFont,
-              'font-size': '14px',
-              color: brandStyle.brandColor,
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              'font-weight': '400',
-              'font-style': 'normal',
-              'text-decoration': 'none',
-            },
-          },
-        ],
-      },
-      // Preview/preheader
-      {
-        tagName: 'rc-preview',
-        id: generateId(),
-        ...(options?.preheader ? { content: options.preheader } : {}),
-      },
-      // Plain text fallback
-      {
-        tagName: 'rc-plain-text',
-        id: generateId(),
-        content: {
-          type: 'text' as const,
-          text: plainTextContent,
-        },
-      },
-      // Font definitions
-      {
-        tagName: 'rc-font',
-        id: generateId(),
-        attributes: {
-          name: brandStyle.headingFont.split(',')[0].trim(),
-          href: sanitizedHeadingFontUrl,
-        },
-      },
-      {
-        tagName: 'rc-font',
-        id: generateId(),
-        attributes: {
-          name: brandStyle.bodyFont.split(',')[0].trim(),
-          href: sanitizedBodyFontUrl,
-        },
-      },
-    ],
+    children: headChildren,
   } as RCMLDocument['children'][0];
 }
 

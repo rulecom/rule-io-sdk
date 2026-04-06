@@ -236,6 +236,7 @@ export type {
 
 // Brand template utilities
 export {
+  toBrandStyleConfig,
   createBrandTemplate,
   createBrandHead,
   createBrandLogo,
