@@ -367,8 +367,6 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
-      // Note: trigger_type and trigger_value are no longer in createAutomail
-      // They must be set via updateAutomail after creation
       const result = await client.createAutomail({
         name: 'Test Automation',
       });
@@ -378,6 +376,28 @@ describe('RuleClient', () => {
       const [url, options] = mockFetch.mock.calls[0];
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
+    });
+
+    it('should create automail with trigger and sendout_type', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 456, name: 'Triggered Automation', trigger: { type: 'TAG', id: 42 } },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createAutomail({
+        name: 'Triggered Automation',
+        trigger: { type: 'TAG', id: 42 },
+        sendout_type: 2,
+      });
+
+      expect(result.data?.id).toBe(456);
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.name).toBe('Triggered Automation');
+      expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
+      expect(body.sendout_type).toBe(2);
     });
   });
 

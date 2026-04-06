@@ -10,10 +10,8 @@
  *    use "TAG" or "SEGMENT" (uppercase), not "tag" or "segment".
  *    The API error message incorrectly suggests lowercase.
  *
- * 2. **Two-step automail creation**: Cannot set trigger and sendout_type
- *    during creation. Must create first, then update:
- *    - POST /editor/automail (create)
- *    - PUT /editor/automail/{id} (add trigger + sendout_type)
+ * 2. **Automail creation accepts trigger on POST**: Trigger and sendout_type
+ *    can be set directly on POST /editor/automail. No separate update needed.
  *
  * 3. **Template names must be unique**: Add timestamp to avoid conflicts.
  *
@@ -610,9 +608,10 @@ export class RuleClient {
   // ==========================================================================
 
   /**
-   * Create an automail (automation workflow) in Rule.io
+   * Create an automail (automation workflow) in Rule.io.
+   * Trigger and sendout_type can be set directly on creation.
    *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail
+   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail/operation/AutomailCreate
    */
   async createAutomail(automail: RuleAutomailCreateRequest): Promise<RuleAutomailResponse> {
     return this.requestV3<RuleAutomailResponse>('/editor/automail', {
@@ -2228,22 +2227,45 @@ export class RuleClient {
     const createdResources: { type: 'automail' | 'message' | 'template'; id: number }[] = [];
 
     try {
-      // Step 0: Look up tag ID if trigger type is 'tag'
-      let tagId: number | null = null;
+      // Step 0: Resolve trigger ID
+      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
+      if ((config.triggerType === 'tag' || config.triggerType === 'segment') && !config.triggerValue) {
+        throw new RuleConfigError(
+          `triggerValue is required when triggerType is "${config.triggerType}".`
+        );
+      }
+
+      let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
       if (config.triggerType === 'tag' && config.triggerValue) {
-        tagId = await this.getTagIdByName(config.triggerValue);
+        const tagId = await this.getTagIdByName(config.triggerValue);
         if (!tagId) {
           throw new RuleApiError(
             `Tag "${config.triggerValue}" not found. Create it first or check the tag name.`,
             404
           );
         }
+        trigger = { type: 'TAG', id: tagId };
+      } else if (config.triggerType === 'segment' && config.triggerValue) {
+        const segmentId = parseInt(config.triggerValue, 10);
+        if (isNaN(segmentId)) {
+          throw new RuleApiError(
+            `Segment trigger value "${config.triggerValue}" must be a numeric ID.`,
+            400
+          );
+        }
+        trigger = { type: 'SEGMENT', id: segmentId };
+      } else if (config.triggerType === 'event') {
+        throw new RuleConfigError(
+          'triggerType "event" is not yet supported by createAutomationEmail(). Use "tag" or "segment".'
+        );
       }
 
-      // Step 1: Create automail
+      // Step 1: Create automail (trigger and sendout_type set independently)
       const automailResponse = await this.createAutomail({
         name: config.name,
         description: config.description,
+        sendout_type: config.sendoutType || 2, // Default to transactional
+        ...(trigger ? { trigger } : {}),
       });
 
       if (!automailResponse.data?.id) {
@@ -2251,20 +2273,6 @@ export class RuleClient {
       }
       const automailId = automailResponse.data.id;
       createdResources.push({ type: 'automail', id: automailId });
-
-      // Step 1b: Update automail with trigger and sendout type
-      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
-      if (tagId) {
-        await this.updateAutomail(automailId, {
-          name: config.name,
-          active: false,
-          trigger: {
-            type: 'TAG',
-            id: tagId,
-          },
-          sendout_type: config.sendoutType || 2, // Default to transactional
-        });
-      }
 
       // Step 2: Create message
       const messageResponse = await this.createMessage({
