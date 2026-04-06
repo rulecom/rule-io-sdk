@@ -88,7 +88,7 @@ export interface RuleAutomationTrigger {
 /**
  * @deprecated Use {@link RuleAutomationTrigger} instead.
  */
-export type RuleAutomailTrigger = RuleAutomationTrigger;
+export interface RuleAutomailTrigger extends RuleAutomationTrigger {}
 
 /**
  * Sendout type for an automation.
@@ -116,7 +116,7 @@ export interface RuleAutomation {
 /**
  * @deprecated Use {@link RuleAutomation} instead.
  */
-export type RuleAutomail = RuleAutomation;
+export interface RuleAutomail extends RuleAutomation {}
 
 export interface RuleAutomationCreateRequest {
   name: string;
@@ -128,7 +128,7 @@ export interface RuleAutomationCreateRequest {
 /**
  * @deprecated Use {@link RuleAutomationCreateRequest} instead.
  */
-export type RuleAutomailCreateRequest = RuleAutomationCreateRequest;
+export interface RuleAutomailCreateRequest extends RuleAutomationCreateRequest {}
 
 /**
  * Request to update an automation with trigger and sendout type.
@@ -147,7 +147,7 @@ export interface RuleAutomationUpdateRequest {
 /**
  * @deprecated Use {@link RuleAutomationUpdateRequest} instead.
  */
-export type RuleAutomailUpdateRequest = RuleAutomationUpdateRequest;
+export interface RuleAutomailUpdateRequest extends RuleAutomationUpdateRequest {}
 
 export interface RuleAutomationResponse extends RuleApiResponse {
   data?: RuleAutomation;
@@ -156,7 +156,7 @@ export interface RuleAutomationResponse extends RuleApiResponse {
 /**
  * @deprecated Use {@link RuleAutomationResponse} instead.
  */
-export type RuleAutomailResponse = RuleAutomationResponse;
+export interface RuleAutomailResponse extends RuleAutomationResponse {}
 
 // ============================================================================
 // v3 Editor API Types - Message
@@ -283,7 +283,7 @@ export interface RuleAutomationListParams extends RulePaginationParams {
 /**
  * @deprecated Use {@link RuleAutomationListParams} instead.
  */
-export type RuleAutomailListParams = RuleAutomationListParams;
+export interface RuleAutomailListParams extends RuleAutomationListParams {}
 
 export type RuleAutomationListResponse = RuleListResponse<RuleAutomation>;
 

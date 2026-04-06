@@ -283,9 +283,9 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(result).toBeDefined();
     });
 
-    // --- Message (requires automail ID) ---
+    // --- Message (requires automation ID) ---
 
-    it('should create a message linked to automail', async () => {
+    it('should create a message linked to automation', async () => {
       expect(automationId).toBeDefined();
       const result = await client.createMessage({
         dispatcher: {
@@ -311,7 +311,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       });
     });
 
-    it('should list messages for the automail', async () => {
+    it('should list messages for the automation', async () => {
       expect(automationId).toBeDefined();
       const result = await client.listMessages({
         id: automationId,
@@ -574,9 +574,9 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         expect(result.dynamicSetId).toBeGreaterThan(0);
 
         // Verify we can read each created resource
-        const automail = await client.getAutomation(result.automationId);
-        expect(automail).toBeDefined();
-        expect(automail.data?.id).toBe(result.automationId);
+        const automation = await client.getAutomation(result.automationId);
+        expect(automation).toBeDefined();
+        expect(automation.data?.id).toBe(result.automationId);
 
         const message = await client.getMessage(result.messageId);
         expect(message).toBeDefined();
