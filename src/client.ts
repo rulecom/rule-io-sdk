@@ -2248,6 +2248,10 @@ export class RuleClient {
           );
         }
         trigger = { type: 'SEGMENT', id: segmentId };
+      } else if (config.triggerType === 'event') {
+        throw new RuleConfigError(
+          'triggerType "event" is not yet supported by createAutomationEmail(). Use "tag" or "segment".'
+        );
       }
 
       // Step 1: Create automail (trigger and sendout_type set independently)
