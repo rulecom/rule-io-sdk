@@ -111,6 +111,8 @@ export interface RuleAutomail {
 export interface RuleAutomailCreateRequest {
   name: string;
   description?: string;
+  trigger?: RuleAutomailTrigger;
+  sendout_type?: RuleSendoutType;
 }
 
 /**
