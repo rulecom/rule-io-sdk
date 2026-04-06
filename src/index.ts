@@ -51,6 +51,7 @@ export type {
   RuleAutomationResponse,
   RuleAutomationListParams,
   RuleAutomationListResponse,
+  RuleSendoutType,
   // Deprecated aliases (backward compatibility)
   RuleAutomail,
   RuleAutomailTrigger,
