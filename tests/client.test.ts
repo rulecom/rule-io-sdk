@@ -381,7 +381,7 @@ describe('RuleClient', () => {
     it('should create automail with trigger and sendout_type', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 456, name: 'Triggered Automation', trigger: { type: 'TAG', id: 42 }, sendout_type: 2 },
+          data: { id: 456, name: 'Triggered Automation', trigger: { type: 'TAG', id: 42 } },
         })
       );
 

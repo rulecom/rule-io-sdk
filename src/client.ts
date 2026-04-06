@@ -2227,32 +2227,35 @@ export class RuleClient {
     const createdResources: { type: 'automail' | 'message' | 'template'; id: number }[] = [];
 
     try {
-      // Step 0: Look up tag ID if trigger type is 'tag'
-      let tagId: number | null = null;
+      // Step 0: Resolve trigger ID
+      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
+      let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
       if (config.triggerType === 'tag' && config.triggerValue) {
-        tagId = await this.getTagIdByName(config.triggerValue);
+        const tagId = await this.getTagIdByName(config.triggerValue);
         if (!tagId) {
           throw new RuleApiError(
             `Tag "${config.triggerValue}" not found. Create it first or check the tag name.`,
             404
           );
         }
+        trigger = { type: 'TAG', id: tagId };
+      } else if (config.triggerType === 'segment' && config.triggerValue) {
+        const segmentId = parseInt(config.triggerValue, 10);
+        if (isNaN(segmentId)) {
+          throw new RuleApiError(
+            `Segment trigger value "${config.triggerValue}" must be a numeric ID.`,
+            400
+          );
+        }
+        trigger = { type: 'SEGMENT', id: segmentId };
       }
 
-      // Step 1: Create automail (trigger and sendout_type included when tagId is present)
-      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
+      // Step 1: Create automail (trigger and sendout_type set independently)
       const automailResponse = await this.createAutomail({
         name: config.name,
         description: config.description,
-        ...(tagId
-          ? {
-              trigger: {
-                type: 'TAG',
-                id: tagId,
-              },
-              sendout_type: config.sendoutType || 2, // Default to transactional
-            }
-          : {}),
+        sendout_type: config.sendoutType || 2, // Default to transactional
+        ...(trigger ? { trigger } : {}),
       });
 
       if (!automailResponse.data?.id) {
