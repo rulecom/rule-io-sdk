@@ -1,0 +1,171 @@
+/**
+ * Shopify Automation Definitions
+ *
+ * Pre-configured automations for Shopify e-commerce flows.
+ * Each automation wires Shopify-specific field names and default
+ * English text into the generic e-commerce template builders.
+ *
+ * @see https://help.rule.io/en/articles/349484-shopify-integration
+ */
+
+import type { VendorAutomation, VendorConsumerConfig } from '../types';
+import { SHOPIFY_FIELDS } from './fields';
+import { SHOPIFY_TAGS } from './tags';
+import {
+  createOrderConfirmationEmail,
+  createShippingUpdateEmail,
+  createAbandonedCartEmail,
+} from '../../rcml';
+
+/** Default English text for Shopify order confirmation emails. */
+const ORDER_CONFIRMATION_TEXT = {
+  preheader: 'Your order has been confirmed!',
+  greeting: 'Hi',
+  intro: 'Thank you for your order. Here are the details:',
+  detailsHeading: 'Order Summary',
+  orderRefLabel: 'Order',
+  itemsLabel: 'Items',
+  totalLabel: 'Total',
+  shippingLabel: 'Shipping to',
+  ctaButton: 'View Order',
+  lineItemsHeading: 'Items Ordered',
+} as const;
+
+/** Default English text for Shopify shipping update / receipt emails. */
+const SHIPPING_UPDATE_TEXT = {
+  preheader: 'Your order is on its way!',
+  heading: 'Shipping Confirmation & Receipt',
+  greeting: 'Hi',
+  message: 'your order has been shipped!',
+  orderRefLabel: 'Order',
+  ctaButton: 'View Order',
+  // Receipt labels
+  orderDateLabel: 'Order date',
+  shippingAddressLabel: 'Shipping to',
+  lineItemsHeading: 'Items',
+  discountLabel: 'Discount',
+  taxLabel: 'Tax',
+  totalLabel: 'Total',
+  legalText: 'This email serves as your official receipt for this transaction.',
+} as const;
+
+/** Default English text for Shopify abandoned cart emails. */
+const ABANDONED_CART_TEXT = {
+  preheader: 'You left something behind!',
+  greeting: 'Hi',
+  message: 'It looks like you left some items in your cart.',
+  reminder: 'Complete your purchase before they sell out!',
+  ctaButton: 'Return to Cart',
+} as const;
+
+/**
+ * Create the full set of Shopify automation definitions.
+ *
+ * Each automation returns a {@link VendorAutomation} that delegates to
+ * the generic e-commerce template builders with Shopify field names
+ * and default English text.
+ */
+export function createShopifyAutomations(): VendorAutomation[] {
+  return [
+    {
+      id: 'shopify-order-confirmation',
+      name: 'Shopify Order Confirmation',
+      description: 'Sent when a Shopify order is completed',
+      triggerTag: SHOPIFY_TAGS.orderCompleted,
+      subject: 'Order Confirmed!',
+      preheader: ORDER_CONFIRMATION_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createOrderConfirmationEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          websiteUrl: config.websiteUrl,
+          footer: config.footer,
+          text: ORDER_CONFIRMATION_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
+            orderRef: SHOPIFY_FIELDS.orderNumber,
+            totalPrice: SHOPIFY_FIELDS.totalPrice,
+            // Optional fields — only include when mapped in customFields
+            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
+              items: SHOPIFY_FIELDS.products,
+              itemName: SHOPIFY_FIELDS.itemName,
+              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
+              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
+              shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
+            }),
+          },
+        }),
+    },
+    {
+      id: 'shopify-shipping-update',
+      name: 'Shopify Shipping Update',
+      description: 'Sent when a Shopify order is shipped',
+      triggerTag: SHOPIFY_TAGS.orderShipped,
+      subject: 'Your Order Has Shipped!',
+      preheader: SHIPPING_UPDATE_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createShippingUpdateEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          trackingUrl: config.websiteUrl,
+          footer: config.footer,
+          text: SHIPPING_UPDATE_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
+            orderRef: SHOPIFY_FIELDS.orderNumber,
+            // Receipt fields — only include when mapped in customFields
+            ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
+              orderDate: SHOPIFY_FIELDS.orderDate,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.currency] !== undefined && {
+              currency: SHOPIFY_FIELDS.currency,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.discount] !== undefined && {
+              discountAmount: SHOPIFY_FIELDS.discount,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalTax] !== undefined && {
+              taxAmount: SHOPIFY_FIELDS.totalTax,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
+              shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalPrice] !== undefined && {
+              totalPrice: SHOPIFY_FIELDS.totalPrice,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
+              items: SHOPIFY_FIELDS.products,
+              itemName: SHOPIFY_FIELDS.itemName,
+              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
+              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+              itemSku: SHOPIFY_FIELDS.itemSku,
+            }),
+          },
+        }),
+    },
+    {
+      id: 'shopify-abandoned-cart',
+      name: 'Shopify Abandoned Cart',
+      description: 'Sent when a cart is abandoned after a delay',
+      triggerTag: SHOPIFY_TAGS.cartInProgress,
+      delayInSeconds: '3600',
+      conditions: {
+        notHasTag: [SHOPIFY_TAGS.orderCompleted],
+      },
+      subject: 'You Left Something Behind!',
+      preheader: ABANDONED_CART_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createAbandonedCartEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          cartUrl: config.websiteUrl,
+          footer: config.footer,
+          text: ABANDONED_CART_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
+          },
+        }),
+    },
+  ];
+}
