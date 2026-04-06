@@ -71,36 +71,41 @@ export interface RuleTagsResponse extends RuleApiResponse {
 }
 
 // ============================================================================
-// v3 Editor API Types - Automail
+// v3 Editor API Types - Automation (formerly "Automail")
 // ============================================================================
 
 /**
- * Trigger configuration for an automail.
+ * Trigger configuration for an automation.
  * Note: The type field must be uppercase ("TAG" or "SEGMENT") despite
  * the API error messages suggesting lowercase.
  */
-export interface RuleAutomailTrigger {
+export interface RuleAutomationTrigger {
   type: 'TAG' | 'SEGMENT';
   id: number;
   name?: string;
 }
 
 /**
- * Sendout type for an automail.
+ * @deprecated Use {@link RuleAutomationTrigger} instead.
+ */
+export type RuleAutomailTrigger = RuleAutomationTrigger;
+
+/**
+ * Sendout type for an automation.
  * - 1: Campaign (marketing emails)
  * - 2: Transactional (order confirmations, receipts, etc.)
  */
 export type RuleSendoutType = 1 | 2;
 
 /**
- * Automail represents an automation workflow in Rule.io's new editor
+ * Automation represents an automation workflow in Rule.io's editor.
  */
-export interface RuleAutomail {
+export interface RuleAutomation {
   id?: number;
   name: string;
   description?: string;
   active?: boolean;
-  trigger?: RuleAutomailTrigger | null;
+  trigger?: RuleAutomationTrigger | null;
   sendout_type?: {
     value: number;
     key: string;
@@ -108,30 +113,50 @@ export interface RuleAutomail {
   };
 }
 
-export interface RuleAutomailCreateRequest {
+/**
+ * @deprecated Use {@link RuleAutomation} instead.
+ */
+export type RuleAutomail = RuleAutomation;
+
+export interface RuleAutomationCreateRequest {
   name: string;
   description?: string;
-  trigger?: RuleAutomailTrigger;
+  trigger?: RuleAutomationTrigger;
   sendout_type?: RuleSendoutType;
 }
 
 /**
- * Request to update an automail with trigger and sendout type.
+ * @deprecated Use {@link RuleAutomationCreateRequest} instead.
+ */
+export type RuleAutomailCreateRequest = RuleAutomationCreateRequest;
+
+/**
+ * Request to update an automation with trigger and sendout type.
  * The trigger.type must be uppercase ("TAG" or "SEGMENT").
  *
- * Tip: The `updateAutomail()` method accepts `Partial<RuleAutomailUpdateRequest>`
+ * Tip: The `updateAutomation()` method accepts `Partial<RuleAutomationUpdateRequest>`
  * so you can pass only the fields you want to change.
  */
-export interface RuleAutomailUpdateRequest {
+export interface RuleAutomationUpdateRequest {
   name: string;
   active: boolean;
-  trigger: RuleAutomailTrigger;
+  trigger: RuleAutomationTrigger;
   sendout_type: RuleSendoutType;
 }
 
-export interface RuleAutomailResponse extends RuleApiResponse {
-  data?: RuleAutomail;
+/**
+ * @deprecated Use {@link RuleAutomationUpdateRequest} instead.
+ */
+export type RuleAutomailUpdateRequest = RuleAutomationUpdateRequest;
+
+export interface RuleAutomationResponse extends RuleApiResponse {
+  data?: RuleAutomation;
 }
+
+/**
+ * @deprecated Use {@link RuleAutomationResponse} instead.
+ */
+export type RuleAutomailResponse = RuleAutomationResponse;
 
 // ============================================================================
 // v3 Editor API Types - Message
@@ -239,14 +264,14 @@ export interface RuleListResponse<T> extends RuleApiResponse {
 }
 
 /**
- * Query parameters for listing automails.
+ * Query parameters for listing automations.
  *
  * @example
  * ```typescript
- * const result = await client.listAutomails({ page: 1, per_page: 20, active: true });
+ * const result = await client.listAutomations({ page: 1, per_page: 20, active: true });
  * ```
  */
-export interface RuleAutomailListParams extends RulePaginationParams {
+export interface RuleAutomationListParams extends RulePaginationParams {
   /** Full-text search by name */
   query?: string;
   /** Filter by active status */
@@ -255,7 +280,17 @@ export interface RuleAutomailListParams extends RulePaginationParams {
   message_type?: 1 | 2;
 }
 
-export type RuleAutomailListResponse = RuleListResponse<RuleAutomail>;
+/**
+ * @deprecated Use {@link RuleAutomationListParams} instead.
+ */
+export type RuleAutomailListParams = RuleAutomationListParams;
+
+export type RuleAutomationListResponse = RuleListResponse<RuleAutomation>;
+
+/**
+ * @deprecated Use {@link RuleAutomationListResponse} instead.
+ */
+export type RuleAutomailListResponse = RuleAutomationListResponse;
 
 /**
  * Query parameters for listing messages.
@@ -1387,6 +1422,11 @@ export interface CreateAutomationEmailConfig {
 }
 
 export interface CreateAutomationEmailResult {
+  /** The automation (automail) ID. */
+  automationId: number;
+  /**
+   * @deprecated Use {@link automationId} instead.
+   */
   automailId: number;
   messageId: number;
   templateId: number;
