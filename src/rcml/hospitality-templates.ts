@@ -198,7 +198,7 @@ export function createReservationConfirmationEmail(config: ReservationTemplateCo
     preheader: text.preheader,
     sections: [
       // Logo
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       // Greeting
       createContentSection(
@@ -279,7 +279,7 @@ export function createReservationCancellationEmail(config: ReservationCancellati
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       createContentSection(
         [
@@ -401,7 +401,7 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
   }
 
   const sections: RCMLDocument['children'][1]['children'] = [
-    createBrandLogo(config.brandStyle.logoUrl),
+    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
     createContentSection(
       [
@@ -502,7 +502,7 @@ export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLD
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       createContentSection(
         [
@@ -585,7 +585,7 @@ export function createReservationRequestEmail(config: ReservationRequestConfig):
     brandStyle: config.brandStyle,
     preheader: text.preheader,
     sections: [
-      createBrandLogo(config.brandStyle.logoUrl),
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
       createContentSection(
         [

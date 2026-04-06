@@ -44,6 +44,8 @@ export type {
 
 // Brand template utilities
 export {
+  // Brand style converter
+  toBrandStyleConfig,
   // Template builder
   createBrandTemplate,
   // Head builder
