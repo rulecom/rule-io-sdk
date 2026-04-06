@@ -7,14 +7,14 @@ This feedback comes from building and maintaining [rule-io-sdk](https://github.c
 ## Critical: Breaks developer expectations
 
 ### 1. Trigger type must be UPPERCASE — but error messages say lowercase
-The automail trigger `type` field requires `"TAG"` / `"SEGMENT"`, but the API's own validation error message suggests lowercase values. This sends developers on a wild goose chase.
+The automail trigger `type` field requires `"TAG"` / `"SEGMENT"`, but the API's own validation error message suggests lowercase values. This leads to wasted debugging time and incorrect retry attempts.
 
 **Suggestion:** Accept case-insensitive values, or at minimum fix the error message.
 
 ### 2. Two-step automail creation
 You cannot set `trigger` or `sendout_type` when creating an automail — you must POST to create, then PUT to update. This forces every consumer to implement a two-step flow with rollback logic.
 
-**Suggestion:** Accept trigger and sendout_type in the POST creation payload.
+**Suggestion:** Accept `trigger` and `sendout_type` in the POST creation payload.
 
 ### 3. Tag triggers require numeric IDs, obtainable only via v2
 Automail triggers need a numeric tag ID, but the only way to resolve a tag name to an ID is `GET /api/v2/tags` (which returns ALL tags, with no search/filter). This creates a cross-version dependency and forces client-side filtering.
@@ -65,7 +65,7 @@ v2 accepts `application/json`; v3 requires `application/json;charset=utf-8`. Mos
 ## Medium: Rough edges
 
 ### 11. DELETE requests with JSON bodies
-`DELETE /suppressions/` and `DELETE /subscribers/tags` require JSON request bodies. Many HTTP clients and proxies strip bodies from DELETE requests per RFC 7231.
+`DELETE /suppressions/` and `DELETE /subscribers/tags` require JSON request bodies. DELETE request bodies have no generally defined semantics and are inconsistently supported across HTTP clients, servers, and intermediaries (see RFC 9110), which makes these endpoints less interoperable.
 
 **Suggestion:** Use `POST /suppressions/delete` or `POST /subscribers/tags/remove` patterns instead.
 
@@ -90,7 +90,7 @@ The filter accepts `'browser'` and `'received'` but never returns them. The resp
 **Suggestion:** Align the filter and response type enums, or document the mapping.
 
 ### 16. Dispatcher export: 1-day max date range (undocumented)
-The API silently fails or errors when the date range exceeds 1 day. This limit isn't in the docs.
+When the date range exceeds 1 day, the API exhibits inconsistent failure behavior instead of a clear, documented validation response. This limit isn't in the docs.
 
 **Suggestion:** Document the constraint and return a clear validation error with the allowed range.
 
@@ -107,7 +107,7 @@ Bulk operations (suppressions, block/unblock, bulk tags) return `204 No Content`
 The v2/v3 split forces SDK authors to maintain two request pipelines (different base URLs, headers, error formats, response shapes). A single API version covering all functionality would cut SDK complexity roughly in half.
 
 ### 19. OpenAPI spec parity
-The OpenAPI spec at `app.rule.io/redoc/api-v3.json` doesn't cover all endpoints and quirks documented above. A complete, accurate spec would enable auto-generated clients and reduce manual SDK maintenance.
+The OpenAPI spec at [app.rule.io/redoc/api-v3.json](https://app.rule.io/redoc/api-v3.json) doesn't cover all endpoints and quirks documented above. A complete, accurate spec would enable auto-generated clients and reduce manual SDK maintenance.
 
 ### 20. Idempotency keys
 For multi-step operations (automail creation = 5 API calls), an idempotency mechanism would prevent duplicate resources on retry after partial failure.
