@@ -2,6 +2,8 @@
 
 This feedback comes from building and maintaining [rule-io-sdk](https://github.com/rulecom/rule-io-sdk), a TypeScript SDK wrapping the Rule.io v2 and v3 APIs. Every item below is a real friction point we worked around in code. The goal is to help the Rule.io API team prioritize improvements for the next major version.
 
+> **Note:** Endpoint paths below include the versioned prefix (`/api/v2/…` or `/api/v3/…`) for clarity.
+
 ---
 
 ## Critical: Breaks developer expectations
@@ -22,7 +24,7 @@ Automail triggers need a numeric tag ID, but the only way to resolve a tag name 
 **Suggestion:** Accept tag names in triggers, or add a v3 tag lookup endpoint with filtering.
 
 ### 4. `phone_number` in requests, `phone` in responses
-`POST /subscribers` accepts `phone_number` but the response body returns `phone`. This asymmetry forces SDK authors to maintain separate request/response types for the same resource.
+`POST /api/v3/subscribers` accepts `phone_number` but the response body returns `phone`. This asymmetry forces SDK authors to maintain separate request/response types for the same resource.
 
 **Suggestion:** Use one consistent field name in both directions.
 
@@ -40,13 +42,13 @@ v3 validation errors sometimes return `{ errors: { field: ["msg"] } }` and somet
 
 **Suggestion:** Always return arrays for validation error values.
 
-### 7. v2 `/subscriber/` (singular) vs `/subscribers/` (plural)
-Field retrieval uses `GET /subscriber/{email}/fields` while every other subscriber endpoint uses `/subscribers/`. Easy to get wrong.
+### 7. v2 `/api/v2/subscriber/` (singular) vs `/api/v2/subscribers/` (plural)
+Field retrieval uses `GET /api/v2/subscriber/{email}/fields` while every other subscriber endpoint uses `/api/v2/subscribers/`. Easy to get wrong.
 
 **Suggestion:** Support both forms, or consolidate on the plural.
 
 ### 8. v2 `subscribers` payload is an object, not an array
-`POST /subscribers` expects `{ subscribers: { email, fields } }` — singular object despite the plural key. Tags go at the top level instead of inside the subscriber object.
+`POST /api/v2/subscribers` expects `{ subscribers: { email, fields } }` — singular object despite the plural key. Tags go at the top level instead of inside the subscriber object.
 
 **Suggestion:** For v3+, use `{ subscriber: {...}, tags: [...] }` or nest tags inside the subscriber.
 
@@ -65,12 +67,12 @@ v2 accepts `application/json`; v3 requires `application/json;charset=utf-8`. Mos
 ## Medium: Rough edges
 
 ### 11. DELETE requests with JSON bodies
-`DELETE /suppressions/` and `DELETE /subscribers/tags` require JSON request bodies. DELETE request bodies have no generally defined semantics and are inconsistently supported across HTTP clients, servers, and intermediaries (see RFC 9110), which makes these endpoints less interoperable.
+`DELETE /api/v3/suppressions/` and `DELETE /api/v3/subscribers/tags` require JSON request bodies. DELETE request bodies have no generally defined semantics and are inconsistently supported across HTTP clients, servers, and intermediaries (see RFC 9110), which makes these endpoints less interoperable.
 
 **Suggestion:** Use `POST /suppressions/delete` or `POST /subscribers/tags/remove` patterns instead.
 
 ### 12. No batch tag removal in v2
-Removing N tags from a subscriber requires N separate `DELETE` calls. The SDK parallelizes them, but it's wasteful.
+Removing N tags from a subscriber requires N separate `DELETE /api/v2/subscribers/{email}/tags/{tag}` calls. The SDK parallelizes them, but it's wasteful.
 
 **Suggestion:** Add a batch tag removal endpoint (v3 has `bulkRemoveTags` but it's subscriber-scoped differently).
 
