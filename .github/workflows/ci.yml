@@ -1,0 +1,62 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.claude/**'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.claude/**'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build (CJS + ESM)
+        run: npm run build
+
+      - name: Verify dist outputs exist
+        run: |
+          test -f dist/index.js || (echo "Missing dist/index.js (CJS)" && exit 1)
+          test -f dist/index.mjs || (echo "Missing dist/index.mjs (ESM)" && exit 1)
+          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts (types)" && exit 1)
+          echo "All dist outputs present"
+
+      - name: Check bundle has no dependencies
+        run: |
+          # Verify no node_modules are bundled
+          if grep -r "require(" dist/index.js | grep -v "require(\"node:" | grep "node_modules"; then
+            echo "ERROR: External dependencies found in bundle"
+            exit 1
+          fi
+          echo "No external dependencies in bundle"
