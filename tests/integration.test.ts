@@ -529,10 +529,11 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         segments: [],
         subscribers: [],
       });
-      const deletedCampaignId = created.data!.id;
-      await client.deleteCampaign(deletedCampaignId);
+      campaignId = created.data!.id;
+      await client.deleteCampaign(campaignId);
+      campaignId = 0;
 
-      const result = await client.getCampaign(deletedCampaignId);
+      const result = await client.getCampaign(created.data!.id);
       expect(result).toBeNull();
     });
 
@@ -550,9 +551,9 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       try {
         const copy = await client.copyCampaign(sourceId);
+        campaignId = copy.data?.id ?? 0;
         expect(copy.data).toBeDefined();
         expect(copy.data!.id).not.toBe(sourceId);
-        campaignId = copy.data!.id;
       } finally {
         // Clean up source campaign
         await client.deleteCampaign(sourceId).catch((e: unknown) => {
