@@ -457,7 +457,10 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     afterEach(async () => {
       if (!campaignId) return;
-      await client.deleteCampaign(campaignId).catch(() => {});
+      await client.deleteCampaign(campaignId).catch((e: unknown) => {
+        if (e instanceof RuleApiError && e.isNotFound()) return;
+        throw e;
+      });
       campaignId = 0;
     });
 
@@ -552,7 +555,10 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         campaignId = copy.data!.id;
       } finally {
         // Clean up source campaign
-        await client.deleteCampaign(sourceId).catch(() => {});
+        await client.deleteCampaign(sourceId).catch((e: unknown) => {
+          if (e instanceof RuleApiError && e.isNotFound()) return;
+          throw e;
+        });
       }
     });
   });
