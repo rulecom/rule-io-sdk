@@ -445,6 +445,7 @@ describe('RuleClient', () => {
         (id: number) => client.getMessage(id),
         (id: number) => client.getTemplate(id),
         (id: number) => client.getDynamicSet(id),
+        (id: number) => client.getCampaign(id),
       ];
 
       for (const getMethod of getMethods) {
@@ -1141,6 +1142,152 @@ describe('RuleClient', () => {
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
       expect(body.type).toBeNull();
+    });
+
+    it('should create a campaign with minimal fields (message_type only)', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 20, name: null, message_type: 1 },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createCampaign({ message_type: 1 });
+
+      expect(result.data?.id).toBe(20);
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({ message_type: 1 });
+    });
+
+    it('should create a campaign with all recipient types', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 21, name: 'Full Recipients' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.createCampaign({
+        message_type: 1,
+        sendout_type: 1,
+        tags: [
+          { id: 1, negative: false },
+          { id: 2, negative: true },
+        ],
+        segments: [{ id: 10, negative: false }],
+        subscribers: ['user@example.com'],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.tags).toHaveLength(2);
+      expect(body.tags[1].negative).toBe(true);
+      expect(body.segments).toEqual([{ id: 10, negative: false }]);
+      expect(body.subscribers).toEqual(['user@example.com']);
+    });
+
+    it('should create a text message campaign', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 22, message_type: 2 },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.createCampaign({ message_type: 2 });
+
+      expect(result.data?.id).toBe(22);
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body.message_type).toBe(2);
+    });
+
+    it('should handle empty campaign list', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listCampaigns();
+
+      expect(result.data).toEqual([]);
+    });
+
+    it('should list campaigns with only page params', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listCampaigns({ page: 1, per_page: 5 });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('page=1');
+      expect(url).toContain('per_page=5');
+      expect(url).not.toContain('message_type');
+    });
+
+    it('should update a campaign with recipients only', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 10, name: 'Sale' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.updateCampaign(10, {
+        tags: [{ id: 99, negative: false }],
+        subscribers: ['a@b.com'],
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(body).toEqual({
+        tags: [{ id: 99, negative: false }],
+        subscribers: ['a@b.com'],
+      });
+      expect(body).not.toHaveProperty('name');
+      expect(body).not.toHaveProperty('sendout_type');
+      expect(body).not.toHaveProperty('segments');
+    });
+
+    it('should throw RuleApiError on 401 for createCampaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
+
+      const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
+      await expect(client.createCampaign({ message_type: 1 })).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on 429 rate limit for listCampaigns', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Rate limited' }, 429));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.listCampaigns();
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        expect((error as RuleApiError).isRateLimited()).toBe(true);
+      }
+    });
+
+    it('should throw RuleApiError on 500 for updateCampaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(client.updateCampaign(10, { name: 'Fail' })).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on 500 for deleteCampaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(client.deleteCampaign(10)).rejects.toThrow(RuleApiError);
+    });
+
+    it('should throw RuleApiError on 500 for copyCampaign', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(client.copyCampaign(10)).rejects.toThrow(RuleApiError);
     });
   });
 

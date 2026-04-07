@@ -453,9 +453,93 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   // ==========================================================================
 
   describe('v3 Campaigns API', () => {
+    let campaignId = 0;
+
+    afterEach(async () => {
+      if (!campaignId) return;
+      await client.deleteCampaign(campaignId).catch(() => {});
+      campaignId = 0;
+    });
+
     it('should list campaigns', async () => {
       const result = await client.listCampaigns();
       expect(result).toBeDefined();
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it('should list campaigns with pagination', async () => {
+      const result = await client.listCampaigns({ page: 1, per_page: 5 });
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it('should list campaigns filtered by message_type', async () => {
+      const result = await client.listCampaigns({ message_type: 1 });
+      expect(result).toBeDefined();
+      expect(Array.isArray(result.data)).toBe(true);
+    });
+
+    it('should create, get, update, and delete a campaign', async () => {
+      // Create
+      const created = await client.createCampaign({
+        message_type: 1,
+        name: `Integration Campaign ${RUN_ID}`,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+      expect(created.data).toBeDefined();
+      expect(created.data!.id).toBeGreaterThan(0);
+      campaignId = created.data!.id;
+
+      // Get
+      const fetched = await client.getCampaign(campaignId);
+      expect(fetched).not.toBeNull();
+      expect(fetched!.data!.id).toBe(campaignId);
+
+      // Update
+      const updated = await client.updateCampaign(campaignId, {
+        name: `Updated Campaign ${RUN_ID}`,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+      expect(updated.data).toBeDefined();
+
+      // Delete (afterEach handles cleanup, but test the return value)
+      const deleted = await client.deleteCampaign(campaignId);
+      expect(deleted).toBeDefined();
+      campaignId = 0; // prevent afterEach double-delete
+    });
+
+    it('should return null for non-existent campaign', async () => {
+      const result = await client.getCampaign(999999999);
+      expect(result).toBeNull();
+    });
+
+    it('should copy a campaign', async () => {
+      // Create a source campaign
+      const source = await client.createCampaign({
+        message_type: 1,
+        name: `Copy Source ${RUN_ID}`,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+      const sourceId = source.data!.id;
+
+      try {
+        const copy = await client.copyCampaign(sourceId);
+        expect(copy.data).toBeDefined();
+        expect(copy.data!.id).not.toBe(sourceId);
+        campaignId = copy.data!.id;
+      } finally {
+        // Clean up source campaign
+        await client.deleteCampaign(sourceId).catch(() => {});
+      }
     });
   });
 
