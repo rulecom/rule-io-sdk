@@ -451,12 +451,14 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 /**
  * Create a logo element using brand style.
  *
- * The URL is validated but not set as `src` on the `rc-logo` element —
- * the editor resolves the logo source via `rc-class: rcml-logo-style`,
- * which is defined in the head by {@link createBrandHead}. This matches
- * the RCML structure the Rule.io visual editor produces.
+ * This function validates `logoUrl` for safety and creates the body `rc-logo`
+ * node, but it does not set that URL as `src` on the element. The editor
+ * resolves the displayed logo via `rc-class: rcml-logo-style`, using the
+ * brand style defined in the document head by {@link createBrandHead}. To
+ * affect the rendered logo, the same URL must also be configured in
+ * `BrandStyleConfig.logoUrl`.
  *
- * @param logoUrl - Logo URL (validated for safety; used by the brand head's logo style)
+ * @param logoUrl - Logo URL to validate before creating the logo body node
  */
 export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
   const sanitizedSrc = sanitizeUrl(logoUrl);
