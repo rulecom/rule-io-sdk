@@ -423,7 +423,10 @@ const result = await client.createCampaignEmail({
   brandStyleId: 12345,
   tags: [{ id: 1, negative: false }],
 });
+console.log('Created:', result.campaignId, result.messageId, result.templateId);
+```
 
+```typescript
 // Or provide a full RCML template
 const result = await client.createCampaignEmail({
   name: 'Spring Sale',
@@ -431,8 +434,6 @@ const result = await client.createCampaignEmail({
   template: myRCMLDocument,
   segments: [{ id: 42, negative: false }],
 });
-
-console.log('Created:', result.campaignId, result.messageId, result.templateId);
 ```
 
 The helper handles the full 4-step process (campaign → message → template → dynamic set) and cleans up on failure.
@@ -463,7 +464,10 @@ const result = await client.createAutomationEmail({
   subject: 'Your order is confirmed!',
   brandStyleId: 12345,
 });
+console.log('Created:', result.automationId, result.messageId, result.templateId);
+```
 
+```typescript
 // Or provide a full RCML template
 const result = await client.createAutomationEmail({
   name: 'Order Confirmation',
@@ -472,8 +476,6 @@ const result = await client.createAutomationEmail({
   subject: 'Your order is confirmed!',
   template: email, // any RCMLDocument
 });
-
-console.log('Created:', result.automationId, result.messageId, result.templateId);
 ```
 
 The high-level `createAutomationEmail` helper handles the full 4-step process (automation → message → template → dynamic set) and cleans up on failure.

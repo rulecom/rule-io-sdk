@@ -1415,7 +1415,7 @@ export interface CreateAutomationEmailConfig {
   brandStyleId?: number;
   /**
    * RCML body children to include when using `brandStyleId`. Supports
-   * sections, loops, and switch blocks. If omitted, a default
+   * sections, loops, and switch blocks. If omitted or empty, a default
    * placeholder content section is added automatically.
    */
   sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
@@ -1463,7 +1463,7 @@ export interface CreateCampaignEmailConfig {
   template?: RCMLDocument;
   /** Brand style ID to auto-build editor-compatible RCML. */
   brandStyleId?: number;
-  /** RCML body sections when using `brandStyleId`. Defaults to placeholder content. */
+  /** RCML body sections when using `brandStyleId`. Defaults to placeholder content when omitted or empty. */
   sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
 }
 
