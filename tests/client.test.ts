@@ -2817,8 +2817,8 @@ describe('RuleClient', () => {
       const result = await client.createCampaignEmail({
         name: 'Welcome Campaign',
         subject: 'Welcome!',
-        recipients: { tags: ['Newsletter'] },
         brandStyleId: 976,
+        tags: [{ id: 42, negative: false }],
       });
 
       expect(result.campaignId).toBe(100);
