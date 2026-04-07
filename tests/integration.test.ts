@@ -517,7 +517,19 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     });
 
     it('should return null for non-existent campaign', async () => {
-      const result = await client.getCampaign(999999999);
+      // Create then delete to get a guaranteed-missing ID
+      const created = await client.createCampaign({
+        message_type: 1,
+        name: `Deleted Campaign ${RUN_ID}`,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+      const deletedCampaignId = created.data!.id;
+      await client.deleteCampaign(deletedCampaignId);
+
+      const result = await client.getCampaign(deletedCampaignId);
       expect(result).toBeNull();
     });
 
