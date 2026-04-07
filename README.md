@@ -614,22 +614,22 @@ const myFields: CustomFieldMap = {
 
 #### BrandStyleConfig Reference
 
-All fields are **required** unless noted. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontUrl`) must be valid `http://` or `https://` URLs — empty strings or invalid URLs will throw `RuleConfigError`.
+All fields are **required** unless noted as optional. Optional URL fields, if provided and non-empty, must be valid `http://` or `https://` URLs — invalid URLs will throw `RuleConfigError`.
 
 | Field | Type | Description |
 |---|---|---|
 | `brandStyleId` | `string` | Brand style ID from Rule.io |
-| `logoUrl` | `string` | Logo image URL (must be valid http/https) |
+| `logoUrl` | `string?` | Logo image URL (optional — some brand styles have no logo) |
 | `buttonColor` | `string` | CTA button background color (hex) |
 | `bodyBackgroundColor` | `string` | Email body background color (hex) |
 | `sectionBackgroundColor` | `string` | Content section background color (hex) |
 | `brandColor` | `string` | Accent/brand color used for detail sections (hex) |
 | `headingFont` | `string` | Heading font family CSS value |
-| `headingFontUrl` | `string` | Heading font CSS URL (must be valid http/https) |
+| `headingFontUrl` | `string?` | Heading font CSS URL (optional — system fonts have no URL) |
 | `bodyFont` | `string` | Body font family CSS value |
-| `bodyFontUrl` | `string` | Body font CSS URL (must be valid http/https) |
+| `bodyFontUrl` | `string?` | Body font CSS URL (optional — system fonts have no URL) |
 | `textColor` | `string` | Default text color (hex) |
-| `socialLinks` | `Array<{ name, href }>` | Social media links (optional) |
+| `socialLinks` | `Array<{ name, href }>?` | Social media links (optional) |
 
 > **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `brandStyleId` with `createCampaignEmail()` or `createAutomationEmail()` and the SDK builds it automatically via `toBrandStyleConfig()`.
 
