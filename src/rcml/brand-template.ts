@@ -451,7 +451,12 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 /**
  * Create a logo element using brand style.
  *
- * @param logoUrl - Direct logo URL for the logo image.
+ * The URL is validated but not set as `src` on the `rc-logo` element —
+ * the editor resolves the logo source via `rc-class: rcml-logo-style`,
+ * which is defined in the head by {@link createBrandHead}. This matches
+ * the RCML structure the Rule.io visual editor produces.
+ *
+ * @param logoUrl - Logo URL (validated for safety; used by the brand head's logo style)
  */
 export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
   const sanitizedSrc = sanitizeUrl(logoUrl);
@@ -838,7 +843,7 @@ export function createFooterSection(
             attributes: {
               align: 'center',
               padding: '10px 0px 0px 0px',
-              'font-family': "'Helvetica',   sans-serif",
+              'font-family': "'Helvetica', sans-serif",
               'font-style': 'normal',
               'line-height': '120%',
               'letter-spacing': '0em',
@@ -846,7 +851,6 @@ export function createFooterSection(
               'font-weight': '400',
               'text-decoration': 'none',
               'font-size': fontSize,
-              'rc-class': 'rcml-p-style',
             },
             content: {
               type: 'doc',
