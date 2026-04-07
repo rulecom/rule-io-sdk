@@ -1415,8 +1415,8 @@ export interface CreateAutomationEmailConfig {
   brandStyleId?: number;
   /**
    * RCML body children to include when using `brandStyleId`. Supports
-   * sections, loops, and switch blocks. If omitted,
-   * no sections are added automatically.
+   * sections, loops, and switch blocks. If omitted, a default
+   * placeholder content section is added automatically.
    */
   sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
 }
