@@ -411,11 +411,60 @@ await client.deleteCustomFieldDataByGroup(subscriberId, 'Order');
 
 ---
 
+## Campaign Emails
+
+Create complete campaign emails with the high-level helper:
+
+```typescript
+// Easiest: auto-build editor-compatible template from a brand style
+const result = await client.createCampaignEmail({
+  name: 'Spring Sale',
+  subject: 'Spring deals are here!',
+  brandStyleId: 12345,
+  tags: [{ tag_id: 1, exclude: false }],
+});
+
+// Or provide a full RCML template
+const result = await client.createCampaignEmail({
+  name: 'Spring Sale',
+  subject: 'Spring deals are here!',
+  template: myRCMLDocument,
+  segments: [{ segment_id: 42, negative: false }],
+});
+
+console.log('Created:', result.campaignId, result.messageId, result.templateId);
+```
+
+The helper handles the full 4-step process (campaign → message → template → dynamic set) and cleans up on failure.
+
+### Return Value
+
+```typescript
+interface CreateCampaignEmailResult {
+  campaignId: number;
+  messageId: number;
+  templateId: number;
+  dynamicSetId: number;
+}
+```
+
+---
+
 ## Automation Workflows
 
 Create complete email automations triggered by tags using the high-level helper:
 
 ```typescript
+// Easiest: auto-build editor-compatible template from a brand style
+const result = await client.createAutomationEmail({
+  name: 'Order Confirmation',
+  triggerType: 'tag',
+  triggerValue: 'order-confirmed',
+  subject: 'Your order is confirmed!',
+  brandStyleId: 12345,
+});
+
+// Or provide a full RCML template
 const result = await client.createAutomationEmail({
   name: 'Order Confirmation',
   triggerType: 'tag',
@@ -428,6 +477,27 @@ console.log('Created:', result.automationId, result.messageId, result.templateId
 ```
 
 The high-level `createAutomationEmail` helper handles the full 4-step process (automation → message → template → dynamic set) and cleans up on failure.
+
+### Brand Style Templates
+
+Both `createCampaignEmail` and `createAutomationEmail` accept a `brandStyleId` option. When provided (without `template`), the SDK:
+
+1. Fetches the brand style from the Rule.io API
+2. Builds an editor-compatible RCML template with logo, social links, default content, and footer
+3. The resulting template is fully editable in the Rule.io visual editor
+
+You can also pass custom `sections` to replace the default placeholder content:
+
+```typescript
+const result = await client.createAutomationEmail({
+  name: 'Welcome',
+  triggerType: 'tag',
+  triggerValue: 'new-subscriber',
+  subject: 'Welcome aboard!',
+  brandStyleId: 12345,
+  sections: [myCustomSection], // replaces default placeholder content
+});
+```
 
 ### Prerequisites
 
@@ -557,10 +627,19 @@ All fields are **required**. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontU
 | `bodyFont` | `string` | Body font family CSS value |
 | `bodyFontUrl` | `string` | Body font CSS URL (must be valid http/https) |
 | `textColor` | `string` | Default text color (hex) |
+| `socialLinks` | `Array<{ name, href }>` | Social media links (optional) |
 
-**Mapping from the `/brand-styles/from-domain` API response:**
+> **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `brandStyleId` with `createCampaignEmail()` or `createAutomationEmail()` and the SDK builds it automatically via `toBrandStyleConfig()`.
+
+**Manual mapping from the `/brand-styles/from-domain` API response:**
 
 ```typescript
+import { toBrandStyleConfig } from 'rule-io-sdk';
+
+// Automatic (recommended)
+const brandStyle = toBrandStyleConfig(apiResponse.data);
+
+// Or manual
 const brandStyle: BrandStyleConfig = {
   brandStyleId: String(apiResponse.data.id),
   logoUrl: apiResponse.data.images[0],
