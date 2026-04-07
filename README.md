@@ -4,7 +4,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 
 ## Features
 
-- **Full API Coverage** — v2 + v3 Subscriber API and v3 API (77 methods)
+- **Full API Coverage** — v2 + v3 Subscriber API and v3 API (81 methods)
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
@@ -195,7 +195,7 @@ await client.deleteSuppressions({
 
 ### Editor Resources
 
-Low-level CRUD for the v3 editor API. These are the building blocks used by `createAutomationEmail()`.
+Low-level CRUD for the v3 editor API. These are the building blocks used by `createCampaignEmail()` and `createAutomationEmail()`.
 
 #### Automations (Automation Workflows)
 
@@ -421,7 +421,7 @@ const result = await client.createCampaignEmail({
   name: 'Spring Sale',
   subject: 'Spring deals are here!',
   brandStyleId: 12345,
-  tags: [{ tag_id: 1, exclude: false }],
+  tags: [{ id: 1, negative: false }],
 });
 
 // Or provide a full RCML template
@@ -429,7 +429,7 @@ const result = await client.createCampaignEmail({
   name: 'Spring Sale',
   subject: 'Spring deals are here!',
   template: myRCMLDocument,
-  segments: [{ segment_id: 42, negative: false }],
+  segments: [{ id: 42, negative: false }],
 });
 
 console.log('Created:', result.campaignId, result.messageId, result.templateId);
@@ -612,7 +612,7 @@ const myFields: CustomFieldMap = {
 
 #### BrandStyleConfig Reference
 
-All fields are **required**. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontUrl`) must be valid `http://` or `https://` URLs — empty strings or invalid URLs will throw `RuleConfigError`.
+All fields are **required** unless noted. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontUrl`) must be valid `http://` or `https://` URLs — empty strings or invalid URLs will throw `RuleConfigError`.
 
 | Field | Type | Description |
 |---|---|---|
@@ -631,29 +631,17 @@ All fields are **required**. URL fields (`logoUrl`, `headingFontUrl`, `bodyFontU
 
 > **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `brandStyleId` with `createCampaignEmail()` or `createAutomationEmail()` and the SDK builds it automatically via `toBrandStyleConfig()`.
 
-**Manual mapping from the `/brand-styles/from-domain` API response:**
+**Automatic mapping from the brand style API response:**
 
 ```typescript
 import { toBrandStyleConfig } from 'rule-io-sdk';
 
-// Automatic (recommended)
-const brandStyle = toBrandStyleConfig(apiResponse.data);
-
-// Or manual
-const brandStyle: BrandStyleConfig = {
-  brandStyleId: String(apiResponse.data.id),
-  logoUrl: apiResponse.data.images[0],
-  buttonColor: apiResponse.data.colours[0],
-  brandColor: apiResponse.data.colours[0],
-  bodyBackgroundColor: apiResponse.data.colours[1] ?? '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  headingFont: apiResponse.data.fonts[0],
-  headingFontUrl: apiResponse.data.font_urls[0],
-  bodyFont: apiResponse.data.fonts[0],
-  bodyFontUrl: apiResponse.data.font_urls[1] ?? apiResponse.data.font_urls[0],
-  textColor: apiResponse.data.text_color ?? '#1A1A1A',
-};
+// Fetch a brand style and convert to BrandStyleConfig
+const response = await client.getBrandStyle(12345);
+const brandStyle = toBrandStyleConfig(response.data!);
 ```
+
+`toBrandStyleConfig` extracts colours, fonts, images, and social links from the full `RuleBrandStyle` object. This is what `createCampaignEmail` and `createAutomationEmail` use internally when you pass `brandStyleId`.
 
 #### CustomFieldMap and Validation
 
