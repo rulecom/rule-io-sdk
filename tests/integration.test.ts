@@ -499,18 +499,20 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       expect(fetched!.data!.id).toBe(campaignId);
 
       // Update
+      const updatedName = `Updated Campaign ${RUN_ID}`;
       const updated = await client.updateCampaign(campaignId, {
-        name: `Updated Campaign ${RUN_ID}`,
+        name: updatedName,
         sendout_type: 1,
         tags: [],
         segments: [],
         subscribers: [],
       });
       expect(updated.data).toBeDefined();
+      expect(updated.data!.name).toBe(updatedName);
 
       // Delete (afterEach handles cleanup, but test the return value)
       const deleted = await client.deleteCampaign(campaignId);
-      expect(deleted).toBeDefined();
+      expect(deleted.success).toBe(true);
       campaignId = 0; // prevent afterEach double-delete
     });
 

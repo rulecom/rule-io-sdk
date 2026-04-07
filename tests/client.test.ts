@@ -1147,7 +1147,11 @@ describe('RuleClient', () => {
     it('should create a campaign with minimal fields (message_type only)', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 20, name: null, message_type: 1 },
+          data: {
+            id: 20,
+            name: 'Untitled',
+            message_type: { value: 1, key: 'email', description: 'Email' },
+          },
         })
       );
 
@@ -1175,20 +1179,23 @@ describe('RuleClient', () => {
           { id: 2, negative: true },
         ],
         segments: [{ id: 10, negative: false }],
-        subscribers: ['user@example.com'],
+        subscribers: [101, 202],
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body.tags).toHaveLength(2);
       expect(body.tags[1].negative).toBe(true);
       expect(body.segments).toEqual([{ id: 10, negative: false }]);
-      expect(body.subscribers).toEqual(['user@example.com']);
+      expect(body.subscribers).toEqual([101, 202]);
     });
 
     it('should create a text message campaign', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 22, message_type: 2 },
+          data: {
+            id: 22,
+            message_type: { value: 2, key: 'text_message', description: 'Text Message' },
+          },
         })
       );
 
@@ -1231,13 +1238,13 @@ describe('RuleClient', () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       await client.updateCampaign(10, {
         tags: [{ id: 99, negative: false }],
-        subscribers: ['a@b.com'],
+        subscribers: [101],
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       expect(body).toEqual({
         tags: [{ id: 99, negative: false }],
-        subscribers: ['a@b.com'],
+        subscribers: [101],
       });
       expect(body).not.toHaveProperty('name');
       expect(body).not.toHaveProperty('sendout_type');
@@ -1249,7 +1256,13 @@ describe('RuleClient', () => {
 
       const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
 
-      await expect(client.createCampaign({ message_type: 1 })).rejects.toThrow(RuleApiError);
+      try {
+        await client.createCampaign({ message_type: 1 });
+        expect.unreachable('Should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        expect((error as RuleApiError).isAuthError()).toBe(true);
+      }
     });
 
     it('should throw RuleApiError on 429 rate limit for listCampaigns', async () => {
