@@ -58,6 +58,8 @@ import type {
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
+  CreateCampaignEmailConfig,
+  CreateCampaignEmailResult,
   RuleCustomFieldDataListParams,
   RuleCustomFieldDataCreateRequest,
   RuleCustomFieldDataUpdateRequest,
@@ -98,7 +100,7 @@ import type {
   RuleApiKeyResponse,
   RuleApiKeyListResponse,
 } from './types';
-import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createFooterSection } from './rcml/brand-template';
+import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createDefaultContentSection, createFooterSection } from './rcml/brand-template';
 
 /** Flat query-param bag accepted by `buildQueryString`. */
 type QueryParamValues = Record<string, string | number | boolean | null | undefined>;
@@ -2304,11 +2306,14 @@ export class RuleClient {
       }
       const brandStyleConfig = toBrandStyleConfig(brandStyleResponse.data);
 
-      // Auto-build sections: logo (if available) + user sections + footer
+      // Auto-build sections: logo (if available) + user sections (or default content) + footer
+      const userSections = config.sections ?? [];
       const autoSections = [
         ...(brandStyleConfig.logoUrl ? [createBrandLogo(brandStyleConfig.logoUrl)] : []),
-        ...(config.sections ?? []),
-        createFooterSection(),
+        ...(userSections.length > 0 ? userSections : [createDefaultContentSection()]),
+        createFooterSection({
+          backgroundColor: brandStyleConfig.bodyBackgroundColor,
+        }),
       ];
 
       resolvedTemplate = createBrandTemplate({
@@ -2432,6 +2437,153 @@ export class RuleClient {
           switch (resource.type) {
             case 'automail':
               await this.deleteAutomation(resource.id);
+              break;
+            case 'message':
+              await this.deleteMessage(resource.id);
+              break;
+            case 'template':
+              await this.deleteTemplate(resource.id);
+              break;
+          }
+        } catch (cleanupError) {
+          this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
+        }
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Create a complete campaign email in one call.
+   *
+   * Orchestrates campaign → message → template → dynamic-set with automatic
+   * cleanup on failure — just like {@link createAutomationEmail}.
+   *
+   * @param config - Campaign email configuration
+   * @returns IDs of all created resources
+   *
+   * @example
+   * ```typescript
+   * const result = await client.createCampaignEmail({
+   *   name: 'April Newsletter',
+   *   subject: 'What\'s new this month',
+   *   sendoutType: 1,
+   *   brandStyleId: 976,
+   *   tags: [{ id: 42, negative: false }],
+   * });
+   * ```
+   */
+  async createCampaignEmail(
+    config: CreateCampaignEmailConfig
+  ): Promise<CreateCampaignEmailResult> {
+    if (!config.template && !config.brandStyleId) {
+      throw new RuleConfigError(
+        'createCampaignEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
+      );
+    }
+    if (config.template && config.brandStyleId) {
+      throw new RuleConfigError(
+        'createCampaignEmail: provide either "template" or "brandStyleId", not both.'
+      );
+    }
+
+    let resolvedTemplate = config.template;
+    if (!resolvedTemplate && config.brandStyleId) {
+      this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
+      const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+      if (!brandStyleResponse?.data) {
+        throw new RuleApiError(
+          `Brand style ${config.brandStyleId} not found.`,
+          404
+        );
+      }
+      const brandStyleConfig = toBrandStyleConfig(brandStyleResponse.data);
+
+      const userSections = config.sections ?? [];
+      const autoSections = [
+        ...(brandStyleConfig.logoUrl ? [createBrandLogo(brandStyleConfig.logoUrl)] : []),
+        ...(userSections.length > 0 ? userSections : [createDefaultContentSection()]),
+        createFooterSection({
+          backgroundColor: brandStyleConfig.bodyBackgroundColor,
+        }),
+      ];
+
+      resolvedTemplate = createBrandTemplate({
+        brandStyle: brandStyleConfig,
+        preheader: config.preheader,
+        sections: autoSections,
+      });
+      this.log('Built editor-compatible RCML from brand style', config.brandStyleId);
+    }
+
+    const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
+
+    try {
+      const campaignResponse = await this.createCampaign({
+        name: config.name,
+        message_type: 1,
+        sendout_type: config.sendoutType || 1,
+        ...(config.tags ? { tags: config.tags } : {}),
+        ...(config.segments ? { segments: config.segments } : {}),
+        ...(config.subscribers ? { subscribers: config.subscribers } : {}),
+      });
+
+      if (!campaignResponse.data?.id) {
+        throw new RuleApiError('Failed to create campaign - no ID returned', 500);
+      }
+      const campaignId = campaignResponse.data.id;
+      createdResources.push({ type: 'campaign', id: campaignId });
+
+      const messageResponse = await this.createMessage({
+        dispatcher: { id: campaignId, type: 'campaign' },
+        type: 1,
+        subject: config.subject,
+        preheader: config.preheader,
+        from_name: config.fromName,
+        from_email: config.fromEmail,
+        reply_to: config.replyTo,
+      });
+
+      if (!messageResponse.data?.id) {
+        throw new RuleApiError('Failed to create message - no ID returned', 500);
+      }
+      const messageId = messageResponse.data.id;
+      createdResources.push({ type: 'message', id: messageId });
+
+      const templateResponse = await this.createTemplate({
+        message_id: messageId,
+        name: `${config.name} - ${Date.now()}`,
+        message_type: 'email',
+        template: resolvedTemplate!,
+      });
+
+      if (!templateResponse.data?.id) {
+        throw new RuleApiError('Failed to create template - no ID returned', 500);
+      }
+      const templateId = templateResponse.data.id;
+      createdResources.push({ type: 'template', id: templateId });
+
+      const dynamicSetResponse = await this.createDynamicSet({
+        message_id: messageId,
+        template_id: templateId,
+      });
+
+      if (!dynamicSetResponse.data?.id) {
+        throw new RuleApiError('Failed to create dynamic set - no ID returned', 500);
+      }
+
+      return {
+        campaignId,
+        messageId,
+        templateId,
+        dynamicSetId: dynamicSetResponse.data.id,
+      };
+    } catch (error) {
+      for (const resource of createdResources.reverse()) {
+        try {
+          switch (resource.type) {
+            case 'campaign':
+              await this.deleteCampaign(resource.id);
               break;
             case 'message':
               await this.deleteMessage(resource.id);

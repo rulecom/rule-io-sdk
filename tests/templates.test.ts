@@ -34,6 +34,7 @@ import {
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
+  createDefaultContentSection,
 } from '../src/rcml';
 
 // ============================================================================
@@ -293,6 +294,92 @@ describe('Brand Template Utilities', () => {
       expect(json).toContain('rcml-h1-style');
       expect(json).toContain('rcml-p-style');
     });
+
+    it('should include social links when provided', () => {
+      const styleWithSocial: BrandStyleConfig = {
+        ...TEST_BRAND_STYLE,
+        socialLinks: [
+          { name: 'facebook', href: 'https://facebook.com/test' },
+          { name: 'instagram', href: 'https://instagram.com/test' },
+        ],
+      };
+      const head = createBrandHead(styleWithSocial);
+      const json = JSON.stringify(head);
+
+      expect(json).toContain('rc-social');
+      expect(json).toContain('rc-social-element');
+      expect(json).toContain('facebook');
+      expect(json).toContain('https://facebook.com/test');
+      expect(json).toContain('instagram');
+    });
+
+    it('should filter out social links with unsafe URLs', () => {
+      const styleWithBadLink: BrandStyleConfig = {
+        ...TEST_BRAND_STYLE,
+        socialLinks: [
+          { name: 'facebook', href: 'https://facebook.com/test' },
+          { name: 'evil', href: 'javascript:alert(1)' },
+        ],
+      };
+      const head = createBrandHead(styleWithBadLink);
+      const json = JSON.stringify(head);
+
+      expect(json).toContain('facebook');
+      expect(json).not.toContain('javascript');
+      expect(json).not.toContain('evil');
+    });
+
+    it('should not include rc-social when no social links', () => {
+      const head = createBrandHead(TEST_BRAND_STYLE);
+      const json = JSON.stringify(head);
+
+      expect(json).not.toContain('rc-social');
+    });
+
+    it('should use #FFFFFF for label style color', () => {
+      const head = createBrandHead(TEST_BRAND_STYLE);
+      const json = JSON.stringify(head);
+
+      // Find the rcml-label-style class
+      const attrs = JSON.parse(json);
+      const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
+        if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
+        if (Array.isArray(node.children)) {
+          for (const child of node.children as Array<Record<string, unknown>>) {
+            const found = findLabelStyle(child);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+      const labelStyle = findLabelStyle(attrs);
+      expect(labelStyle).toBeDefined();
+      expect((labelStyle!.attributes as Record<string, string>).color).toBe('#FFFFFF');
+    });
+
+    it('should keep single quotes in rc-font name attributes to match editor format', () => {
+      const head = createBrandHead(TEST_BRAND_STYLE);
+      const json = JSON.stringify(head);
+
+      // rc-font name should keep single quotes (e.g. "'Sora Medium'")
+      const parsed = JSON.parse(json);
+      const findRcFont = (node: Record<string, unknown>): Array<Record<string, unknown>> => {
+        const results: Array<Record<string, unknown>> = [];
+        if (node.tagName === 'rc-font') results.push(node);
+        if (Array.isArray(node.children)) {
+          for (const child of node.children as Array<Record<string, unknown>>) {
+            results.push(...findRcFont(child));
+          }
+        }
+        return results;
+      };
+      const fonts = findRcFont(parsed);
+      expect(fonts.length).toBeGreaterThan(0);
+      for (const font of fonts) {
+        const name = (font.attributes as Record<string, string>)?.name;
+        expect(name).toContain("'");
+      }
+    });
   });
 
   describe('toBrandStyleConfig', () => {
@@ -323,7 +410,7 @@ describe('Brand Template Utilities', () => {
       expect(result.logoUrl).toBe('https://cdn.rule.io/logo.png');
       expect(result.buttonColor).toBe('#FF0000');
       expect(result.bodyBackgroundColor).toBe('#FAFAFA');
-      expect(result.sectionBackgroundColor).toBe('#FFFFFF');
+      expect(result.sectionBackgroundColor).toBe('#ffffff');
       expect(result.brandColor).toBe('#0066CC');
       expect(result.headingFont).toBe("'Montserrat', sans-serif");
       expect(result.headingFontUrl).toBe('https://app.rule.io/fonts/1/css');
@@ -373,6 +460,141 @@ describe('Brand Template Utilities', () => {
       expect(result.brandStyleId).toBe('200');
       expect(result.logoUrl).toBeUndefined();
       expect(result.headingFontUrl).toBeUndefined();
+    });
+
+    it('should prefer "side" colour for bodyBackgroundColor over "light"', () => {
+      const result = toBrandStyleConfig({
+        id: 400,
+        account_id: 1,
+        name: 'Side colour',
+        is_default: false,
+        colours: [
+          { id: 1, brand_style_id: 400, type: 'side', hex: '#FF5204', brightness: 50, created_at: '', updated_at: '' },
+          { id: 2, brand_style_id: 400, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
+        ],
+        fonts: [],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.bodyBackgroundColor).toBe('#FF5204');
+    });
+
+    it('should fall back to "light" colour when "side" is missing', () => {
+      const result = toBrandStyleConfig({
+        id: 401,
+        account_id: 1,
+        name: 'No side colour',
+        is_default: false,
+        colours: [
+          { id: 1, brand_style_id: 401, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
+        ],
+        fonts: [],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.bodyBackgroundColor).toBe('#FAFAFA');
+    });
+
+    it('should extract social links from brand style links', () => {
+      const result = toBrandStyleConfig({
+        id: 500,
+        account_id: 1,
+        name: 'With social',
+        is_default: false,
+        colours: [],
+        fonts: [],
+        images: [],
+        links: [
+          { id: 1, brand_style_id: 500, type: 'facebook', link: 'https://facebook.com/test', created_at: '', updated_at: '' },
+          { id: 2, brand_style_id: 500, type: 'instagram', link: 'https://instagram.com/test', created_at: '', updated_at: '' },
+        ],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.socialLinks).toEqual([
+        { name: 'facebook', href: 'https://facebook.com/test' },
+        { name: 'instagram', href: 'https://instagram.com/test' },
+      ]);
+    });
+
+    it('should map "website" link type to "web" for RCML compatibility', () => {
+      const result = toBrandStyleConfig({
+        id: 502,
+        account_id: 1,
+        name: 'Website link',
+        is_default: false,
+        colours: [],
+        fonts: [],
+        images: [],
+        links: [
+          { id: 1, brand_style_id: 502, type: 'website', link: 'https://example.com', created_at: '', updated_at: '' },
+        ],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.socialLinks).toEqual([
+        { name: 'web', href: 'https://example.com' },
+      ]);
+    });
+
+    it('should return undefined socialLinks when no links present', () => {
+      const result = toBrandStyleConfig({
+        id: 501,
+        account_id: 1,
+        name: 'No links',
+        is_default: false,
+        colours: [],
+        fonts: [],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.socialLinks).toBeUndefined();
+    });
+
+    it('should use origin_name over name for font display', () => {
+      const result = toBrandStyleConfig({
+        id: 600,
+        account_id: 1,
+        name: 'Origin name font',
+        is_default: false,
+        colours: [],
+        fonts: [
+          { id: 1, brand_style_id: 600, type: 'title', name: 'Sora-Medium.ttf', origin_name: 'Sora Medium', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
+          { id: 2, brand_style_id: 600, type: 'body', name: 'Lato-Regular.ttf', origin_name: 'Lato', url: 'https://app.rule.io/fonts/2/css', created_at: '', updated_at: '' },
+        ],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.headingFont).toBe("'Sora Medium', sans-serif");
+      expect(result.bodyFont).toBe("'Lato', sans-serif");
+    });
+
+    it('should fall back to name when origin_name is missing', () => {
+      const result = toBrandStyleConfig({
+        id: 601,
+        account_id: 1,
+        name: 'No origin name',
+        is_default: false,
+        colours: [],
+        fonts: [
+          { id: 1, brand_style_id: 601, type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
+        ],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      });
+
+      expect(result.headingFont).toBe("'Montserrat', sans-serif");
     });
 
     it('should fall back to first image when no logo type exists', () => {
@@ -425,6 +647,65 @@ describe('Brand Template Utilities', () => {
       expect(json).toContain('#FFFFFF');
       expect(json).toContain('12px');
     });
+
+    it('should include "Certified by Rule" text', () => {
+      const footer = createFooterSection();
+      const json = JSON.stringify(footer);
+
+      expect(json).toContain('Certified by Rule');
+    });
+
+    it('should always use Helvetica for "Certified by Rule" line', () => {
+      const footer = createFooterSection();
+      const json = JSON.stringify(footer);
+
+      // The "Certified by Rule" text always uses Helvetica (matching editor behavior)
+      expect(json).toContain("'Helvetica'");
+    });
+  });
+
+  describe('createDefaultContentSection', () => {
+    it('should create a section with image, heading, text, and button', () => {
+      const section = createDefaultContentSection();
+      const json = JSON.stringify(section);
+
+      expect(json).toContain('rc-image');
+      expect(json).toContain('rc-heading');
+      expect(json).toContain('rc-text');
+      expect(json).toContain('rc-button');
+      expect(json).toContain('Replace this title');
+      expect(json).toContain('Click me!');
+    });
+
+    it('should use rc-class references for brand style connection', () => {
+      const section = createDefaultContentSection();
+      const json = JSON.stringify(section);
+
+      expect(json).toContain('rcml-h1-style');
+      expect(json).toContain('rcml-p-style');
+      expect(json).toContain('rcml-label-style');
+    });
+
+    it('should use editor placeholder image', () => {
+      const section = createDefaultContentSection();
+      const json = JSON.stringify(section);
+
+      expect(json).toContain('https://app.rule.io/img/editor/image.png');
+    });
+
+    it('should accept custom text overrides', () => {
+      const section = createDefaultContentSection({
+        headingText: 'Custom heading',
+        bodyText: 'Custom body',
+        buttonText: 'Custom button',
+      });
+      const json = JSON.stringify(section);
+
+      expect(json).toContain('Custom heading');
+      expect(json).toContain('Custom body');
+      expect(json).toContain('Custom button');
+      expect(json).not.toContain('Replace this title');
+    });
   });
 
   describe('createBrandLogo', () => {
@@ -443,7 +724,8 @@ describe('Brand Template Utilities', () => {
       expect(rcLogo.tagName).toBe('rc-logo');
       expect(rcLogo.id).toBeDefined();
       expect(rcLogo.attributes?.['rc-class']).toBe('rcml-logo-style rc-initial-logo');
-      expect(rcLogo.attributes?.src).toBe('https://app.rule.io/brand-style/123/image/456');
+      // src comes from rc-class, not directly on rc-logo
+      expect(rcLogo.attributes?.src).toBeUndefined();
     });
 
     it('should generate unique IDs across nodes', () => {

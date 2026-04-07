@@ -62,6 +62,8 @@ export type {
   RuleClientConfig,
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
+  CreateCampaignEmailConfig,
+  CreateCampaignEmailResult,
   RuleCustomFieldDataValue,
   RuleCustomFieldValue,
   RuleCustomFieldDataRecord,

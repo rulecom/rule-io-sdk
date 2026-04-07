@@ -226,6 +226,8 @@ export interface BrandStyleConfig {
   bodyFontUrl?: string;
   /** Text color */
   textColor: string;
+  /** Social media links from brand style */
+  socialLinks?: Array<{ name: string; href: string }>;
 }
 
 /**
@@ -260,18 +262,23 @@ export function toBrandStyleConfig(data: import('../types').RuleBrandStyle): Bra
   const bodyFont = findFont('body');
   const logoImage = findImage('logo') ?? images[0];
 
+  const links = data.links ?? [];
+
   return {
     brandStyleId: String(data.id),
     logoUrl: logoImage?.public_path ?? undefined,
     buttonColor: findColour('accent') ?? '#333333',
-    bodyBackgroundColor: findColour('light') ?? '#F5F5F5',
-    sectionBackgroundColor: '#FFFFFF',
+    bodyBackgroundColor: findColour('side') ?? findColour('light') ?? '#F5F5F5',
+    sectionBackgroundColor: '#ffffff',
     brandColor: findColour('brand') ?? '#333333',
-    headingFont: titleFont ? `'${titleFont.name}', sans-serif` : "'Helvetica', sans-serif",
+    headingFont: titleFont ? `'${titleFont.origin_name ?? titleFont.name}', sans-serif` : "'Helvetica', sans-serif",
     headingFontUrl: titleFont?.url ?? undefined,
-    bodyFont: bodyFont ? `'${bodyFont.name}', sans-serif` : "'Helvetica', sans-serif",
+    bodyFont: bodyFont ? `'${bodyFont.origin_name ?? bodyFont.name}', sans-serif` : "'Helvetica', sans-serif",
     bodyFontUrl: bodyFont?.url ?? undefined,
     textColor: findColour('dark') ?? '#0F0F1F',
+    socialLinks: links.length > 0
+      ? links.map((l) => ({ name: l.type === 'website' ? 'web' : l.type, href: l.link }))
+      : undefined,
   };
 }
 
@@ -329,6 +336,21 @@ export function createBrandHead(
     });
   }
 
+  if (brandStyle.socialLinks && brandStyle.socialLinks.length > 0) {
+    const sanitizedLinks = brandStyle.socialLinks
+      .map((link) => ({ name: link.name, href: sanitizeUrl(link.href) }))
+      .filter((link): link is { name: string; href: string } => !!link.href);
+    if (sanitizedLinks.length > 0) {
+      attributeChildren.push({
+        tagName: 'rc-social', id: generateId(),
+        children: sanitizedLinks.map((link) => ({
+          tagName: 'rc-social-element', id: generateId(),
+          attributes: { name: link.name, href: link.href },
+        })),
+      });
+    }
+  }
+
   attributeChildren.push(
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-brand-color', 'background-color': brandStyle.brandColor } },
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-p-style', 'font-family': brandStyle.bodyFont, 'font-size': '16px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
@@ -336,7 +358,7 @@ export function createBrandHead(
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h2-style', 'font-family': brandStyle.headingFont, 'font-size': '28px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h3-style', 'font-family': brandStyle.headingFont, 'font-size': '24px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h4-style', 'font-family': brandStyle.headingFont, 'font-size': '18px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: brandStyle.brandColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
   );
 
   // Build head children
@@ -429,7 +451,14 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 /**
  * Create a logo element using brand style.
  *
- * @param logoUrl - Direct logo URL for the logo image.
+ * This function validates `logoUrl` for safety and creates the body `rc-logo`
+ * node, but it does not set that URL as `src` on the element. The editor
+ * resolves the displayed logo via `rc-class: rcml-logo-style`, using the
+ * brand style defined in the document head by {@link createBrandHead}. To
+ * affect the rendered logo, the same URL must also be configured in
+ * `BrandStyleConfig.logoUrl`.
+ *
+ * @param logoUrl - Logo URL to validate before creating the logo body node
  */
 export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
   const sanitizedSrc = sanitizeUrl(logoUrl);
@@ -446,7 +475,6 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
         id: generateId(),
         attributes: {
           padding: '0 20px',
-          'padding-on-mobile': '0 20px',
         },
         children: [
           {
@@ -454,10 +482,8 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
             id: generateId(),
             attributes: {
               'rc-class': 'rcml-logo-style rc-initial-logo',
-              src: sanitizedSrc,
               width: '96px',
               padding: '20px 0',
-              'padding-on-mobile': '20px 0',
             },
           },
         ],
@@ -563,6 +589,92 @@ export function createContentSection(
 }
 
 /**
+ * Create the default editor content section with brand style class references.
+ *
+ * This produces the same "bare minimum" content the Rule.io editor generates
+ * when creating a new email from a brand style: a placeholder image, heading,
+ * body text, and button — all connected to the brand via `rc-class` attributes.
+ *
+ * @param options - Optional overrides for the default placeholder texts
+ *
+ * @example
+ * ```typescript
+ * const section = createDefaultContentSection();
+ * ```
+ */
+export function createDefaultContentSection(options?: {
+  headingText?: string;
+  bodyText?: string;
+  buttonText?: string;
+}): RCMLDocument['children'][1]['children'][0] {
+  const heading = options?.headingText ?? 'Replace this title';
+  const body = options?.bodyText ?? 'Click into this box to change the font settings. Edit this text to include additional information and a description of the image.';
+  const button = options?.buttonText ?? 'Click me!';
+
+  return {
+    tagName: 'rc-section',
+    id: generateId(),
+    attributes: {
+      padding: '20px 0',
+    },
+    children: [
+      {
+        tagName: 'rc-column',
+        id: generateId(),
+        attributes: { padding: '0 20px' },
+        children: [
+          {
+            tagName: 'rc-image',
+            id: generateId(),
+            attributes: {
+              padding: '0 0 20px 0',
+              src: 'https://app.rule.io/img/editor/image.png',
+            },
+          },
+          {
+            tagName: 'rc-heading',
+            id: generateId(),
+            attributes: { 'rc-class': 'rcml-h1-style' },
+            content: {
+              type: 'doc',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: heading }] }],
+            },
+          },
+          {
+            tagName: 'rc-text',
+            id: generateId(),
+            attributes: { 'rc-class': 'rcml-p-style' },
+            content: {
+              type: 'doc',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: body }] }],
+            },
+          },
+          {
+            tagName: 'rc-button',
+            id: generateId(),
+            attributes: {
+              align: 'center',
+              border: 'none',
+              'border-radius': '8px',
+              'inner-padding': '10px 16px',
+              padding: '0 0 20px 0',
+              'padding-bottom': '20px',
+              'text-align': 'center',
+              'vertical-align': 'middle',
+              'rc-class': 'rcml-label-style',
+            },
+            content: {
+              type: 'doc',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: button }] }],
+            },
+          },
+        ],
+      },
+    ],
+  } as RCMLDocument['children'][1]['children'][0];
+}
+
+/**
  * Create a brand-aware loop element that iterates over a repeatable custom field.
  *
  * Constructs an RCML loop with UUID generation for the RCML node ID,
@@ -655,7 +767,6 @@ export function createFooterSection(
         id: generateId(),
         attributes: {
           padding: '0 20px',
-          'padding-on-mobile': '0 20px',
         },
         children: [
           {
@@ -724,6 +835,31 @@ export function createFooterSection(
                       ],
                     },
                   ],
+                },
+              ],
+            },
+          },
+          {
+            tagName: 'rc-text',
+            id: generateId(),
+            attributes: {
+              align: 'center',
+              padding: '10px 0px 0px 0px',
+              'font-family': "'Helvetica', sans-serif",
+              'font-style': 'normal',
+              'line-height': '120%',
+              'letter-spacing': '0em',
+              color: textColor,
+              'font-weight': '400',
+              'text-decoration': 'none',
+              'font-size': fontSize,
+            },
+            content: {
+              type: 'doc',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [{ type: 'text', text: 'Certified by Rule' }],
                 },
               ],
             },

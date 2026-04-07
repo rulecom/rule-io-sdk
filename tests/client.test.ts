@@ -2739,6 +2739,11 @@ describe('RuleClient', () => {
       expect(rcml).toContain('rc-brand-style');
       expect(rcml).toContain('rcml-h1-style');
       expect(rcml).toContain('rcml-p-style');
+      // Should include default content section when no sections provided
+      expect(rcml).toContain('Replace this title');
+      expect(rcml).toContain('Click me!');
+      // Should include footer with "Certified by Rule"
+      expect(rcml).toContain('Certified by Rule');
     });
 
     it('should throw when brand style not found', async () => {
@@ -2756,7 +2761,153 @@ describe('RuleClient', () => {
           subject: 'Test',
           brandStyleId: 99999,
         })
-      ).rejects.toThrow();
+      ).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('createCampaignEmail', () => {
+    it('should throw RuleConfigError when neither template nor brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createCampaignEmail({
+          name: 'Test',
+          subject: 'Test',
+        })
+      ).rejects.toThrow(RuleConfigError);
+    });
+
+    it('should throw RuleConfigError when both template and brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await expect(
+        client.createCampaignEmail({
+          name: 'Test',
+          subject: 'Test',
+          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          brandStyleId: 976,
+        })
+      ).rejects.toThrow(RuleConfigError);
+    });
+
+    it('should auto-fetch brand style and create campaign with RCML when brandStyleId provided', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      // Mock responses: 1) getBrandStyle, 2) createCampaign, 3) createMessage, 4) createTemplate, 5) createDynamicSet
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({
+          data: {
+            id: 976,
+            account_id: 1,
+            name: 'Test Brand',
+            is_default: true,
+            colours: [
+              { id: 1, brand_style_id: 976, type: 'accent', hex: '#FF0000', brightness: 50 },
+              { id: 2, brand_style_id: 976, type: 'dark', hex: '#111111', brightness: 10 },
+              { id: 3, brand_style_id: 976, type: 'side', hex: '#FF5204', brightness: 50 },
+              { id: 4, brand_style_id: 976, type: 'brand', hex: '#0066CC', brightness: 40 },
+            ],
+            fonts: [],
+            images: [],
+          },
+        }))
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 400 } })); // dynamic set
+
+      const result = await client.createCampaignEmail({
+        name: 'Welcome Campaign',
+        subject: 'Welcome!',
+        brandStyleId: 976,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      expect(result.campaignId).toBe(100);
+      expect(result.messageId).toBe(200);
+      expect(result.templateId).toBe(300);
+      expect(result.dynamicSetId).toBe(400);
+
+      // Verify template call (4th call, index 3) includes RCML with brand style
+      const templateCall = mockFetch.mock.calls[3];
+      const templateBody = JSON.parse(templateCall[1].body);
+      const rcml = JSON.stringify(templateBody.template);
+      expect(rcml).toContain('rc-brand-style');
+      expect(rcml).toContain('rcml-h1-style');
+      expect(rcml).toContain('rcml-p-style');
+      // Should include default content section
+      expect(rcml).toContain('Replace this title');
+      expect(rcml).toContain('Click me!');
+      // Should include footer
+      expect(rcml).toContain('Certified by Rule');
+    });
+
+    it('should throw RuleApiError when brand style not found', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ error: 'Not found' }, 404));
+
+      await expect(
+        client.createCampaignEmail({
+          name: 'Test',
+          subject: 'Test',
+          brandStyleId: 99999,
+        })
+      ).rejects.toThrow(RuleApiError);
+    });
+
+    it('should use provided template directly without brandStyleId', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      const fakeTemplate = {
+        tagName: 'rcml',
+        id: 'test-id',
+        children: [
+          { tagName: 'rc-head', id: 'h1', children: [] },
+          { tagName: 'rc-body', id: 'b1', children: [] },
+        ],
+      };
+
+      // No getBrandStyle call — just campaign, message, template, dynamic set
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 400 } })); // dynamic set
+
+      const result = await client.createCampaignEmail({
+        name: 'Direct Template',
+        subject: 'Test',
+        template: fakeTemplate as never,
+      });
+
+      expect(result.campaignId).toBe(100);
+      expect(result.templateId).toBe(300);
+      expect(mockFetch).toHaveBeenCalledTimes(4); // No brand style fetch
+    });
+
+    it('should clean up on failure during template creation', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({
+          data: {
+            id: 976, account_id: 1, name: 'Test', is_default: true,
+            colours: [], fonts: [], images: [],
+          },
+        }))
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+        .mockRejectedValueOnce(new Error('Template creation failed')) // template fails
+        .mockResolvedValueOnce(createMock204Response()) // delete message cleanup
+        .mockResolvedValueOnce(createMock204Response()); // delete campaign cleanup
+
+      await expect(
+        client.createCampaignEmail({
+          name: 'Test',
+          subject: 'Test',
+          brandStyleId: 976,
+        })
+      ).rejects.toThrow('Template creation failed');
     });
   });
 

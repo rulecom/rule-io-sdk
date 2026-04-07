@@ -56,6 +56,7 @@ export {
   createBrandText,
   createBrandButton,
   createContentSection,
+  createDefaultContentSection,
   createFooterSection,
   createBrandLoop,
   // Placeholder helpers
