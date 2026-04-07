@@ -29,7 +29,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLDocument, RCMLProseMirrorDoc, RCMLLoop, RCMLSection } from '../types';
+import type { RCMLButton, RCMLDocument, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
@@ -498,7 +498,7 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
 export function createBrandHeading(
   content: RCMLProseMirrorDoc,
   level: 1 | 2 | 3 | 4 = 1
-): { tagName: 'rc-heading'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): RCMLHeading {
   return {
     tagName: 'rc-heading',
     id: generateId(),
@@ -515,7 +515,7 @@ export function createBrandHeading(
 export function createBrandText(
   content: RCMLProseMirrorDoc,
   options?: { align?: 'left' | 'center' | 'right'; padding?: string }
-): { tagName: 'rc-text'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): RCMLText {
   return {
     tagName: 'rc-text',
     id: generateId(),
@@ -534,7 +534,7 @@ export function createBrandText(
 export function createBrandButton(
   content: RCMLProseMirrorDoc,
   href: string
-): { tagName: 'rc-button'; id: string; attributes: Record<string, string>; content: RCMLProseMirrorDoc } {
+): RCMLButton {
   const sanitizedHref = sanitizeUrl(href);
   if (!sanitizedHref) {
     throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
