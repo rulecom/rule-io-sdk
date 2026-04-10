@@ -1343,7 +1343,7 @@ describe('RuleClient', () => {
       expect(body.message_types).toEqual(['email']);
     });
 
-    it('should delete suppressions with POST to /suppressions/delete', async () => {
+    it('should delete suppressions with DELETE /suppressions/', async () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1355,8 +1355,8 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
-      expect(options.method).toBe('POST');
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
+      expect(options.method).toBe('DELETE');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
 
       const body = JSON.parse(options.body);
@@ -1374,8 +1374,8 @@ describe('RuleClient', () => {
       });
 
       const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
-      expect(options.method).toBe('POST');
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
+      expect(options.method).toBe('DELETE');
       const body = JSON.parse(options.body);
       expect(body.callback_url).toBe('https://example.com/webhook/done');
     });
@@ -1403,8 +1403,8 @@ describe('RuleClient', () => {
       });
 
       const [url, options] = mockFetch.mock.calls[0];
-      expect(url).toBe('https://app.rule.io/api/v3/suppressions/delete');
-      expect(options.method).toBe('POST');
+      expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
+      expect(options.method).toBe('DELETE');
       const body = JSON.parse(options.body);
       expect(body.message_types).toEqual(['email']);
     });
