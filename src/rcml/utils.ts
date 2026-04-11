@@ -62,7 +62,8 @@ export function sanitizeUrl(url: string): string {
 }
 
 /**
- * Format a date for Rule.io (YYYY-MM-DD)
+ * Format a date for Rule.io (YYYY-MM-DD).
+ * Uses UTC — a local date near midnight may format as the next/previous day.
  *
  * @param date - Date to format
  * @returns Date string in YYYY-MM-DD format

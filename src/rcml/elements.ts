@@ -171,6 +171,10 @@ function createAttributesFromStyles(styles: EmailStyleConfig): RCMLAttributes {
  * ```
  */
 export function createRCMLDocument(options: CreateRCMLDocumentOptions): RCMLDocument {
+  if (options.sections.length === 0) {
+    throw new RuleConfigError('createRCMLDocument: at least one section is required');
+  }
+
   const headChildren: (RCMLAttributes | RCMLBrandStyle | RCMLPreview | RCMLFont | RCMLPlainText)[] =
     [];
 
