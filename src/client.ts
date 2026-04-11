@@ -102,8 +102,11 @@ import type {
 } from './types';
 import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createDefaultContentSection, createFooterSection } from './rcml/brand-template';
 
-/** Flat query-param bag accepted by `buildQueryString`. */
-type QueryParamValues = Record<string, string | number | boolean | null | undefined>;
+/** Scalar query-param value. */
+type QueryParamValue = string | number | boolean | null | undefined;
+
+/** Query-param bag accepted by `buildQueryString`. Array values emit one entry per element. */
+type QueryParamValues = Record<string, QueryParamValue | QueryParamValue[]>;
 
 /**
  * Rule.io API Client
@@ -165,7 +168,11 @@ export class RuleClient {
   }
 
   /**
-   * Check if this client is configured with a valid API key
+   * Check if this client is configured with a valid API key.
+   *
+   * @deprecated This method always returns `true` because the constructor
+   * throws a `RuleConfigError` when an API key is missing. It will be
+   * removed in the next major version.
    */
   isConfigured(): boolean {
     return !!this.config.apiKey;
@@ -367,11 +374,20 @@ export class RuleClient {
   private static buildQueryString(
     params: QueryParamValues
   ): string {
-    const entries = Object.entries(params).filter(
-      ([, v]) => v !== undefined && v !== null
-    );
-    if (entries.length === 0) return '';
-    return '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join('&');
+    const pairs: string[] = [];
+    for (const [k, v] of Object.entries(params)) {
+      if (v === undefined || v === null) continue;
+      if (Array.isArray(v)) {
+        for (const item of v) {
+          if (item !== undefined && item !== null) {
+            pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(item))}`);
+          }
+        }
+      } else {
+        pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
+      }
+    }
+    return pairs.length === 0 ? '' : `?${pairs.join('&')}`;
   }
 
   // ==========================================================================
@@ -1049,16 +1065,14 @@ export class RuleClient {
     subscriberId: number,
     params?: RuleCustomFieldDataListParams
   ): Promise<RuleCustomFieldDataResponse> {
-    const searchParams = new URLSearchParams();
-    if (params?.page != null) searchParams.set('page', String(params.page));
-    if (params?.per_page != null) searchParams.set('per_page', String(params.per_page));
-    if (params?.groups_id) {
-      params.groups_id.forEach((id) => searchParams.append('groups_id[]', String(id)));
-    }
-    if (params?.groups_name) {
-      params.groups_name.forEach((name) => searchParams.append('groups_name[]', name));
-    }
-    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const qs = params
+      ? RuleClient.buildQueryString({
+          page: params.page,
+          per_page: params.per_page,
+          'groups_id[]': params.groups_id,
+          'groups_name[]': params.groups_name,
+        })
+      : '';
     return this.requestV3<RuleCustomFieldDataResponse>(
       `/custom-field-data/${subscriberId}${qs}`,
       { method: 'GET' }
@@ -1145,13 +1159,13 @@ export class RuleClient {
     group: number | string,
     params?: RuleCustomFieldDataGroupParams
   ): Promise<RuleCustomFieldDataResponse> {
-    const searchParams = new URLSearchParams();
-    if (params?.page != null) searchParams.set('page', String(params.page));
-    if (params?.per_page != null) searchParams.set('per_page', String(params.per_page));
-    if (params?.fields) {
-      params.fields.forEach((f) => searchParams.append('fields[]', f));
-    }
-    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const qs = params
+      ? RuleClient.buildQueryString({
+          page: params.page,
+          per_page: params.per_page,
+          'fields[]': params.fields,
+        })
+      : '';
     return this.requestV3<RuleCustomFieldDataResponse>(
       `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`,
       { method: 'GET' }
@@ -1206,12 +1220,12 @@ export class RuleClient {
     subscriberId: number,
     params: RuleCustomFieldDataSearchParams
   ): Promise<RuleCustomFieldDataSingleResponse | null> {
-    const searchParams = new URLSearchParams();
-    if (params.data_id !== undefined) searchParams.set('data_id', String(params.data_id));
-    if (params.group !== undefined) searchParams.set('group', String(params.group));
-    if (params.field !== undefined) searchParams.set('field', String(params.field));
-    if (params.value !== undefined) searchParams.set('value', params.value);
-    const qs = searchParams.toString() ? `?${searchParams.toString()}` : '';
+    const qs = RuleClient.buildQueryString({
+      data_id: params.data_id,
+      group: params.group,
+      field: params.field,
+      value: params.value,
+    });
     try {
       return await this.requestV3<RuleCustomFieldDataSingleResponse>(
         `/custom-field-data/${subscriberId}/search${qs}`,
@@ -2046,22 +2060,14 @@ export class RuleClient {
   async exportStatistics(
     params: RuleExportStatisticsParams
   ): Promise<RuleExportStatisticsResponse> {
-    const searchParams = new URLSearchParams();
-    searchParams.set('date_from', params.date_from);
-    searchParams.set('date_to', params.date_to);
-
-    if (params.statistic_types) {
-      for (const type of params.statistic_types) {
-        searchParams.append('statistic_types[]', type);
-      }
-    }
-
-    if (params.next_page_token) {
-      searchParams.set('next_page_token', params.next_page_token);
-    }
-
+    const qs = RuleClient.buildQueryString({
+      date_from: params.date_from,
+      date_to: params.date_to,
+      'statistic_types[]': params.statistic_types,
+      next_page_token: params.next_page_token || undefined,
+    });
     return this.requestV3<RuleExportStatisticsResponse>(
-      `/export/statistics?${searchParams.toString()}`,
+      `/export/statistics${qs}`,
       { method: 'GET' }
     );
   }
@@ -2119,9 +2125,6 @@ export class RuleClient {
    * ```
    */
   async getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
-    const searchParams = new URLSearchParams();
-    searchParams.set('date_from', params.date_from);
-    searchParams.set('date_to', params.date_to);
     const hasObjectType = 'object_type' in params && !!params.object_type;
     if (!hasObjectType) {
       const p = params as unknown as Record<string, unknown>;
@@ -2131,6 +2134,11 @@ export class RuleClient {
         );
       }
     }
+
+    let objectType: string | undefined;
+    let objectIds: string[] | undefined;
+    let metrics: string[] | undefined;
+
     if (hasObjectType && 'object_type' in params) {
       if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
         throw new RuleConfigError(
@@ -2142,19 +2150,19 @@ export class RuleClient {
           'metrics must be a non-empty array when object_type is provided'
         );
       }
-      searchParams.set('object_type', params.object_type);
-      for (const id of params.object_ids) {
-        searchParams.append('object_ids[]', id);
-      }
-      for (const metric of params.metrics) {
-        searchParams.append('metrics[]', metric);
-      }
+      objectType = params.object_type;
+      objectIds = params.object_ids;
+      metrics = params.metrics;
     }
-    if (params.message_type != null) {
-      searchParams.set('message_type', params.message_type);
-    }
-    const queryString = searchParams.toString();
-    const qs = queryString ? `?${queryString}` : '';
+
+    const qs = RuleClient.buildQueryString({
+      date_from: params.date_from,
+      date_to: params.date_to,
+      object_type: objectType,
+      'object_ids[]': objectIds,
+      'metrics[]': metrics,
+      message_type: params.message_type,
+    });
     return this.requestV3<RuleAnalyticsResponse>(`/analytics${qs}`, {
       method: 'GET',
     });
@@ -2672,15 +2680,10 @@ export class RuleClient {
     accountId: number | 'show',
     params?: RuleAccountGetParams
   ): Promise<RuleAccountResponse | null> {
-    let endpoint = `/accounts/${accountId}`;
-
-    if (params?.includes?.length) {
-      const searchParams = new URLSearchParams();
-      for (const inc of params.includes) {
-        searchParams.append('includes[]', inc);
-      }
-      endpoint += `?${searchParams.toString()}`;
-    }
+    const qs = params?.includes?.length
+      ? RuleClient.buildQueryString({ 'includes[]': params.includes })
+      : '';
+    const endpoint = `/accounts/${accountId}${qs}`;
 
     try {
       const response = await this.fetchV3(endpoint, {
