@@ -88,8 +88,8 @@ export class RuleApiError extends Error {
  * Error thrown when the client is not configured properly
  */
 export class RuleConfigError extends Error {
-  constructor(message: string) {
-    super(message);
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = 'RuleConfigError';
   }
 }
