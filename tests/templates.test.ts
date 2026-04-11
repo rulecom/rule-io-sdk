@@ -9,7 +9,7 @@ import { describe, it, expect } from 'vitest';
 import type { RCMLDocument } from '../src/types';
 import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
-import { validateCustomFields, toBrandStyleConfig } from '../src/rcml/brand-template';
+import { validateCustomFields, toBrandStyleConfig, withTemplateContext } from '../src/rcml/brand-template';
 import {
   // Brand template utilities
   createBrandTemplate,
@@ -724,8 +724,7 @@ describe('Brand Template Utilities', () => {
       expect(rcLogo.tagName).toBe('rc-logo');
       expect(rcLogo.id).toBeDefined();
       expect(rcLogo.attributes?.['rc-class']).toBe('rcml-logo-style rc-initial-logo');
-      // src comes from rc-class, not directly on rc-logo
-      expect(rcLogo.attributes?.src).toBeUndefined();
+      expect(rcLogo.attributes?.src).toBe('https://app.rule.io/brand-style/123/image/456');
     });
 
     it('should generate unique IDs across nodes', () => {
@@ -1548,5 +1547,119 @@ describe('Template Footer Localization', () => {
     expect(json).toContain('Voir dans le navigateur');
     expect(json).toContain('Se désabonner');
     expect(json).not.toContain('View in browser');
+  });
+});
+
+// ============================================================================
+// Barrel Export
+// ============================================================================
+
+describe('barrel exports', () => {
+  it('should export validateCustomFields from the barrel', async () => {
+    const barrel = await import('../src/rcml');
+    expect(barrel.validateCustomFields).toBe(validateCustomFields);
+  });
+
+  it('should export validateCustomFields from the top-level barrel', async () => {
+    const topBarrel = await import('../src/index');
+    expect(topBarrel.validateCustomFields).toBe(validateCustomFields);
+  });
+});
+
+// ============================================================================
+// withTemplateContext
+// ============================================================================
+
+describe('withTemplateContext', () => {
+  it('should return the value from the callback', () => {
+    const result = withTemplateContext('myTemplate', () => 42);
+    expect(result).toBe(42);
+  });
+
+  it('should prepend template name to RuleConfigError messages', () => {
+    expect(() =>
+      withTemplateContext('createOrderConfirmationEmail', () => {
+        throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
+      })
+    ).toThrow('createOrderConfirmationEmail > createBrandButton: invalid or unsafe URL');
+  });
+
+  it('should preserve RuleConfigError type', () => {
+    try {
+      withTemplateContext('myTemplate', () => {
+        throw new RuleConfigError('some error');
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+    }
+  });
+
+  it('should not modify non-RuleConfigError errors', () => {
+    expect(() =>
+      withTemplateContext('myTemplate', () => {
+        throw new TypeError('something else');
+      })
+    ).toThrow(TypeError);
+  });
+});
+
+// ============================================================================
+// Template Error Context
+// ============================================================================
+
+describe('template error context', () => {
+  it('should include template name when createBrandButton throws inside a template', () => {
+    expect(() =>
+      createReservationConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'javascript:alert(1)',
+        text: {
+          preheader: 'Test',
+          greeting: 'Hello',
+          intro: 'Intro',
+          detailsHeading: 'Details',
+          referenceLabel: 'Ref',
+          serviceLabel: 'Service',
+          checkInLabel: 'Check-in',
+          guestsLabel: 'Guests',
+          ctaButton: 'Click',
+        },
+        fieldNames: {
+          firstName: 'Booking.FirstName',
+          bookingRef: 'Booking.BookingRef',
+          serviceType: 'Booking.ServiceType',
+          checkInDate: 'Booking.CheckInDate',
+          totalGuests: 'Booking.TotalGuests',
+        },
+      })
+    ).toThrow('createReservationConfirmationEmail > createBrandButton: invalid or unsafe URL');
+  });
+
+  it('should include template name when createBrandLogo throws inside e-commerce template', () => {
+    expect(() =>
+      createOrderConfirmationEmail({
+        brandStyle: {
+          ...TEST_BRAND_STYLE,
+          logoUrl: 'javascript:void(0)',
+        },
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://example.com',
+        text: {
+          preheader: 'Test',
+          greeting: 'Hi',
+          intro: 'Intro',
+          detailsHeading: 'Details',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+        },
+        fieldNames: {
+          firstName: 'Booking.FirstName',
+          orderRef: 'Booking.BookingRef',
+          totalPrice: 'Booking.ServiceType',
+        },
+      })
+    ).toThrow('createOrderConfirmationEmail > createBrandLogo: invalid or unsafe logoUrl');
   });
 });

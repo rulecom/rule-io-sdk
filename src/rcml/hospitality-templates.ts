@@ -29,6 +29,7 @@ import {
   type CustomFieldMap,
   type FooterConfig,
   validateCustomFields,
+  withTemplateContext,
 } from './brand-template';
 
 // ============================================================================
@@ -115,132 +116,135 @@ export interface ReservationTemplateConfig {
  */
 export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RCMLDocument {
   validateCustomFields(config.customFields, config.fieldNames, 'createReservationConfirmationEmail');
-  const { customFields, fieldNames, text } = config;
 
-  const detailRows: ReturnType<typeof createBrandText>[] = [
-    // Reference
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.referenceLabel}: `),
-        createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-      ])
-    ),
-    // Service type
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.serviceLabel}: `),
-        createPlaceholder(fieldNames.serviceType, customFields[fieldNames.serviceType]),
-      ])
-    ),
-  ];
+  return withTemplateContext('createReservationConfirmationEmail', () => {
+    const { customFields, fieldNames, text } = config;
 
-  // Room (optional)
-  if (fieldNames.roomName && text.roomLabel) {
+    const detailRows: ReturnType<typeof createBrandText>[] = [
+      // Reference
+      createBrandText(
+        createDocWithPlaceholders([
+          createTextNode(`${text.referenceLabel}: `),
+          createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
+        ])
+      ),
+      // Service type
+      createBrandText(
+        createDocWithPlaceholders([
+          createTextNode(`${text.serviceLabel}: `),
+          createPlaceholder(fieldNames.serviceType, customFields[fieldNames.serviceType]),
+        ])
+      ),
+    ];
+
+    // Room (optional)
+    if (fieldNames.roomName && text.roomLabel) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.roomLabel}: `),
+            createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
+          ])
+        )
+      );
+    }
+
+    // Check-in
     detailRows.push(
       createBrandText(
         createDocWithPlaceholders([
-          createTextNode(`${text.roomLabel}: `),
-          createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
+          createTextNode(`${text.checkInLabel}: `),
+          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
         ])
       )
     );
-  }
 
-  // Check-in
-  detailRows.push(
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.checkInLabel}: `),
-        createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-      ])
-    )
-  );
+    // Check-out (optional)
+    if (fieldNames.checkOutDate && text.checkOutLabel) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.checkOutLabel}: `),
+            createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
+          ])
+        )
+      );
+    }
 
-  // Check-out (optional)
-  if (fieldNames.checkOutDate && text.checkOutLabel) {
+    // Guests
     detailRows.push(
       createBrandText(
         createDocWithPlaceholders([
-          createTextNode(`${text.checkOutLabel}: `),
-          createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
+          createTextNode(`${text.guestsLabel}: `),
+          createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
         ])
       )
     );
-  }
 
-  // Guests
-  detailRows.push(
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.guestsLabel}: `),
-        createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
-      ])
-    )
-  );
+    // Total price (optional)
+    if (fieldNames.totalPrice && text.totalPriceLabel) {
+      const priceContent = text.currency
+        ? [
+            createTextNode(`${text.totalPriceLabel}: `),
+            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+            createTextNode(` ${text.currency}`),
+          ]
+        : [
+            createTextNode(`${text.totalPriceLabel}: `),
+            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+          ];
+      detailRows.push(createBrandText(createDocWithPlaceholders(priceContent)));
+    }
 
-  // Total price (optional)
-  if (fieldNames.totalPrice && text.totalPriceLabel) {
-    const priceContent = text.currency
-      ? [
-          createTextNode(`${text.totalPriceLabel}: `),
-          createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-          createTextNode(` ${text.currency}`),
-        ]
-      : [
-          createTextNode(`${text.totalPriceLabel}: `),
-          createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-        ];
-    detailRows.push(createBrandText(createDocWithPlaceholders(priceContent)));
-  }
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        // Logo
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      // Logo
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        // Greeting
+        createContentSection(
+          [
+            createBrandHeading(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode('!'),
+              ])
+            ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.intro)]),
+              { align: 'center' }
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      // Greeting
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.intro)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+        // Details
+        createContentSection(
+          [
+            createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+            ...detailRows,
+          ],
+          { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+        ),
 
-      // Details
-      createContentSection(
-        [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-          ...detailRows,
-        ],
-        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-      ),
+        // CTA
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.websiteUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      // CTA
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
-
-      // Footer
-      createFooterSection(config.footer),
-    ],
+        // Footer
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }
 
@@ -273,58 +277,61 @@ export interface ReservationCancellationConfig {
  */
 export function createReservationCancellationEmail(config: ReservationCancellationConfig): RCMLDocument {
   validateCustomFields(config.customFields, config.fieldNames, 'createReservationCancellationEmail');
-  const { customFields, fieldNames, text } = config;
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+  return withTemplateContext('createReservationCancellationEmail', () => {
+    const { customFields, fieldNames, text } = config;
 
-      createContentSection(
-        [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode(','),
-            ])
-          ),
+        createContentSection(
+          [
+            createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.message),
-            ])
-          ),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode(','),
+              ])
+            ),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.referenceLabel}: `),
-              createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-            ])
-          ),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(text.message),
+              ])
+            ),
 
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.followUp)])
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.referenceLabel}: `),
+                createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
+              ])
+            ),
 
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.followUp)])
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      createFooterSection(config.footer),
-    ],
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.websiteUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
+
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }
 
@@ -361,112 +368,115 @@ export interface ReservationReminderConfig {
  */
 export function createReservationReminderEmail(config: ReservationReminderConfig): RCMLDocument {
   validateCustomFields(config.customFields, config.fieldNames, 'createReservationReminderEmail');
-  const { customFields, fieldNames, text } = config;
 
-  const detailRows: ReturnType<typeof createBrandText>[] = [];
+  return withTemplateContext('createReservationReminderEmail', () => {
+    const { customFields, fieldNames, text } = config;
 
-  // Dates
-  if (fieldNames.checkOutDate) {
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.dateLabel}: `),
-          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-          createTextNode(' - '),
-          createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
-        ])
-      )
-    );
-  } else {
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.dateLabel}: `),
-          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-        ])
-      )
-    );
-  }
+    const detailRows: ReturnType<typeof createBrandText>[] = [];
 
-  // Room (optional)
-  if (fieldNames.roomName && text.roomLabel) {
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.roomLabel}: `),
-          createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
-        ])
-      )
-    );
-  }
-
-  const sections: RCMLDocument['children'][1]['children'] = [
-    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
-
-    createContentSection(
-      [
-        createBrandHeading(
-          createDocWithPlaceholders([
-            createTextNode(`${text.greeting} `),
-            createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-            createTextNode('!'),
-          ])
-        ),
+    // Dates
+    if (fieldNames.checkOutDate) {
+      detailRows.push(
         createBrandText(
-          createDocWithPlaceholders([createTextNode(text.intro)]),
-          { align: 'center' }
-        ),
-      ],
-      { padding: '20px 0' }
-    ),
+          createDocWithPlaceholders([
+            createTextNode(`${text.dateLabel}: `),
+            createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
+            createTextNode(' - '),
+            createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
+          ])
+        )
+      );
+    } else {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.dateLabel}: `),
+            createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
+          ])
+        )
+      );
+    }
 
-    createContentSection(
-      [
-        createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-        ...detailRows,
-      ],
-      { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-    ),
-  ];
+    // Room (optional)
+    if (fieldNames.roomName && text.roomLabel) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.roomLabel}: `),
+            createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
+          ])
+        )
+      );
+    }
 
-  // Practical info (optional)
-  if (text.practicalInfoHeading && text.practicalInfo) {
-    sections.push(
+    const sections: RCMLDocument['children'][1]['children'] = [
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+
       createContentSection(
         [
           createBrandHeading(
-            createDocWithPlaceholders([createTextNode(text.practicalInfoHeading)]),
-            3
+            createDocWithPlaceholders([
+              createTextNode(`${text.greeting} `),
+              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              createTextNode('!'),
+            ])
           ),
-          createBrandText(createDocWithPlaceholders([createTextNode(text.practicalInfo)])),
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
+          createBrandText(
+            createDocWithPlaceholders([createTextNode(text.intro)]),
+            { align: 'center' }
           ),
         ],
         { padding: '20px 0' }
-      )
-    );
-  } else {
-    sections.push(
+      ),
+
       createContentSection(
         [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
-          ),
+          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+          ...detailRows,
         ],
-        { padding: '20px 0' }
-      )
-    );
-  }
+        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+      ),
+    ];
 
-  sections.push(createFooterSection(config.footer));
+    // Practical info (optional)
+    if (text.practicalInfoHeading && text.practicalInfo) {
+      sections.push(
+        createContentSection(
+          [
+            createBrandHeading(
+              createDocWithPlaceholders([createTextNode(text.practicalInfoHeading)]),
+              3
+            ),
+            createBrandText(createDocWithPlaceholders([createTextNode(text.practicalInfo)])),
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.websiteUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        )
+      );
+    } else {
+      sections.push(
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.websiteUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        )
+      );
+    }
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections,
+    sections.push(createFooterSection(config.footer));
+
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections,
+    });
   });
 }
 
@@ -496,43 +506,46 @@ export interface FeedbackRequestConfig {
  */
 export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLDocument {
   validateCustomFields(config.customFields, config.fieldNames, 'createFeedbackRequestEmail');
-  const { customFields, fieldNames, text } = config;
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+  return withTemplateContext('createFeedbackRequestEmail', () => {
+    const { customFields, fieldNames, text } = config;
 
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.message)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.feedbackUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+        createContentSection(
+          [
+            createBrandHeading(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode('!'),
+              ])
+            ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.message)]),
+              { align: 'center' }
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      createFooterSection(config.footer),
-    ],
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.feedbackUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
+
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }
 
@@ -567,67 +580,70 @@ export interface ReservationRequestConfig {
  */
 export function createReservationRequestEmail(config: ReservationRequestConfig): RCMLDocument {
   validateCustomFields(config.customFields, config.fieldNames, 'createReservationRequestEmail');
-  const { customFields, fieldNames, text } = config;
 
-  const dateContent = fieldNames.checkOutDate
-    ? [
-        createTextNode(`${text.dateLabel}: `),
-        createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-        createTextNode(' - '),
-        createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
-      ]
-    : [
-        createTextNode(`${text.dateLabel}: `),
-        createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-      ];
+  return withTemplateContext('createReservationRequestEmail', () => {
+    const { customFields, fieldNames, text } = config;
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+    const dateContent = fieldNames.checkOutDate
+      ? [
+          createTextNode(`${text.dateLabel}: `),
+          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
+          createTextNode(' - '),
+          createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
+        ]
+      : [
+          createTextNode(`${text.dateLabel}: `),
+          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
+        ];
 
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.message)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-      createContentSection(
-        [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+        createContentSection(
+          [
+            createBrandHeading(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode('!'),
+              ])
+            ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.message)]),
+              { align: 'center' }
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.referenceLabel}: `),
-              createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-            ])
-          ),
+        createContentSection(
+          [
+            createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
 
-          createBrandText(createDocWithPlaceholders(dateContent)),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.referenceLabel}: `),
+                createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
+              ])
+            ),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.guestsLabel}: `),
-              createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
-            ])
-          ),
-        ],
-        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-      ),
+            createBrandText(createDocWithPlaceholders(dateContent)),
 
-      createFooterSection(config.footer),
-    ],
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.guestsLabel}: `),
+                createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
+              ])
+            ),
+          ],
+          { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+        ),
+
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }

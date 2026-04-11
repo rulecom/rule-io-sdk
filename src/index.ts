@@ -263,6 +263,7 @@ export {
   createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
+  validateCustomFields,
 } from './rcml';
 
 export type {
