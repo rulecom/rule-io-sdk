@@ -44,7 +44,9 @@ export class RuleApiError extends Error {
 
   constructor(
     message: string,
-    public statusCode: number
+    public statusCode: number,
+    /** @deprecated This parameter is ignored. requestId will be removed in the next major version. */
+    _requestId?: string,
   ) {
     super(message);
     this.name = 'RuleApiError';
