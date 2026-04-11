@@ -26,6 +26,8 @@ import type {
   RCMLFont,
   RCMLPlainText,
 } from '../types';
+import { sanitizeUrl } from './utils';
+import { RuleConfigError } from '../errors';
 
 // ============================================================================
 // Internal Defaults
@@ -478,10 +480,14 @@ export function createButton(
   href: string,
   options?: CreateButtonOptions
 ): RCMLButton {
+  const sanitizedHref = sanitizeUrl(href);
+  if (!sanitizedHref) {
+    throw new RuleConfigError('createButton: invalid or unsafe URL');
+  }
   return {
     tagName: 'rc-button',
     attributes: {
-      href,
+      href: sanitizedHref,
       align: options?.align || 'center',
       'background-color': options?.backgroundColor || ELEMENT_DEFAULTS.BUTTON_BG_COLOR,
       color: options?.color || ELEMENT_DEFAULTS.BUTTON_TEXT_COLOR,
@@ -509,14 +515,18 @@ export interface CreateImageOptions {
  * Create an image element
  */
 export function createImage(src: string, options?: CreateImageOptions): RCMLImage {
+  const sanitizedSrc = sanitizeUrl(src);
+  if (!sanitizedSrc) {
+    throw new RuleConfigError('createImage: invalid or unsafe URL');
+  }
   return {
     tagName: 'rc-image',
     attributes: {
-      src,
+      src: sanitizedSrc,
       alt: options?.alt || '',
       width: options?.width,
       height: options?.height,
-      href: options?.href,
+      href: options?.href ? sanitizeUrl(options.href) || undefined : undefined,
       align: options?.align || 'center',
       padding: options?.padding || '0 0 20px 0',
       'border-radius': options?.borderRadius,
@@ -695,15 +705,19 @@ export interface CreateVideoOptions {
  * Create a video element (shows thumbnail with play button overlay)
  */
 export function createVideo(src: string, options?: CreateVideoOptions): RCMLVideo {
+  const sanitizedSrc = sanitizeUrl(src);
+  if (!sanitizedSrc) {
+    throw new RuleConfigError('createVideo: invalid or unsafe URL');
+  }
   return {
     tagName: 'rc-video',
     attributes: {
-      src,
+      src: sanitizedSrc,
       alt: options?.alt || '',
       width: options?.width,
       height: options?.height,
-      href: options?.href,
-      'button-url': options?.buttonUrl,
+      href: options?.href ? sanitizeUrl(options.href) || undefined : undefined,
+      'button-url': options?.buttonUrl ? sanitizeUrl(options.buttonUrl) || undefined : undefined,
       align: options?.align || 'center',
       padding: options?.padding || '0 0 20px 0',
       'border-radius': options?.borderRadius,

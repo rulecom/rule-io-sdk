@@ -21,7 +21,9 @@ import {
   createLoop,
   createBrandLoop,
   createLoopFieldPlaceholder,
+  createVideo,
 } from '../src/rcml';
+import { RuleConfigError } from '../src/errors';
 
 describe('RCML Utils', () => {
   describe('escapeHtml', () => {
@@ -330,6 +332,14 @@ describe('RCML Elements', () => {
       expect(button.attributes?.['background-color']).toBe('#00FF00');
       expect(button.attributes?.['border-radius']).toBe('4px');
     });
+
+    it('should reject javascript: URLs', () => {
+      expect(() => createButton('Click', 'javascript:alert(1)')).toThrow(RuleConfigError);
+    });
+
+    it('should reject data: URLs', () => {
+      expect(() => createButton('Click', 'data:text/html,<h1>xss</h1>')).toThrow(RuleConfigError);
+    });
   });
 
   describe('createImage', () => {
@@ -350,6 +360,17 @@ describe('RCML Elements', () => {
       expect(image.attributes.alt).toBe('Description');
       expect(image.attributes.width).toBe('100%');
       expect(image.attributes.href).toBe('https://example.com');
+    });
+
+    it('should reject javascript: URLs', () => {
+      expect(() => createImage('javascript:alert(1)')).toThrow(RuleConfigError);
+    });
+
+    it('should strip unsafe href option', () => {
+      const image = createImage('https://example.com/img.jpg', {
+        href: 'javascript:alert(1)',
+      });
+      expect(image.attributes.href).toBeUndefined();
     });
   });
 
@@ -402,6 +423,26 @@ describe('RCML Elements', () => {
       expect(divider.attributes?.['border-color']).toBe('#FF0000');
       expect(divider.attributes?.['border-style']).toBe('dashed');
       expect(divider.attributes?.['border-width']).toBe('2px');
+    });
+  });
+
+  describe('createVideo', () => {
+    it('should create video with src', () => {
+      const video = createVideo('https://example.com/video.mp4');
+
+      expect(video.tagName).toBe('rc-video');
+      expect(video.attributes.src).toBe('https://example.com/video.mp4');
+    });
+
+    it('should reject javascript: URLs', () => {
+      expect(() => createVideo('javascript:alert(1)')).toThrow(RuleConfigError);
+    });
+
+    it('should strip unsafe href option', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        href: 'javascript:alert(1)',
+      });
+      expect(video.attributes.href).toBeUndefined();
     });
   });
 

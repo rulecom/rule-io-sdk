@@ -42,10 +42,16 @@ function createTemplate(config: TemplateConfig) { ... }
 - All public functions must have explicit return types
 - All public types must be exported from `src/index.ts`
 
-### 5. XSS Protection
+### 5. URL Sanitization
 
-All user-provided content rendered in email templates must be escaped.
-Use `escapeHtml()` and `sanitizeUrl()` from `src/rcml/utils.ts`.
+All URL parameters (`href`, `src`) in RCML element builders must be
+sanitized with `sanitizeUrl()` from `src/rcml/utils.ts`. This prevents
+`javascript:` and `data:` URI injection.
+
+Text content does NOT need `escapeHtml()` — RCML is structured JSON
+(ProseMirror nodes), not raw HTML. Rule.io's renderer handles text
+encoding. `escapeHtml()` remains available for consumers who build
+raw HTML outside of RCML.
 
 ---
 
