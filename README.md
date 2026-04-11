@@ -880,14 +880,18 @@ try {
 
 ## Security
 
-All user-provided content rendered in templates is automatically escaped by the pre-built templates. If you build custom templates, use the security utilities:
+The RCML element builders `createButton`, `createImage`, and `createVideo` sanitize URL parameters to block `javascript:` and `data:` URIs. Text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
+
+If you build custom raw HTML templates outside of RCML, use the security utilities:
 
 ```typescript
 import { escapeHtml, sanitizeUrl } from 'rule-io-sdk';
 
-const safeName = escapeHtml(userInput);          // Prevents XSS
-const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript: URLs
+const safeName = escapeHtml(userInput);          // For raw HTML interpolation
+const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript:/data: URLs
 ```
+
+> **Note:** Do NOT use `escapeHtml()` on text passed to RCML builders like `createText()` or `createHeading()` — these produce structured JSON, not HTML, and pre-escaping will result in double-escaped output (`&amp;` instead of `&`).
 
 ## Development
 
