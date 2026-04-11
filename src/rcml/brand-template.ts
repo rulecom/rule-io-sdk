@@ -41,6 +41,32 @@ function generateId(): string {
 }
 
 // ============================================================================
+// Error Context Helper
+// ============================================================================
+
+/**
+ * Re-throw a `RuleConfigError` with the template function name prepended.
+ *
+ * Builder functions like `createBrandButton` throw errors such as
+ * `"createBrandButton: invalid or unsafe URL"`. When called from a
+ * template function (e.g. `createOrderConfirmationEmail`), the outer
+ * template name is lost. This helper catches `RuleConfigError` and
+ * prepends the template name so callers see where the problem originated.
+ *
+ * @internal
+ */
+export function withTemplateContext<T>(templateName: string, fn: () => T): T {
+  try {
+    return fn();
+  } catch (error: unknown) {
+    if (error instanceof RuleConfigError) {
+      throw new RuleConfigError(`${templateName} > ${error.message}`);
+    }
+    throw error;
+  }
+}
+
+// ============================================================================
 // Custom Field Definitions
 // ============================================================================
 
@@ -451,14 +477,12 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
 /**
  * Create a logo element using brand style.
  *
- * This function validates `logoUrl` for safety and creates the body `rc-logo`
- * node, but it does not set that URL as `src` on the element. The editor
- * resolves the displayed logo via `rc-class: rcml-logo-style`, using the
- * brand style defined in the document head by {@link createBrandHead}. To
- * affect the rendered logo, the same URL must also be configured in
- * `BrandStyleConfig.logoUrl`.
+ * The `logoUrl` is sanitized for safety and set as `src` on the `rc-logo`
+ * element. The element also carries `rc-class: rcml-logo-style` so that the
+ * Rule.io editor can resolve additional styling from the brand head defined
+ * by {@link createBrandHead}.
  *
- * @param logoUrl - Logo URL to validate before creating the logo body node
+ * @param logoUrl - Logo image URL (must be a safe http/https URL)
  */
 export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
   const sanitizedSrc = sanitizeUrl(logoUrl);
@@ -482,6 +506,7 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
             id: generateId(),
             attributes: {
               'rc-class': 'rcml-logo-style rc-initial-logo',
+              src: sanitizedSrc,
               width: '96px',
               padding: '20px 0',
             },
