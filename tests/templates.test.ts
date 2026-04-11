@@ -1594,6 +1594,30 @@ describe('withTemplateContext', () => {
     }
   });
 
+  it('should attach original error as cause', () => {
+    const original = new RuleConfigError('createBrandButton: invalid or unsafe URL');
+    try {
+      withTemplateContext('createOrderConfirmationEmail', () => {
+        throw original;
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+      expect((error as RuleConfigError).cause).toBe(original);
+    }
+  });
+
+  it('should preserve original stack trace', () => {
+    const original = new RuleConfigError('createBrandButton: invalid or unsafe URL');
+    try {
+      withTemplateContext('createOrderConfirmationEmail', () => {
+        throw original;
+      });
+    } catch (error) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+      expect((error as RuleConfigError).stack).toBe(original.stack);
+    }
+  });
+
   it('should not modify non-RuleConfigError errors', () => {
     expect(() =>
       withTemplateContext('myTemplate', () => {

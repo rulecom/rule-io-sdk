@@ -60,7 +60,9 @@ export function withTemplateContext<T>(templateName: string, fn: () => T): T {
     return fn();
   } catch (error: unknown) {
     if (error instanceof RuleConfigError) {
-      throw new RuleConfigError(`${templateName} > ${error.message}`);
+      const wrapped = new RuleConfigError(`${templateName} > ${error.message}`, { cause: error });
+      wrapped.stack = error.stack;
+      throw wrapped;
     }
     throw error;
   }
