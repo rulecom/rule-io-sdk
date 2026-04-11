@@ -29,7 +29,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
+import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
@@ -161,7 +161,8 @@ export function createTextNode(text: string): { type: 'text'; text: string } {
  */
 export function createDocWithPlaceholders(
   content: Array<
-    { type: 'text'; text: string } | { type: 'placeholder'; attrs: Record<string, unknown> }
+    | { type: 'text'; text: string }
+    | { type: 'placeholder'; attrs: { type: string; name: string; value: string | number; original: string } }
   >
 ): RCMLProseMirrorDoc {
   return {
@@ -169,7 +170,7 @@ export function createDocWithPlaceholders(
     content: [
       {
         type: 'paragraph',
-        content: content as RCMLProseMirrorDoc['content'][0]['content'],
+        content,
       },
     ],
   };
@@ -561,11 +562,7 @@ export function createBrandButton(
  * Create a content section with a single column.
  */
 export function createContentSection(
-  children: Array<
-    | ReturnType<typeof createBrandHeading>
-    | ReturnType<typeof createBrandText>
-    | ReturnType<typeof createBrandButton>
-  >,
+  children: RCMLColumnChild[],
   options?: { padding?: string; backgroundColor?: string }
 ): RCMLBodyChild {
   return {
@@ -580,8 +577,7 @@ export function createContentSection(
         tagName: 'rc-column',
         id: generateId(),
         attributes: { padding: '0 20px' },
-        children:
-          children as unknown as RCMLSection['children'][0]['children'],
+        children,
       },
     ],
   } as RCMLBodyChild;
