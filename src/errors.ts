@@ -41,8 +41,7 @@ export class RuleApiError extends Error {
 
   constructor(
     message: string,
-    public statusCode: number,
-    public requestId?: string
+    public statusCode: number
   ) {
     super(message);
     this.name = 'RuleApiError';
