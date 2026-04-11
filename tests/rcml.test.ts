@@ -340,6 +340,10 @@ describe('RCML Elements', () => {
     it('should reject data: URLs', () => {
       expect(() => createButton('Click', 'data:text/html,<h1>xss</h1>')).toThrow(RuleConfigError);
     });
+
+    it('should reject invalid URLs', () => {
+      expect(() => createButton('Click', 'not a valid url')).toThrow(RuleConfigError);
+    });
   });
 
   describe('createImage', () => {
@@ -464,6 +468,10 @@ describe('RCML Elements', () => {
       expect(() =>
         createVideo('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==')
       ).toThrow(RuleConfigError);
+    });
+
+    it('should reject invalid URLs for required src', () => {
+      expect(() => createVideo('not a valid url')).toThrow(RuleConfigError);
     });
 
     it('should strip unsafe href option', () => {

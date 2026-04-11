@@ -467,6 +467,8 @@ export interface CreateButtonOptions {
 /**
  * Create a button element
  *
+ * @throws {RuleConfigError} If `href` is not a valid http/https URL
+ *
  * @example
  * ```typescript
  * createButton('View Order', 'https://example.com/orders/123', {
@@ -513,6 +515,8 @@ export interface CreateImageOptions {
 
 /**
  * Create an image element
+ *
+ * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createImage(src: string, options?: CreateImageOptions): RCMLImage {
   const sanitizedSrc = sanitizeUrl(src);
@@ -703,6 +707,8 @@ export interface CreateVideoOptions {
 
 /**
  * Create a video element (shows thumbnail with play button overlay)
+ *
+ * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createVideo(src: string, options?: CreateVideoOptions): RCMLVideo {
   const sanitizedSrc = sanitizeUrl(src);
