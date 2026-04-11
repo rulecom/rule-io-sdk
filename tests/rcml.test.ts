@@ -366,9 +366,31 @@ describe('RCML Elements', () => {
       expect(() => createImage('javascript:alert(1)')).toThrow(RuleConfigError);
     });
 
-    it('should strip unsafe href option', () => {
+    it('should reject data: URLs', () => {
+      expect(() => createImage('data:text/html,<h1>xss</h1>')).toThrow(RuleConfigError);
+    });
+
+    it('should reject invalid URLs', () => {
+      expect(() => createImage('not a valid url')).toThrow(RuleConfigError);
+    });
+
+    it('should strip unsafe javascript: href option', () => {
       const image = createImage('https://example.com/img.jpg', {
         href: 'javascript:alert(1)',
+      });
+      expect(image.attributes.href).toBeUndefined();
+    });
+
+    it('should strip unsafe data: href option', () => {
+      const image = createImage('https://example.com/img.jpg', {
+        href: 'data:text/html,<h1>xss</h1>',
+      });
+      expect(image.attributes.href).toBeUndefined();
+    });
+
+    it('should strip invalid href option', () => {
+      const image = createImage('https://example.com/img.jpg', {
+        href: 'not a valid url',
       });
       expect(image.attributes.href).toBeUndefined();
     });
@@ -438,11 +460,31 @@ describe('RCML Elements', () => {
       expect(() => createVideo('javascript:alert(1)')).toThrow(RuleConfigError);
     });
 
+    it('should reject data: URLs for required src', () => {
+      expect(() =>
+        createVideo('data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==')
+      ).toThrow(RuleConfigError);
+    });
+
     it('should strip unsafe href option', () => {
       const video = createVideo('https://example.com/video.mp4', {
         href: 'javascript:alert(1)',
       });
       expect(video.attributes.href).toBeUndefined();
+    });
+
+    it('should strip unsafe data: href option', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        href: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+      });
+      expect(video.attributes.href).toBeUndefined();
+    });
+
+    it('should strip unsafe buttonUrl option', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        buttonUrl: 'data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==',
+      });
+      expect(video.attributes['button-url']).toBeUndefined();
     });
   });
 

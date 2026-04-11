@@ -44,9 +44,10 @@ function createTemplate(config: TemplateConfig) { ... }
 
 ### 5. URL Sanitization
 
-All URL parameters (`href`, `src`) in RCML element builders must be
-sanitized with `sanitizeUrl()` from `src/rcml/utils.ts`. This prevents
-`javascript:` and `data:` URI injection.
+RCML element builders that accept URL parameters (`href`, `src`) should
+sanitize those values with `sanitizeUrl()` from `src/rcml/utils.ts` when
+wiring them into RCML output. This prevents `javascript:` and `data:`
+URI injection.
 
 Text content does NOT need `escapeHtml()` — RCML is structured JSON
 (ProseMirror nodes), not raw HTML. Rule.io's renderer handles text
