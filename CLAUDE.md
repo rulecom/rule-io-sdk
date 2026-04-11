@@ -53,7 +53,9 @@ Text content placed into RCML/ProseMirror text nodes does NOT need
 `escapeHtml()` — RCML is structured JSON, not raw HTML, and Rule.io's
 renderer handles text encoding for those nodes. This does NOT change the
 guidance for raw HTML generation: use `escapeHtml()` when embedding
-user-provided content into raw HTML outside of RCML.
+user-provided content into raw HTML outside of RCML. Note: the `escapeHtml()`
+docstring in `src/rcml/utils.ts` scopes its guidance to raw HTML only —
+it does not apply to structured RCML/ProseMirror text nodes.
 
 ---
 

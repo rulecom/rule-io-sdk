@@ -484,7 +484,7 @@ export function createButton(
 ): RCMLButton {
   const sanitizedHref = sanitizeUrl(href);
   if (!sanitizedHref) {
-    throw new RuleConfigError('createButton: invalid or unsafe URL');
+    throw new RuleConfigError('createButton: invalid or unsafe URL for `href`');
   }
   return {
     tagName: 'rc-button',
@@ -516,12 +516,16 @@ export interface CreateImageOptions {
 /**
  * Create an image element
  *
+ * `src` is sanitized and must be a valid http/https URL.
+ * If `options.href` is provided, it is also sanitized and will be omitted
+ * from the generated element when invalid or unsafe.
+ *
  * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createImage(src: string, options?: CreateImageOptions): RCMLImage {
   const sanitizedSrc = sanitizeUrl(src);
   if (!sanitizedSrc) {
-    throw new RuleConfigError('createImage: invalid or unsafe URL');
+    throw new RuleConfigError('createImage: invalid or unsafe `src` URL');
   }
   return {
     tagName: 'rc-image',
@@ -708,12 +712,16 @@ export interface CreateVideoOptions {
 /**
  * Create a video element (shows thumbnail with play button overlay)
  *
+ * `src` must be a valid http/https URL or this function throws. Optional
+ * `options.href` and `options.buttonUrl` are also sanitized; if either value
+ * is invalid or unsafe, it is silently omitted from the returned element.
+ *
  * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createVideo(src: string, options?: CreateVideoOptions): RCMLVideo {
   const sanitizedSrc = sanitizeUrl(src);
   if (!sanitizedSrc) {
-    throw new RuleConfigError('createVideo: invalid or unsafe URL');
+    throw new RuleConfigError('createVideo: invalid or unsafe `src` URL');
   }
   return {
     tagName: 'rc-video',

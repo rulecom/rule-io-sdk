@@ -5,8 +5,9 @@
  */
 
 /**
- * Escape HTML special characters to prevent XSS in email templates.
- * This should be applied to all user-provided content before interpolation.
+ * Escape HTML special characters to prevent XSS.
+ * Use when embedding user-provided content into raw HTML strings.
+ * NOT needed for RCML/ProseMirror text nodes (structured JSON, not raw HTML).
  *
  * @param text - The text to escape
  * @returns Escaped text safe for HTML
