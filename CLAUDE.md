@@ -49,13 +49,14 @@ sanitize URL parameters (`href`, `src`) with `sanitizeUrl()` from
 `src/rcml/utils.ts`. This prevents `javascript:` and `data:` URI
 injection. New URL-accepting builders should follow the same pattern.
 
-Text content placed into RCML/ProseMirror text nodes does NOT need
-`escapeHtml()` — RCML is structured JSON, not raw HTML, and Rule.io's
-renderer handles text encoding for those nodes. This does NOT change the
-guidance for raw HTML generation: use `escapeHtml()` when embedding
-user-provided content into raw HTML outside of RCML. Note: the `escapeHtml()`
-docstring in `src/rcml/utils.ts` scopes its guidance to raw HTML only —
-it does not apply to structured RCML/ProseMirror text nodes.
+Text content placed into RCML/ProseMirror text nodes should NOT be
+pre-escaped with `escapeHtml()` — RCML is structured JSON, not raw HTML,
+and Rule.io's renderer handles text encoding for those nodes. Pre-escaping
+those values can produce double-escaped output (`&amp;`, `&lt;`, etc.).
+This is consistent with the README security guidance: use `escapeHtml()`
+when interpolating user-provided content into raw HTML or custom HTML
+templates, but not for structured RCML/ProseMirror text nodes. Note: the
+`escapeHtml()` docstring in `src/rcml/utils.ts` is scoped to raw HTML only.
 
 ---
 
