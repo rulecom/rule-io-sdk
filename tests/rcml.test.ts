@@ -104,10 +104,21 @@ describe('RCML Document', () => {
       expect(doc.children[1].tagName).toBe('rc-body');
     });
 
+    it('should throw RuleConfigError for empty sections', () => {
+      expect(() =>
+        createRCMLDocument({ sections: [] })
+      ).toThrow(RuleConfigError);
+      expect(() =>
+        createRCMLDocument({ sections: [] })
+      ).toThrow('at least one section is required');
+    });
+
     it('should include preheader in head', () => {
       const doc = createRCMLDocument({
         preheader: 'Preview text',
-        sections: [],
+        sections: [
+          createCenteredSection({ children: [createText('Content')] }),
+        ],
       });
 
       const head = doc.children[0];
@@ -121,7 +132,9 @@ describe('RCML Document', () => {
     it('should include brand style ID (legacy support)', () => {
       const doc = createRCMLDocument({
         brandStyleId: '123',
-        sections: [],
+        sections: [
+          createCenteredSection({ children: [createText('Content')] }),
+        ],
       });
 
       const head = doc.children[0];
@@ -139,7 +152,9 @@ describe('RCML Document', () => {
           primaryColor: '#2D5016',
           backgroundColor: '#FDF5E6',
         },
-        sections: [],
+        sections: [
+          createCenteredSection({ children: [createText('Content')] }),
+        ],
       });
 
       const head = doc.children[0];
@@ -180,7 +195,9 @@ describe('RCML Document', () => {
           brandStyleId: '456', // This one should be used
           logoUrl: 'https://example.com/logo.png',
         },
-        sections: [],
+        sections: [
+          createCenteredSection({ children: [createText('Content')] }),
+        ],
       });
 
       const head = doc.children[0];
@@ -201,7 +218,9 @@ describe('RCML Document', () => {
       const doc = createRCMLDocument({
         backgroundColor: '#FFFFFF',
         width: '800px',
-        sections: [],
+        sections: [
+          createCenteredSection({ children: [createText('Content')] }),
+        ],
       });
 
       const body = doc.children[1];
