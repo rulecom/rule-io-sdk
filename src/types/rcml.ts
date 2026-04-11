@@ -30,6 +30,13 @@ export interface RCMLProseMirrorDoc {
  * - `paragraph` — block container that holds inline children
  * - `text` — inline text run with optional marks (bold, link, …)
  * - `placeholder` — merge-field token resolved at send time
+ *
+ * NOTE: This was changed from an interface to a discriminated union type in
+ * v0.x. A union gives better narrowing via `node.type`, but it does not
+ * support `interface X extends RCMLProseMirrorNode` or declaration merging.
+ * This is acceptable for a pre-1.0 SDK with no published compatibility
+ * contract. If you need to extend, use intersection types instead:
+ *   `type MyNode = RCMLProseMirrorNode & { custom: string }`
  */
 export type RCMLProseMirrorNode =
   | { type: 'paragraph'; content?: RCMLProseMirrorNode[] }
