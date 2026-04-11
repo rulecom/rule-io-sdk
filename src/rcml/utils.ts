@@ -5,8 +5,13 @@
  */
 
 /**
- * Escape HTML special characters to prevent XSS in email templates.
- * This should be applied to all user-provided content before interpolation.
+ * Escape HTML special characters to prevent XSS.
+ * Use when embedding user-provided content into raw HTML strings.
+ *
+ * This helper is for HTML-string contexts only (e.g., custom HTML templates).
+ * For structured RCML/ProseMirror text nodes, do NOT pre-escape — Rule.io's
+ * renderer handles text encoding, and pre-escaping produces double-escaped
+ * output (`&amp;`, `&lt;`, etc.).
  *
  * @param text - The text to escape
  * @returns Escaped text safe for HTML

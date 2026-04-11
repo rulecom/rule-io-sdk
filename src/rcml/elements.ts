@@ -26,6 +26,8 @@ import type {
   RCMLFont,
   RCMLPlainText,
 } from '../types';
+import { sanitizeUrl } from './utils';
+import { RuleConfigError } from '../errors';
 
 // ============================================================================
 // Internal Defaults
@@ -465,6 +467,8 @@ export interface CreateButtonOptions {
 /**
  * Create a button element
  *
+ * @throws {RuleConfigError} If `href` is not a valid http/https URL
+ *
  * @example
  * ```typescript
  * createButton('View Order', 'https://example.com/orders/123', {
@@ -478,10 +482,14 @@ export function createButton(
   href: string,
   options?: CreateButtonOptions
 ): RCMLButton {
+  const sanitizedHref = sanitizeUrl(href);
+  if (!sanitizedHref) {
+    throw new RuleConfigError('createButton: invalid or unsafe URL for `href`');
+  }
   return {
     tagName: 'rc-button',
     attributes: {
-      href,
+      href: sanitizedHref,
       align: options?.align || 'center',
       'background-color': options?.backgroundColor || ELEMENT_DEFAULTS.BUTTON_BG_COLOR,
       color: options?.color || ELEMENT_DEFAULTS.BUTTON_TEXT_COLOR,
@@ -507,16 +515,26 @@ export interface CreateImageOptions {
 
 /**
  * Create an image element
+ *
+ * `src` is sanitized and must be a valid http/https URL.
+ * If `options.href` is provided, it is also sanitized and will be omitted
+ * from the generated element when invalid or unsafe.
+ *
+ * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createImage(src: string, options?: CreateImageOptions): RCMLImage {
+  const sanitizedSrc = sanitizeUrl(src);
+  if (!sanitizedSrc) {
+    throw new RuleConfigError('createImage: invalid or unsafe `src` URL');
+  }
   return {
     tagName: 'rc-image',
     attributes: {
-      src,
+      src: sanitizedSrc,
       alt: options?.alt || '',
       width: options?.width,
       height: options?.height,
-      href: options?.href,
+      href: options?.href ? sanitizeUrl(options.href) || undefined : undefined,
       align: options?.align || 'center',
       padding: options?.padding || '0 0 20px 0',
       'border-radius': options?.borderRadius,
@@ -693,17 +711,27 @@ export interface CreateVideoOptions {
 
 /**
  * Create a video element (shows thumbnail with play button overlay)
+ *
+ * `src` must be a valid http/https URL or this function throws. Optional
+ * `options.href` and `options.buttonUrl` are also sanitized; if either value
+ * is invalid or unsafe, it is silently omitted from the returned element.
+ *
+ * @throws {RuleConfigError} If `src` is not a valid http/https URL
  */
 export function createVideo(src: string, options?: CreateVideoOptions): RCMLVideo {
+  const sanitizedSrc = sanitizeUrl(src);
+  if (!sanitizedSrc) {
+    throw new RuleConfigError('createVideo: invalid or unsafe `src` URL');
+  }
   return {
     tagName: 'rc-video',
     attributes: {
-      src,
+      src: sanitizedSrc,
       alt: options?.alt || '',
       width: options?.width,
       height: options?.height,
-      href: options?.href,
-      'button-url': options?.buttonUrl,
+      href: options?.href ? sanitizeUrl(options.href) || undefined : undefined,
+      'button-url': options?.buttonUrl ? sanitizeUrl(options.buttonUrl) || undefined : undefined,
       align: options?.align || 'center',
       padding: options?.padding || '0 0 20px 0',
       'border-radius': options?.borderRadius,
