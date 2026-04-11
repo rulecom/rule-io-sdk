@@ -10,6 +10,8 @@ import {
   createRCMLDocument,
   createCenteredSection,
   createTwoColumnSection,
+  createSection,
+  createColumn,
   createHeading,
   createText,
   createButton,
@@ -24,6 +26,11 @@ import {
   createVideo,
 } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
+import {
+  getAutomationByIdV2,
+  getAutomationByTriggerV2,
+} from '../src/automation-configs-v2';
+import type { AutomationConfigV2 } from '../src/automation-configs-v2';
 
 describe('RCML Utils', () => {
   describe('escapeHtml', () => {
@@ -460,6 +467,36 @@ describe('RCML Elements', () => {
       expect(video.attributes.src).toBe('https://example.com/video.mp4');
     });
 
+    it('should apply default attributes', () => {
+      const video = createVideo('https://example.com/video.mp4');
+
+      expect(video.attributes.alt).toBe('');
+      expect(video.attributes.align).toBe('center');
+      expect(video.attributes.padding).toBe('0 0 20px 0');
+    });
+
+    it('should accept all options', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        alt: 'Demo video',
+        width: '560px',
+        height: '315px',
+        href: 'https://example.com/watch',
+        buttonUrl: 'https://example.com/play-icon.png',
+        align: 'left',
+        padding: '10px 0',
+        borderRadius: '8px',
+      });
+
+      expect(video.attributes.alt).toBe('Demo video');
+      expect(video.attributes.width).toBe('560px');
+      expect(video.attributes.height).toBe('315px');
+      expect(video.attributes.href).toBe('https://example.com/watch');
+      expect(video.attributes['button-url']).toBe('https://example.com/play-icon.png');
+      expect(video.attributes.align).toBe('left');
+      expect(video.attributes.padding).toBe('10px 0');
+      expect(video.attributes['border-radius']).toBe('8px');
+    });
+
     it('should reject javascript: URLs', () => {
       expect(() => createVideo('javascript:alert(1)')).toThrow(RuleConfigError);
     });
@@ -507,6 +544,86 @@ describe('RCML Elements', () => {
         buttonUrl: 'not a valid url',
       });
       expect(video.attributes['button-url']).toBeUndefined();
+    });
+  });
+
+  // ==========================================================================
+  // Section / Column (low-level builders)
+  // ==========================================================================
+
+  describe('createSection', () => {
+    it('should create a section with given columns', () => {
+      const col = createColumn([createText('Cell')]);
+      const section = createSection([col]);
+
+      expect(section.tagName).toBe('rc-section');
+      expect(section.children).toHaveLength(1);
+      expect(section.children[0].tagName).toBe('rc-column');
+    });
+
+    it('should apply default padding', () => {
+      const section = createSection([createColumn([])]);
+
+      expect(section.attributes?.padding).toBe('20px 0');
+    });
+
+    it('should accept custom options', () => {
+      const section = createSection([createColumn([])], {
+        backgroundColor: '#FF0000',
+        padding: '40px 0',
+        textAlign: 'center',
+      });
+
+      expect(section.attributes?.['background-color']).toBe('#FF0000');
+      expect(section.attributes?.padding).toBe('40px 0');
+      expect(section.attributes?.['text-align']).toBe('center');
+    });
+
+    it('should accept multiple columns', () => {
+      const section = createSection([
+        createColumn([createText('Left')]),
+        createColumn([createText('Center')]),
+        createColumn([createText('Right')]),
+      ]);
+
+      expect(section.children).toHaveLength(3);
+    });
+  });
+
+  describe('createColumn', () => {
+    it('should create a column with children', () => {
+      const col = createColumn([createText('Hello'), createButton('Click', 'https://example.com')]);
+
+      expect(col.tagName).toBe('rc-column');
+      expect(col.children).toHaveLength(2);
+    });
+
+    it('should apply default padding', () => {
+      const col = createColumn([]);
+
+      expect(col.attributes?.padding).toBe('0 20px');
+    });
+
+    it('should accept custom options', () => {
+      const col = createColumn([], {
+        width: '33%',
+        backgroundColor: '#EEEEEE',
+        padding: '10px',
+        verticalAlign: 'middle',
+      });
+
+      expect(col.attributes?.width).toBe('33%');
+      expect(col.attributes?.['background-color']).toBe('#EEEEEE');
+      expect(col.attributes?.padding).toBe('10px');
+      expect(col.attributes?.['vertical-align']).toBe('middle');
+    });
+
+    it('should leave optional attributes undefined when not provided', () => {
+      const col = createColumn([]);
+
+      expect(col.attributes?.width).toBeUndefined();
+      expect(col.attributes?.['background-color']).toBeUndefined();
+      expect(col.attributes?.['vertical-align']).toBeUndefined();
     });
   });
 
@@ -598,6 +715,69 @@ describe('RCML Elements', () => {
 
       expect(node.attrs.name).toBe('variant_title');
       expect(node.attrs.original).toBe('[LoopValue:variant_title]');
+    });
+  });
+});
+
+// ============================================================================
+// Automation Config Utilities
+// ============================================================================
+
+describe('Automation Config Utilities', () => {
+  const fakeTemplate = { tagName: 'rcml' as const, children: [] };
+
+  const automations: AutomationConfigV2[] = [
+    {
+      id: 'welcome',
+      name: 'Welcome Email',
+      description: 'Sent on sign-up',
+      triggerTag: 'user-registered',
+      subject: 'Welcome!',
+      templateBuilder: () => fakeTemplate as never,
+    },
+    {
+      id: 'abandoned-cart',
+      name: 'Abandoned Cart',
+      description: 'Sent when cart abandoned',
+      triggerTag: 'cart-abandoned',
+      subject: 'You left items behind',
+      templateBuilder: () => fakeTemplate as never,
+    },
+  ];
+
+  describe('getAutomationByIdV2', () => {
+    it('should find automation by ID', () => {
+      const result = getAutomationByIdV2('welcome', automations);
+      expect(result).toBeDefined();
+      expect(result?.name).toBe('Welcome Email');
+    });
+
+    it('should return undefined for unknown ID', () => {
+      const result = getAutomationByIdV2('nonexistent', automations);
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for empty list', () => {
+      const result = getAutomationByIdV2('welcome', []);
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('getAutomationByTriggerV2', () => {
+    it('should find automation by trigger tag', () => {
+      const result = getAutomationByTriggerV2('cart-abandoned', automations);
+      expect(result).toBeDefined();
+      expect(result?.id).toBe('abandoned-cart');
+    });
+
+    it('should return undefined for unknown trigger tag', () => {
+      const result = getAutomationByTriggerV2('unknown-tag', automations);
+      expect(result).toBeUndefined();
+    });
+
+    it('should return undefined for empty list', () => {
+      const result = getAutomationByTriggerV2('cart-abandoned', []);
+      expect(result).toBeUndefined();
     });
   });
 });

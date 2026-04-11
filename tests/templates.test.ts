@@ -6,8 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { RCMLDocument } from '../src/types';
-import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
+import type { CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
 import { validateCustomFields, toBrandStyleConfig } from '../src/rcml/brand-template';
 import {
@@ -36,24 +35,11 @@ import {
   createOrderCancellationEmail,
   createDefaultContentSection,
 } from '../src/rcml';
+import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers';
 
 // ============================================================================
 // Shared test fixtures
 // ============================================================================
-
-const TEST_BRAND_STYLE: BrandStyleConfig = {
-  brandStyleId: '99999',
-  logoUrl: 'https://example.com/logo.png',
-  buttonColor: '#0066CC',
-  bodyBackgroundColor: '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  brandColor: '#f6f8f9',
-  headingFont: "'Helvetica Neue', sans-serif",
-  headingFontUrl: 'https://app.rule.io/brand-style/99999/font/1/css',
-  bodyFont: "'Arial', sans-serif",
-  bodyFontUrl: 'https://app.rule.io/brand-style/99999/font/2/css',
-  textColor: '#1A1A1A',
-};
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   'Booking.FirstName': 100001,
@@ -103,24 +89,6 @@ const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   'Order.ShippingCost': 200033,
   'Order.ShippingCarrier': 200034,
 };
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
-function assertValidRCMLDocument(doc: RCMLDocument): void {
-  expect(doc.tagName).toBe('rcml');
-  expect(doc.children).toHaveLength(2);
-  expect(doc.children[0].tagName).toBe('rc-head');
-  expect(doc.children[1].tagName).toBe('rc-body');
-
-  const body = doc.children[1];
-  expect(body.children.length).toBeGreaterThan(0);
-}
-
-function docToString(doc: RCMLDocument): string {
-  return JSON.stringify(doc);
-}
 
 // ============================================================================
 // Brand Template Utilities
