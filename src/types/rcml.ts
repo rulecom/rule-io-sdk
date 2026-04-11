@@ -24,13 +24,17 @@ export interface RCMLProseMirrorDoc {
   content: RCMLProseMirrorNode[];
 }
 
-export interface RCMLProseMirrorNode {
-  type: 'paragraph' | 'text' | 'placeholder';
-  content?: RCMLProseMirrorNode[];
-  text?: string;
-  marks?: RCMLProseMirrorMark[];
-  attrs?: Record<string, unknown>;
-}
+/**
+ * ProseMirror node — discriminated union keyed on `type`.
+ *
+ * - `paragraph` — block container that holds inline children
+ * - `text` — inline text run with optional marks (bold, link, …)
+ * - `placeholder` — merge-field token resolved at send time
+ */
+export type RCMLProseMirrorNode =
+  | { type: 'paragraph'; content?: RCMLProseMirrorNode[] }
+  | { type: 'text'; text: string; marks?: RCMLProseMirrorMark[] }
+  | { type: 'placeholder'; attrs: { type: string; name: string; value: string | number; original: string } };
 
 export interface RCMLProseMirrorMark {
   type: 'font' | 'link' | 'bold' | 'italic' | 'underline';
