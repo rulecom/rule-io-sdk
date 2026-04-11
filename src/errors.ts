@@ -39,10 +39,14 @@ export class RuleApiError extends Error {
    */
   public validationErrors?: RuleValidationErrors;
 
+  /** @deprecated This property is never populated. It will be removed in the next major version. */
+  readonly requestId?: string;
+
   constructor(
     message: string,
     public statusCode: number,
-    public requestId?: string
+    /** @deprecated This parameter is ignored. requestId will be removed in the next major version. */
+    _requestId?: string,
   ) {
     super(message);
     this.name = 'RuleApiError';

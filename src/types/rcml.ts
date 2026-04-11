@@ -24,12 +24,24 @@ export interface RCMLProseMirrorDoc {
   content: RCMLProseMirrorNode[];
 }
 
-export interface RCMLProseMirrorNode {
-  type: 'paragraph' | 'text';
-  content?: RCMLProseMirrorNode[];
-  text?: string;
-  marks?: RCMLProseMirrorMark[];
-}
+/**
+ * ProseMirror node — discriminated union keyed on `type`.
+ *
+ * - `paragraph` — block container that holds inline children
+ * - `text` — inline text run with optional marks (bold, link, …)
+ * - `placeholder` — merge-field token resolved at send time
+ *
+ * NOTE: This was changed from an interface to a discriminated union type in
+ * v0.x. A union gives better narrowing via `node.type`, but it does not
+ * support `interface X extends RCMLProseMirrorNode` or declaration merging.
+ * This is acceptable for a pre-1.0 SDK with no published compatibility
+ * contract. If you need to extend, use intersection types instead:
+ *   `type MyNode = RCMLProseMirrorNode & { custom: string }`
+ */
+export type RCMLProseMirrorNode =
+  | { type: 'paragraph'; content?: RCMLProseMirrorNode[] }
+  | { type: 'text'; text: string; marks?: RCMLProseMirrorMark[] }
+  | { type: 'placeholder'; attrs: { type: string; name: string; value: string | number; original: string } };
 
 export interface RCMLProseMirrorMark {
   type: 'font' | 'link' | 'bold' | 'italic' | 'underline';
@@ -186,8 +198,14 @@ export interface RCMLBody {
     /** Width of the email body (default: 600px) */
     width?: string;
   };
-  children: (RCMLSection | RCMLLoop | RCMLSwitch)[];
+  children: RCMLBodyChild[];
 }
+
+/**
+ * Top-level child element of an RCML body.
+ * Sections, loops, and conditional switches can appear directly inside rc-body.
+ */
+export type RCMLBodyChild = RCMLSection | RCMLLoop | RCMLSwitch;
 
 /**
  * Sections are used as rows within your email to structure the layout.
@@ -453,7 +471,7 @@ export interface RCMLLogo {
     'border-radius'?: string;
     'container-background-color'?: string;
     'css-class'?: string;
-    'fluid-on-mobile'?: boolean;
+    'fluid-on-mobile'?: 'true' | 'false';
     'font-size'?: string;
     height?: string;
     href?: string;
@@ -497,7 +515,7 @@ export interface RCMLVideo {
     'button-url'?: string;
     'container-background-color'?: string;
     'css-class'?: string;
-    'fluid-on-mobile'?: boolean;
+    'fluid-on-mobile'?: 'true' | 'false';
     'font-size'?: string;
     height?: string;
     href?: string;
