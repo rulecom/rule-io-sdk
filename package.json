@@ -22,6 +22,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
+    "preversion": "npm run type-check && npm run test",
     "prepare": "[ -f node_modules/.bin/tsup ] && npm run build || true",
     "prepublishOnly": "npm run build"
   },

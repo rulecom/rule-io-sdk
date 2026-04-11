@@ -893,6 +893,13 @@ const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript:/data: UR
 
 > **Note:** Do NOT use `escapeHtml()` on text passed to RCML builders like `createText()` or `createHeading()` — these produce structured JSON, not HTML, and pre-escaping will result in double-escaped output (`&amp;` instead of `&`).
 
+## Releasing
+
+1. Update `CHANGELOG.md` with the new version's changes
+2. Run `npm version patch|minor|major` (runs type-check + tests automatically)
+3. Push with tags: `git push && git push --tags`
+4. Publish: `npm publish`
+
 ## Development
 
 ```bash
