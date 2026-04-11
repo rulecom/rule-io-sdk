@@ -29,7 +29,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLButton, RCMLDocument, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
+import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
@@ -293,7 +293,7 @@ export function createBrandHead(
     /** Plain text fallback content */
     plainText?: string;
   }
-): RCMLDocument['children'][0] {
+): RCMLHead {
   const plainTextContent = options?.plainText
     ?? 'View this email in your browser: %Link:WebBrowser%\n\n---\nUnsubscribe: %Link:Unsubscribe%';
 
@@ -323,7 +323,7 @@ export function createBrandHead(
   }
 
   // Build rc-attributes children
-  const attributeChildren: Array<Record<string, unknown>> = [
+  const attributeChildren: NonNullable<RCMLAttributes['children']> = [
     { tagName: 'rc-body', id: generateId(), attributes: { 'background-color': brandStyle.bodyBackgroundColor } },
     { tagName: 'rc-section', id: generateId(), attributes: { 'background-color': brandStyle.sectionBackgroundColor } },
     { tagName: 'rc-button', id: generateId(), attributes: { 'background-color': brandStyle.buttonColor } },
@@ -362,8 +362,7 @@ export function createBrandHead(
   );
 
   // Build head children
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- RCML head children have varied shapes
-  const headChildren: Array<any> = [
+  const headChildren: NonNullable<RCMLHead['children']> = [
     { tagName: 'rc-brand-style', id: generateId(), attributes: { id: brandStyle.brandStyleId } },
     { tagName: 'rc-attributes', id: generateId(), children: attributeChildren },
     { tagName: 'rc-preview', id: generateId(), ...(options?.preheader ? { content: options.preheader } : {}) },
@@ -388,7 +387,7 @@ export function createBrandHead(
     tagName: 'rc-head',
     id: generateId(),
     children: headChildren,
-  } as RCMLDocument['children'][0];
+  } as RCMLHead;
 }
 
 // ============================================================================
@@ -403,7 +402,7 @@ export interface SimpleTemplateConfig {
   /** Plain text fallback content */
   plainText?: string;
   /** Email body sections */
-  sections: RCMLDocument['children'][1]['children'];
+  sections: RCMLBodyChild[];
 }
 
 /**
@@ -460,7 +459,7 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
  *
  * @param logoUrl - Logo URL to validate before creating the logo body node
  */
-export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['children'][0] {
+export function createBrandLogo(logoUrl: string): RCMLBodyChild {
   const sanitizedSrc = sanitizeUrl(logoUrl);
   if (!sanitizedSrc) {
     throw new RuleConfigError('createBrandLogo: invalid or unsafe logoUrl');
@@ -489,7 +488,7 @@ export function createBrandLogo(logoUrl: string): RCMLDocument['children'][1]['c
         ],
       },
     ],
-  } as RCMLDocument['children'][1]['children'][0];
+  } as RCMLBodyChild;
 }
 
 /**
@@ -568,7 +567,7 @@ export function createContentSection(
     | ReturnType<typeof createBrandButton>
   >,
   options?: { padding?: string; backgroundColor?: string }
-): RCMLDocument['children'][1]['children'][0] {
+): RCMLBodyChild {
   return {
     tagName: 'rc-section',
     id: generateId(),
@@ -582,10 +581,10 @@ export function createContentSection(
         id: generateId(),
         attributes: { padding: '0 20px' },
         children:
-          children as unknown as RCMLDocument['children'][1]['children'][0]['children'][0]['children'],
+          children as unknown as RCMLSection['children'][0]['children'],
       },
     ],
-  } as RCMLDocument['children'][1]['children'][0];
+  } as RCMLBodyChild;
 }
 
 /**
@@ -606,7 +605,7 @@ export function createDefaultContentSection(options?: {
   headingText?: string;
   bodyText?: string;
   buttonText?: string;
-}): RCMLDocument['children'][1]['children'][0] {
+}): RCMLBodyChild {
   const heading = options?.headingText ?? 'Replace this title';
   const body = options?.bodyText ?? 'Click into this box to change the font settings. Edit this text to include additional information and a description of the image.';
   const button = options?.buttonText ?? 'Click me!';
@@ -671,7 +670,7 @@ export function createDefaultContentSection(options?: {
         ],
       },
     ],
-  } as RCMLDocument['children'][1]['children'][0];
+  } as RCMLBodyChild;
 }
 
 /**
@@ -747,7 +746,7 @@ export interface FooterConfig {
  */
 export function createFooterSection(
   config?: FooterConfig
-): RCMLDocument['children'][1]['children'][0] {
+): RCMLBodyChild {
   const viewText = config?.viewInBrowserText ?? 'View in browser';
   const unsubText = config?.unsubscribeText ?? 'Unsubscribe';
   const bgColor = config?.backgroundColor ?? '#f3f3f3';
@@ -867,5 +866,5 @@ export function createFooterSection(
         ],
       },
     ],
-  } as RCMLDocument['children'][1]['children'][0];
+  } as RCMLBodyChild;
 }

@@ -25,10 +25,11 @@ export interface RCMLProseMirrorDoc {
 }
 
 export interface RCMLProseMirrorNode {
-  type: 'paragraph' | 'text';
+  type: 'paragraph' | 'text' | 'placeholder';
   content?: RCMLProseMirrorNode[];
   text?: string;
   marks?: RCMLProseMirrorMark[];
+  attrs?: Record<string, unknown>;
 }
 
 export interface RCMLProseMirrorMark {
@@ -186,8 +187,14 @@ export interface RCMLBody {
     /** Width of the email body (default: 600px) */
     width?: string;
   };
-  children: (RCMLSection | RCMLLoop | RCMLSwitch)[];
+  children: RCMLBodyChild[];
 }
+
+/**
+ * Top-level child element of an RCML body.
+ * Sections, loops, and conditional switches can appear directly inside rc-body.
+ */
+export type RCMLBodyChild = RCMLSection | RCMLLoop | RCMLSwitch;
 
 /**
  * Sections are used as rows within your email to structure the layout.
@@ -453,7 +460,7 @@ export interface RCMLLogo {
     'border-radius'?: string;
     'container-background-color'?: string;
     'css-class'?: string;
-    'fluid-on-mobile'?: boolean;
+    'fluid-on-mobile'?: 'true' | 'false';
     'font-size'?: string;
     height?: string;
     href?: string;
@@ -497,7 +504,7 @@ export interface RCMLVideo {
     'button-url'?: string;
     'container-background-color'?: string;
     'css-class'?: string;
-    'fluid-on-mobile'?: boolean;
+    'fluid-on-mobile'?: 'true' | 'false';
     'font-size'?: string;
     height?: string;
     href?: string;

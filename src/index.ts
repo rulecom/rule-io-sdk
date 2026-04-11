@@ -190,6 +190,7 @@ export type {
   RCMLFont,
   RCMLPlainText,
   RCMLBody,
+  RCMLBodyChild,
   RCMLSection,
   RCMLColumn,
   RCMLColumnChild,
