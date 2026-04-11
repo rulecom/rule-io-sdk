@@ -880,7 +880,7 @@ try {
 
 ## Security
 
-The pre-built RCML template builders handle security automatically — URLs are sanitized to block `javascript:` and `data:` URIs, and text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
+The RCML element builders `createButton`, `createImage`, and `createVideo` sanitize URL parameters to block `javascript:` and `data:` URIs. Text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
 
 If you build custom raw HTML templates outside of RCML, use the security utilities:
 

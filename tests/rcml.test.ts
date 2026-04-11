@@ -494,6 +494,20 @@ describe('RCML Elements', () => {
       });
       expect(video.attributes['button-url']).toBeUndefined();
     });
+
+    it('should strip invalid href option', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        href: 'not a valid url',
+      });
+      expect(video.attributes.href).toBeUndefined();
+    });
+
+    it('should strip invalid buttonUrl option', () => {
+      const video = createVideo('https://example.com/video.mp4', {
+        buttonUrl: 'not a valid url',
+      });
+      expect(video.attributes['button-url']).toBeUndefined();
+    });
   });
 
   // ==========================================================================
