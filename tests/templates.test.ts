@@ -410,7 +410,7 @@ describe('Brand Template Utilities', () => {
       expect(result.logoUrl).toBe('https://cdn.rule.io/logo.png');
       expect(result.buttonColor).toBe('#FF0000');
       expect(result.bodyBackgroundColor).toBe('#FAFAFA');
-      expect(result.sectionBackgroundColor).toBe('#ffffff');
+      expect(result.sectionBackgroundColor).toBe('#FAFAFA');
       expect(result.brandColor).toBe('#0066CC');
       expect(result.headingFont).toBe("'Montserrat', sans-serif");
       expect(result.headingFontUrl).toBe('https://app.rule.io/fonts/1/css');
