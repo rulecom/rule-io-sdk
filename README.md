@@ -911,7 +911,7 @@ npm run type-check   # TypeScript strict mode
 
 ### RCML Validation Script
 
-See every RCML element type rendered in the Rule.io editor — a quick way to verify that the SDK produces valid templates:
+See a representative set of RCML elements rendered in the Rule.io editor — a quick way to verify that the SDK produces valid templates:
 
 ```bash
 # Set your API key in .env

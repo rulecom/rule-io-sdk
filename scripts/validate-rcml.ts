@@ -1,9 +1,10 @@
 /**
  * RCML Element Validation Script
  *
- * Creates a campaign in Rule.io with a template showcasing every RCML
- * element type. Uses the brand-aware builders (UUIDs on every node) so
- * the template is fully editor-compatible.
+ * Creates a campaign in Rule.io with a template showcasing a representative
+ * set of RCML elements (headings, text, rich text, placeholders, buttons,
+ * images, spacers, dividers, multi-column layouts). Uses the brand-aware
+ * builders (UUIDs on every node) so the template is fully editor-compatible.
  *
  * Reads RULE_API_KEY from .env file automatically.
  *
