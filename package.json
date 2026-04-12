@@ -21,6 +21,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "eslint src/",
     "type-check": "tsc --noEmit",
     "preversion": "npm run type-check && npm run test",
     "prepare": "[ -f node_modules/.bin/tsup ] && npm run build || true",
@@ -42,9 +43,12 @@
     "url": "https://github.com/rulecom/rule-io-sdk.git"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^22.0.0",
+    "eslint": "^10.2.0",
     "tsup": "^8.0.0",
     "typescript": "^5.9.0",
+    "typescript-eslint": "^8.58.1",
     "vitest": "^4.0.0"
   },
   "engines": {

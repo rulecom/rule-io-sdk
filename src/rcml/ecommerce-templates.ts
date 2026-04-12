@@ -111,7 +111,7 @@ export interface OrderConfirmationConfig {
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
   const templateName = 'createOrderConfirmationEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName, itemQuantity, itemUnitPrice, itemTotal, ...regularFields } = config.fieldNames;
+  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, ...regularFields } = config.fieldNames;
   validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
@@ -379,7 +379,7 @@ export interface ShippingUpdateConfig {
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
   const templateName = 'createShippingUpdateEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName, itemQuantity, itemUnitPrice, itemTotal, itemSku, ...regularFields } = config.fieldNames;
+  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, itemSku: _itemSku, ...regularFields } = config.fieldNames;
   validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
