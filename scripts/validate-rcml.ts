@@ -16,7 +16,6 @@
  * .env variables:
  *   RULE_API_KEY          — Required
  *   RULE_BRAND_STYLE_ID   — Brand style ID to use (auto-detects first one if omitted)
- *   RULE_CUSTOM_FIELD_ID  — Custom field ID for placeholder test (auto-detects if omitted)
  *   RULE_FROM_EMAIL       — Sender email (default: test@example.com)
  *   RULE_FROM_NAME        — Sender name (default: SDK RCML Validation)
  */
@@ -27,6 +26,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   RuleClient,
+  RULE_API_V2_BASE_URL,
   toBrandStyleConfig,
   createBrandTemplate,
   createDefaultContentSection,
@@ -551,7 +551,7 @@ async function create(): Promise<void> {
 
   console.log('\nLooking up custom fields...');
   try {
-    const custResp = await fetch('https://app.rule.io/api/v2/customizations', {
+    const custResp = await fetch(`${RULE_API_V2_BASE_URL}/customizations`, {
       headers: {
         'Authorization': `Bearer ${API_KEY}`,
         'Content-Type': 'application/json',
