@@ -24,6 +24,10 @@ export {
   createSpacer,
   createDivider,
   createLoop,
+  createSocialElement,
+  createSocial,
+  createCase,
+  createSwitch,
 } from './elements';
 
 // Element option types
@@ -40,6 +44,9 @@ export type {
   CreateVideoOptions,
   CreateDividerOptions,
   CreateLoopOptions,
+  CreateSocialElementOptions,
+  CreateSocialOptions,
+  CreateCaseOptions,
 } from './elements';
 
 // Brand template utilities

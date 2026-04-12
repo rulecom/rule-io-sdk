@@ -40,6 +40,12 @@ import {
   createDocWithPlaceholders,
   createTextNode,
   createPlaceholder,
+  createBrandLoop,
+  createLoopFieldPlaceholder,
+  createSocial,
+  createSocialElement,
+  createSwitch,
+  createCase,
 } from '../src';
 import type {
   BrandStyleConfig,
@@ -294,7 +300,9 @@ interface SectionGroup {
 }
 
 function buildSectionGroups(
+  brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
+  repeatableField?: { id: number; name: string },
 ): SectionGroup[] {
   const groups: SectionGroup[] = [];
 
@@ -472,14 +480,147 @@ function buildSectionGroups(
     ],
   });
 
+  // == 12. Loop — requires a repeatable custom field to iterate over
+  if (repeatableField) {
+    groups.push({
+      num: 12, name: 'Loop (rc-loop)',
+      sections: [
+        label('12. rc-loop (repeatable custom field)'),
+        createBrandLoop(
+          repeatableField.id,
+          [
+            {
+              tagName: 'rc-section',
+              id: id(),
+              attributes: { padding: '10px 0' },
+              children: [{
+                tagName: 'rc-column',
+                id: id(),
+                attributes: { padding: '0 20px' },
+                children: [
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('Loop item: '),
+                    createLoopFieldPlaceholder('title'),
+                  ])),
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('Value: '),
+                    createLoopFieldPlaceholder('value'),
+                  ]), { align: 'left' }),
+                ],
+              }],
+            },
+          ],
+          { maxIterations: 10 },
+        ),
+        section([
+          noteText(`(Using repeatable field "${repeatableField.name}" — ID ${repeatableField.id})`),
+        ]),
+      ],
+    });
+  }
+
+  // == 13. Video (rc-video)
+  groups.push({
+    num: 13, name: 'Video (rc-video)',
+    sections: [
+      label('13. rc-video'),
+      section([
+        {
+          tagName: 'rc-video',
+          id: id(),
+          attributes: {
+            src: 'https://placehold.co/560x315/333333/FFFFFF?text=Video+Thumbnail',
+            alt: 'SDK video test',
+            align: 'center',
+            padding: '0 0 20px 0',
+          },
+        },
+        noteText('rc-video element with placeholder thumbnail'),
+      ]),
+    ],
+  });
+
+  // == 14. Switch / Case (conditional content)
+  groups.push({
+    num: 14, name: 'Conditional (rc-switch)',
+    sections: [
+      label('14. rc-switch / rc-case (conditional content)'),
+      {
+        ...createSwitch([
+          {
+            ...createCase(
+              { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
+              [createContentSection([
+                createBrandText(createDocWithPlaceholders([
+                  createTextNode('This shows when tag ID 1 matches'),
+                ])),
+              ])],
+            ),
+            id: id(),
+          },
+          {
+            ...createCase(
+              { caseType: 'default' },
+              [createContentSection([
+                createBrandText(createDocWithPlaceholders([
+                  createTextNode('This is the default / fallback content'),
+                ])),
+              ])],
+            ),
+            id: id(),
+          },
+        ]),
+        id: id(),
+      },
+    ],
+  });
+
+  // == 15. Social (rc-social + rc-social-element) — last before footer
+  const rawSocialLinks = brandStyle.socialLinks && brandStyle.socialLinks.length > 0
+    ? brandStyle.socialLinks
+    : [
+        { name: 'facebook', href: 'https://facebook.com' },
+        { name: 'instagram', href: 'https://instagram.com' },
+        { name: 'x', href: 'https://x.com' },
+        { name: 'web', href: 'https://example.com' },
+      ];
+
+  // Filter out links with invalid/unsafe URLs (createSocialElement throws on bad hrefs)
+  const socialElements = rawSocialLinks.flatMap(l => {
+    try {
+      return [{ ...createSocialElement(l), id: id() }];
+    } catch {
+      console.warn(`  Skipping social link "${l.name}" — invalid URL: ${l.href}`);
+      return [];
+    }
+  });
+
+  if (socialElements.length > 0) {
+    const socialNames = socialElements.map(el => el.attributes.name).join(', ');
+    groups.push({
+      num: 15, name: 'Social icons (rc-social)',
+      sections: [
+        label('15. rc-social / rc-social-element'),
+        section([
+          {
+            ...createSocial(socialElements, { align: 'center', iconSize: '24px' }),
+            id: id(),
+          },
+          noteText(`Social icons row — ${socialNames}`),
+        ]),
+      ],
+    });
+  }
+
   return groups;
 }
 
 function buildShowcase(
   brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
+  repeatableField?: { id: number; name: string },
 ): RCMLBodyChild[] {
-  const allGroups = buildSectionGroups(resolvedField);
+  const allGroups = buildSectionGroups(brandStyle, resolvedField, repeatableField);
   const groups = onlySections
     ? allGroups.filter(g => onlySections.includes(g.num))
     : allGroups;
@@ -545,10 +686,12 @@ async function create(): Promise<void> {
   console.log(`  Body BG:    ${brandStyle.bodyBackgroundColor}`);
   console.log(`  Section BG: ${brandStyle.sectionBackgroundColor}`);
   console.log(`  Text:       ${brandStyle.textColor}`);
+  console.log(`  Social:     ${brandStyle.socialLinks?.length ?? 0} link(s)${brandStyle.socialLinks?.length ? ' — ' + brandStyle.socialLinks.map(l => l.name).join(', ') : ''}`);
 
   // -- Resolve a custom field for placeholder testing --
   // Fetch /api/v2/customizations to find an existing field ID on the account.
   let resolvedField: { id: number; name: string } | undefined;
+  let repeatableField: { id: number; name: string } | undefined;
 
   console.log('\nLooking up custom fields...');
   try {
@@ -570,24 +713,35 @@ async function create(): Promise<void> {
         for (const field of fields) {
           const fieldName = String(field.name ?? field.key ?? '');
           const fieldId = Number(field.id);
+          const fieldType = String(field.type ?? '');
           if (fieldId && fieldName) {
             const fullName = `${groupName}.${fieldName}`;
+
+            // Pick the first field as fallback, prefer FirstName for placeholder section
             if (!resolvedField) {
               resolvedField = { id: fieldId, name: fullName };
             }
             if (/first.?name/i.test(fieldName)) {
               resolvedField = { id: fieldId, name: fullName };
-              break;
+            }
+
+            // Look for repeatable/json fields for the loop section
+            if (!repeatableField && /json|repeatable|array|items|products/i.test(fieldType + fieldName)) {
+              repeatableField = { id: fieldId, name: fullName };
             }
           }
         }
-        if (resolvedField && /first.?name/i.test(resolvedField.name)) break;
       }
 
       if (resolvedField) {
         console.log(`  Using field: ${resolvedField.name} (ID: ${resolvedField.id})`);
       } else {
         console.log('  No parseable custom fields found — placeholder section will be skipped');
+      }
+      if (repeatableField) {
+        console.log(`  Using repeatable field: ${repeatableField.name} (ID: ${repeatableField.id})`);
+      } else {
+        console.log('  No repeatable field found — loop section will be skipped');
       }
     } else {
       const body = await custResp.text();
@@ -598,7 +752,7 @@ async function create(): Promise<void> {
   }
 
   // -- Build showcase template --
-  const sections = buildShowcase(brandStyle, resolvedField);
+  const sections = buildShowcase(brandStyle, resolvedField, repeatableField);
 
   const template = createBrandTemplate({
     brandStyle,
@@ -637,6 +791,10 @@ async function create(): Promise<void> {
   console.log('  [ ] 9.  Dividers         — solid, dashed, dotted, colored, narrow');
   console.log('  [ ] 10. Two-column 50/50 — symmetric layout');
   console.log('  [ ] 11. Two-column 33/67 — asymmetric layout');
+  console.log(`  [${repeatableField ? ' ' : '-'}] 12. Loop            — rc-loop with sub-field placeholders${repeatableField ? '' : ' (skipped — no repeatable field found)'}`);
+  console.log('  [ ] 13. Video            — rc-video with thumbnail');
+  console.log('  [ ] 14. Switch/Case      — rc-switch conditional (tag + default fallback)');
+  console.log('  [ ] 15. Social           — rc-social icons row (facebook, instagram, x, web)');
   console.log('  [ ] Footer               — View in browser + Unsubscribe links');
   console.log('\nCleanup: npx tsx scripts/validate-rcml.ts --cleanup');
 }
@@ -671,7 +829,7 @@ async function probe(): Promise<void> {
   const brandStyle = toBrandStyleConfig(brandStyleResponse.data);
 
   // Probe doesn't auto-detect fields — test structural validity only
-  const groups = buildSectionGroups();
+  const groups = buildSectionGroups(brandStyle);
   const results: { num: number; name: string; ok: boolean; error?: string }[] = [];
 
   console.log(`\nProbing ${groups.length} section groups individually...\n`);
