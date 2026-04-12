@@ -30,6 +30,7 @@ import {
   type CustomFieldMap,
   type FooterConfig,
   validateCustomFields,
+  withTemplateContext,
 } from './brand-template';
 import { sanitizeUrl } from './utils';
 
@@ -99,163 +100,167 @@ export interface OrderConfirmationConfig {
  * ```
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
+  const templateName = 'createOrderConfirmationEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
   const { itemName, itemQuantity, itemUnitPrice, itemTotal, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, 'createOrderConfirmationEmail');
-  const { customFields, fieldNames, text } = config;
+  validateCustomFields(config.customFields, regularFields, templateName);
 
-  const detailRows: ReturnType<typeof createBrandText>[] = [
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.orderRefLabel}: `),
-        createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
-      ])
-    ),
-  ];
+  return withTemplateContext(templateName, () => {
+    const { customFields, fieldNames, text } = config;
 
-  // Build line items section: use rc-loop if sub-fields provided, else single placeholder
-  const hasLineItemFields = fieldNames.items && fieldNames.itemName;
-  let lineItemsSection: RCMLSection | RCMLLoop | undefined;
-
-  if (hasLineItemFields && fieldNames.items && fieldNames.itemName) {
-    const loopChildren: ReturnType<typeof createBrandText>[] = [
+    const detailRows: ReturnType<typeof createBrandText>[] = [
       createBrandText(
         createDocWithPlaceholders([
-          createLoopFieldPlaceholder(fieldNames.itemName),
+          createTextNode(`${text.orderRefLabel}: `),
+          createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
         ])
       ),
     ];
 
-    if (fieldNames.itemQuantity) {
-      loopChildren.push(
+    // Build line items section: use rc-loop if sub-fields provided, else single placeholder
+    const hasLineItemFields = fieldNames.items && fieldNames.itemName;
+    let lineItemsSection: RCMLSection | RCMLLoop | undefined;
+
+    if (hasLineItemFields && fieldNames.items && fieldNames.itemName) {
+      const loopChildren: ReturnType<typeof createBrandText>[] = [
         createBrandText(
           createDocWithPlaceholders([
-            createTextNode('Qty: '),
-            createLoopFieldPlaceholder(fieldNames.itemQuantity),
+            createLoopFieldPlaceholder(fieldNames.itemName),
+          ])
+        ),
+      ];
+
+      if (fieldNames.itemQuantity) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Qty: '),
+              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+            ])
+          )
+        );
+      }
+
+      if (fieldNames.itemUnitPrice) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Price: '),
+              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+            ])
+          )
+        );
+      }
+
+      if (fieldNames.itemTotal) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Subtotal: '),
+              createLoopFieldPlaceholder(fieldNames.itemTotal),
+            ])
+          )
+        );
+      }
+
+      const lineItemsLoop = createBrandLoop(
+        customFields[fieldNames.items],
+        [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+        { maxIterations: 20 }
+      );
+
+      lineItemsSection = lineItemsLoop;
+    } else if (fieldNames.items && text.itemsLabel) {
+      // Fallback: single placeholder for items field
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.itemsLabel}: `),
+            createPlaceholder(fieldNames.items, customFields[fieldNames.items]),
           ])
         )
       );
     }
 
-    if (fieldNames.itemUnitPrice) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('Price: '),
-            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
-          ])
-        )
-      );
-    }
-
-    if (fieldNames.itemTotal) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('Subtotal: '),
-            createLoopFieldPlaceholder(fieldNames.itemTotal),
-          ])
-        )
-      );
-    }
-
-    const lineItemsLoop = createBrandLoop(
-      customFields[fieldNames.items],
-      [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
-      { maxIterations: 20 }
-    );
-
-    lineItemsSection = lineItemsLoop;
-  } else if (fieldNames.items && text.itemsLabel) {
-    // Fallback: single placeholder for items field
     detailRows.push(
       createBrandText(
         createDocWithPlaceholders([
-          createTextNode(`${text.itemsLabel}: `),
-          createPlaceholder(fieldNames.items, customFields[fieldNames.items]),
+          createTextNode(`${text.totalLabel}: `),
+          createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
         ])
       )
     );
-  }
 
-  detailRows.push(
-    createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${text.totalLabel}: `),
-        createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-      ])
-    )
-  );
-
-  if (fieldNames.shippingAddress && text.shippingLabel) {
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.shippingLabel}: `),
-          createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
-        ])
-      )
-    );
-  }
-
-  const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
-
-    createContentSection(
-      [
-        createBrandHeading(
-          createDocWithPlaceholders([
-            createTextNode(`${text.greeting} `),
-            createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-            createTextNode('!'),
-          ])
-        ),
+    if (fieldNames.shippingAddress && text.shippingLabel) {
+      detailRows.push(
         createBrandText(
-          createDocWithPlaceholders([createTextNode(text.intro)]),
-          { align: 'center' }
-        ),
-      ],
-      { padding: '20px 0' }
-    ),
-
-    createContentSection(
-      [
-        createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-        ...detailRows,
-      ],
-      { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-    ),
-  ];
-
-  if (lineItemsSection) {
-    if (text.lineItemsHeading) {
-      sections.push(
-        createContentSection(
-          [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
-          { padding: '10px 0' }
+          createDocWithPlaceholders([
+            createTextNode(`${text.shippingLabel}: `),
+            createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
+          ])
         )
       );
     }
-    sections.push(lineItemsSection);
-  }
 
-  sections.push(
-    createContentSection(
-      [
-        createBrandButton(
-          createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-          config.websiteUrl
-        ),
-      ],
-      { padding: '20px 0' }
-    ),
-    createFooterSection(config.footer),
-  );
+    const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections,
+      createContentSection(
+        [
+          createBrandHeading(
+            createDocWithPlaceholders([
+              createTextNode(`${text.greeting} `),
+              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              createTextNode('!'),
+            ])
+          ),
+          createBrandText(
+            createDocWithPlaceholders([createTextNode(text.intro)]),
+            { align: 'center' }
+          ),
+        ],
+        { padding: '20px 0' }
+      ),
+
+      createContentSection(
+        [
+          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+          ...detailRows,
+        ],
+        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+      ),
+    ];
+
+    if (lineItemsSection) {
+      if (text.lineItemsHeading) {
+        sections.push(
+          createContentSection(
+            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+            { padding: '10px 0' }
+          )
+        );
+      }
+      sections.push(lineItemsSection);
+    }
+
+    sections.push(
+      createContentSection(
+        [
+          createBrandButton(
+            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+            config.websiteUrl
+          ),
+        ],
+        { padding: '20px 0' }
+      ),
+      createFooterSection(config.footer),
+    );
+
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections,
+    });
   });
 }
 
@@ -378,270 +383,274 @@ export interface ShippingUpdateConfig {
  * financial summary, legal text), renders a full legally-binding receipt.
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
+  const templateName = 'createShippingUpdateEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
   const { itemName, itemQuantity, itemUnitPrice, itemTotal, itemSku, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, 'createShippingUpdateEmail');
-  const { customFields, fieldNames, text } = config;
+  validateCustomFields(config.customFields, regularFields, templateName);
 
-  /** Helper to create a detail row from an optional field + label pair. */
-  const detailRow = (label: string | undefined, fieldName: string | undefined) => {
-    if (!label || !fieldName) return undefined;
-    return createBrandText(
-      createDocWithPlaceholders([
-        createTextNode(`${label}: `),
-        createPlaceholder(fieldName, customFields[fieldName]),
-      ])
-    );
-  };
+  return withTemplateContext(templateName, () => {
+    const { customFields, fieldNames, text } = config;
 
-  const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-    ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
-
-    // Heading + greeting
-    createContentSection(
-      [
-        createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.greeting} `),
-            createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-            createTextNode(', '),
-            createTextNode(text.message),
-          ])
-        ),
-      ],
-      { padding: '20px 0' }
-    ),
-  ];
-
-  // Seller info section (company, VAT)
-  const sellerRows = [
-    detailRow(text.companyLabel, fieldNames.companyName),
-    detailRow(text.vatLabel, fieldNames.vatNumber),
-  ].filter(Boolean) as ReturnType<typeof createBrandText>[];
-
-  if (sellerRows.length > 0) {
-    sections.push(createContentSection(sellerRows, { padding: '10px 0' }));
-  }
-
-  // Order details section
-  const orderDetailRows = [
-    detailRow(text.orderRefLabel, fieldNames.orderRef),
-    detailRow(text.orderDateLabel, fieldNames.orderDate),
-    detailRow(text.paymentMethodLabel, fieldNames.paymentMethod),
-    detailRow(text.customerEmailLabel, fieldNames.customerEmail),
-  ].filter(Boolean) as ReturnType<typeof createBrandText>[];
-
-  if (orderDetailRows.length > 0) {
-    sections.push(
-      createContentSection(orderDetailRows, {
-        padding: '20px 0',
-        backgroundColor: config.brandStyle.brandColor,
-      })
-    );
-  }
-
-  // Shipping details section
-  const shippingRows = [
-    detailRow(text.shippingAddressLabel, fieldNames.shippingAddress),
-    detailRow(text.carrierLabel, fieldNames.shippingCarrier),
-    detailRow(text.trackingLabel, fieldNames.trackingNumber),
-    detailRow(text.estimatedDeliveryLabel, fieldNames.estimatedDelivery),
-  ].filter(Boolean) as ReturnType<typeof createBrandText>[];
-
-  if (shippingRows.length > 0) {
-    sections.push(createContentSection(shippingRows, { padding: '20px 0' }));
-  }
-
-  // Track shipment button
-  sections.push(
-    createContentSection(
-      [
-        createBrandButton(
-          createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-          config.trackingUrl
-        ),
-      ],
-      { padding: '20px 0' }
-    )
-  );
-
-  // Line items loop
-  if (fieldNames.items && fieldNames.itemName) {
-    const loopChildren: ReturnType<typeof createBrandText>[] = [
-      createBrandText(
+    /** Helper to create a detail row from an optional field + label pair. */
+    const detailRow = (label: string | undefined, fieldName: string | undefined) => {
+      if (!label || !fieldName) return undefined;
+      return createBrandText(
         createDocWithPlaceholders([
-          createLoopFieldPlaceholder(fieldNames.itemName),
+          createTextNode(`${label}: `),
+          createPlaceholder(fieldName, customFields[fieldName]),
         ])
+      );
+    };
+
+    const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
+      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+
+      // Heading + greeting
+      createContentSection(
+        [
+          createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(`${text.greeting} `),
+              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              createTextNode(', '),
+              createTextNode(text.message),
+            ])
+          ),
+        ],
+        { padding: '20px 0' }
       ),
     ];
 
-    if (fieldNames.itemSku) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('SKU: '),
-            createLoopFieldPlaceholder(fieldNames.itemSku),
-          ])
-        )
-      );
+    // Seller info section (company, VAT)
+    const sellerRows = [
+      detailRow(text.companyLabel, fieldNames.companyName),
+      detailRow(text.vatLabel, fieldNames.vatNumber),
+    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+
+    if (sellerRows.length > 0) {
+      sections.push(createContentSection(sellerRows, { padding: '10px 0' }));
     }
 
-    if (fieldNames.itemQuantity) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('Qty: '),
-            createLoopFieldPlaceholder(fieldNames.itemQuantity),
-          ])
-        )
-      );
-    }
+    // Order details section
+    const orderDetailRows = [
+      detailRow(text.orderRefLabel, fieldNames.orderRef),
+      detailRow(text.orderDateLabel, fieldNames.orderDate),
+      detailRow(text.paymentMethodLabel, fieldNames.paymentMethod),
+      detailRow(text.customerEmailLabel, fieldNames.customerEmail),
+    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
 
-    if (fieldNames.itemUnitPrice) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('Unit price: '),
-            createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
-          ])
-        )
-      );
-    }
-
-    if (fieldNames.itemTotal) {
-      loopChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode('Line total: '),
-            createLoopFieldPlaceholder(fieldNames.itemTotal),
-          ])
-        )
-      );
-    }
-
-    if (text.lineItemsHeading) {
+    if (orderDetailRows.length > 0) {
       sections.push(
-        createContentSection(
-          [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
-          { padding: '10px 0' }
+        createContentSection(orderDetailRows, {
+          padding: '20px 0',
+          backgroundColor: config.brandStyle.brandColor,
+        })
+      );
+    }
+
+    // Shipping details section
+    const shippingRows = [
+      detailRow(text.shippingAddressLabel, fieldNames.shippingAddress),
+      detailRow(text.carrierLabel, fieldNames.shippingCarrier),
+      detailRow(text.trackingLabel, fieldNames.trackingNumber),
+      detailRow(text.estimatedDeliveryLabel, fieldNames.estimatedDelivery),
+    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+
+    if (shippingRows.length > 0) {
+      sections.push(createContentSection(shippingRows, { padding: '20px 0' }));
+    }
+
+    // Track shipment button
+    sections.push(
+      createContentSection(
+        [
+          createBrandButton(
+            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+            config.trackingUrl
+          ),
+        ],
+        { padding: '20px 0' }
+      )
+    );
+
+    // Line items loop
+    if (fieldNames.items && fieldNames.itemName) {
+      const loopChildren: ReturnType<typeof createBrandText>[] = [
+        createBrandText(
+          createDocWithPlaceholders([
+            createLoopFieldPlaceholder(fieldNames.itemName),
+          ])
+        ),
+      ];
+
+      if (fieldNames.itemSku) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('SKU: '),
+              createLoopFieldPlaceholder(fieldNames.itemSku),
+            ])
+          )
+        );
+      }
+
+      if (fieldNames.itemQuantity) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Qty: '),
+              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+            ])
+          )
+        );
+      }
+
+      if (fieldNames.itemUnitPrice) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Unit price: '),
+              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+            ])
+          )
+        );
+      }
+
+      if (fieldNames.itemTotal) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode('Line total: '),
+              createLoopFieldPlaceholder(fieldNames.itemTotal),
+            ])
+          )
+        );
+      }
+
+      if (text.lineItemsHeading) {
+        sections.push(
+          createContentSection(
+            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+            { padding: '10px 0' }
+          )
+        );
+      }
+
+      sections.push(
+        createBrandLoop(
+          customFields[fieldNames.items],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          { maxIterations: 20 }
         )
       );
     }
 
-    sections.push(
-      createBrandLoop(
-        customFields[fieldNames.items],
-        [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
-        { maxIterations: 20 }
-      )
-    );
-  }
+    // Financial summary section
+    const financialRows = [
+      detailRow(text.subtotalLabel, fieldNames.subtotal),
+      detailRow(text.discountLabel, fieldNames.discountAmount),
+      detailRow(text.taxLabel, fieldNames.taxAmount),
+      detailRow(text.shippingCostLabel, fieldNames.shippingCost),
+      detailRow(text.totalLabel, fieldNames.totalPrice),
+    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
 
-  // Financial summary section
-  const financialRows = [
-    detailRow(text.subtotalLabel, fieldNames.subtotal),
-    detailRow(text.discountLabel, fieldNames.discountAmount),
-    detailRow(text.taxLabel, fieldNames.taxAmount),
-    detailRow(text.shippingCostLabel, fieldNames.shippingCost),
-    detailRow(text.totalLabel, fieldNames.totalPrice),
-  ].filter(Boolean) as ReturnType<typeof createBrandText>[];
-
-  if (financialRows.length > 0) {
-    sections.push(
-      createContentSection(financialRows, {
-        padding: '20px 0',
-        backgroundColor: config.brandStyle.brandColor,
-      })
-    );
-  }
-
-  // Buyer details section
-  const buyerRows = [
-    detailRow(text.billingAddressLabel, fieldNames.billingAddress),
-  ].filter(Boolean) as ReturnType<typeof createBrandText>[];
-
-  if (fieldNames.customerFullName) {
-    buyerRows.unshift(
-      createBrandText(
-        createDocWithPlaceholders([
-          createPlaceholder(fieldNames.customerFullName, customFields[fieldNames.customerFullName]),
-        ])
-      )
-    );
-  }
-
-  if (buyerRows.length > 0) {
-    sections.push(createContentSection(buyerRows, { padding: '10px 0' }));
-  }
-
-  // Legal section
-  const legalChildren: ReturnType<typeof createBrandText>[] = [];
-
-  if (text.legalText) {
-    legalChildren.push(
-      createBrandText(
-        createDocWithPlaceholders([createTextNode(text.legalText)]),
-        { align: 'center' }
-      )
-    );
-  }
-
-  if (text.returnPolicyText && text.returnPolicyUrl) {
-    const safeReturnPolicyUrl = sanitizeUrl(text.returnPolicyUrl);
-    if (safeReturnPolicyUrl) {
-      legalChildren.push(
-        createBrandText({
-          type: 'doc',
-          content: [{
-            type: 'paragraph',
-            content: [{
-              type: 'text',
-              text: text.returnPolicyText,
-              marks: [{
-                type: 'link',
-                attrs: { href: safeReturnPolicyUrl, target: '_blank' },
-              }],
-            }],
-          }],
-        }, { align: 'center' })
+    if (financialRows.length > 0) {
+      sections.push(
+        createContentSection(financialRows, {
+          padding: '20px 0',
+          backgroundColor: config.brandStyle.brandColor,
+        })
       );
     }
-  }
 
-  if (text.termsText && text.termsUrl) {
-    const safeTermsUrl = sanitizeUrl(text.termsUrl);
-    if (safeTermsUrl) {
-      legalChildren.push(
-        createBrandText({
-          type: 'doc',
-          content: [{
-            type: 'paragraph',
-            content: [{
-              type: 'text',
-              text: text.termsText,
-              marks: [{
-                type: 'link',
-                attrs: { href: safeTermsUrl, target: '_blank' },
-              }],
-            }],
-          }],
-        }, { align: 'center' })
+    // Buyer details section
+    const buyerRows = [
+      detailRow(text.billingAddressLabel, fieldNames.billingAddress),
+    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+
+    if (fieldNames.customerFullName) {
+      buyerRows.unshift(
+        createBrandText(
+          createDocWithPlaceholders([
+            createPlaceholder(fieldNames.customerFullName, customFields[fieldNames.customerFullName]),
+          ])
+        )
       );
     }
-  }
 
-  if (legalChildren.length > 0) {
-    sections.push(createContentSection(legalChildren, { padding: '10px 0' }));
-  }
+    if (buyerRows.length > 0) {
+      sections.push(createContentSection(buyerRows, { padding: '10px 0' }));
+    }
 
-  // Footer
-  sections.push(createFooterSection(config.footer));
+    // Legal section
+    const legalChildren: ReturnType<typeof createBrandText>[] = [];
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections,
+    if (text.legalText) {
+      legalChildren.push(
+        createBrandText(
+          createDocWithPlaceholders([createTextNode(text.legalText)]),
+          { align: 'center' }
+        )
+      );
+    }
+
+    if (text.returnPolicyText && text.returnPolicyUrl) {
+      const safeReturnPolicyUrl = sanitizeUrl(text.returnPolicyUrl);
+      if (safeReturnPolicyUrl) {
+        legalChildren.push(
+          createBrandText({
+            type: 'doc',
+            content: [{
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                text: text.returnPolicyText,
+                marks: [{
+                  type: 'link',
+                  attrs: { href: safeReturnPolicyUrl, target: '_blank' },
+                }],
+              }],
+            }],
+          }, { align: 'center' })
+        );
+      }
+    }
+
+    if (text.termsText && text.termsUrl) {
+      const safeTermsUrl = sanitizeUrl(text.termsUrl);
+      if (safeTermsUrl) {
+        legalChildren.push(
+          createBrandText({
+            type: 'doc',
+            content: [{
+              type: 'paragraph',
+              content: [{
+                type: 'text',
+                text: text.termsText,
+                marks: [{
+                  type: 'link',
+                  attrs: { href: safeTermsUrl, target: '_blank' },
+                }],
+              }],
+            }],
+          }, { align: 'center' })
+        );
+      }
+    }
+
+    if (legalChildren.length > 0) {
+      sections.push(createContentSection(legalChildren, { padding: '10px 0' }));
+    }
+
+    // Footer
+    sections.push(createFooterSection(config.footer));
+
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections,
+    });
   });
 }
 
@@ -670,48 +679,52 @@ export interface AbandonedCartConfig {
  * Create an abandoned cart recovery email template.
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createAbandonedCartEmail');
-  const { customFields, fieldNames, text } = config;
+  const templateName = 'createAbandonedCartEmail';
+  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+  return withTemplateContext(templateName, () => {
+    const { customFields, fieldNames, text } = config;
 
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.message)]),
-            { align: 'center' }
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.reminder)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.cartUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+        createContentSection(
+          [
+            createBrandHeading(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode('!'),
+              ])
+            ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.message)]),
+              { align: 'center' }
+            ),
+            createBrandText(
+              createDocWithPlaceholders([createTextNode(text.reminder)]),
+              { align: 'center' }
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      createFooterSection(config.footer),
-    ],
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.cartUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
+
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }
 
@@ -743,52 +756,56 @@ export interface OrderCancellationConfig {
  * Create an order cancellation email template.
  */
 export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createOrderCancellationEmail');
-  const { customFields, fieldNames, text } = config;
+  const templateName = 'createOrderCancellationEmail';
+  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    sections: [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+  return withTemplateContext(templateName, () => {
+    const { customFields, fieldNames, text } = config;
 
-      createContentSection(
-        [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
+    return createBrandTemplate({
+      brandStyle: config.brandStyle,
+      preheader: text.preheader,
+      sections: [
+        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode(','),
-            ])
-          ),
+        createContentSection(
+          [
+            createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
 
-          createBrandText(createDocWithPlaceholders([createTextNode(text.message)])),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.greeting} `),
+                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+                createTextNode(','),
+              ])
+            ),
 
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.orderRefLabel}: `),
-              createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
-            ])
-          ),
+            createBrandText(createDocWithPlaceholders([createTextNode(text.message)])),
 
-          createBrandText(createDocWithPlaceholders([createTextNode(text.followUp)])),
-        ],
-        { padding: '20px 0' }
-      ),
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.orderRefLabel}: `),
+                createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+              ])
+            ),
 
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+            createBrandText(createDocWithPlaceholders([createTextNode(text.followUp)])),
+          ],
+          { padding: '20px 0' }
+        ),
 
-      createFooterSection(config.footer),
-    ],
+        createContentSection(
+          [
+            createBrandButton(
+              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
+              config.websiteUrl
+            ),
+          ],
+          { padding: '20px 0' }
+        ),
+
+        createFooterSection(config.footer),
+      ],
+    });
   });
 }
