@@ -236,6 +236,17 @@ describe('Brand Template Utilities', () => {
   });
 
   describe('createBrandHead', () => {
+    const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
+      if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
+      if (Array.isArray(node.children)) {
+        for (const child of node.children as Array<Record<string, unknown>>) {
+          const found = findLabelStyle(child);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+
     it('should create head with preheader', () => {
       const head = createBrandHead(TEST_BRAND_STYLE, { preheader: 'Preview text' });
 
@@ -342,16 +353,6 @@ describe('Brand Template Utilities', () => {
 
       // Find the rcml-label-style class
       const attrs = JSON.parse(json);
-      const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
-        if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
-        if (Array.isArray(node.children)) {
-          for (const child of node.children as Array<Record<string, unknown>>) {
-            const found = findLabelStyle(child);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
       const labelStyle = findLabelStyle(attrs);
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#FFFFFF');
@@ -366,16 +367,6 @@ describe('Brand Template Utilities', () => {
       const json = JSON.stringify(head);
 
       const parsed = JSON.parse(json);
-      const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
-        if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
-        if (Array.isArray(node.children)) {
-          for (const child of node.children as Array<Record<string, unknown>>) {
-            const found = findLabelStyle(child);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
       const labelStyle = findLabelStyle(parsed);
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#000000');
