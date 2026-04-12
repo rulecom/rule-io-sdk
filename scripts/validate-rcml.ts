@@ -576,7 +576,7 @@ function buildSectionGroups(
   });
 
   // == 15. Social (rc-social + rc-social-element) — last before footer
-  const socialLinks = brandStyle.socialLinks && brandStyle.socialLinks.length > 0
+  const rawSocialLinks = brandStyle.socialLinks && brandStyle.socialLinks.length > 0
     ? brandStyle.socialLinks
     : [
         { name: 'facebook', href: 'https://facebook.com' },
@@ -584,24 +584,33 @@ function buildSectionGroups(
         { name: 'x', href: 'https://x.com' },
         { name: 'web', href: 'https://example.com' },
       ];
-  const socialNames = socialLinks.map(l => l.name).join(', ');
 
-  groups.push({
-    num: 15, name: 'Social icons (rc-social)',
-    sections: [
-      label('15. rc-social / rc-social-element'),
-      section([
-        {
-          ...createSocial(
-            socialLinks.map(l => ({ ...createSocialElement(l), id: id() })),
-            { align: 'center', iconSize: '24px' },
-          ),
-          id: id(),
-        },
-        noteText(`Social icons row — ${socialNames}`),
-      ]),
-    ],
+  // Filter out links with invalid/unsafe URLs (createSocialElement throws on bad hrefs)
+  const socialElements = rawSocialLinks.flatMap(l => {
+    try {
+      return [{ ...createSocialElement(l), id: id() }];
+    } catch {
+      console.warn(`  Skipping social link "${l.name}" — invalid URL: ${l.href}`);
+      return [];
+    }
   });
+
+  if (socialElements.length > 0) {
+    const socialNames = socialElements.map(el => el.attributes.name).join(', ');
+    groups.push({
+      num: 15, name: 'Social icons (rc-social)',
+      sections: [
+        label('15. rc-social / rc-social-element'),
+        section([
+          {
+            ...createSocial(socialElements, { align: 'center', iconSize: '24px' }),
+            id: id(),
+          },
+          noteText(`Social icons row — ${socialNames}`),
+        ]),
+      ],
+    });
+  }
 
   return groups;
 }
@@ -820,7 +829,7 @@ async function probe(): Promise<void> {
   const brandStyle = toBrandStyleConfig(brandStyleResponse.data);
 
   // Probe doesn't auto-detect fields — test structural validity only
-  const groups = buildSectionGroups();
+  const groups = buildSectionGroups(brandStyle);
   const results: { num: number; name: string; ok: boolean; error?: string }[] = [];
 
   console.log(`\nProbing ${groups.length} section groups individually...\n`);
