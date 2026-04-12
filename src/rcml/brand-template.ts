@@ -897,3 +897,70 @@ export function createFooterSection(
     ],
   } as RCMLBodyChild;
 }
+
+// ============================================================================
+// Internal Template Section Helpers
+// ============================================================================
+
+/**
+ * Create the optional logo section spread element.
+ *
+ * Returns an array with zero or one elements, designed to be spread
+ * into a sections array: `...createLogoSection(config.brandStyle.logoUrl)`
+ *
+ * @internal Not exported from barrel — used by template builders only.
+ */
+export function createLogoSection(logoUrl?: string): RCMLBodyChild[] {
+  return logoUrl ? [createBrandLogo(logoUrl)] : [];
+}
+
+/**
+ * Create a greeting section with caller-provided greeting text, a first-name
+ * placeholder, and centered intro text.
+ *
+ * This is the standard greeting pattern used by most template builders:
+ * a heading with the provided greeting, a placeholder for the first-name
+ * custom field, an exclamation mark, and a centered intro paragraph below.
+ *
+ * @internal Not exported from barrel — used by template builders only.
+ */
+export function createGreetingSection(
+  greeting: string,
+  intro: string,
+  firstNameFieldName: string,
+  firstNameFieldId: number
+): RCMLBodyChild {
+  return createContentSection(
+    [
+      createBrandHeading(
+        createDocWithPlaceholders([
+          createTextNode(`${greeting} `),
+          createPlaceholder(firstNameFieldName, firstNameFieldId),
+          createTextNode('!'),
+        ])
+      ),
+      createBrandText(
+        createDocWithPlaceholders([createTextNode(intro)]),
+        { align: 'center' }
+      ),
+    ],
+    { padding: '20px 0' }
+  );
+}
+
+/**
+ * Create a CTA button wrapped in a content section.
+ *
+ * @internal Not exported from barrel — used by template builders only.
+ */
+export function createCtaSection(buttonText: string, url: string): RCMLBodyChild {
+  return createContentSection(
+    [
+      createBrandButton(
+        createDocWithPlaceholders([createTextNode(buttonText)]),
+        url
+      ),
+    ],
+    { padding: '20px 0' }
+  );
+}
