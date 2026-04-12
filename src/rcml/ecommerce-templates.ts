@@ -17,10 +17,8 @@
 import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from '../types';
 import {
   createBrandTemplate,
-  createBrandLogo,
   createBrandHeading,
   createBrandText,
-  createBrandButton,
   createBrandLoop,
   createContentSection,
   createFooterSection,
@@ -28,6 +26,9 @@ import {
   createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
+  createLogoSection,
+  createGreetingSection,
+  createCtaSection,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
@@ -211,24 +212,9 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     }
 
     const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+      ...createLogoSection(config.brandStyle.logoUrl),
 
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.intro)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
 
       createContentSection(
         [
@@ -252,15 +238,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     }
 
     sections.push(
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.websiteUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+      createCtaSection(text.ctaButton, config.websiteUrl),
       createFooterSection(config.footer),
     );
 
@@ -419,7 +397,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     };
 
     const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+      ...createLogoSection(config.brandStyle.logoUrl),
 
       // Heading + greeting
       createContentSection(
@@ -478,17 +456,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     }
 
     // Track shipment button
-    sections.push(
-      createContentSection(
-        [
-          createBrandButton(
-            createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-            config.trackingUrl
-          ),
-        ],
-        { padding: '20px 0' }
-      )
-    );
+    sections.push(createCtaSection(text.ctaButton, config.trackingUrl));
 
     // Line items loop
     if (fieldNames.items && fieldNames.itemName) {
@@ -705,7 +673,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
       brandStyle: config.brandStyle,
       preheader: text.preheader,
       sections: [
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
         createContentSection(
           [
@@ -728,15 +696,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
           { padding: '20px 0' }
         ),
 
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.cartUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createCtaSection(text.ctaButton, config.cartUrl),
 
         createFooterSection(config.footer),
       ],
@@ -782,7 +742,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       brandStyle: config.brandStyle,
       preheader: text.preheader,
       sections: [
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
         createContentSection(
           [
@@ -810,15 +770,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
           { padding: '20px 0' }
         ),
 
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.websiteUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createCtaSection(text.ctaButton, config.websiteUrl),
 
         createFooterSection(config.footer),
       ],
