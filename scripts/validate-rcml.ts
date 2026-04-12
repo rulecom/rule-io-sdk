@@ -300,6 +300,7 @@ interface SectionGroup {
 }
 
 function buildSectionGroups(
+  brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
   repeatableField?: { id: number; name: string },
 ): SectionGroup[] {
@@ -575,21 +576,29 @@ function buildSectionGroups(
   });
 
   // == 15. Social (rc-social + rc-social-element) — last before footer
+  const socialLinks = brandStyle.socialLinks && brandStyle.socialLinks.length > 0
+    ? brandStyle.socialLinks
+    : [
+        { name: 'facebook', href: 'https://facebook.com' },
+        { name: 'instagram', href: 'https://instagram.com' },
+        { name: 'x', href: 'https://x.com' },
+        { name: 'web', href: 'https://example.com' },
+      ];
+  const socialNames = socialLinks.map(l => l.name).join(', ');
+
   groups.push({
     num: 15, name: 'Social icons (rc-social)',
     sections: [
       label('15. rc-social / rc-social-element'),
       section([
         {
-          ...createSocial([
-            { ...createSocialElement({ name: 'facebook', href: 'https://facebook.com' }), id: id() },
-            { ...createSocialElement({ name: 'instagram', href: 'https://instagram.com' }), id: id() },
-            { ...createSocialElement({ name: 'x', href: 'https://x.com' }), id: id() },
-            { ...createSocialElement({ name: 'web', href: 'https://example.com' }), id: id() },
-          ], { align: 'center', iconSize: '24px' }),
+          ...createSocial(
+            socialLinks.map(l => ({ ...createSocialElement(l), id: id() })),
+            { align: 'center', iconSize: '24px' },
+          ),
           id: id(),
         },
-        noteText('Social icons row — facebook, instagram, x, web'),
+        noteText(`Social icons row — ${socialNames}`),
       ]),
     ],
   });
@@ -602,7 +611,7 @@ function buildShowcase(
   resolvedField?: { id: number; name: string },
   repeatableField?: { id: number; name: string },
 ): RCMLBodyChild[] {
-  const allGroups = buildSectionGroups(resolvedField, repeatableField);
+  const allGroups = buildSectionGroups(brandStyle, resolvedField, repeatableField);
   const groups = onlySections
     ? allGroups.filter(g => onlySections.includes(g.num))
     : allGroups;
@@ -668,6 +677,7 @@ async function create(): Promise<void> {
   console.log(`  Body BG:    ${brandStyle.bodyBackgroundColor}`);
   console.log(`  Section BG: ${brandStyle.sectionBackgroundColor}`);
   console.log(`  Text:       ${brandStyle.textColor}`);
+  console.log(`  Social:     ${brandStyle.socialLinks?.length ?? 0} link(s)${brandStyle.socialLinks?.length ? ' — ' + brandStyle.socialLinks.map(l => l.name).join(', ') : ''}`);
 
   // -- Resolve a custom field for placeholder testing --
   // Fetch /api/v2/customizations to find an existing field ID on the account.
