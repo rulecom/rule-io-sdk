@@ -336,7 +336,7 @@ describe('Brand Template Utilities', () => {
       expect(json).not.toContain('rc-social');
     });
 
-    it('should use #FFFFFF for label style color', () => {
+    it('should use #FFFFFF for label style color by default', () => {
       const head = createBrandHead(TEST_BRAND_STYLE);
       const json = JSON.stringify(head);
 
@@ -355,6 +355,30 @@ describe('Brand Template Utilities', () => {
       const labelStyle = findLabelStyle(attrs);
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#FFFFFF');
+    });
+
+    it('should use custom buttonTextColor for label style color when provided', () => {
+      const customStyle: BrandStyleConfig = {
+        ...TEST_BRAND_STYLE,
+        buttonTextColor: '#000000',
+      };
+      const head = createBrandHead(customStyle);
+      const json = JSON.stringify(head);
+
+      const parsed = JSON.parse(json);
+      const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
+        if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
+        if (Array.isArray(node.children)) {
+          for (const child of node.children as Array<Record<string, unknown>>) {
+            const found = findLabelStyle(child);
+            if (found) return found;
+          }
+        }
+        return undefined;
+      };
+      const labelStyle = findLabelStyle(parsed);
+      expect(labelStyle).toBeDefined();
+      expect((labelStyle!.attributes as Record<string, string>).color).toBe('#000000');
     });
 
     it('should keep single quotes in rc-font name attributes to match editor format', () => {
@@ -1249,6 +1273,85 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('[LoopValue:quantity]');
       expect(json).toContain('[LoopValue:price]');
       expect(json).toContain('[LoopValue:total]');
+    });
+
+    it('should use custom label values when provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          itemQtyLabel: 'Antal: ',
+          itemUnitPriceLabel: 'Pris: ',
+          itemSubtotalLabel: 'Delsumma: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Custom labels should appear
+      expect(json).toContain('Antal: ');
+      expect(json).toContain('Pris: ');
+      expect(json).toContain('Delsumma: ');
+
+      // Default English labels should NOT appear
+      expect(json).not.toContain('"Qty: "');
+      expect(json).not.toContain('"Price: "');
+      expect(json).not.toContain('"Subtotal: "');
+    });
+
+    it('should use default English labels when custom labels not provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          // No itemQtyLabel, itemUnitPriceLabel, or itemSubtotalLabel
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Default English labels should appear
+      expect(json).toContain('Qty: ');
+      expect(json).toContain('Price: ');
+      expect(json).toContain('Subtotal: ');
     });
 
     it('should fall back to single-field items when no sub-fields', () => {
