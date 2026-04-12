@@ -293,7 +293,6 @@ interface SectionGroup {
 }
 
 function buildSectionGroups(
-  brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
 ): SectionGroup[] {
   const groups: SectionGroup[] = [];
@@ -479,7 +478,7 @@ function buildShowcase(
   brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
 ): RCMLBodyChild[] {
-  const allGroups = buildSectionGroups(brandStyle, resolvedField);
+  const allGroups = buildSectionGroups(resolvedField);
   const groups = onlySections
     ? allGroups.filter(g => onlySections.includes(g.num))
     : allGroups;
@@ -671,7 +670,7 @@ async function probe(): Promise<void> {
   const brandStyle = toBrandStyleConfig(brandStyleResponse.data);
 
   // Probe doesn't auto-detect fields — test structural validity only
-  const groups = buildSectionGroups(brandStyle);
+  const groups = buildSectionGroups();
   const results: { num: number; name: string; ok: boolean; error?: string }[] = [];
 
   console.log(`\nProbing ${groups.length} section groups individually...\n`);

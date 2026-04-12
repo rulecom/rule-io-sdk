@@ -623,11 +623,18 @@ export function createContentSection(
  * when creating a new email from a brand style: a placeholder image, heading,
  * body text, and button — all connected to the brand via `rc-class` attributes.
  *
- * @param options - Optional overrides for the default placeholder texts
+ * @param options - Optional overrides for the default placeholder texts and button URL
+ * @param options.headingText - Heading text (default: 'Replace this title')
+ * @param options.bodyText - Body paragraph text
+ * @param options.buttonText - Button label (default: 'Click me!')
+ * @param options.buttonUrl - Button href. Invalid/unsafe URLs are silently ignored
+ *   (button renders without an href).
  *
  * @example
  * ```typescript
- * const section = createDefaultContentSection();
+ * const section = createDefaultContentSection({
+ *   buttonUrl: 'https://example.com',
+ * });
  * ```
  */
 export function createDefaultContentSection(options?: {
