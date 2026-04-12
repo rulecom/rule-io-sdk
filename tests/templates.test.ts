@@ -236,6 +236,17 @@ describe('Brand Template Utilities', () => {
   });
 
   describe('createBrandHead', () => {
+    const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
+      if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
+      if (Array.isArray(node.children)) {
+        for (const child of node.children as Array<Record<string, unknown>>) {
+          const found = findLabelStyle(child);
+          if (found) return found;
+        }
+      }
+      return undefined;
+    };
+
     it('should create head with preheader', () => {
       const head = createBrandHead(TEST_BRAND_STYLE, { preheader: 'Preview text' });
 
@@ -336,25 +347,29 @@ describe('Brand Template Utilities', () => {
       expect(json).not.toContain('rc-social');
     });
 
-    it('should use #FFFFFF for label style color', () => {
+    it('should use #FFFFFF for label style color by default', () => {
       const head = createBrandHead(TEST_BRAND_STYLE);
       const json = JSON.stringify(head);
 
       // Find the rcml-label-style class
       const attrs = JSON.parse(json);
-      const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
-        if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
-        if (Array.isArray(node.children)) {
-          for (const child of node.children as Array<Record<string, unknown>>) {
-            const found = findLabelStyle(child);
-            if (found) return found;
-          }
-        }
-        return undefined;
-      };
       const labelStyle = findLabelStyle(attrs);
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#FFFFFF');
+    });
+
+    it('should use custom buttonTextColor for label style color when provided', () => {
+      const customStyle: BrandStyleConfig = {
+        ...TEST_BRAND_STYLE,
+        buttonTextColor: '#000000',
+      };
+      const head = createBrandHead(customStyle);
+      const json = JSON.stringify(head);
+
+      const parsed = JSON.parse(json);
+      const labelStyle = findLabelStyle(parsed);
+      expect(labelStyle).toBeDefined();
+      expect((labelStyle!.attributes as Record<string, string>).color).toBe('#000000');
     });
 
     it('should keep single quotes in rc-font name attributes to match editor format', () => {
@@ -410,7 +425,7 @@ describe('Brand Template Utilities', () => {
       expect(result.logoUrl).toBe('https://cdn.rule.io/logo.png');
       expect(result.buttonColor).toBe('#FF0000');
       expect(result.bodyBackgroundColor).toBe('#FAFAFA');
-      expect(result.sectionBackgroundColor).toBe('#ffffff');
+      expect(result.sectionBackgroundColor).toBe('#FAFAFA');
       expect(result.brandColor).toBe('#0066CC');
       expect(result.headingFont).toBe("'Montserrat', sans-serif");
       expect(result.headingFontUrl).toBe('https://app.rule.io/fonts/1/css');
@@ -1251,6 +1266,85 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('[LoopValue:total]');
     });
 
+    it('should use custom label values when provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          itemQtyLabel: 'Antal: ',
+          itemUnitPriceLabel: 'Pris: ',
+          itemSubtotalLabel: 'Delsumma: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Custom labels should appear
+      expect(json).toContain('Antal: ');
+      expect(json).toContain('Pris: ');
+      expect(json).toContain('Delsumma: ');
+
+      // Default English labels should NOT appear
+      expect(json).not.toContain('Qty: ');
+      expect(json).not.toContain('Price: ');
+      expect(json).not.toContain('Subtotal: ');
+    });
+
+    it('should use default English labels when custom labels not provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          // No itemQtyLabel, itemUnitPriceLabel, or itemSubtotalLabel
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Default English labels should appear
+      expect(json).toContain('Qty: ');
+      expect(json).toContain('Price: ');
+      expect(json).toContain('Subtotal: ');
+    });
+
     it('should fall back to single-field items when no sub-fields', () => {
       const doc = createOrderConfirmationEmail({
         brandStyle: TEST_BRAND_STYLE,
@@ -1422,6 +1516,89 @@ describe('E-commerce Templates', () => {
       // Line item sub-fields in loop (JSON key names)
       expect(json).toContain('[LoopValue:name]');
       expect(json).toContain('[LoopValue:sku]');
+    });
+
+    it('should use default English labels for ShippingUpdate line items', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipped',
+          greeting: 'Hi',
+          message: 'shipped.',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          lineItemsHeading: 'Items',
+          // No label overrides — defaults should apply
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+          itemSku: 'sku',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Default English labels should appear
+      expect(json).toContain('SKU: ');
+      expect(json).toContain('Qty: ');
+      expect(json).toContain('Unit price: ');
+      expect(json).toContain('Line total: ');
+    });
+
+    it('should use custom labels for ShippingUpdate line items when provided', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipped',
+          greeting: 'Hi',
+          message: 'shipped.',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          lineItemsHeading: 'Items',
+          itemSkuLabel: 'Artikelnr: ',
+          itemQtyLabel: 'Antal: ',
+          itemUnitPriceLabel: 'Styckpris: ',
+          itemLineTotalLabel: 'Radsumma: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+          itemSku: 'sku',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Custom labels should appear
+      expect(json).toContain('Artikelnr: ');
+      expect(json).toContain('Antal: ');
+      expect(json).toContain('Styckpris: ');
+      expect(json).toContain('Radsumma: ');
+
+      // Default English labels should NOT appear
+      expect(json).not.toContain('SKU: ');
+      expect(json).not.toContain('Qty: ');
+      expect(json).not.toContain('Unit price: ');
+      expect(json).not.toContain('Line total: ');
     });
 
     it('should render identically to base when no receipt fields provided', () => {

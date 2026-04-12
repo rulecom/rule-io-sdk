@@ -7,9 +7,11 @@
  * All text and configuration must be provided by the consumer —
  * no hardcoded defaults for any specific business.
  *
- * Note: The footer section defaults to English link text ("View in browser",
- * "Unsubscribe") when no `footer` config is provided. Pass a `footer` object
- * to override with your own locale.
+ * Note: Line-item labels (e.g. "Qty: ", "Price: ", "SKU: ") default to
+ * English when not overridden via the `text` config. The footer section
+ * also defaults to English link text ("View in browser", "Unsubscribe")
+ * when no `footer` config is provided. Pass the corresponding config
+ * fields to override with your own locale.
  */
 
 import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from '../types';
@@ -55,6 +57,12 @@ export interface OrderConfirmationConfig {
     ctaButton: string;
     /** Heading above the line items loop section */
     lineItemsHeading?: string;
+    /** Label for quantity in line items (default: 'Qty: ') */
+    itemQtyLabel?: string;
+    /** Label for unit price in line items (default: 'Price: ') */
+    itemUnitPriceLabel?: string;
+    /** Label for subtotal in line items (default: 'Subtotal: ') */
+    itemSubtotalLabel?: string;
   };
   fieldNames: {
     firstName: string;
@@ -134,7 +142,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Qty: '),
+              createTextNode(text.itemQtyLabel ?? 'Qty: '),
               createLoopFieldPlaceholder(fieldNames.itemQuantity),
             ])
           )
@@ -145,7 +153,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Price: '),
+              createTextNode(text.itemUnitPriceLabel ?? 'Price: '),
               createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
             ])
           )
@@ -156,7 +164,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Subtotal: '),
+              createTextNode(text.itemSubtotalLabel ?? 'Subtotal: '),
               createLoopFieldPlaceholder(fieldNames.itemTotal),
             ])
           )
@@ -304,6 +312,14 @@ export interface ShippingUpdateConfig {
     shippingCostLabel?: string;
     /** Heading for the line items section */
     lineItemsHeading?: string;
+    /** Label for SKU in line items (default: 'SKU: ') */
+    itemSkuLabel?: string;
+    /** Label for quantity in line items (default: 'Qty: ') */
+    itemQtyLabel?: string;
+    /** Label for unit price in line items (default: 'Unit price: ') */
+    itemUnitPriceLabel?: string;
+    /** Label for line total in line items (default: 'Line total: ') */
+    itemLineTotalLabel?: string;
     /** Label for subtotal row */
     subtotalLabel?: string;
     /** Label for tax row */
@@ -488,7 +504,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('SKU: '),
+              createTextNode(text.itemSkuLabel ?? 'SKU: '),
               createLoopFieldPlaceholder(fieldNames.itemSku),
             ])
           )
@@ -499,7 +515,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Qty: '),
+              createTextNode(text.itemQtyLabel ?? 'Qty: '),
               createLoopFieldPlaceholder(fieldNames.itemQuantity),
             ])
           )
@@ -510,7 +526,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Unit price: '),
+              createTextNode(text.itemUnitPriceLabel ?? 'Unit price: '),
               createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
             ])
           )
@@ -521,7 +537,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         loopChildren.push(
           createBrandText(
             createDocWithPlaceholders([
-              createTextNode('Line total: '),
+              createTextNode(text.itemLineTotalLabel ?? 'Line total: '),
               createLoopFieldPlaceholder(fieldNames.itemTotal),
             ])
           )
