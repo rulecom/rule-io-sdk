@@ -61,7 +61,11 @@ export function withTemplateContext<T>(templateName: string, fn: () => T): T {
   } catch (error: unknown) {
     if (error instanceof RuleConfigError) {
       const wrapped = new RuleConfigError(`${templateName} > ${error.message}`, { cause: error });
-      wrapped.stack = error.stack;
+      if (error.stack) {
+        const lines = error.stack.split('\n');
+        lines[0] = `${wrapped.name}: ${wrapped.message}`;
+        wrapped.stack = lines.join('\n');
+      }
       throw wrapped;
     }
     throw error;
