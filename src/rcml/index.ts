@@ -64,6 +64,8 @@ export {
   createLoopFieldPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
+  // Validation
+  validateCustomFields,
 } from './brand-template';
 
 // Brand template types
