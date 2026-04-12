@@ -896,7 +896,7 @@ const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript:/data: UR
 ## Releasing
 
 1. Update `CHANGELOG.md` with the new version's changes
-2. Run `npm version patch|minor|major` (runs type-check + tests automatically)
+2. Run `npm version <patch|minor|major>` (runs type-check + tests automatically)
 3. Push with tags: `git push && git push --tags`
 4. Publish: `npm publish`
 
