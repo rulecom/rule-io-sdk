@@ -18,9 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - URL sanitization for RCML element builders (`createButton`, `createImage`, `createVideo`)
-- DELETE method for unsuppress endpoint
+- Unsuppress endpoint now uses `DELETE /suppressions/` instead of `POST`
 - Brand builder return types assignable to `RCMLColumnChild`
-- Suppression endpoint uses POST `/suppressions/delete` instead of DELETE
 
 ## [0.2.0] - 2026-04-06
 
