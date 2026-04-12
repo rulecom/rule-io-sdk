@@ -1313,9 +1313,9 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('Delsumma: ');
 
       // Default English labels should NOT appear
-      expect(json).not.toContain('"Qty: "');
-      expect(json).not.toContain('"Price: "');
-      expect(json).not.toContain('"Subtotal: "');
+      expect(json).not.toContain('Qty: ');
+      expect(json).not.toContain('Price: ');
+      expect(json).not.toContain('Subtotal: ');
     });
 
     it('should use default English labels when custom labels not provided', () => {
@@ -1525,6 +1525,89 @@ describe('E-commerce Templates', () => {
       // Line item sub-fields in loop (JSON key names)
       expect(json).toContain('[LoopValue:name]');
       expect(json).toContain('[LoopValue:sku]');
+    });
+
+    it('should use default English labels for ShippingUpdate line items', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipped',
+          greeting: 'Hi',
+          message: 'shipped.',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          lineItemsHeading: 'Items',
+          // No label overrides — defaults should apply
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+          itemSku: 'sku',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Default English labels should appear
+      expect(json).toContain('SKU: ');
+      expect(json).toContain('Qty: ');
+      expect(json).toContain('Unit price: ');
+      expect(json).toContain('Line total: ');
+    });
+
+    it('should use custom labels for ShippingUpdate line items when provided', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped!',
+          heading: 'Shipped',
+          greeting: 'Hi',
+          message: 'shipped.',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          lineItemsHeading: 'Items',
+          itemSkuLabel: 'Artikelnr: ',
+          itemQtyLabel: 'Antal: ',
+          itemUnitPriceLabel: 'Styckpris: ',
+          itemLineTotalLabel: 'Radsumma: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemUnitPrice: 'price',
+          itemTotal: 'total',
+          itemSku: 'sku',
+        },
+      });
+
+      assertValidRCMLDocument(doc);
+      const json = docToString(doc);
+
+      // Custom labels should appear
+      expect(json).toContain('Artikelnr: ');
+      expect(json).toContain('Antal: ');
+      expect(json).toContain('Styckpris: ');
+      expect(json).toContain('Radsumma: ');
+
+      // Default English labels should NOT appear
+      expect(json).not.toContain('SKU: ');
+      expect(json).not.toContain('Qty: ');
+      expect(json).not.toContain('Unit price: ');
+      expect(json).not.toContain('Line total: ');
     });
 
     it('should render identically to base when no receipt fields provided', () => {
