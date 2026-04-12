@@ -100,11 +100,12 @@ export interface OrderConfirmationConfig {
  * ```
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
+  const templateName = 'createOrderConfirmationEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
   const { itemName, itemQuantity, itemUnitPrice, itemTotal, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, 'createOrderConfirmationEmail');
+  validateCustomFields(config.customFields, regularFields, templateName);
 
-  return withTemplateContext('createOrderConfirmationEmail', () => {
+  return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
 
     const detailRows: ReturnType<typeof createBrandText>[] = [
@@ -382,11 +383,12 @@ export interface ShippingUpdateConfig {
  * financial summary, legal text), renders a full legally-binding receipt.
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
+  const templateName = 'createShippingUpdateEmail';
   // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
   const { itemName, itemQuantity, itemUnitPrice, itemTotal, itemSku, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, 'createShippingUpdateEmail');
+  validateCustomFields(config.customFields, regularFields, templateName);
 
-  return withTemplateContext('createShippingUpdateEmail', () => {
+  return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
 
     /** Helper to create a detail row from an optional field + label pair. */
@@ -677,9 +679,10 @@ export interface AbandonedCartConfig {
  * Create an abandoned cart recovery email template.
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createAbandonedCartEmail');
+  const templateName = 'createAbandonedCartEmail';
+  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
-  return withTemplateContext('createAbandonedCartEmail', () => {
+  return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
 
     return createBrandTemplate({
@@ -753,9 +756,10 @@ export interface OrderCancellationConfig {
  * Create an order cancellation email template.
  */
 export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
-  validateCustomFields(config.customFields, config.fieldNames, 'createOrderCancellationEmail');
+  const templateName = 'createOrderCancellationEmail';
+  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
-  return withTemplateContext('createOrderCancellationEmail', () => {
+  return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
 
     return createBrandTemplate({
