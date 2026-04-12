@@ -3125,6 +3125,8 @@ describe('RuleClient', () => {
         client.createAutomationEmail({
           name: 'Test Automation',
           subject: 'Test',
+          triggerType: 'segment',
+          triggerValue: '12345',
           template: minimalTemplate,
         })
       ).rejects.toThrow('Template creation failed');
@@ -3145,6 +3147,8 @@ describe('RuleClient', () => {
         client.createAutomationEmail({
           name: 'Test Automation',
           subject: 'Test',
+          triggerType: 'segment',
+          triggerValue: '12345',
           template: minimalTemplate,
         })
       ).rejects.toThrow('Message creation failed');
