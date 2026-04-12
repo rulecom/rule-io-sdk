@@ -804,13 +804,13 @@ describe('RCML Social Elements', () => {
       ).toThrow(RuleConfigError);
     });
 
-    it('should strip unsafe src option', () => {
+    it('should strip unsafe src option (key omitted, not undefined)', () => {
       const el = createSocialElement({
         name: 'x',
         href: 'https://x.com/handle',
         src: 'javascript:alert(1)',
       });
-      expect(el.attributes.src).toBeUndefined();
+      expect(el.attributes).not.toHaveProperty('src');
     });
   });
 

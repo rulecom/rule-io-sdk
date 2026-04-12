@@ -784,12 +784,13 @@ export function createSocialElement(options: CreateSocialElementOptions): RCMLSo
   if (!sanitizedHref) {
     throw new RuleConfigError('createSocialElement: invalid or unsafe URL for `href`');
   }
+  const sanitizedSrc = options.src ? sanitizeUrl(options.src) : '';
   return {
     tagName: 'rc-social-element',
     attributes: {
       name: options.name,
       href: sanitizedHref,
-      ...(options.src ? { src: sanitizeUrl(options.src) || undefined } : {}),
+      ...(sanitizedSrc ? { src: sanitizedSrc } : {}),
       ...(options.backgroundColor ? { 'background-color': options.backgroundColor } : {}),
     },
     ...(options.label ? { content: options.label } : {}),
