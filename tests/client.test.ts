@@ -57,7 +57,6 @@ describe('RuleClient', () => {
   describe('constructor', () => {
     it('should accept string API key for backwards compatibility', () => {
       const client = new RuleClient('test-api-key');
-      expect(client.isConfigured()).toBe(true);
       expect(client.getApiKey()).toBe('test-api-key');
     });
 
@@ -66,7 +65,7 @@ describe('RuleClient', () => {
         apiKey: 'test-api-key',
         debug: true,
       });
-      expect(client.isConfigured()).toBe(true);
+      expect(client.getApiKey()).toBe('test-api-key');
     });
 
     it('should throw RuleConfigError if API key is missing', () => {

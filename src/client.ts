@@ -168,17 +168,6 @@ export class RuleClient {
   }
 
   /**
-   * Check if this client is configured with a valid API key.
-   *
-   * @deprecated This method always returns `true` because the constructor
-   * throws a `RuleConfigError` when an API key is missing. It will be
-   * removed in the next major version.
-   */
-  isConfigured(): boolean {
-    return !!this.config.apiKey;
-  }
-
-  /**
    * Get the API key (useful for passing to other functions)
    */
   getApiKey(): string {
