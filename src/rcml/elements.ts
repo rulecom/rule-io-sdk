@@ -20,6 +20,9 @@ import type {
   RCMLDivider,
   RCMLLoop,
   RCMLSwitch,
+  RCMLCase,
+  RCMLSocial,
+  RCMLSocialElement,
   RCMLBrandStyle,
   RCMLPreview,
   RCMLAttributes,
@@ -740,5 +743,249 @@ export function createVideo(src: string, options?: CreateVideoOptions): RCMLVide
       padding: options?.padding || '0 0 20px 0',
       'border-radius': options?.borderRadius,
     },
+  };
+}
+
+// ============================================================================
+// Social Elements
+// ============================================================================
+
+export interface CreateSocialElementOptions {
+  /** Social network name (e.g., 'facebook', 'instagram', 'x') */
+  name: string;
+  /** Link URL for the social profile */
+  href: string;
+  /** Custom icon URL (optional — Rule.io provides default icons) */
+  src?: string;
+  /** Icon background color */
+  backgroundColor?: string;
+  /** Optional label text displayed beside the icon */
+  label?: string;
+}
+
+/**
+ * Create a single social element (icon + link).
+ *
+ * `href` is sanitized and must be a valid http/https URL.
+ * If `options.src` is provided, it is also sanitized; invalid values are silently omitted.
+ *
+ * @throws {RuleConfigError} If `href` is not a valid http/https URL
+ *
+ * @example
+ * ```typescript
+ * createSocialElement({
+ *   name: 'facebook',
+ *   href: 'https://facebook.com/mypage',
+ * })
+ * ```
+ */
+export function createSocialElement(options: CreateSocialElementOptions): RCMLSocialElement {
+  const sanitizedHref = sanitizeUrl(options.href);
+  if (!sanitizedHref) {
+    throw new RuleConfigError('createSocialElement: invalid or unsafe URL for `href`');
+  }
+  const sanitizedSrc = options.src ? sanitizeUrl(options.src) : '';
+  return {
+    tagName: 'rc-social-element',
+    attributes: {
+      name: options.name,
+      href: sanitizedHref,
+      ...(sanitizedSrc ? { src: sanitizedSrc } : {}),
+      ...(options.backgroundColor ? { 'background-color': options.backgroundColor } : {}),
+    },
+    ...(options.label ? { content: options.label } : {}),
+  };
+}
+
+export interface CreateSocialOptions {
+  /** Alignment of the social icons row */
+  align?: 'left' | 'center' | 'right';
+  /** Layout mode */
+  mode?: 'horizontal' | 'vertical';
+  /** Icon size (e.g., '24px') */
+  iconSize?: string;
+  /** Padding around individual icons */
+  iconPadding?: string;
+  /** Padding around the entire social block */
+  padding?: string;
+  /** Border radius for icon backgrounds */
+  borderRadius?: string;
+  /** Icon color (applied via font color) */
+  color?: string;
+  /** Font size for labels */
+  fontSize?: string;
+  /** Font family for labels */
+  fontFamily?: string;
+}
+
+/**
+ * Create a social icons container with one or more social elements.
+ *
+ * @param elements - Array of social element children
+ * @param options - Layout and style options
+ *
+ * @example
+ * ```typescript
+ * createSocial([
+ *   createSocialElement({ name: 'facebook', href: 'https://facebook.com/mypage' }),
+ *   createSocialElement({ name: 'instagram', href: 'https://instagram.com/mypage' }),
+ *   createSocialElement({ name: 'x', href: 'https://x.com/myhandle' }),
+ * ], { align: 'center', iconSize: '24px' })
+ * ```
+ */
+export function createSocial(
+  elements: RCMLSocialElement[],
+  options?: CreateSocialOptions,
+): RCMLSocial {
+  return {
+    tagName: 'rc-social',
+    attributes: {
+      align: options?.align || 'center',
+      ...(options?.mode ? { mode: options.mode } : {}),
+      ...(options?.iconSize ? { 'icon-size': options.iconSize } : {}),
+      ...(options?.iconPadding ? { 'icon-padding': options.iconPadding } : {}),
+      ...(options?.padding ? { padding: options.padding } : {}),
+      ...(options?.borderRadius ? { 'border-radius': options.borderRadius } : {}),
+      ...(options?.color ? { color: options.color } : {}),
+      ...(options?.fontSize ? { 'font-size': options.fontSize } : {}),
+      ...(options?.fontFamily ? { 'font-family': options.fontFamily } : {}),
+    },
+    children: elements,
+  };
+}
+
+// ============================================================================
+// Switch / Case Elements (Conditional Content)
+// ============================================================================
+
+interface CreateDefaultCaseOptions {
+  /** Default fallback case — renders when no other case matches */
+  caseType: 'default';
+  /** Whether validation is active (default: true) */
+  caseActive?: boolean;
+}
+
+interface CreateSegmentOrTagCaseOptions {
+  /** Case type — determines what the condition checks against */
+  caseType: 'segment' | 'tag';
+  /** Condition operator */
+  caseCondition: 'eq' | 'ne';
+  /** Value to compare against (segment or tag ID) */
+  caseValue: string | number;
+  /** Whether validation is active (default: true) */
+  caseActive?: boolean;
+}
+
+interface CreateCustomFieldCaseOptions {
+  /** Case type — checks against a custom field value */
+  caseType: 'custom-field';
+  /** Custom field ID */
+  caseProperty: number;
+  /** Condition operator */
+  caseCondition: 'eq' | 'ne';
+  /** Value to compare against */
+  caseValue: string | number;
+  /** Whether validation is active (default: true) */
+  caseActive?: boolean;
+}
+
+export type CreateCaseOptions =
+  | CreateDefaultCaseOptions
+  | CreateSegmentOrTagCaseOptions
+  | CreateCustomFieldCaseOptions;
+
+/**
+ * Create a conditional case element within a switch.
+ *
+ * Each case contains exactly one section that renders when the condition matches.
+ * Use `caseType: 'default'` for the fallback case.
+ *
+ * @param options - Condition configuration
+ * @param children - Single-element array containing the section to render
+ *
+ * @example
+ * ```typescript
+ * // Default fallback case
+ * createCase({ caseType: 'default' }, [
+ *   createCenteredSection({ children: [createText('Default content')] })
+ * ])
+ *
+ * // Tag-based condition
+ * createCase(
+ *   { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
+ *   [createCenteredSection({ children: [createText('VIP content')] })]
+ * )
+ * ```
+ */
+export function createCase(options: CreateCaseOptions, children: [RCMLSection]): RCMLCase {
+  if (children.length !== 1) {
+    throw new RuleConfigError(
+      `createCase: each rc-case must contain exactly one section, got ${children.length}`,
+    );
+  }
+
+  if (options.caseType !== 'default') {
+    if (!options.caseCondition) {
+      throw new RuleConfigError(
+        `createCase: caseCondition is required when caseType is '${options.caseType}'`,
+      );
+    }
+    if (options.caseValue === undefined) {
+      throw new RuleConfigError(
+        `createCase: caseValue is required when caseType is '${options.caseType}'`,
+      );
+    }
+    if (options.caseType === 'custom-field' && options.caseProperty === undefined) {
+      throw new RuleConfigError(
+        "createCase: caseProperty is required when caseType is 'custom-field'",
+      );
+    }
+  }
+
+  const attrs: RCMLCase['attributes'] = {
+    'case-type': options.caseType,
+  };
+
+  if (options.caseType !== 'default') {
+    attrs['case-condition'] = options.caseCondition;
+    attrs['case-value'] = options.caseValue;
+    if (options.caseType === 'custom-field') {
+      attrs['case-property'] = options.caseProperty;
+    }
+  }
+
+  if (options.caseActive !== undefined) {
+    attrs['case-active'] = options.caseActive;
+  }
+
+  return { tagName: 'rc-case', attributes: attrs, children };
+}
+
+/**
+ * Create a switch element for conditional content rendering.
+ *
+ * A switch groups multiple cases, each with a condition. Only the first
+ * matching case is rendered. Use a 'default' case as fallback.
+ *
+ * @param cases - Array of case elements (use `createCase()` to build these)
+ *
+ * @example
+ * ```typescript
+ * createSwitch([
+ *   createCase(
+ *     { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
+ *     [createCenteredSection({ children: [createText('VIP members')] })]
+ *   ),
+ *   createCase(
+ *     { caseType: 'default' },
+ *     [createCenteredSection({ children: [createText('Regular content')] })]
+ *   ),
+ * ])
+ * ```
+ */
+export function createSwitch(cases: RCMLCase[]): RCMLSwitch {
+  return {
+    tagName: 'rc-switch',
+    children: cases,
   };
 }
