@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.2.0] - 2026-04-06
 
 ### Added
-- Automation API support (v2) with `createAutomationEmail` helper
+- Automation API support (v3 editor endpoints) with `createAutomationEmail` helper
 - Subscriber management (v3 API)
 - Single-step automail creation per API developer feedback
 - GitHub Actions CI workflow
