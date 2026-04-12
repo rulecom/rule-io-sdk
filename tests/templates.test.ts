@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '../src/rcml';
+import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
 import { validateCustomFields, toBrandStyleConfig } from '../src/rcml/brand-template';
 import {
