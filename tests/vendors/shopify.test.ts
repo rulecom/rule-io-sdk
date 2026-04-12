@@ -3,29 +3,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { RCMLDocument } from '../../src/types';
-import type { BrandStyleConfig, CustomFieldMap } from '../../src/rcml';
+import type { CustomFieldMap } from '../../src/rcml';
 import type { VendorConsumerConfig } from '../../src/vendors/types';
 import { RuleConfigError } from '../../src/errors';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../../src/vendors/shopify';
+import { TEST_BRAND_STYLE, assertValidRCMLDocument } from '../helpers';
 
 // ============================================================================
 // Shared fixtures
 // ============================================================================
-
-const TEST_BRAND_STYLE: BrandStyleConfig = {
-  brandStyleId: '99999',
-  logoUrl: 'https://example.com/logo.png',
-  buttonColor: '#0066CC',
-  bodyBackgroundColor: '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  brandColor: '#f6f8f9',
-  headingFont: "'Helvetica Neue', sans-serif",
-  headingFontUrl: 'https://app.rule.io/brand-style/99999/font/1/css',
-  bodyFont: "'Arial', sans-serif",
-  bodyFontUrl: 'https://app.rule.io/brand-style/99999/font/2/css',
-  textColor: '#1A1A1A',
-};
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   // Subscriber fields
@@ -58,14 +44,6 @@ const TEST_CONFIG: VendorConsumerConfig = {
   customFields: TEST_CUSTOM_FIELDS,
   websiteUrl: 'https://myshop.example.com',
 };
-
-function assertValidRCMLDocument(doc: RCMLDocument): void {
-  expect(doc.tagName).toBe('rcml');
-  expect(doc.children).toHaveLength(2);
-  expect(doc.children[0].tagName).toBe('rc-head');
-  expect(doc.children[1].tagName).toBe('rc-body');
-  expect(doc.children[1].children.length).toBeGreaterThan(0);
-}
 
 // ============================================================================
 // Preset metadata
