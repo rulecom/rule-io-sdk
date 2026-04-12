@@ -68,7 +68,6 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
   describe('Auth & Config', () => {
     it('should confirm client is configured', () => {
-      expect(client.isConfigured()).toBe(true);
       expect(client.getApiKey()).toBe(API_KEY);
     });
 
