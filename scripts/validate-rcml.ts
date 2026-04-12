@@ -546,22 +546,28 @@ function buildSectionGroups(
       label('14. rc-switch / rc-case (conditional content)'),
       {
         ...createSwitch([
-          createCase(
-            { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
-            [createContentSection([
-              createBrandText(createDocWithPlaceholders([
-                createTextNode('This shows when tag ID 1 matches'),
-              ])),
-            ])],
-          ),
-          createCase(
-            { caseType: 'default' },
-            [createContentSection([
-              createBrandText(createDocWithPlaceholders([
-                createTextNode('This is the default / fallback content'),
-              ])),
-            ])],
-          ),
+          {
+            ...createCase(
+              { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
+              [createContentSection([
+                createBrandText(createDocWithPlaceholders([
+                  createTextNode('This shows when tag ID 1 matches'),
+                ])),
+              ])],
+            ),
+            id: id(),
+          },
+          {
+            ...createCase(
+              { caseType: 'default' },
+              [createContentSection([
+                createBrandText(createDocWithPlaceholders([
+                  createTextNode('This is the default / fallback content'),
+                ])),
+              ])],
+            ),
+            id: id(),
+          },
         ]),
         id: id(),
       },
@@ -576,10 +582,10 @@ function buildSectionGroups(
       section([
         {
           ...createSocial([
-            createSocialElement({ name: 'facebook', href: 'https://facebook.com' }),
-            createSocialElement({ name: 'instagram', href: 'https://instagram.com' }),
-            createSocialElement({ name: 'x', href: 'https://x.com' }),
-            createSocialElement({ name: 'web', href: 'https://example.com' }),
+            { ...createSocialElement({ name: 'facebook', href: 'https://facebook.com' }), id: id() },
+            { ...createSocialElement({ name: 'instagram', href: 'https://instagram.com' }), id: id() },
+            { ...createSocialElement({ name: 'x', href: 'https://x.com' }), id: id() },
+            { ...createSocialElement({ name: 'web', href: 'https://example.com' }), id: id() },
           ], { align: 'center', iconSize: '24px' }),
           id: id(),
         },
