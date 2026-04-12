@@ -909,6 +909,26 @@ npm run test         # Run tests with Vitest
 npm run type-check   # TypeScript strict mode
 ```
 
+### RCML Validation Script
+
+See a representative set of RCML elements rendered in the Rule.io editor — a quick way to verify that the SDK produces valid templates:
+
+```bash
+# Set your API key in .env
+echo "RULE_API_KEY=your-key" > .env
+
+# Create a campaign with all RCML elements
+npx tsx scripts/validate-rcml.ts
+
+# Test specific sections only
+npx tsx scripts/validate-rcml.ts --sections=1,4,7
+
+# Clean up when done
+npx tsx scripts/validate-rcml.ts --cleanup
+```
+
+The script auto-detects your brand style and custom fields, then creates a campaign showcasing headings, text, rich text (bold/italic/underline), placeholders, buttons, images, spacers, dividers, and multi-column layouts.
+
 ## API Documentation
 
 The Rule.io v3 API spec is available at the [OpenAPI endpoint](https://app.rule.io/redoc/api-v3.json).
