@@ -5,7 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client';
 import { RuleApiError, RuleConfigError } from '../src/errors';
-import type { RuleAnalyticsParams } from '../src/types';
+import type { RuleAnalyticsParams, RCMLDocument } from '../src/types';
+
+/** Minimal valid RCMLDocument for tests that need a template value. */
+const minimalTemplate: RCMLDocument = {
+  tagName: 'rcml',
+  children: [
+    { tagName: 'rc-head', children: [] },
+    { tagName: 'rc-body', children: [] },
+  ],
+};
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -2683,7 +2692,7 @@ describe('RuleClient', () => {
           triggerType: 'tag',
           triggerValue: 'Newsletter',
           subject: 'Test',
-          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          template: { ...minimalTemplate, id: '1' },
           brandStyleId: 976,
         })
       ).rejects.toThrow(RuleConfigError);
@@ -2782,7 +2791,7 @@ describe('RuleClient', () => {
         client.createCampaignEmail({
           name: 'Test',
           subject: 'Test',
-          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          template: { ...minimalTemplate, id: '1' },
           brandStyleId: 976,
         })
       ).rejects.toThrow(RuleConfigError);
@@ -2858,7 +2867,7 @@ describe('RuleClient', () => {
     it('should use provided template directly without brandStyleId', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
-      const fakeTemplate = {
+      const fakeTemplate: RCMLDocument = {
         tagName: 'rcml',
         id: 'test-id',
         children: [
@@ -2877,7 +2886,7 @@ describe('RuleClient', () => {
       const result = await client.createCampaignEmail({
         name: 'Direct Template',
         subject: 'Test',
-        template: fakeTemplate as never,
+        template: fakeTemplate,
       });
 
       expect(result.campaignId).toBe(100);
@@ -2908,6 +2917,244 @@ describe('RuleClient', () => {
           brandStyleId: 976,
         })
       ).rejects.toThrow('Template creation failed');
+    });
+  });
+
+  // ==========================================================================
+  // v2 Tags API
+  // ==========================================================================
+
+  describe('getTags', () => {
+    it('should return tags from API', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          tags: [
+            { id: 1, name: 'newsletter' },
+            { id: 2, name: 'vip' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTags();
+
+      expect(result.tags).toHaveLength(2);
+      expect(result.tags?.[0].name).toBe('newsletter');
+
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe('https://app.rule.io/api/v2/tags');
+      expect(options.method).toBe('GET');
+    });
+
+    it('should handle empty tags response', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ tags: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTags();
+
+      expect(result.tags).toEqual([]);
+    });
+  });
+
+  describe('getTagIdByName', () => {
+    it('should return tag ID when found', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          tags: [
+            { id: 10, name: 'order-confirmed' },
+            { id: 20, name: 'newsletter' },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTagIdByName('newsletter');
+
+      expect(result).toBe(20);
+    });
+
+    it('should return null when tag not found', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          tags: [{ id: 10, name: 'order-confirmed' }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTagIdByName('nonexistent');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when tags list is undefined', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({}));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getTagIdByName('anything');
+
+      expect(result).toBeNull();
+    });
+  });
+
+  // ==========================================================================
+  // v2 Subscriber Management
+  // ==========================================================================
+
+  describe('deleteSubscriber', () => {
+    it('should send DELETE request with email', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.deleteSubscriber('old@example.com');
+
+      expect(result.success).toBe(true);
+      const [url, options] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://app.rule.io/api/v2/subscribers/old%40example.com?identified_by=email'
+      );
+      expect(options.method).toBe('DELETE');
+    });
+
+    it('should encode special characters in email', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.deleteSubscriber('user+tag@example.com');
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('user%2Btag%40example.com');
+    });
+  });
+
+  describe('getSubscriberTags', () => {
+    it('should return tag names for subscriber', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          tags: [{ name: 'vip' }, { name: 'newsletter' }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getSubscriberTags('test@example.com');
+
+      expect(result).toEqual(['vip', 'newsletter']);
+      const [url] = mockFetch.mock.calls[0];
+      expect(url).toBe(
+        'https://app.rule.io/api/v2/subscribers/test%40example.com/tags?identified_by=email'
+      );
+    });
+
+    it('should return empty array when tags is undefined', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({}));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getSubscriberTags('test@example.com');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should return empty array on 404', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Not found' }, 404)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getSubscriberTags('unknown@example.com');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ==========================================================================
+  // Network Error Handling
+  // ==========================================================================
+
+  describe('network error handling', () => {
+    it('should wrap fetch rejection in RuleApiError (v2)', async () => {
+      mockFetch.mockRejectedValueOnce(new TypeError('fetch failed'));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      try {
+        await client.getTags();
+        expect.unreachable('should have thrown');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleApiError);
+        expect((error as RuleApiError).message).toContain('fetch failed');
+        expect((error as RuleApiError).statusCode).toBe(0);
+      }
+    });
+
+    it('should wrap DNS/network failure in RuleApiError (v2)', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('getaddrinfo ENOTFOUND app.rule.io'));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(client.syncSubscriber({
+        email: 'test@example.com',
+        fields: {},
+        tags: ['test'],
+      })).rejects.toThrow(RuleApiError);
+    });
+
+    it('should wrap fetch rejection in RuleApiError (v3)', async () => {
+      mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(client.listAutomations()).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  // ==========================================================================
+  // createAutomationEmail cleanup-on-failure
+  // ==========================================================================
+
+  describe('createAutomationEmail cleanup-on-failure', () => {
+    it('should clean up created resources when template creation fails', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // createAutomation
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // createMessage
+        .mockRejectedValueOnce(new Error('Template creation failed'))     // createTemplate fails
+        .mockResolvedValueOnce(createMock204Response())                   // delete message cleanup
+        .mockResolvedValueOnce(createMock204Response());                  // delete automation cleanup
+
+      await expect(
+        client.createAutomationEmail({
+          name: 'Test Automation',
+          subject: 'Test',
+          triggerType: 'segment',
+          triggerValue: '12345',
+          template: minimalTemplate,
+        })
+      ).rejects.toThrow('Template creation failed');
+
+      // Verify cleanup calls happened (message deleted first, then automation — reverse order)
+      expect(mockFetch).toHaveBeenCalledTimes(5);
+    });
+
+    it('should clean up automation when message creation fails', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      mockFetch
+        .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // createAutomation
+        .mockRejectedValueOnce(new Error('Message creation failed'))      // createMessage fails
+        .mockResolvedValueOnce(createMock204Response());                  // delete automation cleanup
+
+      await expect(
+        client.createAutomationEmail({
+          name: 'Test Automation',
+          subject: 'Test',
+          triggerType: 'segment',
+          triggerValue: '12345',
+          template: minimalTemplate,
+        })
+      ).rejects.toThrow('Message creation failed');
+
+      // Verify: 1 create + 1 fail + 1 cleanup = 3 calls
+      expect(mockFetch).toHaveBeenCalledTimes(3);
     });
   });
 
