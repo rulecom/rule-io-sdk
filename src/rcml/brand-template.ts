@@ -634,10 +634,12 @@ export function createDefaultContentSection(options?: {
   headingText?: string;
   bodyText?: string;
   buttonText?: string;
+  buttonUrl?: string;
 }): RCMLBodyChild {
   const heading = options?.headingText ?? 'Replace this title';
   const body = options?.bodyText ?? 'Click into this box to change the font settings. Edit this text to include additional information and a description of the image.';
   const button = options?.buttonText ?? 'Click me!';
+  const buttonHref = options?.buttonUrl ? sanitizeUrl(options.buttonUrl) || undefined : undefined;
 
   return {
     tagName: 'rc-section',
@@ -690,6 +692,7 @@ export function createDefaultContentSection(options?: {
               'text-align': 'center',
               'vertical-align': 'middle',
               'rc-class': 'rcml-label-style',
+              ...(buttonHref && { href: buttonHref }),
             },
             content: {
               type: 'doc',

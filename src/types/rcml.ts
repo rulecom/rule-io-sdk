@@ -28,7 +28,7 @@ export interface RCMLProseMirrorDoc {
  * ProseMirror node — discriminated union keyed on `type`.
  *
  * - `paragraph` — block container that holds inline children
- * - `text` — inline text run with optional marks (bold, link, …)
+ * - `text` — inline text run with optional marks (font, link)
  * - `placeholder` — merge-field token resolved at send time
  *
  * NOTE: This was changed from an interface to a discriminated union type in
@@ -43,8 +43,23 @@ export type RCMLProseMirrorNode =
   | { type: 'text'; text: string; marks?: RCMLProseMirrorMark[] }
   | { type: 'placeholder'; attrs: { type: string; name: string; value: string | number; original: string } };
 
+/**
+ * ProseMirror inline mark.
+ *
+ * Rule.io supports two mark types:
+ * - `font` — inline CSS overrides (`font-weight`, `font-style`,
+ *   `text-decoration`, `color`, `font-size`, etc.)
+ * - `link` — hyperlink (`href`, `target`, `no-tracked`)
+ *
+ * To apply bold, italic, or underline, use a `font` mark:
+ * ```ts
+ * { type: 'font', attrs: { 'font-weight': 'bold' } }           // bold
+ * { type: 'font', attrs: { 'font-style': 'italic' } }          // italic
+ * { type: 'font', attrs: { 'text-decoration': 'underline' } }  // underline
+ * ```
+ */
 export interface RCMLProseMirrorMark {
-  type: 'font' | 'link' | 'bold' | 'italic' | 'underline';
+  type: 'font' | 'link';
   attrs?: Record<string, string | boolean>;
 }
 
