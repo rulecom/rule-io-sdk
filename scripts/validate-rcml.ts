@@ -46,15 +46,12 @@ import {
   createSocialElement,
   createSwitch,
   createCase,
-  createCenteredSection,
-  createText,
 } from '../src';
 import type {
   BrandStyleConfig,
   RCMLBodyChild,
   RCMLColumnChild,
   RCMLProseMirrorDoc,
-  RCMLSection,
 } from '../src';
 
 // ---------------------------------------------------------------------------
@@ -551,11 +548,19 @@ function buildSectionGroups(
         ...createSwitch([
           createCase(
             { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
-            [createCenteredSection({ children: [createText('This shows when tag ID 1 matches')] }) as RCMLSection],
+            [createContentSection([
+              createBrandText(createDocWithPlaceholders([
+                createTextNode('This shows when tag ID 1 matches'),
+              ])),
+            ])],
           ),
           createCase(
             { caseType: 'default' },
-            [createCenteredSection({ children: [createText('This is the default / fallback content')] }) as RCMLSection],
+            [createContentSection([
+              createBrandText(createDocWithPlaceholders([
+                createTextNode('This is the default / fallback content'),
+              ])),
+            ])],
           ),
         ]),
         id: id(),

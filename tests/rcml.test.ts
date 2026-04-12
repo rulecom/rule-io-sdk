@@ -867,6 +867,8 @@ describe('RCML Social Elements', () => {
 });
 
 describe('RCML Switch / Case Elements', () => {
+  const makeSection = () => createCenteredSection({ children: [createText('Content')] });
+
   describe('createCase', () => {
     it('should create a default case', () => {
       const section = createCenteredSection({ children: [createText('Fallback')] });
@@ -892,7 +894,7 @@ describe('RCML Switch / Case Elements', () => {
     it('should create a segment-based case', () => {
       const c = createCase(
         { caseType: 'segment', caseCondition: 'ne', caseValue: 99 },
-        [],
+        [makeSection()],
       );
 
       expect(c.attributes['case-type']).toBe('segment');
@@ -903,7 +905,7 @@ describe('RCML Switch / Case Elements', () => {
     it('should create a custom-field case with property', () => {
       const c = createCase(
         { caseType: 'custom-field', caseProperty: 12345, caseCondition: 'eq', caseValue: 'gold' },
-        [],
+        [makeSection()],
       );
 
       expect(c.attributes['case-type']).toBe('custom-field');
@@ -913,12 +915,12 @@ describe('RCML Switch / Case Elements', () => {
     });
 
     it('should set caseActive when provided', () => {
-      const c = createCase({ caseType: 'default', caseActive: false }, []);
+      const c = createCase({ caseType: 'default', caseActive: false }, [makeSection()]);
       expect(c.attributes['case-active']).toBe(false);
     });
 
     it('should not include optional attributes when not provided', () => {
-      const c = createCase({ caseType: 'default' }, []);
+      const c = createCase({ caseType: 'default' }, [makeSection()]);
 
       expect(c.attributes).not.toHaveProperty('case-property');
       expect(c.attributes).not.toHaveProperty('case-condition');
@@ -927,25 +929,31 @@ describe('RCML Switch / Case Elements', () => {
     });
 
     it('should not have an id (low-level builder)', () => {
-      const c = createCase({ caseType: 'default' }, []);
+      const c = createCase({ caseType: 'default' }, [makeSection()]);
       expect(c).not.toHaveProperty('id');
+    });
+
+    it('should reject empty children array', () => {
+      expect(() =>
+        createCase({ caseType: 'default' }, [] as never),
+      ).toThrow('exactly one section');
     });
 
     it('should reject tag case without caseCondition', () => {
       expect(() =>
-        createCase({ caseType: 'tag', caseCondition: undefined as never, caseValue: 1 }, []),
+        createCase({ caseType: 'tag', caseCondition: undefined as never, caseValue: 1 }, [makeSection()]),
       ).toThrow('caseCondition is required');
     });
 
     it('should reject segment case without caseValue', () => {
       expect(() =>
-        createCase({ caseType: 'segment', caseCondition: 'eq', caseValue: undefined as never }, []),
+        createCase({ caseType: 'segment', caseCondition: 'eq', caseValue: undefined as never }, [makeSection()]),
       ).toThrow('caseValue is required');
     });
 
     it('should reject custom-field case without caseProperty', () => {
       expect(() =>
-        createCase({ caseType: 'custom-field', caseProperty: undefined as never, caseCondition: 'eq', caseValue: 'x' }, []),
+        createCase({ caseType: 'custom-field', caseProperty: undefined as never, caseCondition: 'eq', caseValue: 'x' }, [makeSection()]),
       ).toThrow('caseProperty is required');
     });
   });

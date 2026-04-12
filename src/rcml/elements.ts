@@ -896,11 +896,11 @@ export type CreateCaseOptions =
 /**
  * Create a conditional case element within a switch.
  *
- * Each case contains one or more sections that render when the condition matches.
+ * Each case contains exactly one section that renders when the condition matches.
  * Use `caseType: 'default'` for the fallback case.
  *
  * @param options - Condition configuration
- * @param children - Sections to render when the condition matches
+ * @param children - Single-element array containing the section to render
  *
  * @example
  * ```typescript
@@ -916,7 +916,13 @@ export type CreateCaseOptions =
  * )
  * ```
  */
-export function createCase(options: CreateCaseOptions, children: RCMLSection[]): RCMLCase {
+export function createCase(options: CreateCaseOptions, children: [RCMLSection]): RCMLCase {
+  if (children.length !== 1) {
+    throw new RuleConfigError(
+      `createCase: each rc-case must contain exactly one section, got ${children.length}`,
+    );
+  }
+
   if (options.caseType !== 'default') {
     if (!options.caseCondition) {
       throw new RuleConfigError(
