@@ -16,7 +16,6 @@
 import type { RCMLDocument } from '../types';
 import {
   createBrandTemplate,
-  createBrandLogo,
   createBrandHeading,
   createBrandText,
   createBrandButton,
@@ -25,6 +24,9 @@ import {
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
+  createLogoSection,
+  createGreetingSection,
+  createCtaSection,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
@@ -202,25 +204,10 @@ export function createReservationConfirmationEmail(config: ReservationTemplateCo
       preheader: text.preheader,
       sections: [
         // Logo
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
         // Greeting
-        createContentSection(
-          [
-            createBrandHeading(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode('!'),
-              ])
-            ),
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.intro)]),
-              { align: 'center' }
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
 
         // Details
         createContentSection(
@@ -232,15 +219,7 @@ export function createReservationConfirmationEmail(config: ReservationTemplateCo
         ),
 
         // CTA
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.websiteUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createCtaSection(text.ctaButton, config.websiteUrl),
 
         // Footer
         createFooterSection(config.footer),
@@ -287,7 +266,7 @@ export function createReservationCancellationEmail(config: ReservationCancellati
       brandStyle: config.brandStyle,
       preheader: text.preheader,
       sections: [
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
         createContentSection(
           [
@@ -321,15 +300,7 @@ export function createReservationCancellationEmail(config: ReservationCancellati
           { padding: '20px 0' }
         ),
 
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.websiteUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createCtaSection(text.ctaButton, config.websiteUrl),
 
         createFooterSection(config.footer),
       ],
@@ -413,24 +384,9 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
     }
 
     const sections: RCMLDocument['children'][1]['children'] = [
-      ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+      ...createLogoSection(config.brandStyle.logoUrl),
 
-      createContentSection(
-        [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
-            ])
-          ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.intro)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '20px 0' }
-      ),
+      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
 
       createContentSection(
         [
@@ -460,17 +416,7 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
         )
       );
     } else {
-      sections.push(
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.websiteUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        )
-      );
+      sections.push(createCtaSection(text.ctaButton, config.websiteUrl));
     }
 
     sections.push(createFooterSection(config.footer));
@@ -518,34 +464,11 @@ export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLD
       brandStyle: config.brandStyle,
       preheader: text.preheader,
       sections: [
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
-        createContentSection(
-          [
-            createBrandHeading(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode('!'),
-              ])
-            ),
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.message)]),
-              { align: 'center' }
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createGreetingSection(text.greeting, text.message, fieldNames.firstName, customFields[fieldNames.firstName]),
 
-        createContentSection(
-          [
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.feedbackUrl
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createCtaSection(text.ctaButton, config.feedbackUrl),
 
         createFooterSection(config.footer),
       ],
@@ -605,24 +528,9 @@ export function createReservationRequestEmail(config: ReservationRequestConfig):
       brandStyle: config.brandStyle,
       preheader: text.preheader,
       sections: [
-        ...(config.brandStyle.logoUrl ? [createBrandLogo(config.brandStyle.logoUrl)] : []),
+        ...createLogoSection(config.brandStyle.logoUrl),
 
-        createContentSection(
-          [
-            createBrandHeading(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode('!'),
-              ])
-            ),
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.message)]),
-              { align: 'center' }
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
+        createGreetingSection(text.greeting, text.message, fieldNames.firstName, customFields[fieldNames.firstName]),
 
         createContentSection(
           [
