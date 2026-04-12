@@ -5,7 +5,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client';
 import { RuleApiError, RuleConfigError } from '../src/errors';
-import type { RuleAnalyticsParams } from '../src/types';
+import type { RuleAnalyticsParams, RCMLDocument } from '../src/types';
+
+/** Minimal valid RCMLDocument for tests that need a template value. */
+const minimalTemplate: RCMLDocument = {
+  tagName: 'rcml',
+  children: [
+    { tagName: 'rc-head', children: [] },
+    { tagName: 'rc-body', children: [] },
+  ],
+};
 
 // Mock fetch
 const mockFetch = vi.fn();
@@ -2683,7 +2692,7 @@ describe('RuleClient', () => {
           triggerType: 'tag',
           triggerValue: 'Newsletter',
           subject: 'Test',
-          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          template: { ...minimalTemplate, id: '1' },
           brandStyleId: 976,
         })
       ).rejects.toThrow(RuleConfigError);
@@ -2782,7 +2791,7 @@ describe('RuleClient', () => {
         client.createCampaignEmail({
           name: 'Test',
           subject: 'Test',
-          template: { tagName: 'rcml', id: '1', children: [] } as never,
+          template: { ...minimalTemplate, id: '1' },
           brandStyleId: 976,
         })
       ).rejects.toThrow(RuleConfigError);
@@ -2858,7 +2867,7 @@ describe('RuleClient', () => {
     it('should use provided template directly without brandStyleId', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
-      const fakeTemplate = {
+      const fakeTemplate: RCMLDocument = {
         tagName: 'rcml',
         id: 'test-id',
         children: [
@@ -2877,7 +2886,7 @@ describe('RuleClient', () => {
       const result = await client.createCampaignEmail({
         name: 'Direct Template',
         subject: 'Test',
-        template: fakeTemplate as never,
+        template: fakeTemplate,
       });
 
       expect(result.campaignId).toBe(100);
@@ -3105,8 +3114,6 @@ describe('RuleClient', () => {
     it('should clean up created resources when template creation fails', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
-      const fakeTemplate = { tagName: 'rcml', children: [] };
-
       mockFetch
         .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // createAutomation
         .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // createMessage
@@ -3118,7 +3125,7 @@ describe('RuleClient', () => {
         client.createAutomationEmail({
           name: 'Test Automation',
           subject: 'Test',
-          template: fakeTemplate as never,
+          template: minimalTemplate,
         })
       ).rejects.toThrow('Template creation failed');
 
@@ -3129,8 +3136,6 @@ describe('RuleClient', () => {
     it('should clean up automation when message creation fails', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
-      const fakeTemplate = { tagName: 'rcml', children: [] };
-
       mockFetch
         .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // createAutomation
         .mockRejectedValueOnce(new Error('Message creation failed'))      // createMessage fails
@@ -3140,7 +3145,7 @@ describe('RuleClient', () => {
         client.createAutomationEmail({
           name: 'Test Automation',
           subject: 'Test',
-          template: fakeTemplate as never,
+          template: minimalTemplate,
         })
       ).rejects.toThrow('Message creation failed');
 

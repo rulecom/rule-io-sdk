@@ -724,7 +724,9 @@ describe('RCML Elements', () => {
 // ============================================================================
 
 describe('Automation Config Utilities', () => {
-  const fakeTemplate = { tagName: 'rcml' as const, children: [] };
+  const fakeTemplate = createRCMLDocument({
+    sections: [createCenteredSection({ children: [createText('test')] })],
+  });
 
   const automations: AutomationConfigV2[] = [
     {
@@ -733,7 +735,7 @@ describe('Automation Config Utilities', () => {
       description: 'Sent on sign-up',
       triggerTag: 'user-registered',
       subject: 'Welcome!',
-      templateBuilder: () => fakeTemplate as never,
+      templateBuilder: () => fakeTemplate,
     },
     {
       id: 'abandoned-cart',
@@ -741,7 +743,7 @@ describe('Automation Config Utilities', () => {
       description: 'Sent when cart abandoned',
       triggerTag: 'cart-abandoned',
       subject: 'You left items behind',
-      templateBuilder: () => fakeTemplate as never,
+      templateBuilder: () => fakeTemplate,
     },
   ];
 
