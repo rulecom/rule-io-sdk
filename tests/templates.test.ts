@@ -1606,7 +1606,7 @@ describe('withTemplateContext', () => {
     }
   });
 
-  it('should preserve original stack trace', () => {
+  it('should preserve original stack frames with wrapped message', () => {
     const original = new RuleConfigError('createBrandButton: invalid or unsafe URL');
     try {
       withTemplateContext('createOrderConfirmationEmail', () => {
@@ -1614,7 +1614,13 @@ describe('withTemplateContext', () => {
       });
     } catch (error) {
       expect(error).toBeInstanceOf(RuleConfigError);
-      expect((error as RuleConfigError).stack).toBe(original.stack);
+      const wrapped = error as RuleConfigError;
+      // Stack header should reflect the wrapped message
+      expect(wrapped.stack).toContain('createOrderConfirmationEmail > createBrandButton: invalid or unsafe URL');
+      // Original stack frames should be preserved
+      const originalFrames = original.stack!.split('\n').slice(1);
+      const wrappedFrames = wrapped.stack!.split('\n').slice(1);
+      expect(wrappedFrames).toEqual(originalFrames);
     }
   });
 
