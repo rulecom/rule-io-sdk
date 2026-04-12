@@ -229,6 +229,10 @@ export {
   createSpacer,
   createDivider,
   createLoop,
+  createSocialElement,
+  createSocial,
+  createCase,
+  createSwitch,
 } from './rcml';
 
 // RCML option types
@@ -245,6 +249,9 @@ export type {
   CreateVideoOptions,
   CreateDividerOptions,
   CreateLoopOptions,
+  CreateSocialElementOptions,
+  CreateSocialOptions,
+  CreateCaseOptions,
 } from './rcml';
 
 // Brand template utilities

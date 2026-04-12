@@ -24,6 +24,10 @@ import {
   createBrandLoop,
   createLoopFieldPlaceholder,
   createVideo,
+  createSocialElement,
+  createSocial,
+  createCase,
+  createSwitch,
 } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
 import {
@@ -734,6 +738,238 @@ describe('RCML Elements', () => {
 
       expect(node.attrs.name).toBe('variant_title');
       expect(node.attrs.original).toBe('[LoopValue:variant_title]');
+    });
+  });
+});
+
+describe('RCML Social Elements', () => {
+  describe('createSocialElement', () => {
+    it('should create a social element with name and href', () => {
+      const el = createSocialElement({
+        name: 'facebook',
+        href: 'https://facebook.com/mypage',
+      });
+
+      expect(el.tagName).toBe('rc-social-element');
+      expect(el.attributes.name).toBe('facebook');
+      expect(el.attributes.href).toBe('https://facebook.com/mypage');
+    });
+
+    it('should include optional label as content', () => {
+      const el = createSocialElement({
+        name: 'instagram',
+        href: 'https://instagram.com/mypage',
+        label: 'Follow us',
+      });
+
+      expect(el.content).toBe('Follow us');
+    });
+
+    it('should not include content when label is omitted', () => {
+      const el = createSocialElement({
+        name: 'x',
+        href: 'https://x.com/handle',
+      });
+
+      expect(el).not.toHaveProperty('content');
+    });
+
+    it('should include optional src and backgroundColor', () => {
+      const el = createSocialElement({
+        name: 'custom',
+        href: 'https://example.com',
+        src: 'https://example.com/icon.png',
+        backgroundColor: '#FF0000',
+      });
+
+      expect(el.attributes.src).toBe('https://example.com/icon.png');
+      expect(el.attributes['background-color']).toBe('#FF0000');
+    });
+
+    it('should reject javascript: href', () => {
+      expect(() =>
+        createSocialElement({ name: 'x', href: 'javascript:alert(1)' })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should reject data: href', () => {
+      expect(() =>
+        createSocialElement({ name: 'x', href: 'data:text/html,<h1>xss</h1>' })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should reject invalid href', () => {
+      expect(() =>
+        createSocialElement({ name: 'x', href: 'not a valid url' })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('should strip unsafe src option', () => {
+      const el = createSocialElement({
+        name: 'x',
+        href: 'https://x.com/handle',
+        src: 'javascript:alert(1)',
+      });
+      expect(el.attributes.src).toBeUndefined();
+    });
+  });
+
+  describe('createSocial', () => {
+    it('should create a social container with elements', () => {
+      const fb = createSocialElement({ name: 'facebook', href: 'https://facebook.com/page' });
+      const ig = createSocialElement({ name: 'instagram', href: 'https://instagram.com/page' });
+      const social = createSocial([fb, ig]);
+
+      expect(social.tagName).toBe('rc-social');
+      expect(social.children).toHaveLength(2);
+      expect(social.attributes?.align).toBe('center');
+    });
+
+    it('should apply default alignment', () => {
+      const social = createSocial([]);
+      expect(social.attributes?.align).toBe('center');
+    });
+
+    it('should accept layout and style options', () => {
+      const social = createSocial([], {
+        align: 'left',
+        mode: 'vertical',
+        iconSize: '32px',
+        iconPadding: '5px',
+        padding: '10px 0',
+        borderRadius: '50%',
+        color: '#333333',
+        fontSize: '12px',
+        fontFamily: 'Arial, sans-serif',
+      });
+
+      expect(social.attributes?.align).toBe('left');
+      expect(social.attributes?.mode).toBe('vertical');
+      expect(social.attributes?.['icon-size']).toBe('32px');
+      expect(social.attributes?.['icon-padding']).toBe('5px');
+      expect(social.attributes?.padding).toBe('10px 0');
+      expect(social.attributes?.['border-radius']).toBe('50%');
+      expect(social.attributes?.color).toBe('#333333');
+      expect(social.attributes?.['font-size']).toBe('12px');
+      expect(social.attributes?.['font-family']).toBe('Arial, sans-serif');
+    });
+
+    it('should not include optional attributes when not provided', () => {
+      const social = createSocial([]);
+
+      expect(social.attributes).not.toHaveProperty('mode');
+      expect(social.attributes).not.toHaveProperty('icon-size');
+      expect(social.attributes).not.toHaveProperty('icon-padding');
+      expect(social.attributes).not.toHaveProperty('padding');
+    });
+  });
+
+});
+
+describe('RCML Switch / Case Elements', () => {
+  describe('createCase', () => {
+    it('should create a default case', () => {
+      const section = createCenteredSection({ children: [createText('Fallback')] });
+      const c = createCase({ caseType: 'default' }, [section]);
+
+      expect(c.tagName).toBe('rc-case');
+      expect(c.attributes['case-type']).toBe('default');
+      expect(c.children).toHaveLength(1);
+    });
+
+    it('should create a tag-based case with condition', () => {
+      const section = createCenteredSection({ children: [createText('VIP')] });
+      const c = createCase(
+        { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
+        [section],
+      );
+
+      expect(c.attributes['case-type']).toBe('tag');
+      expect(c.attributes['case-condition']).toBe('eq');
+      expect(c.attributes['case-value']).toBe(42);
+    });
+
+    it('should create a segment-based case', () => {
+      const c = createCase(
+        { caseType: 'segment', caseCondition: 'ne', caseValue: 99 },
+        [],
+      );
+
+      expect(c.attributes['case-type']).toBe('segment');
+      expect(c.attributes['case-condition']).toBe('ne');
+      expect(c.attributes['case-value']).toBe(99);
+    });
+
+    it('should create a custom-field case with property', () => {
+      const c = createCase(
+        { caseType: 'custom-field', caseProperty: 12345, caseCondition: 'eq', caseValue: 'gold' },
+        [],
+      );
+
+      expect(c.attributes['case-type']).toBe('custom-field');
+      expect(c.attributes['case-property']).toBe(12345);
+      expect(c.attributes['case-condition']).toBe('eq');
+      expect(c.attributes['case-value']).toBe('gold');
+    });
+
+    it('should set caseActive when provided', () => {
+      const c = createCase({ caseType: 'default', caseActive: false }, []);
+      expect(c.attributes['case-active']).toBe(false);
+    });
+
+    it('should not include optional attributes when not provided', () => {
+      const c = createCase({ caseType: 'default' }, []);
+
+      expect(c.attributes).not.toHaveProperty('case-property');
+      expect(c.attributes).not.toHaveProperty('case-condition');
+      expect(c.attributes).not.toHaveProperty('case-value');
+      expect(c.attributes).not.toHaveProperty('case-active');
+    });
+
+    it('should not have an id (low-level builder)', () => {
+      const c = createCase({ caseType: 'default' }, []);
+      expect(c).not.toHaveProperty('id');
+    });
+  });
+
+  describe('createSwitch', () => {
+    it('should create a switch with cases', () => {
+      const defaultCase = createCase({ caseType: 'default' }, [
+        createCenteredSection({ children: [createText('Default')] }),
+      ]);
+      const tagCase = createCase(
+        { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
+        [createCenteredSection({ children: [createText('VIP')] })],
+      );
+      const sw = createSwitch([tagCase, defaultCase]);
+
+      expect(sw.tagName).toBe('rc-switch');
+      expect(sw.children).toHaveLength(2);
+      expect(sw.children[0].attributes['case-type']).toBe('tag');
+      expect(sw.children[1].attributes['case-type']).toBe('default');
+    });
+
+    it('should create an empty switch', () => {
+      const sw = createSwitch([]);
+
+      expect(sw.tagName).toBe('rc-switch');
+      expect(sw.children).toHaveLength(0);
+    });
+
+    it('should not have an id (low-level builder)', () => {
+      const sw = createSwitch([]);
+      expect(sw).not.toHaveProperty('id');
+    });
+
+    it('can be used as a body child in a document', () => {
+      const sw = createSwitch([
+        createCase({ caseType: 'default' }, [
+          createCenteredSection({ children: [createText('Content')] }),
+        ]),
+      ]);
+      const doc = createRCMLDocument({ sections: [sw] });
+
+      expect(doc.children[1].children).toContain(sw);
     });
   });
 });

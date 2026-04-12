@@ -40,6 +40,8 @@ import {
   createDocWithPlaceholders,
   createTextNode,
   createPlaceholder,
+  createBrandLoop,
+  createLoopFieldPlaceholder,
 } from '../src';
 import type {
   BrandStyleConfig,
@@ -295,6 +297,7 @@ interface SectionGroup {
 
 function buildSectionGroups(
   resolvedField?: { id: number; name: string },
+  repeatableField?: { id: number; name: string },
 ): SectionGroup[] {
   const groups: SectionGroup[] = [];
 
@@ -472,14 +475,75 @@ function buildSectionGroups(
     ],
   });
 
+  // == 12. Loop — requires a repeatable custom field to iterate over
+  if (repeatableField) {
+    groups.push({
+      num: 12, name: 'Loop (rc-loop)',
+      sections: [
+        label('12. rc-loop (repeatable custom field)'),
+        createBrandLoop(
+          repeatableField.id,
+          [
+            {
+              tagName: 'rc-section',
+              id: id(),
+              attributes: { padding: '10px 0' },
+              children: [{
+                tagName: 'rc-column',
+                id: id(),
+                attributes: { padding: '0 20px' },
+                children: [
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('Loop item: '),
+                    createLoopFieldPlaceholder('title'),
+                  ])),
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('Value: '),
+                    createLoopFieldPlaceholder('value'),
+                  ]), { align: 'left' }),
+                ],
+              }],
+            },
+          ],
+          { maxIterations: 10 },
+        ),
+        section([
+          noteText(`(Using repeatable field "${repeatableField.name}" — ID ${repeatableField.id})`),
+        ]),
+      ],
+    });
+  }
+
+  // == 13. Video (rc-video)
+  groups.push({
+    num: 13, name: 'Video (rc-video)',
+    sections: [
+      label('13. rc-video'),
+      section([
+        {
+          tagName: 'rc-video',
+          id: id(),
+          attributes: {
+            src: 'https://placehold.co/560x315/333333/FFFFFF?text=Video+Thumbnail',
+            alt: 'SDK video test',
+            align: 'center',
+            padding: '0 0 20px 0',
+          },
+        },
+        noteText('rc-video element with placeholder thumbnail'),
+      ]),
+    ],
+  });
+
   return groups;
 }
 
 function buildShowcase(
   brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
+  repeatableField?: { id: number; name: string },
 ): RCMLBodyChild[] {
-  const allGroups = buildSectionGroups(resolvedField);
+  const allGroups = buildSectionGroups(resolvedField, repeatableField);
   const groups = onlySections
     ? allGroups.filter(g => onlySections.includes(g.num))
     : allGroups;
@@ -549,6 +613,7 @@ async function create(): Promise<void> {
   // -- Resolve a custom field for placeholder testing --
   // Fetch /api/v2/customizations to find an existing field ID on the account.
   let resolvedField: { id: number; name: string } | undefined;
+  let repeatableField: { id: number; name: string } | undefined;
 
   console.log('\nLooking up custom fields...');
   try {
@@ -570,24 +635,35 @@ async function create(): Promise<void> {
         for (const field of fields) {
           const fieldName = String(field.name ?? field.key ?? '');
           const fieldId = Number(field.id);
+          const fieldType = String(field.type ?? '');
           if (fieldId && fieldName) {
             const fullName = `${groupName}.${fieldName}`;
+
+            // Pick the first field as fallback, prefer FirstName for placeholder section
             if (!resolvedField) {
               resolvedField = { id: fieldId, name: fullName };
             }
             if (/first.?name/i.test(fieldName)) {
               resolvedField = { id: fieldId, name: fullName };
-              break;
+            }
+
+            // Look for repeatable/json fields for the loop section
+            if (!repeatableField && /json|repeatable|array|items|products/i.test(fieldType + fieldName)) {
+              repeatableField = { id: fieldId, name: fullName };
             }
           }
         }
-        if (resolvedField && /first.?name/i.test(resolvedField.name)) break;
       }
 
       if (resolvedField) {
         console.log(`  Using field: ${resolvedField.name} (ID: ${resolvedField.id})`);
       } else {
         console.log('  No parseable custom fields found — placeholder section will be skipped');
+      }
+      if (repeatableField) {
+        console.log(`  Using repeatable field: ${repeatableField.name} (ID: ${repeatableField.id})`);
+      } else {
+        console.log('  No repeatable field found — loop section will be skipped');
       }
     } else {
       const body = await custResp.text();
@@ -598,7 +674,7 @@ async function create(): Promise<void> {
   }
 
   // -- Build showcase template --
-  const sections = buildShowcase(brandStyle, resolvedField);
+  const sections = buildShowcase(brandStyle, resolvedField, repeatableField);
 
   const template = createBrandTemplate({
     brandStyle,
@@ -637,6 +713,8 @@ async function create(): Promise<void> {
   console.log('  [ ] 9.  Dividers         — solid, dashed, dotted, colored, narrow');
   console.log('  [ ] 10. Two-column 50/50 — symmetric layout');
   console.log('  [ ] 11. Two-column 33/67 — asymmetric layout');
+  console.log(`  [${repeatableField ? ' ' : '-'}] 12. Loop            — rc-loop with sub-field placeholders${repeatableField ? '' : ' (skipped — no repeatable field found)'}`);
+  console.log('  [ ] 13. Video            — rc-video with thumbnail');
   console.log('  [ ] Footer               — View in browser + Unsubscribe links');
   console.log('\nCleanup: npx tsx scripts/validate-rcml.ts --cleanup');
 }
