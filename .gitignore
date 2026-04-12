@@ -25,5 +25,8 @@ coverage/
 *.log
 npm-debug.log*
 
+# Validation script state
+scripts/.validate-rcml-ids.json
+
 # Claude Code
 .claude/

@@ -689,6 +689,25 @@ describe('Brand Template Utilities', () => {
       expect(json).toContain('Custom button');
       expect(json).not.toContain('Replace this title');
     });
+
+    it('should set href on button when valid buttonUrl is provided', () => {
+      const section = createDefaultContentSection({
+        buttonUrl: 'https://example.com/order',
+      });
+      const json = JSON.stringify(section);
+
+      expect(json).toContain('"href":"https://example.com/order"');
+    });
+
+    it('should omit href when buttonUrl is unsafe', () => {
+      const section = createDefaultContentSection({
+        buttonUrl: 'javascript:alert(1)',
+      });
+      const json = JSON.stringify(section);
+
+      expect(json).not.toContain('href');
+      expect(json).not.toContain('javascript');
+    });
   });
 
   describe('createBrandLogo', () => {
