@@ -42,12 +42,19 @@ import {
   createPlaceholder,
   createBrandLoop,
   createLoopFieldPlaceholder,
+  createSocial,
+  createSocialElement,
+  createSwitch,
+  createCase,
+  createCenteredSection,
+  createText,
 } from '../src';
 import type {
   BrandStyleConfig,
   RCMLBodyChild,
   RCMLColumnChild,
   RCMLProseMirrorDoc,
+  RCMLSection,
 } from '../src';
 
 // ---------------------------------------------------------------------------
@@ -535,6 +542,47 @@ function buildSectionGroups(
     ],
   });
 
+  // == 14. Switch / Case (conditional content)
+  groups.push({
+    num: 14, name: 'Conditional (rc-switch)',
+    sections: [
+      label('14. rc-switch / rc-case (conditional content)'),
+      {
+        ...createSwitch([
+          createCase(
+            { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
+            [createCenteredSection({ children: [createText('This shows when tag ID 1 matches')] }) as RCMLSection],
+          ),
+          createCase(
+            { caseType: 'default' },
+            [createCenteredSection({ children: [createText('This is the default / fallback content')] }) as RCMLSection],
+          ),
+        ]),
+        id: id(),
+      },
+    ],
+  });
+
+  // == 15. Social (rc-social + rc-social-element) — last before footer
+  groups.push({
+    num: 15, name: 'Social icons (rc-social)',
+    sections: [
+      label('15. rc-social / rc-social-element'),
+      section([
+        {
+          ...createSocial([
+            createSocialElement({ name: 'facebook', href: 'https://facebook.com' }),
+            createSocialElement({ name: 'instagram', href: 'https://instagram.com' }),
+            createSocialElement({ name: 'x', href: 'https://x.com' }),
+            createSocialElement({ name: 'web', href: 'https://example.com' }),
+          ], { align: 'center', iconSize: '24px' }),
+          id: id(),
+        },
+        noteText('Social icons row — facebook, instagram, x, web'),
+      ]),
+    ],
+  });
+
   return groups;
 }
 
@@ -715,6 +763,8 @@ async function create(): Promise<void> {
   console.log('  [ ] 11. Two-column 33/67 — asymmetric layout');
   console.log(`  [${repeatableField ? ' ' : '-'}] 12. Loop            — rc-loop with sub-field placeholders${repeatableField ? '' : ' (skipped — no repeatable field found)'}`);
   console.log('  [ ] 13. Video            — rc-video with thumbnail');
+  console.log('  [ ] 14. Switch/Case      — rc-switch conditional (tag + default fallback)');
+  console.log('  [ ] 15. Social           — rc-social icons row (facebook, instagram, x, web)');
   console.log('  [ ] Footer               — View in browser + Unsubscribe links');
   console.log('\nCleanup: npx tsx scripts/validate-rcml.ts --cleanup');
 }

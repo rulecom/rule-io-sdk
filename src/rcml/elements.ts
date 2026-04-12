@@ -857,18 +857,41 @@ export function createSocial(
 // Switch / Case Elements (Conditional Content)
 // ============================================================================
 
-export interface CreateCaseOptions {
-  /** Case type — determines what the condition checks against */
-  caseType: 'default' | 'segment' | 'tag' | 'custom-field';
-  /** Custom field ID (required when caseType is 'custom-field') */
-  caseProperty?: number;
-  /** Condition operator (required when caseType is 'segment', 'tag', or 'custom-field') */
-  caseCondition?: 'eq' | 'ne';
-  /** Value to compare against. For segment/tag: the ID. For custom-field: the field value. */
-  caseValue?: string | number;
+interface CreateDefaultCaseOptions {
+  /** Default fallback case — renders when no other case matches */
+  caseType: 'default';
   /** Whether validation is active (default: true) */
   caseActive?: boolean;
 }
+
+interface CreateSegmentOrTagCaseOptions {
+  /** Case type — determines what the condition checks against */
+  caseType: 'segment' | 'tag';
+  /** Condition operator */
+  caseCondition: 'eq' | 'ne';
+  /** Value to compare against (segment or tag ID) */
+  caseValue: string | number;
+  /** Whether validation is active (default: true) */
+  caseActive?: boolean;
+}
+
+interface CreateCustomFieldCaseOptions {
+  /** Case type — checks against a custom field value */
+  caseType: 'custom-field';
+  /** Custom field ID */
+  caseProperty: number;
+  /** Condition operator */
+  caseCondition: 'eq' | 'ne';
+  /** Value to compare against */
+  caseValue: string | number;
+  /** Whether validation is active (default: true) */
+  caseActive?: boolean;
+}
+
+export type CreateCaseOptions =
+  | CreateDefaultCaseOptions
+  | CreateSegmentOrTagCaseOptions
+  | CreateCustomFieldCaseOptions;
 
 /**
  * Create a conditional case element within a switch.
@@ -894,17 +917,41 @@ export interface CreateCaseOptions {
  * ```
  */
 export function createCase(options: CreateCaseOptions, children: RCMLSection[]): RCMLCase {
-  return {
-    tagName: 'rc-case',
-    attributes: {
-      'case-type': options.caseType,
-      ...(options.caseProperty !== undefined ? { 'case-property': options.caseProperty } : {}),
-      ...(options.caseCondition ? { 'case-condition': options.caseCondition } : {}),
-      ...(options.caseValue !== undefined ? { 'case-value': options.caseValue } : {}),
-      ...(options.caseActive !== undefined ? { 'case-active': options.caseActive } : {}),
-    },
-    children,
+  if (options.caseType !== 'default') {
+    if (!options.caseCondition) {
+      throw new RuleConfigError(
+        `createCase: caseCondition is required when caseType is '${options.caseType}'`,
+      );
+    }
+    if (options.caseValue === undefined) {
+      throw new RuleConfigError(
+        `createCase: caseValue is required when caseType is '${options.caseType}'`,
+      );
+    }
+    if (options.caseType === 'custom-field' && options.caseProperty === undefined) {
+      throw new RuleConfigError(
+        "createCase: caseProperty is required when caseType is 'custom-field'",
+      );
+    }
+  }
+
+  const attrs: RCMLCase['attributes'] = {
+    'case-type': options.caseType,
   };
+
+  if (options.caseType !== 'default') {
+    attrs['case-condition'] = options.caseCondition;
+    attrs['case-value'] = options.caseValue;
+    if (options.caseType === 'custom-field') {
+      attrs['case-property'] = options.caseProperty;
+    }
+  }
+
+  if (options.caseActive !== undefined) {
+    attrs['case-active'] = options.caseActive;
+  }
+
+  return { tagName: 'rc-case', attributes: attrs, children };
 }
 
 /**

@@ -930,6 +930,24 @@ describe('RCML Switch / Case Elements', () => {
       const c = createCase({ caseType: 'default' }, []);
       expect(c).not.toHaveProperty('id');
     });
+
+    it('should reject tag case without caseCondition', () => {
+      expect(() =>
+        createCase({ caseType: 'tag', caseCondition: undefined as never, caseValue: 1 }, []),
+      ).toThrow('caseCondition is required');
+    });
+
+    it('should reject segment case without caseValue', () => {
+      expect(() =>
+        createCase({ caseType: 'segment', caseCondition: 'eq', caseValue: undefined as never }, []),
+      ).toThrow('caseValue is required');
+    });
+
+    it('should reject custom-field case without caseProperty', () => {
+      expect(() =>
+        createCase({ caseType: 'custom-field', caseProperty: undefined as never, caseCondition: 'eq', caseValue: 'x' }, []),
+      ).toThrow('caseProperty is required');
+    });
   });
 
   describe('createSwitch', () => {
