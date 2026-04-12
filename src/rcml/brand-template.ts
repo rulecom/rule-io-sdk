@@ -259,6 +259,8 @@ export interface BrandStyleConfig {
   bodyFontUrl?: string;
   /** Text color */
   textColor: string;
+  /** Button text/label color (default: '#FFFFFF') */
+  buttonTextColor?: string;
   /** Social media links from brand style */
   socialLinks?: Array<{ name: string; href: string }>;
 }
@@ -302,7 +304,7 @@ export function toBrandStyleConfig(data: import('../types').RuleBrandStyle): Bra
     logoUrl: logoImage?.public_path ?? undefined,
     buttonColor: findColour('accent') ?? '#333333',
     bodyBackgroundColor: findColour('side') ?? findColour('light') ?? '#F5F5F5',
-    sectionBackgroundColor: '#ffffff',
+    sectionBackgroundColor: findColour('light') ?? '#ffffff',
     brandColor: findColour('brand') ?? '#333333',
     headingFont: titleFont ? `'${titleFont.origin_name ?? titleFont.name}', sans-serif` : "'Helvetica', sans-serif",
     headingFontUrl: titleFont?.url ?? undefined,
@@ -391,7 +393,7 @@ export function createBrandHead(
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h2-style', 'font-family': brandStyle.headingFont, 'font-size': '28px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h3-style', 'font-family': brandStyle.headingFont, 'font-size': '24px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
     { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h4-style', 'font-family': brandStyle.headingFont, 'font-size': '18px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: brandStyle.buttonTextColor ?? '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
   );
 
   // Build head children
