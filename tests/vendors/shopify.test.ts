@@ -136,9 +136,9 @@ describe('shopifyPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 3 automations', () => {
+    it('returns 4 automations', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      expect(automations).toHaveLength(3);
+      expect(automations).toHaveLength(4);
     });
 
     it('returns automations with unique IDs', () => {
@@ -264,12 +264,34 @@ describe('shopifyPreset', () => {
       expect(json).toContain('official receipt');
     });
 
+    it('order cancellation produces valid RCML with field placeholders', () => {
+      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+      const cancellation = automations.find(
+        (a) => a.id === 'shopify-order-cancellation'
+      )!;
+
+      expect(cancellation).toBeDefined();
+      expect(cancellation.triggerTag).toBe(SHOPIFY_TAGS.orderCancelled);
+
+      const doc = cancellation.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://myshop.example.com',
+      });
+      assertValidRCMLDocument(doc);
+
+      const json = JSON.stringify(doc);
+      expect(json).toContain('[CustomField:200001]'); // firstName
+      expect(json).toContain('[CustomField:200003]'); // orderNumber
+    });
+
     it('abandoned cart has delay and conditions', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
       const abandonedCart = automations.find((a) => a.id === 'shopify-abandoned-cart')!;
 
       expect(abandonedCart.delayInSeconds).toBe('3600');
       expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCompleted);
+      expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCancelled);
     });
   });
 
@@ -319,7 +341,7 @@ describe('SHOPIFY_TAGS', () => {
     }
   });
 
-  it('has 4 tags', () => {
-    expect(Object.keys(SHOPIFY_TAGS)).toHaveLength(4);
+  it('has 5 tags', () => {
+    expect(Object.keys(SHOPIFY_TAGS)).toHaveLength(5);
   });
 });

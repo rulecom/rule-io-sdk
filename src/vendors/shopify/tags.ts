@@ -24,6 +24,7 @@ export const SHOPIFY_TAGS = {
   cartInProgress: 'CartInProgress',
   orderCompleted: 'OrderCompleted',
   orderShipped: 'OrderShipped',
+  orderCancelled: 'OrderCancelled',
   newsletter: 'Newsletter',
 } as const satisfies VendorTagSchema;
 
