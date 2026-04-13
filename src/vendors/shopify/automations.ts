@@ -15,6 +15,7 @@ import {
   createOrderConfirmationEmail,
   createShippingUpdateEmail,
   createAbandonedCartEmail,
+  createOrderCancellationEmail,
 } from '../../rcml';
 
 /** Default English text for Shopify order confirmation emails. */
@@ -47,6 +48,17 @@ const SHIPPING_UPDATE_TEXT = {
   taxLabel: 'Tax',
   totalLabel: 'Total',
   legalText: 'This email serves as your official receipt for this transaction.',
+} as const;
+
+/** Default English text for Shopify order cancellation emails. */
+const ORDER_CANCELLATION_TEXT = {
+  preheader: 'Your order has been cancelled',
+  heading: 'Order Cancelled',
+  greeting: 'Hi',
+  message: 'Your order has been cancelled. If you have any questions, please contact us.',
+  orderRefLabel: 'Order',
+  followUp: 'We hope to see you again soon.',
+  ctaButton: 'Visit Store',
 } as const;
 
 /** Default English text for Shopify abandoned cart emails. */
@@ -145,13 +157,33 @@ export function createShopifyAutomations(): VendorAutomation[] {
         }),
     },
     {
+      id: 'shopify-order-cancellation',
+      name: 'Shopify Order Cancellation',
+      description: 'Sent when a Shopify order is cancelled',
+      triggerTag: SHOPIFY_TAGS.orderCancelled,
+      subject: 'Your Order Has Been Cancelled',
+      preheader: ORDER_CANCELLATION_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createOrderCancellationEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          websiteUrl: config.websiteUrl,
+          footer: config.footer,
+          text: ORDER_CANCELLATION_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
+            orderRef: SHOPIFY_FIELDS.orderNumber,
+          },
+        }),
+    },
+    {
       id: 'shopify-abandoned-cart',
       name: 'Shopify Abandoned Cart',
       description: 'Sent when a cart is abandoned after a delay',
       triggerTag: SHOPIFY_TAGS.cartInProgress,
       delayInSeconds: '3600',
       conditions: {
-        notHasTag: [SHOPIFY_TAGS.orderCompleted],
+        notHasTag: [SHOPIFY_TAGS.orderCompleted, SHOPIFY_TAGS.orderCancelled],
       },
       subject: 'You Left Something Behind!',
       preheader: ABANDONED_CART_TEXT.preheader,
