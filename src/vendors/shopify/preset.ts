@@ -103,7 +103,8 @@ function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] 
  * Shopify vendor preset for Rule.io.
  *
  * Provides pre-configured automations for the standard Shopify e-commerce
- * flows: order confirmation, shipping update, and abandoned cart.
+ * flows: order confirmation, shipping update, order cancellation, and
+ * abandoned cart.
  */
 export const shopifyPreset: VendorPreset<ShopifyFieldSchema, ShopifyTagSchema> = {
   vendor: 'shopify',
