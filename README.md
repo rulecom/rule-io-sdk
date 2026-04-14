@@ -69,7 +69,7 @@ Throws `RuleConfigError` if the API key is missing, or `RuleApiError` with statu
 
 ## Brand Styles
 
-Brand styles define the visual identity of your emails — logo, colors, fonts, and social links. You'll need a brand style ID before creating emails with the high-level helpers.
+Brand styles define the visual identity of your emails — logo, colors, fonts, and social links. When using the high-level helpers with `brandStyleId`, the SDK auto-builds a branded template for you. If you provide your own `template` instead, a brand style isn't required.
 
 ```typescript
 // Easiest: auto-detect from your domain
@@ -188,7 +188,7 @@ const template = createBrandTemplate({
   brandStyle: myBrand,
   preheader: 'Your order is confirmed!',
   sections: [
-    createBrandLogo(myBrand.logoUrl),
+    createBrandLogo('https://example.com/logo.png'),
     createContentSection([
       createBrandHeading(createDocWithPlaceholders([
         createTextNode('Thank you, '),
@@ -395,6 +395,7 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
+const rcmlDocument = /* your RCMLDocument (see Building Custom Templates) */;
 const templates = await client.listTemplates({ page: 1, per_page: 10 });
 const template = await client.createTemplate({
   message_id: 456,
