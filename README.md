@@ -89,6 +89,26 @@ const styles = await client.listBrandStyles();
 
 You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 
+When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders:
+
+```typescript
+import { toBrandStyleConfig } from 'rule-io-sdk';
+import type { CustomFieldMap } from 'rule-io-sdk';
+
+// Convert a fetched brand style for use with template builders
+const response = await client.getBrandStyle(brandStyleId);
+const myBrand = toBrandStyleConfig(response.data!);
+
+// Map your Rule.io custom field IDs (from GET /api/v2/customizations)
+const myFields: CustomFieldMap = {
+  'Order.CustomerName': 169233,
+  'Order.OrderRef': 169234,
+  'Order.Total': 169235,
+};
+```
+
+The examples below use `myBrand` and `myFields` as defined here.
+
 ---
 
 ## Sending Emails
