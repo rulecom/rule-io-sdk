@@ -8,6 +8,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 - **Type Safety** — Complete TypeScript types for all endpoints
 - **RCML Builder** — Build email templates with a fluent API
 - **Pre-built Templates** — Hospitality and e-commerce email templates
+- **Vendor Presets** — Shopify and Bookzen integrations with pre-configured automations
 - **Security** — Built-in XSS protection for user content in templates
 - **Zero Dependencies** — No external runtime dependencies
 
@@ -36,8 +37,8 @@ The `prepare` script will automatically build the TypeScript source on install.
 Store it securely — never commit it to source control:
 
 ```bash
-# .env (add to .gitignore)
-RULE_IO_API_KEY=your-api-key-here
+cp .env.example .env
+# Then fill in your API key (and optionally integration test settings)
 ```
 
 ## Quick Start
@@ -46,7 +47,7 @@ RULE_IO_API_KEY=your-api-key-here
 import { RuleClient } from 'rule-io-sdk';
 
 // Create a client with your API key
-const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY! });
+const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
 // Create a subscriber
 await client.createSubscriberV3({
@@ -69,7 +70,7 @@ const client = new RuleClient('your-api-key');
 
 // With options
 const client = new RuleClient({
-  apiKey: process.env.RULE_IO_API_KEY,
+  apiKey: process.env.RULE_API_KEY,
   baseUrlV2: 'https://app.rule.io/api/v2', // default
   baseUrlV3: 'https://app.rule.io/api/v3', // default
   debug: false, // set true to log requests
@@ -509,7 +510,7 @@ Create tags beforehand using the v2 API:
 
 ```typescript
 // Create tags via the v2 REST API directly
-const apiKey = process.env.RULE_IO_API_KEY!;
+const apiKey = process.env.RULE_API_KEY!;
 await fetch('https://app.rule.io/api/v2/tags', {
   method: 'POST',
   headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -569,6 +570,54 @@ const template = createRCMLDocument({
     }),
   ],
 });
+```
+
+#### Loops (Repeatable Fields)
+
+Iterate over array-style custom fields (e.g., order line items):
+
+```typescript
+import { createLoop, createCenteredSection, createText } from 'rule-io-sdk';
+
+createLoop(
+  { fieldId: 200005, maxIterations: 20 },
+  [
+    createCenteredSection({
+      children: [createText('Item name here')],
+    }),
+  ]
+);
+```
+
+#### Social Icons
+
+```typescript
+import { createSocial, createSocialElement } from 'rule-io-sdk';
+
+createSocial([
+  createSocialElement({ name: 'facebook', href: 'https://facebook.com/mypage' }),
+  createSocialElement({ name: 'instagram', href: 'https://instagram.com/mypage' }),
+  createSocialElement({ name: 'x', href: 'https://x.com/myhandle' }),
+], { align: 'center', iconSize: '24px' });
+```
+
+#### Conditional Content (Switch/Case)
+
+Show different content based on tags or custom fields:
+
+```typescript
+import { createSwitch, createCase, createCenteredSection, createText } from 'rule-io-sdk';
+
+createSwitch([
+  createCase(
+    { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
+    [createCenteredSection({ children: [createText('VIP members')] })],
+  ),
+  createCase(
+    { caseType: 'default' },
+    [createCenteredSection({ children: [createText('Regular content')] })],
+  ),
+]);
 ```
 
 ### Mid-Level: Brand Template System
@@ -682,6 +731,34 @@ const template = createBrandTemplate({
     createFooterSection(),
   ],
 });
+```
+
+#### Brand Loops (Repeatable Fields)
+
+Use `createBrandLoop` and `createLoopFieldPlaceholder` to iterate over array-style custom fields (e.g., order line items) within brand templates:
+
+```typescript
+import {
+  createBrandLoop,
+  createLoopFieldPlaceholder,
+  createCenteredSection,
+  createBrandText,
+  createDocWithPlaceholders,
+  createTextNode,
+} from 'rule-io-sdk';
+
+// Loop over Order.Products (field ID 200005), showing each item's name and price
+createBrandLoop(200005, [
+  createCenteredSection({
+    children: [
+      createBrandText(createDocWithPlaceholders([
+        createLoopFieldPlaceholder('name'),   // product name
+        createTextNode(' — '),
+        createLoopFieldPlaceholder('price'),  // product price
+      ])),
+    ],
+  }),
+], { maxIterations: 20 });
 ```
 
 ### High-Level: Pre-Built Templates
@@ -836,17 +913,18 @@ const email = createOrderCancellationEmail({
 
 ## Tags
 
-The SDK provides suggested tag names for common scenarios:
+> **Note:** `RuleTags` is deprecated. Prefer vendor-specific tags (`SHOPIFY_TAGS`, `BOOKZEN_TAGS`) instead.
+
+`RuleTags` provides generic tag constants kept for backward compatibility:
 
 ```typescript
 import { RuleTags } from 'rule-io-sdk';
 
 // E-commerce lifecycle
-RuleTags.ORDER_STARTED      // 'order-started'
-RuleTags.ORDER_CONFIRMED     // 'order-confirmed'
-RuleTags.ORDER_CANCELLED     // 'order-cancelled'
-RuleTags.CART_ABANDONED      // 'cart-abandoned'
-RuleTags.SHIPPING_UPDATE     // 'shipping-update'
+RuleTags.CART_IN_PROGRESS    // 'CartInProgress'
+RuleTags.ORDER_SHIPPED       // 'OrderShipped'
+RuleTags.ORDER_COMPLETED     // 'OrderCompleted'
+RuleTags.NEWSLETTER          // 'Newsletter'
 
 // Hospitality
 RuleTags.ACCOMMODATION       // 'accommodation'
@@ -858,7 +936,90 @@ RuleTags.NEW_CUSTOMER        // 'new-customer'
 RuleTags.RETURNING_CUSTOMER  // 'returning-customer'
 ```
 
-These are suggestions — you can use any string as a tag.
+For vendor integrations, use the vendor-specific tags instead:
+
+```typescript
+import { SHOPIFY_TAGS, BOOKZEN_TAGS } from 'rule-io-sdk';
+
+SHOPIFY_TAGS.orderCompleted   // 'OrderCompleted'
+SHOPIFY_TAGS.cartInProgress   // 'CartInProgress'
+BOOKZEN_TAGS.accommodation    // 'accommodation'
+BOOKZEN_TAGS.feedbackRequest  // 'feedback-request'
+```
+
+## Vendor Presets
+
+Pre-configured integrations for popular platforms. Each preset bundles field names, tags, and automation flows specific to a vendor.
+
+### Shopify (E-Commerce)
+
+```typescript
+import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from 'rule-io-sdk';
+
+// Map your Rule.io custom field IDs to Shopify's field names
+const config = {
+  brandStyle: myBrand,
+  customFields: {
+    [SHOPIFY_FIELDS.firstName]: 169233,
+    [SHOPIFY_FIELDS.orderNumber]: 169234,
+    [SHOPIFY_FIELDS.totalPrice]: 169235,
+    // ... map all fields to your Rule.io numeric IDs
+  },
+  websiteUrl: 'https://myshop.com',
+};
+
+// Validate config (throws RuleConfigError if required fields are missing)
+shopifyPreset.validateConfig(config);
+
+// Get all automation configs (order confirmation, shipping, cancellation, abandoned cart)
+const automations = shopifyPreset.getAutomations(config);
+
+// Get a single automation by ID (IDs are vendor-prefixed)
+const orderConfirmation = shopifyPreset.getAutomation('shopify-order-confirmation', config);
+
+// List required fields (useful for setup wizards)
+const requiredFields = shopifyPreset.getRequiredFields();
+```
+
+### Bookzen (Hospitality)
+
+```typescript
+import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from 'rule-io-sdk';
+
+const config = {
+  brandStyle: myBrand,
+  customFields: {
+    [BOOKZEN_FIELDS.guestFirstName]: 100001,
+    [BOOKZEN_FIELDS.bookingRef]: 100002,
+    [BOOKZEN_FIELDS.serviceType]: 100003,
+    // ... map all fields
+  },
+  websiteUrl: 'https://myhotel.com',
+};
+
+// Automations: confirmation, cancellation, reminder, feedback, reservation request
+const automations = bookzenPreset.getAutomations(config);
+```
+
+---
+
+## Automation Configs
+
+The `AutomationConfigV2` type is used by vendor presets and can also be used directly to define custom automation flows:
+
+```typescript
+import type { AutomationConfigV2 } from 'rule-io-sdk';
+import { getAutomationByIdV2, getAutomationByTriggerV2 } from 'rule-io-sdk';
+
+// Look up automations from a list
+const automations: AutomationConfigV2[] = shopifyPreset.getAutomations(config);
+const byId = getAutomationByIdV2('shopify-order-confirmation', automations);
+const byTag = getAutomationByTriggerV2('OrderCompleted', automations);
+```
+
+Each `AutomationConfigV2` contains the automation metadata (`id`, `name`, `triggerTag`, `subject`) and a `templateBuilder` function that produces an `RCMLDocument` when given a `TemplateConfigV2` (brand style, custom fields, website URL).
+
+---
 
 ## Error Handling
 
