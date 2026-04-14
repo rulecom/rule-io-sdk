@@ -47,7 +47,7 @@ cp .env.example .env
 import { RuleClient } from 'rule-io-sdk';
 
 // Create a client with your API key
-const client = new RuleClient({ apiKey: process.env.RULE_IO_API_KEY! });
+const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
 // Create a subscriber
 await client.createSubscriberV3({
@@ -70,7 +70,7 @@ const client = new RuleClient('your-api-key');
 
 // With options
 const client = new RuleClient({
-  apiKey: process.env.RULE_IO_API_KEY,
+  apiKey: process.env.RULE_API_KEY,
   baseUrlV2: 'https://app.rule.io/api/v2', // default
   baseUrlV3: 'https://app.rule.io/api/v3', // default
   debug: false, // set true to log requests
@@ -510,7 +510,7 @@ Create tags beforehand using the v2 API:
 
 ```typescript
 // Create tags via the v2 REST API directly
-const apiKey = process.env.RULE_IO_API_KEY!;
+const apiKey = process.env.RULE_API_KEY!;
 await fetch('https://app.rule.io/api/v2/tags', {
   method: 'POST',
   headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
