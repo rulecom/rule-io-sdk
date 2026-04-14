@@ -83,7 +83,7 @@ The client checks that an API key is provided on construction and throws `RuleCo
 
 ## API Reference
 
-### Subscribers
+### Subscribers (v3 — recommended)
 
 ```typescript
 // Create a subscriber
@@ -127,6 +127,16 @@ const tags = await client.getSubscriberTags('customer@example.com');
 
 // Get subscriber custom fields (v2 — no v3 equivalent)
 const fields = await client.getSubscriberFields('customer@example.com');
+```
+
+### Subscribers (v2 — deprecated)
+
+```typescript
+// These methods still work but v3 equivalents are preferred
+await client.syncSubscriber({ email: 'customer@example.com', fields: { FirstName: 'Anna' }, tags: ['order-confirmed'] });
+await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
+await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
+await client.deleteSubscriber('customer@example.com');
 ```
 
 ### Campaigns
@@ -368,6 +378,36 @@ const allTags = await client.getTags();
 
 // Look up a tag's numeric ID by name
 const tagId = await client.getTagIdByName('order-confirmed');
+```
+
+### Custom Field Data (Deprecated)
+
+> **Note:** The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
+
+```typescript
+// The subscriber's numeric ID (from createSubscriberV3 or other lookup)
+const subscriberId = 12345;
+
+// CRUD for custom field data
+const data = await client.getCustomFieldData(subscriberId);
+await client.createCustomFieldData(subscriberId, {
+  groups: [{
+    group: 'Order',
+    create_if_not_exists: true,
+    values: [{ field: 'OrderRef', create_if_not_exists: true, value: 'ORD-123' }],
+  }],
+});
+await client.updateCustomFieldData(subscriberId, {
+  identifier: { group: 'Order', field: 'OrderRef', value: 'ORD-123' },
+  values: [{ field: 'Status', value: 'shipped' }],
+});
+
+// Query by group or search
+const grouped = await client.getCustomFieldDataByGroup(subscriberId, 'Order');
+const found = await client.searchCustomFieldData(subscriberId, {
+  group: 'Order', field: 'OrderRef', value: 'ORD-123',
+});
+await client.deleteCustomFieldDataByGroup(subscriberId, 'Order');
 ```
 
 ---
@@ -871,35 +911,38 @@ const email = createOrderCancellationEmail({
 
 ## Tags
 
-The SDK provides tag constants for common scenarios. For vendor integrations, use the vendor-specific tags:
+> **Note:** `RuleTags` is deprecated. Prefer vendor-specific tags (`SHOPIFY_TAGS`, `BOOKZEN_TAGS`) instead.
 
-```typescript
-import { SHOPIFY_TAGS, BOOKZEN_TAGS } from 'rule-io-sdk';
-
-// Shopify e-commerce
-SHOPIFY_TAGS.orderCompleted   // 'OrderCompleted'
-SHOPIFY_TAGS.orderShipped     // 'OrderShipped'
-SHOPIFY_TAGS.orderCancelled   // 'OrderCancelled'
-SHOPIFY_TAGS.cartInProgress   // 'CartInProgress'
-SHOPIFY_TAGS.newsletter       // 'Newsletter'
-
-// Bookzen hospitality
-BOOKZEN_TAGS.accommodation          // 'accommodation'
-BOOKZEN_TAGS.reservationConfirmed   // 'reservation-confirmed'
-BOOKZEN_TAGS.reservationCancelled   // 'reservation-cancelled'
-BOOKZEN_TAGS.reservationReminder    // 'reservation-reminder'
-BOOKZEN_TAGS.feedbackRequest        // 'feedback-request'
-```
-
-Generic constants are also available via `RuleTags`:
+`RuleTags` provides generic tag constants kept for backward compatibility:
 
 ```typescript
 import { RuleTags } from 'rule-io-sdk';
 
+// E-commerce lifecycle
 RuleTags.CART_IN_PROGRESS    // 'CartInProgress'
+RuleTags.ORDER_SHIPPED       // 'OrderShipped'
 RuleTags.ORDER_COMPLETED     // 'OrderCompleted'
+RuleTags.NEWSLETTER          // 'Newsletter'
+
+// Hospitality
 RuleTags.ACCOMMODATION       // 'accommodation'
+RuleTags.RESTAURANT          // 'restaurant'
+RuleTags.EXPERIENCE          // 'experience'
+
+// Customer segmentation
 RuleTags.NEW_CUSTOMER        // 'new-customer'
+RuleTags.RETURNING_CUSTOMER  // 'returning-customer'
+```
+
+For vendor integrations, use the vendor-specific tags instead:
+
+```typescript
+import { SHOPIFY_TAGS, BOOKZEN_TAGS } from 'rule-io-sdk';
+
+SHOPIFY_TAGS.orderCompleted   // 'OrderCompleted'
+SHOPIFY_TAGS.cartInProgress   // 'CartInProgress'
+BOOKZEN_TAGS.accommodation    // 'accommodation'
+BOOKZEN_TAGS.feedbackRequest  // 'feedback-request'
 ```
 
 ## Vendor Presets
