@@ -1,16 +1,22 @@
 # Rule.io SDK
 
-A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and manage email automations, subscribers, and RCML templates programmatically.
+A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and send email campaigns, set up tag-triggered automations, manage subscribers, and create RCML templates — all from code.
 
-## Features
+**Zero runtime dependencies** | **Full TypeScript types** | **Node.js >= 18**
 
-- **Full API Coverage** — v2 + v3 Subscriber API and v3 API (81 methods)
-- **Type Safety** — Complete TypeScript types for all endpoints
-- **RCML Builder** — Build email templates with a fluent API
-- **Pre-built Templates** — Hospitality and e-commerce email templates
-- **Vendor Presets** — Shopify and Bookzen integrations with pre-configured automations
-- **Security** — Built-in XSS protection for user content in templates
-- **Zero Dependencies** — No external runtime dependencies
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Brand Styles](#brand-styles)
+- [Sending Emails](#sending-emails)
+- [Building Custom Templates](#building-custom-templates)
+- [Vendor Presets](#vendor-presets)
+- [Managing Subscribers](#managing-subscribers)
+- [API Reference](#api-reference)
+- [Error Handling](#error-handling)
+- [Security](#security)
+- [Development](#development)
 
 ## Installation
 
@@ -18,35 +24,13 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 npm install rule-io-sdk
 ```
 
-### Installing from GitHub
-
-If the package isn't published to npm yet, install directly from GitHub:
-
-```bash
-npm install github:rulecom/rule-io-sdk
-```
-
-The `prepare` script will automatically build the TypeScript source on install.
-
-## Getting Your API Key
-
-1. Log in to [Rule.io](https://app.rule.io)
-2. Go to **Settings → API** (or navigate to `https://app.rule.io/settings/api`)
-3. Copy your API key
-
-Store it securely — never commit it to source control:
-
-```bash
-cp .env.example .env
-# Then fill in your API key (and optionally integration test settings)
-```
+> Not on npm yet? Install from GitHub: `npm install github:rulecom/rule-io-sdk`
 
 ## Quick Start
 
 ```typescript
 import { RuleClient } from 'rule-io-sdk';
 
-// Create a client with your API key
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
 // Create a subscriber
@@ -55,14 +39,16 @@ await client.createSubscriberV3({
   status: 'ACTIVE',
 });
 
-// Add tags and trigger automations
+// Add tags to trigger automations
 await client.addSubscriberTagsV3('customer@example.com', {
   tags: ['order-confirmed', 'new-customer'],
   automation: 'force',
 });
 ```
 
-## Client Configuration
+Get your API key from [Rule.io Settings → API](https://app.rule.io/settings/api). Store it in an environment variable — never commit it to source control.
+
+### Client Options
 
 ```typescript
 // Simple — just the API key
@@ -77,387 +63,54 @@ const client = new RuleClient({
 });
 ```
 
-The client checks that an API key is provided on construction and throws `RuleConfigError` if it's missing. If the key is invalid, API calls will throw `RuleApiError` with status 401.
+Throws `RuleConfigError` if the API key is missing, or `RuleApiError` with status 401 if the key is invalid.
 
 ---
 
-## API Reference
+## Brand Styles
 
-### Subscribers (v3 — recommended)
-
-```typescript
-// Create a subscriber
-await client.createSubscriberV3({
-  email: 'customer@example.com',
-  status: 'ACTIVE',
-  language: 'en',
-});
-
-// Add tags (with automation trigger)
-await client.addSubscriberTagsV3('customer@example.com', {
-  tags: ['vip', 'returning'],
-  automation: 'force', // 'send' | 'force' | 'reset' | null
-});
-
-// Remove a tag
-await client.removeSubscriberTagV3('customer@example.com', 'temporary-tag');
-
-// Delete subscriber (supports email, phone_number, id, custom_identifier)
-await client.deleteSubscriberV3('customer@example.com', 'email');
-
-// Block/unblock subscribers in bulk (async)
-await client.blockSubscribers([{ email: 'spam@example.com' }, { id: 12345 }]);
-await client.unblockSubscribers([{ email: 'restored@example.com' }]);
-
-// Bulk tag operations (async)
-await client.bulkAddTags({
-  subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
-  tags: ['campaign-2024'],
-});
-await client.bulkRemoveTags({
-  subscribers: [{ email: 'a@example.com' }],
-  tags: ['old-tag'],
-});
-
-// Get subscriber (v2 — no v3 equivalent)
-const subscriber = await client.getSubscriber('customer@example.com');
-
-// Get subscriber tags (v2 — no v3 equivalent)
-const tags = await client.getSubscriberTags('customer@example.com');
-
-// Get subscriber custom fields (v2 — no v3 equivalent)
-const fields = await client.getSubscriberFields('customer@example.com');
-```
-
-### Subscribers (v2 — deprecated)
+Brand styles define the visual identity of your emails — logo, colors, fonts, and social links. You'll need a brand style ID before creating emails with the high-level helpers.
 
 ```typescript
-// These methods still work but v3 equivalents are preferred
-await client.syncSubscriber({ email: 'customer@example.com', fields: { FirstName: 'Anna' }, tags: ['order-confirmed'] });
-await client.addSubscriberTags('customer@example.com', ['vip'], 'force');
-await client.removeSubscriberTags('customer@example.com', ['temporary-tag']);
-await client.deleteSubscriber('customer@example.com');
-```
+// Easiest: auto-detect from your domain
+const brand = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+const brandStyleId = brand.data!.id;
 
-### Campaigns
-
-Create and manage one-off email campaigns:
-
-```typescript
-// List campaigns
-const campaigns = await client.listCampaigns({ page: 1, per_page: 20 });
-
-// Create a campaign
-const campaign = await client.createCampaign({
-  message_type: 1, // 1 = email, 2 = text_message
-  sendout_type: 1, // 1 = marketing, 2 = transactional
-  tags: [{ id: 42, negative: false }],
-});
-
-// Get, update, delete
-const existing = await client.getCampaign(123);
-await client.updateCampaign(123, {
-  name: 'Spring Sale',
-  sendout_type: 1,
-  tags: [{ id: 42, negative: false }],
-  segments: [],
-  subscribers: [],
-});
-await client.deleteCampaign(123);
-
-// Duplicate a campaign
-await client.copyCampaign(123);
-
-// Schedule, send immediately, or cancel
-await client.scheduleCampaign(123, { type: 'now' });
-await client.scheduleCampaign(123, { type: 'schedule', datetime: '2024-06-01 09:00:00' });
-await client.scheduleCampaign(123, { type: null }); // cancel
-```
-
-### Suppressions
-
-Suppress or unsuppress subscribers from receiving marketing emails:
-
-```typescript
-// Suppress subscribers (async, max 1000 per request)
-await client.createSuppressions({
-  subscribers: [
-    { email: 'unsubscribed@example.com' },
-    { id: 12345 },
-  ],
-  message_types: ['email'], // optional — omit to suppress all channels
-});
-
-// Remove suppressions
-await client.deleteSuppressions({
-  subscribers: [{ email: 'resubscribed@example.com' }],
-});
-```
-
-### Editor Resources
-
-Low-level CRUD for the v3 editor API. These are the building blocks used by `createCampaignEmail()` and `createAutomationEmail()`.
-
-#### Automations (Automation Workflows)
-
-```typescript
-const automations = await client.listAutomations({ page: 1, active: true });
-const automation = await client.createAutomation({ name: 'Welcome Series' });
-const fetched = await client.getAutomation(automation.data!.id!);
-await client.updateAutomation(automation.data!.id!, {
-  name: 'Welcome Series',
-  active: true,
-  trigger: { type: 'TAG', id: 42 }, // type must be UPPERCASE
-  sendout_type: 2,                   // 1 = marketing, 2 = transactional
-});
-await client.deleteAutomation(automation.data!.id!);
-```
-
-#### Messages
-
-```typescript
-const messages = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
-const message = await client.createMessage({
-  dispatcher: { id: 123, type: 'automail' },
-  type: 1, // 1 = email
-  subject: 'Welcome!',
-});
-const fetched = await client.getMessage(message.data!.id!);
-await client.updateMessage(message.data!.id!, { subject: 'Updated' });
-await client.deleteMessage(message.data!.id!);
-```
-
-#### Templates
-
-```typescript
-const templates = await client.listTemplates({ page: 1, per_page: 10 });
-const template = await client.createTemplate({
-  message_id: 456,
-  name: `My Template ${Date.now()}`, // names must be unique
-  message_type: 'email',
-  template: rcmlDocument,            // RCMLDocument object
-});
-const fetchedTpl = await client.getTemplate(template.data!.id!);
-await client.updateTemplate(template.data!.id!, {
-  message_id: 456,
-  name: template.data!.name,
-  message_type: 'email',
-  template: template.data!.content,
-});
-await client.deleteTemplate(template.data!.id!);
-
-// Render a template to HTML (with optional merge-tag substitution)
-const html = await client.renderTemplate(789, { subscriber_id: 12345 });
-```
-
-#### Dynamic Sets
-
-Connect messages to templates:
-
-```typescript
-const sets = await client.listDynamicSets({ message_id: 456 });
-const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
-const fetchedDs = await client.getDynamicSet(ds.data!.id!);
-await client.updateDynamicSet(ds.data!.id!, { message_id: 456, template_id: 790 });
-await client.deleteDynamicSet(ds.data!.id!);
-```
-
-### Brand Styles
-
-Manage brand styles for consistent email theming:
-
-```typescript
-// List all brand styles
-const styles = await client.listBrandStyles();
-
-// Get a specific brand style
-const style = await client.getBrandStyle(123);
-
-// Create from a domain (auto-detects colors, fonts, logo)
-const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-
-// Create manually
-const manual = await client.createBrandStyleManually({
+// Or create manually
+const brand = await client.createBrandStyleManually({
   name: 'My Brand',
   colours: [{ type: 'accent', hex: '#0066CC', brightness: 50 }],
   fonts: [{ type: 'title', name: 'Helvetica', origin: 'system' }],
 });
 
-// Update (partial update via PATCH)
-await client.updateBrandStyle(123, { name: 'Updated Brand' });
-
-// Delete (fails if it's the last brand style)
-await client.deleteBrandStyle(123);
+// List existing brand styles
+const styles = await client.listBrandStyles();
 ```
 
-### API Keys
-
-Manage API keys for the account:
-
-```typescript
-const keys = await client.listApiKeys();
-const newKey = await client.createApiKey({ name: 'Production' });
-await client.updateApiKey(newKey.data!.id!, { name: 'Production v2' });
-await client.deleteApiKey(newKey.data!.id!);
-```
-
-### Analytics
-
-Retrieve dispatcher statistics (opens, clicks, bounces, etc.):
-
-```typescript
-const stats = await client.getAnalytics({
-  date_from: '2024-01-01',
-  date_to: '2024-01-31',
-  object_type: 'CAMPAIGN',
-  object_ids: ['123', '456'],
-  metrics: ['open', 'click', 'sent', 'hard_bounce'],
-});
-```
-
-### Export (Enterprise)
-
-Export dispatchers, statistics, and subscribers for a date range:
-
-```typescript
-// Export dispatchers (max 1-day range)
-const dispatchers = await client.exportDispatchers({
-  date_from: '2024-01-01',
-  date_to: '2024-01-01',
-});
-
-// Export statistics (with token-based pagination)
-let stats = await client.exportStatistics({
-  date_from: '2024-01-01',
-  date_to: '2024-01-01',
-  statistic_types: ['open', 'link'],
-});
-while (stats.next_page_token) {
-  stats = await client.exportStatistics({
-    date_from: '2024-01-01',
-    date_to: '2024-01-01',
-    next_page_token: stats.next_page_token,
-  });
-}
-
-// Export subscribers
-const subscribers = await client.exportSubscribers({
-  date_from: '2024-01-01',
-  date_to: '2024-01-01',
-});
-```
-
-### Recipients
-
-List segments, subscribers, and tags available for recipient targeting:
-
-```typescript
-const segments = await client.listSegments({ page: 1, per_page: 50 });
-const subscribers = await client.listRecipientSubscribers({ page: 1 });
-const tags = await client.listRecipientTags({ page: 1 });
-```
-
-### Accounts (Super Admin)
-
-Manage accounts (requires Super Admin privileges):
-
-```typescript
-const accounts = await client.listAccounts();
-const account = await client.createAccount({ name: 'New Client', language: 'en' });
-const detail = await client.getAccount(account.data!.id, {
-  includes: ['sitoo_credentials'],
-});
-await client.deleteAccount(account.data!.id); // async, destructive
-```
-
-### Tags (v2)
-
-```typescript
-// Get all tags
-const allTags = await client.getTags();
-
-// Look up a tag's numeric ID by name
-const tagId = await client.getTagIdByName('order-confirmed');
-```
-
-### Custom Field Data (Deprecated)
-
-> **Note:** The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
-
-```typescript
-// The subscriber's numeric ID (from createSubscriberV3 or other lookup)
-const subscriberId = 12345;
-
-// CRUD for custom field data
-const data = await client.getCustomFieldData(subscriberId);
-await client.createCustomFieldData(subscriberId, {
-  groups: [{
-    group: 'Order',
-    create_if_not_exists: true,
-    values: [{ field: 'OrderRef', create_if_not_exists: true, value: 'ORD-123' }],
-  }],
-});
-await client.updateCustomFieldData(subscriberId, {
-  identifier: { group: 'Order', field: 'OrderRef', value: 'ORD-123' },
-  values: [{ field: 'Status', value: 'shipped' }],
-});
-
-// Query by group or search
-const grouped = await client.getCustomFieldDataByGroup(subscriberId, 'Order');
-const found = await client.searchCustomFieldData(subscriberId, {
-  group: 'Order', field: 'OrderRef', value: 'ORD-123',
-});
-await client.deleteCustomFieldDataByGroup(subscriberId, 'Order');
-```
+You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 
 ---
 
-## Campaign Emails
+## Sending Emails
 
-Create complete campaign emails with the high-level helper:
+The SDK provides two high-level helpers that handle the full creation flow (campaign/automation → message → template → dynamic set) in a single call, with automatic cleanup on failure.
+
+### Campaign Emails (one-off sends)
 
 ```typescript
-// Easiest: auto-build editor-compatible template from a brand style
 const result = await client.createCampaignEmail({
   name: 'Spring Sale',
   subject: 'Spring deals are here!',
   brandStyleId: 12345,
   tags: [{ id: 1, negative: false }],
 });
-console.log('Created:', result.campaignId, result.messageId, result.templateId);
+
+console.log(result.campaignId, result.templateId);
 ```
 
-```typescript
-// Or provide a full RCML template
-const result = await client.createCampaignEmail({
-  name: 'Spring Sale',
-  subject: 'Spring deals are here!',
-  template: myRCMLDocument,
-  segments: [{ id: 42, negative: false }],
-});
-```
-
-The helper handles the full 4-step process (campaign → message → template → dynamic set) and cleans up on failure.
-
-### Return Value
+### Automation Emails (tag-triggered)
 
 ```typescript
-interface CreateCampaignEmailResult {
-  campaignId: number;
-  messageId: number;
-  templateId: number;
-  dynamicSetId: number;
-}
-```
-
----
-
-## Automation Workflows
-
-Create complete email automations triggered by tags using the high-level helper:
-
-```typescript
-// Easiest: auto-build editor-compatible template from a brand style
 const result = await client.createAutomationEmail({
   name: 'Order Confirmation',
   triggerType: 'tag',
@@ -465,77 +118,95 @@ const result = await client.createAutomationEmail({
   subject: 'Your order is confirmed!',
   brandStyleId: 12345,
 });
-console.log('Created:', result.automationId, result.messageId, result.templateId);
+
+console.log(result.automationId, result.templateId);
 ```
 
-```typescript
-// Or provide a full RCML template
-const result = await client.createAutomationEmail({
-  name: 'Order Confirmation',
-  triggerType: 'tag',
-  triggerValue: 'order-confirmed',
-  subject: 'Your order is confirmed!',
-  template: email, // any RCMLDocument
-});
-```
+Both helpers accept either `brandStyleId` (auto-builds a branded template) or `template` (your own `RCMLDocument`). You can also pass custom `sections` to replace the default placeholder content when using `brandStyleId`.
 
-The high-level `createAutomationEmail` helper handles the full 4-step process (automation → message → template → dynamic set) and cleans up on failure.
-
-### Brand Style Templates
-
-Both `createCampaignEmail` and `createAutomationEmail` accept a `brandStyleId` option. When provided (without `template`), the SDK:
-
-1. Fetches the brand style from the Rule.io API
-2. Builds an editor-compatible RCML template with logo, social links, default content, and footer
-3. The resulting template is fully editable in the Rule.io visual editor
-
-You can also pass custom `sections` to replace the default placeholder content:
-
-```typescript
-const result = await client.createAutomationEmail({
-  name: 'Welcome',
-  triggerType: 'tag',
-  triggerValue: 'new-subscriber',
-  subject: 'Welcome aboard!',
-  brandStyleId: 12345,
-  sections: [myCustomSection], // replaces default placeholder content
-});
-```
-
-### Prerequisites
-
-**Trigger tags must exist before creating automations.** The SDK looks up the tag ID by name via `getTagIdByName()`. If the tag doesn't exist on the account, automation creation will fail with a 404 error.
-
-Create tags beforehand using the v2 API:
-
-```typescript
-// Create tags via the v2 REST API directly
-const apiKey = process.env.RULE_API_KEY!;
-await fetch('https://app.rule.io/api/v2/tags', {
-  method: 'POST',
-  headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-  body: JSON.stringify({ tags: ['order-confirmed', 'shipping-update'] }),
-});
-```
-
-### Return Value
-
-```typescript
-interface CreateAutomationEmailResult {
-  automationId: number;
-  messageId: number;
-  templateId: number;
-  dynamicSetId: number;
-}
-```
+> **Note:** Trigger tags must exist before creating automations. The SDK looks up the tag ID by name via `getTagIdByName()`. Create tags first using the v2 API if they don't exist on the account.
 
 ---
 
-## Email Templates
+## Building Custom Templates
 
-### Low-Level: RCML Element Builders
+The SDK offers three levels of template building, from highest to lowest abstraction.
 
-Build templates element by element:
+### Pre-Built Templates
+
+Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings) — no hardcoded defaults.
+
+**Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
+
+**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`
+
+```typescript
+import { createOrderConfirmationEmail } from 'rule-io-sdk';
+import type { BrandStyleConfig, CustomFieldMap } from 'rule-io-sdk';
+
+const email = createOrderConfirmationEmail({
+  brandStyle: myBrand,        // BrandStyleConfig
+  customFields: myFields,     // CustomFieldMap: field name → numeric ID
+  websiteUrl: 'https://myshop.com',
+  text: {
+    preheader: 'Your order has been confirmed!',
+    greeting: 'Hi',
+    intro: 'Thank you for your order.',
+    detailsHeading: 'Order Summary',
+    orderRefLabel: 'Order',
+    totalLabel: 'Total',
+    ctaButton: 'View Order',
+  },
+  fieldNames: {
+    firstName: 'Order.CustomerName',
+    orderRef: 'Order.OrderRef',
+    totalPrice: 'Order.Total',
+  },
+});
+```
+
+> **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `toBrandStyleConfig()` to convert a brand style API response, or just pass `brandStyleId` to the high-level helpers.
+
+### Brand Templates
+
+Build custom branded templates with merge-field placeholders:
+
+```typescript
+import {
+  createBrandTemplate,
+  createBrandLogo,
+  createBrandHeading,
+  createBrandButton,
+  createContentSection,
+  createFooterSection,
+  createPlaceholder,
+  createTextNode,
+  createDocWithPlaceholders,
+} from 'rule-io-sdk';
+
+const template = createBrandTemplate({
+  brandStyle: myBrand,
+  preheader: 'Your order is confirmed!',
+  sections: [
+    createBrandLogo(myBrand.logoUrl),
+    createContentSection([
+      createBrandHeading(createDocWithPlaceholders([
+        createTextNode('Thank you, '),
+        createPlaceholder('Order.CustomerName', myFields['Order.CustomerName']),
+        createTextNode('!'),
+      ])),
+      createBrandButton('View Order', 'https://example.com/orders'),
+    ]),
+    createFooterSection(),
+  ],
+});
+```
+
+Brand templates also support **loops** for repeating content (e.g., order line items) via `createBrandLoop` and `createLoopFieldPlaceholder`.
+
+### RCML Elements (low-level)
+
+Build templates element by element for full control:
 
 ```typescript
 import {
@@ -572,391 +243,19 @@ const template = createRCMLDocument({
 });
 ```
 
-#### Loops (Repeatable Fields)
-
-Iterate over array-style custom fields (e.g., order line items):
-
-```typescript
-import { createLoop, createCenteredSection, createText } from 'rule-io-sdk';
-
-createLoop(
-  { fieldId: 200005, maxIterations: 20 },
-  [
-    createCenteredSection({
-      children: [createText('Item name here')],
-    }),
-  ]
-);
-```
-
-#### Social Icons
-
-```typescript
-import { createSocial, createSocialElement } from 'rule-io-sdk';
-
-createSocial([
-  createSocialElement({ name: 'facebook', href: 'https://facebook.com/mypage' }),
-  createSocialElement({ name: 'instagram', href: 'https://instagram.com/mypage' }),
-  createSocialElement({ name: 'x', href: 'https://x.com/myhandle' }),
-], { align: 'center', iconSize: '24px' });
-```
-
-#### Conditional Content (Switch/Case)
-
-Show different content based on tags or custom fields:
-
-```typescript
-import { createSwitch, createCase, createCenteredSection, createText } from 'rule-io-sdk';
-
-createSwitch([
-  createCase(
-    { caseType: 'tag', caseCondition: 'eq', caseValue: 42 },
-    [createCenteredSection({ children: [createText('VIP members')] })],
-  ),
-  createCase(
-    { caseType: 'default' },
-    [createCenteredSection({ children: [createText('Regular content')] })],
-  ),
-]);
-```
-
-### Mid-Level: Brand Template System
-
-Use Rule.io brand styles with placeholder merge fields:
-
-```typescript
-import {
-  createBrandTemplate,
-  createBrandLogo,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createContentSection,
-  createFooterSection,
-  createPlaceholder,
-  createTextNode,
-  createDocWithPlaceholders,
-} from 'rule-io-sdk';
-import type { BrandStyleConfig, CustomFieldMap } from 'rule-io-sdk';
-
-// Your brand style from Rule.io (Settings → Brand)
-const myBrand: BrandStyleConfig = {
-  brandStyleId: '12345',
-  logoUrl: 'https://example.com/logo.png',
-  buttonColor: '#0066CC',
-  bodyBackgroundColor: '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  brandColor: '#f6f8f9',
-  headingFont: "'Helvetica Neue', sans-serif",
-  headingFontUrl: 'https://app.rule.io/brand-style/12345/font/1/css',
-  bodyFont: "'Arial', sans-serif",
-  bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/2/css',
-  textColor: '#1A1A1A',
-};
-
-// Custom field IDs from Rule.io (GET /api/v2/customizations)
-const myFields: CustomFieldMap = {
-  'Order.CustomerName': 169233,
-  'Order.OrderRef': 169234,
-};
-```
-
-#### BrandStyleConfig Reference
-
-All fields are **required** unless noted as optional. Optional URL fields, if provided and non-empty, must be valid `http://` or `https://` URLs — invalid URLs will throw `RuleConfigError`.
-
-| Field | Type | Description |
-|---|---|---|
-| `brandStyleId` | `string` | Brand style ID from Rule.io |
-| `logoUrl` | `string?` | Logo image URL (optional — some brand styles have no logo) |
-| `buttonColor` | `string` | CTA button background color (hex) |
-| `bodyBackgroundColor` | `string` | Email body background color (hex) |
-| `sectionBackgroundColor` | `string` | Content section background color (hex) |
-| `brandColor` | `string` | Accent/brand color used for detail sections (hex) |
-| `headingFont` | `string` | Heading font family CSS value |
-| `headingFontUrl` | `string?` | Heading font CSS URL (optional — system fonts have no URL) |
-| `bodyFont` | `string` | Body font family CSS value |
-| `bodyFontUrl` | `string?` | Body font CSS URL (optional — system fonts have no URL) |
-| `textColor` | `string` | Default text color (hex) |
-| `socialLinks` | `Array<{ name, href }>?` | Social media links (optional) |
-
-> **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `brandStyleId` with `createCampaignEmail()` or `createAutomationEmail()` and the SDK builds it automatically via `toBrandStyleConfig()`.
-
-**Automatic mapping from the brand style API response:**
-
-```typescript
-import { toBrandStyleConfig } from 'rule-io-sdk';
-
-// Fetch a brand style and convert to BrandStyleConfig
-const response = await client.getBrandStyle(12345);
-const brandStyle = toBrandStyleConfig(response.data!);
-```
-
-`toBrandStyleConfig` extracts colours, fonts, images, and social links from the full `RuleBrandStyle` object. This is what `createCampaignEmail` and `createAutomationEmail` use internally when you pass `brandStyleId`.
-
-#### CustomFieldMap and Validation
-
-Template builders validate that every `fieldNames` entry has a corresponding key in `customFields`. If a field name is referenced but missing from the map, a `RuleConfigError` is thrown.
-
-```typescript
-// Custom field IDs are account-specific — look them up via GET /api/v2/customizations
-const myFields: CustomFieldMap = {
-  'Order.CustomerName': 169233,
-  'Order.OrderRef': 169234,
-  'Order.Total': 169235,
-};
-
-// For new accounts where fields don't exist yet, use 0 as a placeholder ID.
-// The templates will be created but merge fields won't resolve until real IDs are set.
-const placeholderFields: CustomFieldMap = {
-  'Order.CustomerName': 0,
-  'Order.OrderRef': 0,
-  'Order.Total': 0,
-};
-```
-
-```typescript
-const template = createBrandTemplate({
-  brandStyle: myBrand,
-  preheader: 'Your order is confirmed!',
-  sections: [
-    createBrandLogo(myBrand.logoUrl),
-    createContentSection([
-      createBrandHeading(createDocWithPlaceholders([
-        createTextNode('Thank you, '),
-        createPlaceholder('Order.CustomerName', myFields['Order.CustomerName']),
-        createTextNode('!'),
-      ])),
-    ]),
-    createFooterSection(),
-  ],
-});
-```
-
-#### Brand Loops (Repeatable Fields)
-
-Use `createBrandLoop` and `createLoopFieldPlaceholder` to iterate over array-style custom fields (e.g., order line items) within brand templates:
-
-```typescript
-import {
-  createBrandLoop,
-  createLoopFieldPlaceholder,
-  createCenteredSection,
-  createBrandText,
-  createDocWithPlaceholders,
-  createTextNode,
-} from 'rule-io-sdk';
-
-// Loop over Order.Products (field ID 200005), showing each item's name and price
-createBrandLoop(200005, [
-  createCenteredSection({
-    children: [
-      createBrandText(createDocWithPlaceholders([
-        createLoopFieldPlaceholder('name'),   // product name
-        createTextNode(' — '),
-        createLoopFieldPlaceholder('price'),  // product price
-      ])),
-    ],
-  }),
-], { maxIterations: 20 });
-```
-
-### High-Level: Pre-Built Templates
-
-Ready-to-use templates for common use cases:
-
-#### Hospitality (Hotels, Restaurants)
-
-```typescript
-import { createReservationConfirmationEmail } from 'rule-io-sdk';
-
-const email = createReservationConfirmationEmail({
-  brandStyle: myBrand,
-  customFields: myFields,
-  websiteUrl: 'https://example.com',
-  text: {
-    preheader: 'Thank you for your reservation!',
-    greeting: 'Hello',
-    intro: 'We look forward to welcoming you.',
-    detailsHeading: 'Reservation Details',
-    referenceLabel: 'Reference',
-    serviceLabel: 'Service',
-    checkInLabel: 'Check-in',
-    checkOutLabel: 'Check-out',
-    guestsLabel: 'Guests',
-    ctaButton: 'View Reservation',
-  },
-  fieldNames: {
-    firstName: 'Booking.FirstName',
-    bookingRef: 'Booking.BookingRef',
-    serviceType: 'Booking.ServiceType',
-    checkInDate: 'Booking.CheckInDate',
-    checkOutDate: 'Booking.CheckOutDate',
-    totalGuests: 'Booking.TotalGuests',
-  },
-});
-```
-
-Also available: `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`.
-
-#### E-Commerce (Online Stores)
-
-All e-commerce templates require `brandStyle`, `customFields`, `text`, and `fieldNames`. The `text` and `fieldNames` objects have **no defaults** — all fields listed below as required must be provided.
-
-##### `createOrderConfirmationEmail`
-
-```typescript
-import { createOrderConfirmationEmail } from 'rule-io-sdk';
-
-const email = createOrderConfirmationEmail({
-  brandStyle: myBrand,
-  customFields: myFields,
-  websiteUrl: 'https://myshop.com',      // Used for CTA button link
-  footer: { /* optional FooterConfig */ },
-  text: {
-    preheader: 'Your order has been confirmed!',  // required
-    greeting: 'Hi',                                // required
-    intro: 'Thank you for your order.',            // required
-    detailsHeading: 'Order Summary',               // required
-    orderRefLabel: 'Order',                        // required
-    totalLabel: 'Total',                           // required
-    itemsLabel: 'Items',                           // optional
-    shippingLabel: 'Ships to',                     // optional
-    ctaButton: 'View Order',                       // required
-  },
-  fieldNames: {
-    firstName: 'Order.CustomerName',    // required
-    orderRef: 'Order.OrderRef',         // required
-    totalPrice: 'Order.Total',          // required
-    items: 'Order.Items',              // optional (needs itemsLabel)
-    shippingAddress: 'Order.Address',  // optional (needs shippingLabel)
-  },
-});
-```
-
-##### `createShippingUpdateEmail`
-
-```typescript
-import { createShippingUpdateEmail } from 'rule-io-sdk';
-
-const email = createShippingUpdateEmail({
-  brandStyle: myBrand,
-  customFields: myFields,
-  trackingUrl: 'https://myshop.com/tracking',  // Used for CTA button link
-  text: {
-    preheader: 'Your order is on its way!',     // required
-    heading: 'Shipping Update',                  // required
-    greeting: 'Hi',                              // required
-    message: 'Your order has been shipped.',     // required
-    orderRefLabel: 'Order',                      // required
-    trackingLabel: 'Tracking',                   // optional
-    estimatedDeliveryLabel: 'Estimated delivery', // optional
-    ctaButton: 'Track Package',                  // required
-  },
-  fieldNames: {
-    firstName: 'Order.CustomerName',         // required
-    orderRef: 'Order.OrderRef',              // required
-    trackingNumber: 'Order.TrackingNumber',  // optional (needs trackingLabel)
-    estimatedDelivery: 'Order.EstDelivery',  // optional (needs estimatedDeliveryLabel)
-  },
-});
-```
-
-##### `createAbandonedCartEmail`
-
-```typescript
-import { createAbandonedCartEmail } from 'rule-io-sdk';
-
-const email = createAbandonedCartEmail({
-  brandStyle: myBrand,
-  customFields: myFields,
-  cartUrl: 'https://myshop.com/cart',  // Used for CTA button link
-  text: {
-    preheader: 'Your cart is waiting for you',   // required
-    greeting: 'Hi',                               // required
-    message: 'You left some items in your cart.', // required
-    reminder: 'Complete your purchase!',           // required
-    ctaButton: 'Return to Cart',                  // required
-  },
-  fieldNames: {
-    firstName: 'Order.CustomerName',  // required
-  },
-});
-```
-
-##### `createOrderCancellationEmail`
-
-```typescript
-import { createOrderCancellationEmail } from 'rule-io-sdk';
-
-const email = createOrderCancellationEmail({
-  brandStyle: myBrand,
-  customFields: myFields,
-  websiteUrl: 'https://myshop.com',  // Used for CTA button link
-  text: {
-    preheader: 'Your order has been cancelled',  // required
-    heading: 'Order Cancelled',                   // required
-    greeting: 'Hi',                               // required
-    message: 'Your order has been cancelled.',    // required
-    orderRefLabel: 'Order',                       // required
-    followUp: 'Contact us with any questions.',   // required
-    ctaButton: 'Visit Store',                     // required
-  },
-  fieldNames: {
-    firstName: 'Order.CustomerName',  // required
-    orderRef: 'Order.OrderRef',       // required
-  },
-});
-```
+Additional RCML elements: `createImage`, `createVideo`, `createSpacer`, `createDivider`, `createSocial`/`createSocialElement`, `createLoop`, `createSwitch`/`createCase` (conditional content), `createTwoColumnSection`.
 
 ---
 
-## Tags
-
-> **Note:** `RuleTags` is deprecated. Prefer vendor-specific tags (`SHOPIFY_TAGS`, `BOOKZEN_TAGS`) instead.
-
-`RuleTags` provides generic tag constants kept for backward compatibility:
-
-```typescript
-import { RuleTags } from 'rule-io-sdk';
-
-// E-commerce lifecycle
-RuleTags.CART_IN_PROGRESS    // 'CartInProgress'
-RuleTags.ORDER_SHIPPED       // 'OrderShipped'
-RuleTags.ORDER_COMPLETED     // 'OrderCompleted'
-RuleTags.NEWSLETTER          // 'Newsletter'
-
-// Hospitality
-RuleTags.ACCOMMODATION       // 'accommodation'
-RuleTags.RESTAURANT          // 'restaurant'
-RuleTags.EXPERIENCE          // 'experience'
-
-// Customer segmentation
-RuleTags.NEW_CUSTOMER        // 'new-customer'
-RuleTags.RETURNING_CUSTOMER  // 'returning-customer'
-```
-
-For vendor integrations, use the vendor-specific tags instead:
-
-```typescript
-import { SHOPIFY_TAGS, BOOKZEN_TAGS } from 'rule-io-sdk';
-
-SHOPIFY_TAGS.orderCompleted   // 'OrderCompleted'
-SHOPIFY_TAGS.cartInProgress   // 'CartInProgress'
-BOOKZEN_TAGS.accommodation    // 'accommodation'
-BOOKZEN_TAGS.feedbackRequest  // 'feedback-request'
-```
-
 ## Vendor Presets
 
-Pre-configured integrations for popular platforms. Each preset bundles field names, tags, and automation flows specific to a vendor.
+Pre-configured integrations that bundle field names, tags, and automation flows for specific platforms.
 
-### Shopify (E-Commerce)
+### Shopify
 
 ```typescript
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from 'rule-io-sdk';
 
-// Map your Rule.io custom field IDs to Shopify's field names
 const config = {
   brandStyle: myBrand,
   customFields: {
@@ -968,17 +267,9 @@ const config = {
   websiteUrl: 'https://myshop.com',
 };
 
-// Validate config (throws RuleConfigError if required fields are missing)
-shopifyPreset.validateConfig(config);
-
-// Get all automation configs (order confirmation, shipping, cancellation, abandoned cart)
+shopifyPreset.validateConfig(config); // throws if required fields are missing
 const automations = shopifyPreset.getAutomations(config);
-
-// Get a single automation by ID (IDs are vendor-prefixed)
-const orderConfirmation = shopifyPreset.getAutomation('shopify-order-confirmation', config);
-
-// List required fields (useful for setup wizards)
-const requiredFields = shopifyPreset.getRequiredFields();
+const single = shopifyPreset.getAutomation('shopify-order-confirmation', config);
 ```
 
 ### Bookzen (Hospitality)
@@ -991,33 +282,238 @@ const config = {
   customFields: {
     [BOOKZEN_FIELDS.guestFirstName]: 100001,
     [BOOKZEN_FIELDS.bookingRef]: 100002,
-    [BOOKZEN_FIELDS.serviceType]: 100003,
     // ... map all fields
   },
   websiteUrl: 'https://myhotel.com',
 };
 
-// Automations: confirmation, cancellation, reminder, feedback, reservation request
 const automations = bookzenPreset.getAutomations(config);
+```
+
+Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
+
+---
+
+## Managing Subscribers
+
+### v3 API (recommended)
+
+```typescript
+// Create
+await client.createSubscriberV3({
+  email: 'customer@example.com',
+  status: 'ACTIVE',
+  language: 'en',
+});
+
+// Add tags (with automation trigger)
+await client.addSubscriberTagsV3('customer@example.com', {
+  tags: ['vip', 'returning'],
+  automation: 'force', // 'send' | 'force' | 'reset' | null
+});
+
+// Remove a tag
+await client.removeSubscriberTagV3('customer@example.com', 'temporary-tag');
+
+// Delete (supports email, phone_number, id, custom_identifier)
+await client.deleteSubscriberV3('customer@example.com', 'email');
+
+// Bulk operations
+await client.blockSubscribers([{ email: 'spam@example.com' }]);
+await client.unblockSubscribers([{ email: 'restored@example.com' }]);
+await client.bulkAddTags({
+  subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+  tags: ['campaign-2024'],
+});
+await client.bulkRemoveTags({
+  subscribers: [{ email: 'a@example.com' }],
+  tags: ['old-tag'],
+});
+```
+
+### v2 API (legacy)
+
+```typescript
+// These still work but v3 equivalents are preferred
+const subscriber = await client.getSubscriber('customer@example.com');
+const tags = await client.getSubscriberTags('customer@example.com');
+const fields = await client.getSubscriberFields('customer@example.com');
+await client.syncSubscriber({ email: 'customer@example.com', fields: { FirstName: 'Anna' }, tags: ['vip'] });
 ```
 
 ---
 
-## Automation Configs
+## API Reference
 
-The `AutomationConfigV2` type is used by vendor presets and can also be used directly to define custom automation flows:
+Beyond the high-level helpers, the SDK provides direct access to all Rule.io API endpoints. Each method is fully typed — see the exported types for request/response shapes.
+
+### Campaigns
 
 ```typescript
-import type { AutomationConfigV2 } from 'rule-io-sdk';
-import { getAutomationByIdV2, getAutomationByTriggerV2 } from 'rule-io-sdk';
-
-// Look up automations from a list
-const automations: AutomationConfigV2[] = shopifyPreset.getAutomations(config);
-const byId = getAutomationByIdV2('shopify-order-confirmation', automations);
-const byTag = getAutomationByTriggerV2('OrderCompleted', automations);
+const campaigns = await client.listCampaigns({ page: 1, per_page: 20 });
+const campaign = await client.createCampaign({ message_type: 1, sendout_type: 1, tags: [{ id: 42, negative: false }] });
+await client.updateCampaign(123, { name: 'Spring Sale', sendout_type: 1, tags: [], segments: [], subscribers: [] });
+await client.scheduleCampaign(123, { type: 'now' });
+await client.deleteCampaign(123);
 ```
 
-Each `AutomationConfigV2` contains the automation metadata (`id`, `name`, `triggerTag`, `subject`) and a `templateBuilder` function that produces an `RCMLDocument` when given a `TemplateConfigV2` (brand style, custom fields, website URL).
+Also: `getCampaign`, `copyCampaign`, scheduled sends (`type: 'schedule'`), and cancellation (`type: null`).
+
+### Automations
+
+```typescript
+const automations = await client.listAutomations({ page: 1, active: true });
+const automation = await client.createAutomation({ name: 'Welcome Series' });
+await client.updateAutomation(id, {
+  name: 'Welcome Series',
+  active: true,
+  trigger: { type: 'TAG', id: 42 },
+  sendout_type: 2,
+});
+await client.deleteAutomation(id);
+```
+
+Also: `getAutomation`.
+
+### Messages
+
+```typescript
+const messages = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
+const message = await client.createMessage({
+  dispatcher: { id: 123, type: 'automail' },
+  type: 1,
+  subject: 'Welcome!',
+});
+await client.updateMessage(id, { subject: 'Updated' });
+await client.deleteMessage(id);
+```
+
+Also: `getMessage`.
+
+### Templates
+
+```typescript
+const templates = await client.listTemplates({ page: 1, per_page: 10 });
+const template = await client.createTemplate({
+  message_id: 456,
+  name: `My Template ${Date.now()}`,
+  message_type: 'email',
+  template: rcmlDocument,
+});
+await client.updateTemplate(id, { message_id: 456, name: 'Updated', message_type: 'email', template: rcmlDocument });
+await client.deleteTemplate(id);
+const html = await client.renderTemplate(789, { subscriber_id: 12345 });
+```
+
+Also: `getTemplate`.
+
+### Dynamic Sets
+
+Connect messages to templates:
+
+```typescript
+const sets = await client.listDynamicSets({ message_id: 456 });
+const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
+await client.updateDynamicSet(id, { message_id: 456, template_id: 790 });
+await client.deleteDynamicSet(id);
+```
+
+Also: `getDynamicSet`.
+
+### Suppressions
+
+```typescript
+await client.createSuppressions({
+  subscribers: [{ email: 'unsubscribed@example.com' }],
+  message_types: ['email'],
+});
+await client.deleteSuppressions({
+  subscribers: [{ email: 'resubscribed@example.com' }],
+});
+```
+
+### Analytics
+
+```typescript
+const stats = await client.getAnalytics({
+  date_from: '2024-01-01',
+  date_to: '2024-01-31',
+  object_type: 'CAMPAIGN',
+  object_ids: ['123'],
+  metrics: ['open', 'click', 'sent', 'hard_bounce'],
+});
+```
+
+### Export (Enterprise)
+
+```typescript
+const dispatchers = await client.exportDispatchers({ date_from: '2024-01-01', date_to: '2024-01-01' });
+const stats = await client.exportStatistics({ date_from: '2024-01-01', date_to: '2024-01-01', statistic_types: ['open'] });
+const subscribers = await client.exportSubscribers({ date_from: '2024-01-01', date_to: '2024-01-01' });
+```
+
+Export statistics supports token-based pagination via `next_page_token`.
+
+### Recipients
+
+```typescript
+const segments = await client.listSegments({ page: 1, per_page: 50 });
+const subscribers = await client.listRecipientSubscribers({ page: 1 });
+const tags = await client.listRecipientTags({ page: 1 });
+```
+
+### Accounts (Super Admin)
+
+```typescript
+const accounts = await client.listAccounts();
+const account = await client.createAccount({ name: 'New Client', language: 'en' });
+const detail = await client.getAccount(id, { includes: ['sitoo_credentials'] });
+await client.deleteAccount(id);
+```
+
+### Brand Styles
+
+```typescript
+const styles = await client.listBrandStyles();
+const style = await client.getBrandStyle(123);
+const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+const manual = await client.createBrandStyleManually({ name: 'My Brand', colours: [...], fonts: [...] });
+await client.updateBrandStyle(123, { name: 'Updated Brand' });
+await client.deleteBrandStyle(123);
+```
+
+### API Keys
+
+```typescript
+const keys = await client.listApiKeys();
+const newKey = await client.createApiKey({ name: 'Production' });
+await client.updateApiKey(id, { name: 'Production v2' });
+await client.deleteApiKey(id);
+```
+
+### Tags (v2)
+
+```typescript
+const allTags = await client.getTags();
+const tagId = await client.getTagIdByName('order-confirmed');
+```
+
+### Custom Field Data (deprecated)
+
+> The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
+
+```typescript
+const data = await client.getCustomFieldData(subscriberId);
+await client.createCustomFieldData(subscriberId, {
+  groups: [{
+    group: 'Order',
+    create_if_not_exists: true,
+    values: [{ field: 'OrderRef', create_if_not_exists: true, value: 'ORD-123' }],
+  }],
+});
+```
+
+Also: `updateCustomFieldData`, `getCustomFieldDataByGroup`, `searchCustomFieldData`, `deleteCustomFieldDataByGroup`.
 
 ---
 
@@ -1030,36 +526,30 @@ try {
   await client.createSubscriberV3({ email: 'user@example.com' });
 } catch (error) {
   if (error instanceof RuleApiError) {
-    if (error.statusCode === 401) {
-      console.error('Invalid API key');
-    } else if (error.statusCode === 429) {
-      console.error('Rate limited — retry later');
-    }
+    console.error(error.statusCode); // 401, 404, 429, etc.
+  }
+  if (error instanceof RuleConfigError) {
+    console.error('Invalid config:', error.message);
   }
 }
 ```
 
 ## Security
 
-The RCML element builders `createButton`, `createImage`, and `createVideo` sanitize URL parameters to block `javascript:` and `data:` URIs. Text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
+RCML element builders (`createButton`, `createImage`, `createVideo`) sanitize URL parameters to block `javascript:` and `data:` URIs. Text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
 
-If you build custom raw HTML templates outside of RCML, use the security utilities:
+For custom raw HTML templates outside of RCML:
 
 ```typescript
 import { escapeHtml, sanitizeUrl } from 'rule-io-sdk';
 
-const safeName = escapeHtml(userInput);          // For raw HTML interpolation
-const safeUrl = sanitizeUrl(userProvidedUrl);     // Blocks javascript:/data: URLs
+const safeName = escapeHtml(userInput);       // For raw HTML interpolation
+const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs
 ```
 
-> **Note:** Do NOT use `escapeHtml()` on text passed to RCML builders like `createText()` or `createHeading()` — these produce structured JSON, not HTML, and pre-escaping will result in double-escaped output (`&amp;` instead of `&`).
+> **Do NOT** use `escapeHtml()` on text passed to RCML builders like `createText()` or `createHeading()` — these produce structured JSON, not HTML, and pre-escaping will result in double-escaped output.
 
-## Releasing
-
-1. Update `CHANGELOG.md` with the new version's changes
-2. Run `npm version <patch|minor|major>` (runs type-check + tests automatically)
-3. Push with tags: `git push && git push --tags`
-4. Publish: `npm publish`
+---
 
 ## Development
 
@@ -1068,29 +558,29 @@ npm install
 npm run build        # Build with tsup (CJS + ESM)
 npm run test         # Run tests with Vitest
 npm run type-check   # TypeScript strict mode
+npm run dev          # Build in watch mode
+npm run test:watch   # Tests in watch mode
 ```
 
 ### RCML Validation Script
 
-See a representative set of RCML elements rendered in the Rule.io editor — a quick way to verify that the SDK produces valid templates:
+Verify that the SDK produces valid templates by creating a campaign with all RCML elements:
 
 ```bash
-# Set your API key in .env
 echo "RULE_API_KEY=your-key" > .env
-
-# Create a campaign with all RCML elements
-npx tsx scripts/validate-rcml.ts
-
-# Test specific sections only
-npx tsx scripts/validate-rcml.ts --sections=1,4,7
-
-# Clean up when done
-npx tsx scripts/validate-rcml.ts --cleanup
+npx tsx scripts/validate-rcml.ts                    # All elements
+npx tsx scripts/validate-rcml.ts --sections=1,4,7   # Specific sections
+npx tsx scripts/validate-rcml.ts --cleanup           # Clean up
 ```
 
-The script auto-detects your brand style and custom fields, then creates a campaign showcasing headings, text, rich text (bold/italic/underline), placeholders, buttons, images, spacers, dividers, and multi-column layouts.
+### Releasing
 
-## API Documentation
+1. Update `CHANGELOG.md` with the new version's changes
+2. Run `npm version <patch|minor|major>` (runs type-check + tests automatically)
+3. Push with tags: `git push && git push --tags`
+4. Publish: `npm publish`
+
+### API Documentation
 
 The Rule.io v3 API spec is available at the [OpenAPI endpoint](https://app.rule.io/redoc/api-v3.json).
 
