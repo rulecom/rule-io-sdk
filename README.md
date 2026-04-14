@@ -56,7 +56,7 @@ const client = new RuleClient('your-api-key');
 
 // With options
 const client = new RuleClient({
-  apiKey: process.env.RULE_API_KEY,
+  apiKey: process.env.RULE_API_KEY!,
   baseUrlV2: 'https://app.rule.io/api/v2', // default
   baseUrlV3: 'https://app.rule.io/api/v3', // default
   debug: false, // set true to log requests
@@ -97,7 +97,8 @@ import type { CustomFieldMap } from 'rule-io-sdk';
 
 // Convert a fetched brand style for use with template builders
 const response = await client.getBrandStyle(brandStyleId);
-const myBrand = toBrandStyleConfig(response.data!);
+if (!response?.data) throw new Error('Brand style not found');
+const myBrand = toBrandStyleConfig(response.data);
 
 // Map your Rule.io custom field IDs (from GET /api/v2/customizations)
 const myFields: CustomFieldMap = {
@@ -162,11 +163,10 @@ Ready-to-use templates for common use cases. All require consumer-provided confi
 
 ```typescript
 import { createOrderConfirmationEmail } from 'rule-io-sdk';
-import type { BrandStyleConfig, CustomFieldMap } from 'rule-io-sdk';
 
 const email = createOrderConfirmationEmail({
-  brandStyle: myBrand,        // BrandStyleConfig
-  customFields: myFields,     // CustomFieldMap: field name → numeric ID
+  brandStyle: myBrand,        // BrandStyleConfig (see Brand Styles above)
+  customFields: myFields,     // CustomFieldMap (see Brand Styles above)
   websiteUrl: 'https://myshop.com',
   text: {
     preheader: 'Your order has been confirmed!',
@@ -215,7 +215,10 @@ const template = createBrandTemplate({
         createPlaceholder('Order.CustomerName', myFields['Order.CustomerName']),
         createTextNode('!'),
       ])),
-      createBrandButton('View Order', 'https://example.com/orders'),
+      createBrandButton(
+        createDocWithPlaceholders([createTextNode('View Order')]),
+        'https://example.com/orders'
+      ),
     ]),
     createFooterSection(),
   ],
