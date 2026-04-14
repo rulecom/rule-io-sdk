@@ -741,7 +741,7 @@ Use `createBrandLoop` and `createLoopFieldPlaceholder` to iterate over array-sty
 import {
   createBrandLoop,
   createLoopFieldPlaceholder,
-  createContentSection,
+  createCenteredSection,
   createBrandText,
   createDocWithPlaceholders,
   createTextNode,
@@ -749,13 +749,15 @@ import {
 
 // Loop over Order.Products (field ID 200005), showing each item's name and price
 createBrandLoop(200005, [
-  createContentSection([
-    createBrandText(createDocWithPlaceholders([
-      createLoopFieldPlaceholder('name'),   // product name
-      createTextNode(' — '),
-      createLoopFieldPlaceholder('price'),  // product price
-    ])),
-  ]),
+  createCenteredSection({
+    children: [
+      createBrandText(createDocWithPlaceholders([
+        createLoopFieldPlaceholder('name'),   // product name
+        createTextNode(' — '),
+        createLoopFieldPlaceholder('price'),  // product price
+      ])),
+    ],
+  }),
 ], { maxIterations: 20 });
 ```
 
@@ -972,8 +974,8 @@ shopifyPreset.validateConfig(config);
 // Get all automation configs (order confirmation, shipping, cancellation, abandoned cart)
 const automations = shopifyPreset.getAutomations(config);
 
-// Get a single automation by ID
-const orderConfirmation = shopifyPreset.getAutomation('order-confirmation', config);
+// Get a single automation by ID (IDs are vendor-prefixed)
+const orderConfirmation = shopifyPreset.getAutomation('shopify-order-confirmation', config);
 
 // List required fields (useful for setup wizards)
 const requiredFields = shopifyPreset.getRequiredFields();
@@ -1011,7 +1013,7 @@ import { getAutomationByIdV2, getAutomationByTriggerV2 } from 'rule-io-sdk';
 
 // Look up automations from a list
 const automations: AutomationConfigV2[] = shopifyPreset.getAutomations(config);
-const byId = getAutomationByIdV2('order-confirmation', automations);
+const byId = getAutomationByIdV2('shopify-order-confirmation', automations);
 const byTag = getAutomationByTriggerV2('OrderCompleted', automations);
 ```
 
