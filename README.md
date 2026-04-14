@@ -73,11 +73,11 @@ Brand styles define the visual identity of your emails — logo, colors, fonts, 
 
 ```typescript
 // Easiest: auto-detect from your domain
-const brand = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-const brandStyleId = brand.data!.id;
+const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+const brandStyleId = fromDomain.data!.id;
 
 // Or create manually
-const brand = await client.createBrandStyleManually({
+const manualBrand = await client.createBrandStyleManually({
   name: 'My Brand',
   colours: [{ type: 'accent', hex: '#0066CC', brightness: 50 }],
   fonts: [{ type: 'title', name: 'Helvetica', origin: 'system' }],
@@ -364,13 +364,14 @@ Also: `getCampaign`, `copyCampaign`, scheduled sends (`type: 'schedule'`), and c
 ```typescript
 const automations = await client.listAutomations({ page: 1, active: true });
 const automation = await client.createAutomation({ name: 'Welcome Series' });
-await client.updateAutomation(id, {
+const automationId = automation.data!.id!;
+await client.updateAutomation(automationId, {
   name: 'Welcome Series',
   active: true,
   trigger: { type: 'TAG', id: 42 },
   sendout_type: 2,
 });
-await client.deleteAutomation(id);
+await client.deleteAutomation(automationId);
 ```
 
 Also: `getAutomation`.
@@ -384,8 +385,9 @@ const message = await client.createMessage({
   type: 1,
   subject: 'Welcome!',
 });
-await client.updateMessage(id, { subject: 'Updated' });
-await client.deleteMessage(id);
+const messageId = message.data!.id!;
+await client.updateMessage(messageId, { subject: 'Updated' });
+await client.deleteMessage(messageId);
 ```
 
 Also: `getMessage`.
@@ -400,8 +402,9 @@ const template = await client.createTemplate({
   message_type: 'email',
   template: rcmlDocument,
 });
-await client.updateTemplate(id, { message_id: 456, name: 'Updated', message_type: 'email', template: rcmlDocument });
-await client.deleteTemplate(id);
+const templateId = template.data!.id!;
+await client.updateTemplate(templateId, { message_id: 456, name: 'Updated', message_type: 'email', template: rcmlDocument });
+await client.deleteTemplate(templateId);
 const html = await client.renderTemplate(789, { subscriber_id: 12345 });
 ```
 
@@ -414,8 +417,9 @@ Connect messages to templates:
 ```typescript
 const sets = await client.listDynamicSets({ message_id: 456 });
 const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
-await client.updateDynamicSet(id, { message_id: 456, template_id: 790 });
-await client.deleteDynamicSet(id);
+const dynamicSetId = ds.data!.id!;
+await client.updateDynamicSet(dynamicSetId, { message_id: 456, template_id: 790 });
+await client.deleteDynamicSet(dynamicSetId);
 ```
 
 Also: `getDynamicSet`.
@@ -467,8 +471,8 @@ const tags = await client.listRecipientTags({ page: 1 });
 ```typescript
 const accounts = await client.listAccounts();
 const account = await client.createAccount({ name: 'New Client', language: 'en' });
-const detail = await client.getAccount(id, { includes: ['sitoo_credentials'] });
-await client.deleteAccount(id);
+const detail = await client.getAccount(account.data!.id!, { includes: ['sitoo_credentials'] });
+await client.deleteAccount(account.data!.id!);
 ```
 
 ### Brand Styles
@@ -477,7 +481,7 @@ await client.deleteAccount(id);
 const styles = await client.listBrandStyles();
 const style = await client.getBrandStyle(123);
 const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-const manual = await client.createBrandStyleManually({ name: 'My Brand', colours: [...], fonts: [...] });
+const manual = await client.createBrandStyleManually({ name: 'My Brand', colours: [/* ... */], fonts: [/* ... */] });
 await client.updateBrandStyle(123, { name: 'Updated Brand' });
 await client.deleteBrandStyle(123);
 ```
@@ -487,8 +491,9 @@ await client.deleteBrandStyle(123);
 ```typescript
 const keys = await client.listApiKeys();
 const newKey = await client.createApiKey({ name: 'Production' });
-await client.updateApiKey(id, { name: 'Production v2' });
-await client.deleteApiKey(id);
+const keyId = newKey.data!.id!;
+await client.updateApiKey(keyId, { name: 'Production v2' });
+await client.deleteApiKey(keyId);
 ```
 
 ### Tags (v2)
@@ -503,6 +508,7 @@ const tagId = await client.getTagIdByName('order-confirmed');
 > The Custom Field Data API is deprecated by Rule.io. Use subscriber fields instead.
 
 ```typescript
+const subscriberId = 12345;
 const data = await client.getCustomFieldData(subscriberId);
 await client.createCustomFieldData(subscriberId, {
   groups: [{
