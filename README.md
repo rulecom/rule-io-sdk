@@ -74,7 +74,7 @@ Brand styles define the visual identity of your emails — logo, colors, fonts, 
 ```typescript
 // Easiest: auto-detect from your domain
 const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-const brandStyleId = fromDomain.data!.id;
+const brandStyleId = fromDomain.data!.id!;
 
 // Or create manually
 const manualBrand = await client.createBrandStyleManually({
@@ -375,9 +375,10 @@ Beyond the high-level helpers, the SDK provides direct access to all Rule.io API
 ```typescript
 const campaigns = await client.listCampaigns({ page: 1, per_page: 20 });
 const campaign = await client.createCampaign({ message_type: 1, sendout_type: 1, tags: [{ id: 42, negative: false }] });
-await client.updateCampaign(123, { name: 'Spring Sale', sendout_type: 1, tags: [], segments: [], subscribers: [] });
-await client.scheduleCampaign(123, { type: 'now' });
-await client.deleteCampaign(123);
+const campaignId = campaign.data!.id!;
+await client.updateCampaign(campaignId, { name: 'Spring Sale', sendout_type: 1, tags: [], segments: [], subscribers: [] });
+await client.scheduleCampaign(campaignId, { type: 'now' });
+await client.deleteCampaign(campaignId);
 ```
 
 Also: `getCampaign`, `copyCampaign`, scheduled sends (`type: 'schedule'`), and cancellation (`type: null`).
@@ -428,8 +429,8 @@ const template = await client.createTemplate({
 });
 const templateId = template.data!.id!;
 await client.updateTemplate(templateId, { message_id: 456, name: 'Updated', message_type: 'email', template: rcmlDocument });
+const html = await client.renderTemplate(templateId, { subscriber_id: 12345 });
 await client.deleteTemplate(templateId);
-const html = await client.renderTemplate(789, { subscriber_id: 12345 });
 ```
 
 Also: `getTemplate`.
