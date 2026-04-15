@@ -124,7 +124,7 @@ The SDK provides two high-level helpers that handle the full creation flow (camp
 const result = await client.createCampaignEmail({
   name: 'Spring Sale',
   subject: 'Spring deals are here!',
-  brandStyleId: 12345,
+  brandStyleId,
   tags: [{ id: 1, negative: false }],
 });
 
@@ -139,7 +139,7 @@ const result = await client.createAutomationEmail({
   triggerType: 'tag',
   triggerValue: 'order-confirmed',
   subject: 'Your order is confirmed!',
-  brandStyleId: 12345,
+  brandStyleId,
 });
 
 console.log(result.automationId, result.templateId);
