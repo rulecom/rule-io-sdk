@@ -53,7 +53,9 @@ Get your API key from [Rule.io Settings → API](https://app.rule.io/settings/ap
 ```typescript
 // Simple — just the API key
 const client = new RuleClient('your-api-key');
+```
 
+```typescript
 // With options
 const client = new RuleClient({
   apiKey: process.env.RULE_API_KEY!,
