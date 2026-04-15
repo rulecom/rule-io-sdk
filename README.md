@@ -21,10 +21,8 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 ## Installation
 
 ```bash
-npm install rule-io-sdk
+npm install github:rulecom/rule-io-sdk
 ```
-
-> Not on npm yet? Install from GitHub: `npm install github:rulecom/rule-io-sdk`
 
 ## Quick Start
 
@@ -405,9 +403,9 @@ Also: `getAutomation`.
 ### Messages
 
 ```typescript
-const messages = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
+const messages = await client.listMessages({ id: automationId, dispatcher_type: 'automail' });
 const message = await client.createMessage({
-  dispatcher: { id: 123, type: 'automail' },
+  dispatcher: { id: automationId, type: 'automail' },
   type: 1,
   subject: 'Welcome!',
 });
@@ -421,18 +419,20 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
-import type { RCMLDocument } from 'rule-io-sdk';
+import { createRCMLDocument, createCenteredSection, createText } from 'rule-io-sdk';
 
-const rcmlDocument = {} as RCMLDocument; // replace with your RCMLDocument (see Building Custom Templates)
+const rcmlDocument = createRCMLDocument({
+  sections: [createCenteredSection({ children: [createText('Hello!')] })],
+});
 const templates = await client.listTemplates({ page: 1, per_page: 10 });
 const template = await client.createTemplate({
-  message_id: 456,
+  message_id: messageId,
   name: `My Template ${Date.now()}`,
   message_type: 'email',
   template: rcmlDocument,
 });
 const templateId = template.data!.id!;
-await client.updateTemplate(templateId, { message_id: 456, name: 'Updated', message_type: 'email', template: rcmlDocument });
+await client.updateTemplate(templateId, { message_id: messageId, name: 'Updated', message_type: 'email', template: rcmlDocument });
 const html = await client.renderTemplate(templateId, { subscriber_id: 12345 });
 await client.deleteTemplate(templateId);
 ```
@@ -444,10 +444,10 @@ Also: `getTemplate`.
 Connect messages to templates:
 
 ```typescript
-const sets = await client.listDynamicSets({ message_id: 456 });
-const ds = await client.createDynamicSet({ message_id: 456, template_id: 789 });
+const sets = await client.listDynamicSets({ message_id: messageId });
+const ds = await client.createDynamicSet({ message_id: messageId, template_id: templateId });
 const dynamicSetId = ds.data!.id!;
-await client.updateDynamicSet(dynamicSetId, { message_id: 456, template_id: 790 });
+await client.updateDynamicSet(dynamicSetId, { message_id: messageId, template_id: templateId });
 await client.deleteDynamicSet(dynamicSetId);
 ```
 
@@ -508,11 +508,12 @@ await client.deleteAccount(account.data!.id!);
 
 ```typescript
 const styles = await client.listBrandStyles();
-const style = await client.getBrandStyle(123);
 const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
+const styleId = fromDomain.data!.id!;
+const style = await client.getBrandStyle(styleId);
 const manual = await client.createBrandStyleManually({ name: 'My Brand', colours: [/* ... */], fonts: [/* ... */] });
-await client.updateBrandStyle(123, { name: 'Updated Brand' });
-await client.deleteBrandStyle(123);
+await client.updateBrandStyle(styleId, { name: 'Updated Brand' });
+await client.deleteBrandStyle(styleId);
 ```
 
 ### API Keys
