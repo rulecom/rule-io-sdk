@@ -155,7 +155,7 @@ The SDK offers three levels of template building, from highest to lowest abstrac
 
 ### Pre-Built Templates
 
-Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings) — no hardcoded defaults.
+Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings). Some optional labels (e.g., line-item labels, footer link text) have English defaults — provide them explicitly for full localization control.
 
 **Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
 
@@ -419,7 +419,7 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
-const rcmlDocument = /* your RCMLDocument (see Building Custom Templates) */;
+const rcmlDocument = {} as RCMLDocument; // replace with your RCMLDocument (see Building Custom Templates)
 const templates = await client.listTemplates({ page: 1, per_page: 10 });
 const template = await client.createTemplate({
   message_id: 456,
