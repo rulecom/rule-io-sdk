@@ -21,7 +21,7 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 ## Installation
 
 ```bash
-npm install github:rulecom/rule-io-sdk
+npm install rule-io-sdk
 ```
 
 ## Quick Start
@@ -432,7 +432,7 @@ const template = await client.createTemplate({
   template: rcmlDocument,
 });
 const templateId = template.data!.id!;
-await client.updateTemplate(templateId, { message_id: messageId, name: 'Updated', message_type: 'email', template: rcmlDocument });
+await client.updateTemplate(templateId, { message_id: messageId, name: `My Template ${Date.now()}`, message_type: 'email', template: rcmlDocument });
 const html = await client.renderTemplate(templateId, { subscriber_id: 12345 });
 await client.deleteTemplate(templateId);
 ```
