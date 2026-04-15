@@ -279,7 +279,7 @@ Pre-configured integrations that bundle field names, tags, and automation flows 
 ### Shopify
 
 ```typescript
-import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from 'rule-io-sdk';
+import { shopifyPreset, SHOPIFY_FIELDS } from 'rule-io-sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -300,7 +300,7 @@ const single = shopifyPreset.getAutomation('shopify-order-confirmation', config)
 ### Bookzen (Hospitality)
 
 ```typescript
-import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from 'rule-io-sdk';
+import { bookzenPreset, BOOKZEN_FIELDS } from 'rule-io-sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -421,6 +421,8 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
+import type { RCMLDocument } from 'rule-io-sdk';
+
 const rcmlDocument = {} as RCMLDocument; // replace with your RCMLDocument (see Building Custom Templates)
 const templates = await client.listTemplates({ page: 1, per_page: 10 });
 const template = await client.createTemplate({
