@@ -30,3 +30,4 @@ scripts/.validate-rcml-ids.json
 
 # Claude Code
 .claude/
+CLAUDE.md
