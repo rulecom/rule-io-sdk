@@ -30,6 +30,18 @@ const ORDER_CONFIRMATION_TEXT = {
   shippingLabel: 'Shipping to',
   ctaButton: 'View Order',
   lineItemsHeading: 'Items Ordered',
+  itemQtyLabel: 'Qty: ',
+  itemUnitPriceLabel: 'Price: ',
+  itemSkuLabel: 'SKU: ',
+  heroHeadingPrefix: 'Order',
+  heroHeadingSuffix: 'confirmed',
+  orderDateLabel: 'Order date',
+  paymentMethodLabel: 'Payment',
+  subtotalLabel: 'Subtotal',
+  taxLabel: 'Tax',
+  discountLabel: 'Discount',
+  shippingCostLabel: 'Shipping',
+  shippingAddressHeading: 'Shipping to',
 } as const;
 
 /** Default English text for Shopify shipping update / receipt emails. */
@@ -48,6 +60,9 @@ const SHIPPING_UPDATE_TEXT = {
   taxLabel: 'Tax',
   totalLabel: 'Total',
   legalText: 'This email serves as your official receipt for this transaction.',
+  statusConfirmedLabel: 'Confirmed',
+  statusShippedLabel: 'Shipped',
+  statusDeliveredLabel: 'Delivered',
 } as const;
 
 /** Default English text for Shopify order cancellation emails. */
@@ -57,6 +72,7 @@ const ORDER_CANCELLATION_TEXT = {
   greeting: 'Hi',
   message: 'Your order has been cancelled. If you have any questions, please contact us.',
   orderRefLabel: 'Order',
+  orderDateLabel: 'Order date',
   followUp: 'We hope to see you again soon.',
   ctaButton: 'Visit Store',
 } as const;
@@ -68,6 +84,11 @@ const ABANDONED_CART_TEXT = {
   message: 'It looks like you left some items in your cart.',
   reminder: 'Complete your purchase before they sell out!',
   ctaButton: 'Return to Cart',
+  lineItemsHeading: 'Your Cart',
+  itemQtyLabel: 'Qty: ',
+  itemUnitPriceLabel: 'Price: ',
+  itemSkuLabel: 'SKU: ',
+  totalLabel: 'Total',
 } as const;
 
 /**
@@ -103,9 +124,34 @@ export function createShopifyAutomations(): VendorAutomation[] {
               itemName: SHOPIFY_FIELDS.itemName,
               itemQuantity: SHOPIFY_FIELDS.itemQuantity,
               itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+              itemSku: SHOPIFY_FIELDS.itemSku,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
+              orderDate: SHOPIFY_FIELDS.orderDate,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.gateway] !== undefined && {
+              paymentMethod: SHOPIFY_FIELDS.gateway,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.discount] !== undefined && {
+              discountAmount: SHOPIFY_FIELDS.discount,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalTax] !== undefined && {
+              taxAmount: SHOPIFY_FIELDS.totalTax,
             }),
             ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
               shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress2] !== undefined && {
+              shippingAddress2: SHOPIFY_FIELDS.shippingAddress2,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingCity] !== undefined && {
+              shippingCity: SHOPIFY_FIELDS.shippingCity,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingZip] !== undefined && {
+              shippingZip: SHOPIFY_FIELDS.shippingZip,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.shippingCountryCode] !== undefined && {
+              shippingCountryCode: SHOPIFY_FIELDS.shippingCountryCode,
             }),
           },
         }),
@@ -173,6 +219,9 @@ export function createShopifyAutomations(): VendorAutomation[] {
           fieldNames: {
             firstName: SHOPIFY_FIELDS.firstName,
             orderRef: SHOPIFY_FIELDS.orderNumber,
+            ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
+              orderDate: SHOPIFY_FIELDS.orderDate,
+            }),
           },
         }),
     },
@@ -196,6 +245,16 @@ export function createShopifyAutomations(): VendorAutomation[] {
           text: ABANDONED_CART_TEXT,
           fieldNames: {
             firstName: SHOPIFY_FIELDS.firstName,
+            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
+              items: SHOPIFY_FIELDS.products,
+              itemName: SHOPIFY_FIELDS.itemName,
+              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
+              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
+              itemSku: SHOPIFY_FIELDS.itemSku,
+            }),
+            ...(config.customFields[SHOPIFY_FIELDS.totalPrice] !== undefined && {
+              totalPrice: SHOPIFY_FIELDS.totalPrice,
+            }),
           },
         }),
     },

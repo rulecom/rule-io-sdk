@@ -1364,6 +1364,192 @@ describe('E-commerce Templates', () => {
       // Should have the items field as a single placeholder
       expect(json).toContain('200014'); // Products field ID
     });
+
+    it('renders the hero heading when prefix/suffix text supplied', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          heroHeadingPrefix: 'Order',
+          heroHeadingSuffix: 'confirmed',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+        },
+      });
+
+      const json = docToString(doc);
+      // Hero heading wraps orderRef placeholder with prefix/suffix text
+      expect(json).toContain('Order ');
+      expect(json).toContain(' confirmed');
+    });
+
+    it('renders a two-column meta row when orderDate label+field supplied', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          orderDateLabel: 'Order date',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          orderDate: 'Order.Date',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Order date');
+      expect(json).toContain('200004'); // Order.Date field ID
+    });
+
+    it('renders financial summary when any financial field is mapped', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          subtotalLabel: 'Subtotal',
+          taxLabel: 'Tax',
+          discountLabel: 'Discount',
+          shippingCostLabel: 'Shipping',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          subtotal: 'Order.Subtotal',
+          taxAmount: 'Order.TaxAmount',
+          discountAmount: 'Order.DiscountAmount',
+          shippingCost: 'Order.ShippingCost',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Subtotal: ');
+      expect(json).toContain('Tax: ');
+      expect(json).toContain('Discount: ');
+      expect(json).toContain('Shipping: ');
+      expect(json).toContain('200030'); // Order.Subtotal
+      expect(json).toContain('200033'); // Order.ShippingCost
+    });
+
+    it('renders address block when extended shipping fields are mapped', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          shippingAddressHeading: 'Shipping to',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          shippingAddress: 'Order.ShippingAddress1',
+          shippingCity: 'Order.ShippingCity',
+          shippingZip: 'Order.ShippingZip',
+          shippingCountryCode: 'Order.ShippingCountryCode',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Shipping to');
+      expect(json).toContain('200016'); // address1
+      expect(json).toContain('200018'); // city
+      expect(json).toContain('200019'); // zip
+      expect(json).toContain('200020'); // country
+    });
+
+    it('omits hero heading, meta row, financial summary and address block when not configured', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).not.toContain('Order date');
+      expect(json).not.toContain('Subtotal: ');
+      expect(json).not.toContain('Shipping to');
+    });
+
+    it('renders SKU loop row when itemSku sub-field is provided', () => {
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          itemSkuLabel: 'SKU: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemSku: 'sku',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('SKU: ');
+      expect(json).toContain('[LoopValue:sku]');
+    });
   });
 
   describe('createShippingUpdateEmail', () => {
@@ -1615,6 +1801,63 @@ describe('E-commerce Templates', () => {
       expect(json).not.toContain('Subtotal');
       expect(json).not.toContain('receipt');
     });
+
+    it('renders a 3-step status tracker when all three labels supplied', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped',
+          heading: 'On its way',
+          greeting: 'Hi',
+          message: 'shipped!',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          statusConfirmedLabel: 'Confirmed',
+          statusShippedLabel: 'Shipped',
+          statusDeliveredLabel: 'Delivered',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Confirmed');
+      expect(json).toContain('Shipped');
+      expect(json).toContain('Delivered');
+      // Active step (Shipped, activeIndex=1) uses the button color as background
+      expect(json).toContain('#0066CC');
+    });
+
+    it('omits the status tracker when any step label is missing', () => {
+      const doc = createShippingUpdateEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        trackingUrl: 'https://track.example.com',
+        text: {
+          preheader: 'Shipped',
+          heading: 'On its way',
+          greeting: 'Hi',
+          message: 'shipped!',
+          orderRefLabel: 'Order',
+          ctaButton: 'Track',
+          // Only two of three labels supplied — tracker should NOT render
+          statusConfirmedLabel: 'Confirmed',
+          statusShippedLabel: 'Shipped',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).not.toContain('Confirmed');
+      expect(json).not.toContain('Delivered');
+    });
   });
 
   describe('createAbandonedCartEmail', () => {
@@ -1640,6 +1883,110 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('Return to Cart');
       expect(json).toContain('https://shop.example.com/cart');
       expect(json).toContain('left some items');
+    });
+
+    it('renders cart line items loop when items + itemName are mapped', () => {
+      const doc = createAbandonedCartEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        cartUrl: 'https://shop.example.com/cart',
+        text: {
+          preheader: 'Cart waiting',
+          greeting: 'Hi',
+          message: 'Your cart is waiting.',
+          reminder: 'Hurry!',
+          ctaButton: 'Checkout',
+          lineItemsHeading: 'Your Cart',
+          itemQtyLabel: 'Qty: ',
+          itemSkuLabel: 'SKU: ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          items: 'Order.Products',
+          itemName: 'name',
+          itemQuantity: 'quantity',
+          itemSku: 'sku',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('rc-loop');
+      expect(json).toContain('Your Cart');
+      expect(json).toContain('[LoopValue:name]');
+      expect(json).toContain('[LoopValue:quantity]');
+      expect(json).toContain('[LoopValue:sku]');
+    });
+
+    it('renders cart total when totalLabel + totalPrice supplied', () => {
+      const doc = createAbandonedCartEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        cartUrl: 'https://shop.example.com/cart',
+        text: {
+          preheader: 'Cart',
+          greeting: 'Hi',
+          message: 'You left items.',
+          reminder: 'Back soon!',
+          ctaButton: 'Cart',
+          totalLabel: 'Total',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          totalPrice: 'Order.TotalPrice',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Total: ');
+      expect(json).toContain('200005'); // Order.TotalPrice
+    });
+
+    it('renders social icons when brandStyle.socialLinks is provided', () => {
+      const doc = createAbandonedCartEmail({
+        brandStyle: {
+          ...TEST_BRAND_STYLE,
+          socialLinks: [
+            { name: 'facebook', href: 'https://facebook.com/shop' },
+            { name: 'instagram', href: 'https://instagram.com/shop' },
+          ],
+        },
+        customFields: TEST_CUSTOM_FIELDS,
+        cartUrl: 'https://shop.example.com/cart',
+        text: {
+          preheader: 'Cart',
+          greeting: 'Hi',
+          message: 'You left items.',
+          reminder: 'Back soon!',
+          ctaButton: 'Cart',
+        },
+        fieldNames: { firstName: 'Subscriber.FirstName' },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('rc-social');
+      expect(json).toContain('facebook');
+      expect(json).toContain('instagram');
+    });
+
+    it('omits line items, total row and social section when not configured', () => {
+      const doc = createAbandonedCartEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        cartUrl: 'https://shop.example.com/cart',
+        text: {
+          preheader: 'Cart',
+          greeting: 'Hi',
+          message: 'Come back!',
+          reminder: 'Soon!',
+          ctaButton: 'Cart',
+        },
+        fieldNames: { firstName: 'Subscriber.FirstName' },
+      });
+
+      const json = docToString(doc);
+      expect(json).not.toContain('rc-loop');
+      expect(json).not.toContain('rc-social');
+      expect(json).not.toContain('Total: ');
     });
   });
 
@@ -1669,6 +2016,85 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('Order Cancelled');
       expect(json).toContain('Shop Again');
       expect(json).toContain('200003'); // Order.Number field ID
+    });
+
+    it('renders order date when orderDate field + label supplied', () => {
+      const doc = createOrderCancellationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Cancelled',
+          heading: 'Order Cancelled',
+          greeting: 'Hi',
+          message: 'Cancelled as requested.',
+          orderRefLabel: 'Order',
+          orderDateLabel: 'Order date',
+          followUp: 'Sorry!',
+          ctaButton: 'Shop',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          orderDate: 'Order.Date',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Order date');
+      expect(json).toContain('200004'); // Order.Date
+    });
+
+    it('renders support callout with email link when supportEmail supplied', () => {
+      const doc = createOrderCancellationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Cancelled',
+          heading: 'Order Cancelled',
+          greeting: 'Hi',
+          message: 'Cancelled.',
+          orderRefLabel: 'Order',
+          followUp: 'Bye.',
+          ctaButton: 'Shop',
+          supportText: 'Need help?',
+          supportEmail: 'help@shop.example.com',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).toContain('Need help?');
+      expect(json).toContain('mailto:help@shop.example.com');
+    });
+
+    it('omits the support callout when supportText is not supplied', () => {
+      const doc = createOrderCancellationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Cancelled',
+          heading: 'Order Cancelled',
+          greeting: 'Hi',
+          message: 'Cancelled.',
+          orderRefLabel: 'Order',
+          followUp: 'Bye.',
+          ctaButton: 'Shop',
+          supportEmail: 'help@shop.example.com',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+        },
+      });
+
+      const json = docToString(doc);
+      expect(json).not.toContain('mailto:help@shop.example.com');
     });
   });
 });

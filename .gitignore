@@ -28,6 +28,9 @@ npm-debug.log*
 # Validation script state
 scripts/.validate-rcml-ids.json
 
+# Cloned email snapshots (may contain prod content)
+email-snapshots/
+
 # Claude Code
 .claude/
 CLAUDE.md

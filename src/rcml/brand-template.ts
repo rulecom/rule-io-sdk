@@ -29,7 +29,7 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
+import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumn, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from '../types';
 import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
@@ -973,4 +973,207 @@ export function createCtaSection(buttonText: string, url: string): RCMLBodyChild
     ],
     { padding: '20px 0' }
   );
+}
+
+// ============================================================================
+// Generic Reusable Section Helpers
+// ============================================================================
+
+/**
+ * Wrap a list of optional brand-text rows in a content section.
+ *
+ * `undefined` entries are filtered out so callers can conditionally build rows
+ * without needing to filter(Boolean) at the call site. Returns `undefined`
+ * when no rows remain, so callers can push the result with `??`-chaining or
+ * a simple truthy check.
+ *
+ * @example
+ * ```typescript
+ * const section = createSummaryRowsSection(
+ *   [
+ *     customFields['Order.Subtotal'] && createBrandText(...),
+ *     createBrandText(...),
+ *   ],
+ *   { backgroundColor: brandStyle.brandColor, padding: '20px 0' }
+ * );
+ * if (section) sections.push(section);
+ * ```
+ */
+export function createSummaryRowsSection(
+  rows: Array<RCMLText | undefined | false | null>,
+  options?: { backgroundColor?: string; padding?: string }
+): RCMLBodyChild | undefined {
+  const filtered = rows.filter((r): r is RCMLText => !!r);
+  if (filtered.length === 0) return undefined;
+  return createContentSection(filtered, {
+    padding: options?.padding ?? '20px 0',
+    ...(options?.backgroundColor && { backgroundColor: options.backgroundColor }),
+  });
+}
+
+/**
+ * A single step in a {@link createStatusTrackerSection} tracker.
+ */
+export interface StatusTrackerStep {
+  /** Label shown inside the step column (e.g. "Confirmed", "Shipped") */
+  label: string;
+}
+
+export interface CreateStatusTrackerSectionOptions {
+  /** Ordered list of steps. Typically 2-4 entries. */
+  steps: StatusTrackerStep[];
+  /**
+   * Zero-based index of the currently-active step. Steps at or below
+   * `activeIndex` are highlighted with the brand button color; later steps
+   * use the neutral brand color.
+   */
+  activeIndex: number;
+  /** Brand style config — drives active/inactive colors. */
+  brandStyle: BrandStyleConfig;
+  /** Section padding (default: '10px 0'). */
+  padding?: string;
+}
+
+/**
+ * Create a horizontal multi-column status tracker.
+ *
+ * Each step renders as an equal-width column with centered label text. Steps
+ * up to and including `activeIndex` are filled with the brand's button color
+ * (typically the accent); subsequent steps use the neutral brand color.
+ *
+ * @example
+ * ```typescript
+ * createStatusTrackerSection({
+ *   steps: [{ label: 'Confirmed' }, { label: 'Shipped' }, { label: 'Delivered' }],
+ *   activeIndex: 1,
+ *   brandStyle,
+ * });
+ * ```
+ */
+export function createStatusTrackerSection(
+  options: CreateStatusTrackerSectionOptions
+): RCMLBodyChild {
+  const { steps, activeIndex, brandStyle } = options;
+  if (steps.length === 0) {
+    throw new RuleConfigError('createStatusTrackerSection: steps must not be empty');
+  }
+
+  const widthPercent = `${Math.floor(100 / steps.length)}%`;
+  const inactiveBg = brandStyle.brandColor;
+  const activeBg = brandStyle.buttonColor;
+  const activeFg = brandStyle.buttonTextColor ?? '#FFFFFF';
+  const inactiveFg = brandStyle.textColor;
+
+  const columns: RCMLColumn[] = steps.map((step, idx) => {
+    const isActive = idx <= activeIndex;
+    const bg = isActive ? activeBg : inactiveBg;
+    const fg = isActive ? activeFg : inactiveFg;
+    return {
+      tagName: 'rc-column',
+      id: generateId(),
+      attributes: {
+        width: widthPercent,
+        'background-color': bg,
+        padding: '14px 8px',
+        'vertical-align': 'middle',
+      },
+      children: [
+        {
+          tagName: 'rc-text',
+          id: generateId(),
+          attributes: {
+            align: 'center',
+            'rc-class': 'rcml-p-style',
+          },
+          content: {
+            type: 'doc',
+            content: [
+              {
+                type: 'paragraph',
+                content: [
+                  {
+                    type: 'text',
+                    text: step.label,
+                    marks: [
+                      {
+                        type: 'font',
+                        attrs: { color: fg, 'font-weight': '700' },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    };
+  });
+
+  return {
+    tagName: 'rc-section',
+    id: generateId(),
+    attributes: {
+      padding: options.padding ?? '10px 0',
+    },
+    children: columns,
+  };
+}
+
+export interface CreateAddressBlockOptions {
+  /** Pre-built ProseMirror docs — one per visible line. */
+  lines: RCMLProseMirrorDoc[];
+  /** Optional heading rendered above the lines (level 4). */
+  heading?: string;
+  /** Section padding (default: '10px 0'). */
+  padding?: string;
+  /** Section background color override. */
+  backgroundColor?: string;
+}
+
+/**
+ * Create a stacked address / multi-line detail block.
+ *
+ * Callers assemble the visible lines as ProseMirror docs (mixing text and
+ * placeholders) and pass them in — the helper wraps them in brand-styled
+ * text rows plus an optional heading. Returns `undefined` when `lines` is
+ * empty so consumers can skip the push without extra branching.
+ *
+ * @example
+ * ```typescript
+ * const shipping = createAddressBlock({
+ *   heading: 'Shipping to',
+ *   lines: [
+ *     createDocWithPlaceholders([createPlaceholder('Order.ShippingAddress1', id1)]),
+ *     createDocWithPlaceholders([
+ *       createPlaceholder('Order.ShippingCity', id2),
+ *       createTextNode(', '),
+ *       createPlaceholder('Order.ShippingZip', id3),
+ *     ]),
+ *   ],
+ * });
+ * if (shipping) sections.push(shipping);
+ * ```
+ */
+export function createAddressBlock(
+  options: CreateAddressBlockOptions
+): RCMLBodyChild | undefined {
+  if (options.lines.length === 0) return undefined;
+
+  const children: RCMLColumnChild[] = [];
+  if (options.heading) {
+    children.push(
+      createBrandHeading(
+        createDocWithPlaceholders([createTextNode(options.heading)]),
+        4
+      )
+    );
+  }
+  for (const doc of options.lines) {
+    children.push(createBrandText(doc));
+  }
+  return createContentSection(children, {
+    padding: options.padding ?? '10px 0',
+    ...(options.backgroundColor && { backgroundColor: options.backgroundColor }),
+  });
 }
