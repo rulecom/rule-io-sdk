@@ -229,31 +229,27 @@ async function runSend(): Promise<void> {
   ];
 
   try {
-    // 3. Create message — include utm + sender + automail_setting via extra fields
+    // 3. Create message — only fields supported by RuleMessageCreateRequest.
+    // UTM + sender belong on the dynamic set and are applied after step 5.
     const sender = (srcMessage.sender as {
       name?: string | null;
       email?: string | null;
     } | null) ?? null;
-    const messageBody: Record<string, unknown> = {
+    console.log('Creating message...');
+    const messageResp = await client.createMessage({
       dispatcher: { id: automailId, type: 'automail' },
       type: 1,
       subject: srcMessage.subject as string,
       preheader: (srcMessage.pre_header as string | null) ?? undefined,
       from_name: sender?.name ?? undefined,
       from_email: sender?.email ?? undefined,
-      utm_campaign: (srcMessage.utm_campaign as string | null) ?? undefined,
-      utm_term: (srcMessage.utm_term as string | null) ?? undefined,
       automail_setting: {
         active: true,
         delay_in_seconds: String(
           (srcMessage.automail_setting as { delay?: number } | undefined)?.delay ?? 0
         ),
       },
-    };
-    console.log('Creating message...');
-    const messageResp = await client.createMessage(
-      messageBody as unknown as Parameters<typeof client.createMessage>[0]
-    );
+    });
     const messageId = messageResp.data?.id;
     if (!messageId) throw new Error('Message create: no id returned');
     console.log(`  message id: ${messageId}`);
@@ -283,7 +279,21 @@ async function runSend(): Promise<void> {
     if (!dynamicSetId) throw new Error('Dynamic set create: no id returned');
     console.log(`  dynamic set id: ${dynamicSetId}`);
 
-    // 6. Optionally activate
+    // 6. Mirror dynamic-set metadata (UTM fields) from the source.
+    // These fields belong on the dynamic set, not the message.
+    const utmCampaign = (srcMessage.utm_campaign as string | null) ?? undefined;
+    const utmTerm = (srcMessage.utm_term as string | null) ?? undefined;
+    if (utmCampaign !== undefined || utmTerm !== undefined) {
+      console.log('Applying dynamic-set metadata (utm_campaign/utm_term)...');
+      await client.updateDynamicSet(dynamicSetId, {
+        message_id: messageId,
+        template_id: templateId,
+        utm_campaign: utmCampaign,
+        utm_term: utmTerm,
+      });
+    }
+
+    // 7. Optionally activate
     if (activate) {
       console.log('Activating automail...');
       await client.updateAutomation(automailId, {
