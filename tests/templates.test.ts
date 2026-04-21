@@ -852,6 +852,21 @@ describe('validateCustomFields', () => {
       )
     ).not.toThrow();
   });
+
+  it('should omit template prefix when templateName is not provided', () => {
+    const customFields: CustomFieldMap = {};
+    expect(() =>
+      validateCustomFields(customFields, { orderRef: 'Order.Ref' })
+    ).toThrow('missing customFields entry for fieldNames.orderRef ("Order.Ref")');
+    // Assert the prefix is absent — withTemplateContext callers rely on this
+    // so their wrapper's prefix is the only one in the final message.
+    try {
+      validateCustomFields(customFields, { orderRef: 'Order.Ref' });
+    } catch (error) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+      expect((error as RuleConfigError).message).not.toMatch(/^[A-Za-z]+:/);
+    }
+  });
 });
 
 // ============================================================================
@@ -1672,6 +1687,42 @@ describe('E-commerce Templates', () => {
           },
         })
       ).toThrow(RuleConfigError);
+    });
+
+    it('does not duplicate the template name prefix in validation errors', () => {
+      // Regression: validateCustomFields used to prepend templateName itself,
+      // and withTemplateContext also prepends it — producing
+      // "createOrderConfirmationEmail > createOrderConfirmationEmail: missing …".
+      // The prefix must appear exactly once.
+      try {
+        createOrderConfirmationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Confirmed',
+            greeting: 'Hi',
+            intro: 'Thanks!',
+            detailsHeading: 'Order Summary',
+            orderRefLabel: 'Order',
+            totalLabel: 'Total',
+            ctaButton: 'View',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.MissingOrderRef',
+            totalPrice: 'Order.TotalPrice',
+          },
+        });
+        throw new Error('expected throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleConfigError);
+        const msg = (error as RuleConfigError).message;
+        expect(msg).toBe(
+          'createOrderConfirmationEmail > missing customFields entry for fieldNames.orderRef ("Order.MissingOrderRef")'
+        );
+        expect(msg.split('createOrderConfirmationEmail').length - 1).toBe(1);
+      }
     });
   });
 
@@ -2496,6 +2547,55 @@ describe('E-commerce Templates', () => {
           },
         })
       ).not.toThrow();
+    });
+
+    it('does not require totalPrice to be mapped in customFields when totalLabel is not supplied', () => {
+      // Regression: totalPrice used to be validated unconditionally via the
+      // destructured `regularFields` split. Without `text.totalLabel` the
+      // total row never renders, so an unmapped totalPrice must not throw.
+      expect(() =>
+        createAbandonedCartEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          cartUrl: 'https://shop.example.com/cart',
+          text: {
+            preheader: 'Cart',
+            greeting: 'Hi',
+            message: 'You left items.',
+            reminder: 'Hurry!',
+            ctaButton: 'Cart',
+            // totalLabel intentionally omitted → total row won't render.
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            totalPrice: 'Order.UnmappedTotal', // not in customFields
+          },
+        })
+      ).not.toThrow();
+    });
+
+    it('throws when totalPrice is mapped and totalLabel is set but customFields entry is missing', () => {
+      // Rejection test: when both partners are set, the total row WILL render,
+      // so validation must surface the missing customFields entry.
+      expect(() =>
+        createAbandonedCartEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          cartUrl: 'https://shop.example.com/cart',
+          text: {
+            preheader: 'Cart',
+            greeting: 'Hi',
+            message: 'You left items.',
+            reminder: 'Hurry!',
+            ctaButton: 'Cart',
+            totalLabel: 'Total',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            totalPrice: 'Order.UnmappedTotal',
+          },
+        })
+      ).toThrow(RuleConfigError);
     });
   });
 });

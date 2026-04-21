@@ -97,16 +97,23 @@ export interface CustomFieldMap {
 /**
  * Validate that all required field names have corresponding entries in the custom fields map.
  * Throws `RuleConfigError` if any required field is missing.
+ *
+ * `templateName` is optional. Omit it when calling from inside `withTemplateContext`
+ * — the wrapper already prefixes the template name, so passing it here would
+ * duplicate the prefix (e.g. "createFoo > createFoo: missing …"). Pass it when
+ * validating outside a template-context wrapper so the error still identifies
+ * the caller.
  */
 export function validateCustomFields(
   customFields: CustomFieldMap,
   fieldNames: Record<string, string | undefined>,
-  templateName: string
+  templateName?: string
 ): void {
   for (const [key, fieldName] of Object.entries(fieldNames)) {
     if (fieldName !== undefined && customFields[fieldName] === undefined) {
+      const prefix = templateName ? `${templateName}: ` : '';
       throw new RuleConfigError(
-        `${templateName}: missing customFields entry for fieldNames.${key} ("${fieldName}")`
+        `${prefix}missing customFields entry for fieldNames.${key} ("${fieldName}")`
       );
     }
   }

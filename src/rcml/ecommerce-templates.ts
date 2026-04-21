@@ -189,8 +189,8 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     );
     if (hasExtendedAddress && !fieldNames.shippingAddress) {
       throw new RuleConfigError(
-        `${templateName}: fieldNames.shippingAddress is required when any of ` +
-          `shippingAddress2, shippingCity, shippingZip, or shippingCountryCode is provided`
+        'fieldNames.shippingAddress is required when any of ' +
+          'shippingAddress2, shippingCity, shippingZip, or shippingCountryCode is provided'
       );
     }
     // Key off fieldName + label pairs so a mapped field with no label doesn't
@@ -234,7 +234,8 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     if (fieldNames.discountAmount && text.discountLabel) fieldsToValidate.discountAmount = fieldNames.discountAmount;
     if (fieldNames.taxAmount && text.taxLabel) fieldsToValidate.taxAmount = fieldNames.taxAmount;
     if (fieldNames.shippingCost && text.shippingCostLabel) fieldsToValidate.shippingCost = fieldNames.shippingCost;
-    validateCustomFields(customFields, fieldsToValidate, templateName);
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
 
     const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
       ...createLogoSection(brandStyle.logoUrl),
@@ -654,7 +655,8 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
     if (fieldNames.customerFullName) fieldsToValidate.customerFullName = fieldNames.customerFullName;
     // Line items loop renders when both items + itemName are mapped.
     if (fieldNames.items && fieldNames.itemName) fieldsToValidate.items = fieldNames.items;
-    validateCustomFields(customFields, fieldsToValidate, templateName);
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
 
     /** Helper to create a detail row from an optional field + label pair. */
     const detailRow = (label: string | undefined, fieldName: string | undefined) => {
@@ -974,27 +976,26 @@ export interface AbandonedCartConfig {
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
   const templateName = 'createAbandonedCartEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them.
-  // `items` is also excluded here and validated below only when the loop will actually render,
-  // so mapping `items` without `itemName` doesn't produce a misleading missing-field error.
-  const {
-    itemName: _itemName,
-    itemQuantity: _itemQuantity,
-    itemUnitPrice: _itemUnitPrice,
-    itemSku: _itemSku,
-    items: _items,
-    ...regularFields
-  } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
     const { brandStyle, customFields, fieldNames, text } = config;
 
     const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
-    if (hasLineItemLoop && fieldNames.items) {
-      validateCustomFields(config.customFields, { items: fieldNames.items }, templateName);
-    }
     const hasTotalRow = !!(text.totalLabel && fieldNames.totalPrice);
+
+    // Only validate fields that will actually be rendered. Loop sub-fields
+    // (itemName/Quantity/UnitPrice/Sku) are JSON key names in the loop body,
+    // not custom field paths — never validated here. `items` is validated only
+    // when the loop will render, and `totalPrice` only when the total row
+    // will render, so mapping either without its render partner does not
+    // produce a misleading missing-field error.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+    };
+    if (hasLineItemLoop && fieldNames.items) fieldsToValidate.items = fieldNames.items;
+    if (hasTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
     const socialLinks = brandStyle.socialLinks ?? [];
     const socialElements = socialLinks
       .map((link) => {
@@ -1179,7 +1180,8 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     if (text.orderDateLabel && fieldNames.orderDate) {
       fieldsToValidate.orderDate = fieldNames.orderDate;
     }
-    validateCustomFields(customFields, fieldsToValidate, templateName);
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
 
     const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
       ...createLogoSection(brandStyle.logoUrl),
