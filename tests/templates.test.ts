@@ -2689,6 +2689,16 @@ describe('barrel exports', () => {
     const topBarrel = await import('../src/index');
     expect(topBarrel.validateCustomFields).toBe(validateCustomFields);
   });
+
+  it('should export the new section helpers from the top-level barrel', async () => {
+    // Regression: the package.json `exports` field only exposes `.`, so any
+    // helper re-exported from `src/rcml/index.ts` but not from `src/index.ts`
+    // is unreachable by external consumers.
+    const topBarrel = await import('../src/index');
+    expect(typeof topBarrel.createSummaryRowsSection).toBe('function');
+    expect(typeof topBarrel.createStatusTrackerSection).toBe('function');
+    expect(typeof topBarrel.createAddressBlock).toBe('function');
+  });
 });
 
 // ============================================================================
