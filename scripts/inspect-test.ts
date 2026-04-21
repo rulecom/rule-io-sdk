@@ -32,7 +32,12 @@ function loadEnv(): void {
 
 async function main(): Promise<void> {
   loadEnv();
-  const apiKey = process.env.RULE_API_KEY!;
+  const apiKey = process.env.RULE_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      'Missing RULE_API_KEY environment variable. Set it in your shell or .env before running scripts/inspect-test.ts.'
+    );
+  }
   const client = new RuleClient({ apiKey });
 
   console.log('=== Brand styles ===');

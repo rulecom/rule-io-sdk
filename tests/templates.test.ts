@@ -2151,6 +2151,79 @@ describe('E-commerce Templates', () => {
       const json = docToString(doc);
       expect(json).not.toContain('mailto:help@shop.example.com');
     });
+
+    it('rejects support emails containing whitespace or control characters', () => {
+      expect(() =>
+        createOrderCancellationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Cancelled',
+            heading: 'Order Cancelled',
+            greeting: 'Hi',
+            message: 'Cancelled.',
+            orderRefLabel: 'Order',
+            followUp: 'Bye.',
+            ctaButton: 'Shop',
+            supportText: 'Need help?',
+            supportEmail: 'help@shop.example.com\r\nBcc: attacker@evil.com',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+          },
+        })
+      ).toThrow(RuleConfigError);
+
+      expect(() =>
+        createOrderCancellationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Cancelled',
+            heading: 'Order Cancelled',
+            greeting: 'Hi',
+            message: 'Cancelled.',
+            orderRefLabel: 'Order',
+            followUp: 'Bye.',
+            ctaButton: 'Shop',
+            supportText: 'Need help?',
+            supportEmail: 'not-an-email',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+          },
+        })
+      ).toThrow(RuleConfigError);
+    });
+  });
+
+  describe('createAbandonedCartEmail — items/itemName validation', () => {
+    it('does not require items to be mapped in customFields when itemName is not supplied', () => {
+      // items mapped but itemName not supplied — loop will not render, so items
+      // should not trigger a missing-field validation error.
+      expect(() =>
+        createAbandonedCartEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          cartUrl: 'https://shop.example.com/cart',
+          text: {
+            preheader: 'Cart',
+            greeting: 'Hi',
+            message: 'You left items.',
+            reminder: 'Hurry!',
+            ctaButton: 'Cart',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            items: 'Order.UnmappedItems', // not in customFields — no error expected
+          },
+        })
+      ).not.toThrow();
+    });
   });
 });
 

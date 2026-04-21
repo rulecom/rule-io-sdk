@@ -39,6 +39,7 @@ import {
   withTemplateContext,
 } from './brand-template';
 import { createDivider, createSocial, createSocialElement, createTwoColumnSection } from './elements';
+import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
@@ -907,14 +908,26 @@ export interface AbandonedCartConfig {
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
   const templateName = 'createAbandonedCartEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemSku: _itemSku, ...regularFields } = config.fieldNames;
+  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them.
+  // `items` is also excluded here and validated below only when the loop will actually render,
+  // so mapping `items` without `itemName` doesn't produce a misleading missing-field error.
+  const {
+    itemName: _itemName,
+    itemQuantity: _itemQuantity,
+    itemUnitPrice: _itemUnitPrice,
+    itemSku: _itemSku,
+    items: _items,
+    ...regularFields
+  } = config.fieldNames;
   validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
     const { brandStyle, customFields, fieldNames, text } = config;
 
     const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
+    if (hasLineItemLoop && fieldNames.items) {
+      validateCustomFields(config.customFields, { items: fieldNames.items }, templateName);
+    }
     const hasTotalRow = !!(text.totalLabel && fieldNames.totalPrice);
     const socialLinks = brandStyle.socialLinks ?? [];
     const socialElements = socialLinks
@@ -942,6 +955,10 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
           ),
           createBrandText(
             createDocWithPlaceholders([createTextNode(text.message)]),
+            { align: 'center' }
+          ),
+          createBrandText(
+            createDocWithPlaceholders([createTextNode(text.reminder)]),
             { align: 'center' }
           ),
         ],
@@ -1020,19 +1037,6 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
       );
       if (totalSection) sections.push(totalSection);
     }
-
-    // Reminder (urgency) — always rendered
-    sections.push(
-      createContentSection(
-        [
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.reminder)]),
-            { align: 'center' }
-          ),
-        ],
-        { padding: '10px 0' }
-      )
-    );
 
     sections.push(createCtaSection(text.ctaButton, config.cartUrl));
 
@@ -1157,7 +1161,14 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
         supportLinkHref = safeSupportUrl;
         supportLinkText = text.supportUrl;
       } else if (text.supportEmail) {
-        supportLinkHref = `mailto:${text.supportEmail}`;
+        // Reject whitespace, control characters, or obviously malformed addresses
+        // so malformed input fails fast instead of producing broken RCML links.
+        if (!/^[^\s\x00-\x1F\x7F]+@[^\s\x00-\x1F\x7F]+$/.test(text.supportEmail)) {
+          throw new RuleConfigError(
+            `createOrderCancellationEmail: supportEmail "${text.supportEmail}" is not a valid email address`
+          );
+        }
+        supportLinkHref = `mailto:${encodeURI(text.supportEmail)}`;
         supportLinkText = text.supportEmail;
       }
       const supportChildren: RCMLText[] = [
