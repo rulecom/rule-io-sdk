@@ -9,12 +9,13 @@
  *     --snapshot=email-snapshots/automail-29150.json \
  *     --tag=OrderCompleted
  *
- * `fetch` reads .env automatically only for RULE_API_KEY (ignored when
- * --api-key is passed). `send` uses RULE_API_KEY from .env.
+ * The script loads key/value pairs from .env into process.env when present.
+ * `fetch` uses RULE_API_KEY from the environment unless --api-key is passed.
+ * `send` uses RULE_API_KEY from the environment.
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RuleClient } from '../src';
 import type {
@@ -173,7 +174,7 @@ async function runSend(): Promise<void> {
   if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
   if (!snapshotPath) throw new Error('Missing --snapshot=<path>');
 
-  const absPath = snapshotPath.startsWith('/')
+  const absPath = isAbsolute(snapshotPath)
     ? snapshotPath
     : join(ROOT, snapshotPath);
   if (!existsSync(absPath)) throw new Error(`Snapshot not found: ${absPath}`);
