@@ -138,20 +138,23 @@ export function createShopifyAutomations(): VendorAutomation[] {
             ...(config.customFields[SHOPIFY_FIELDS.totalTax] !== undefined && {
               taxAmount: SHOPIFY_FIELDS.totalTax,
             }),
+            // Extended address fields are only meaningful alongside the base
+            // shippingAddress line — nest them so they never land in the
+            // template without it.
             ...(config.customFields[SHOPIFY_FIELDS.shippingAddress1] !== undefined && {
               shippingAddress: SHOPIFY_FIELDS.shippingAddress1,
-            }),
-            ...(config.customFields[SHOPIFY_FIELDS.shippingAddress2] !== undefined && {
-              shippingAddress2: SHOPIFY_FIELDS.shippingAddress2,
-            }),
-            ...(config.customFields[SHOPIFY_FIELDS.shippingCity] !== undefined && {
-              shippingCity: SHOPIFY_FIELDS.shippingCity,
-            }),
-            ...(config.customFields[SHOPIFY_FIELDS.shippingZip] !== undefined && {
-              shippingZip: SHOPIFY_FIELDS.shippingZip,
-            }),
-            ...(config.customFields[SHOPIFY_FIELDS.shippingCountryCode] !== undefined && {
-              shippingCountryCode: SHOPIFY_FIELDS.shippingCountryCode,
+              ...(config.customFields[SHOPIFY_FIELDS.shippingAddress2] !== undefined && {
+                shippingAddress2: SHOPIFY_FIELDS.shippingAddress2,
+              }),
+              ...(config.customFields[SHOPIFY_FIELDS.shippingCity] !== undefined && {
+                shippingCity: SHOPIFY_FIELDS.shippingCity,
+              }),
+              ...(config.customFields[SHOPIFY_FIELDS.shippingZip] !== undefined && {
+                shippingZip: SHOPIFY_FIELDS.shippingZip,
+              }),
+              ...(config.customFields[SHOPIFY_FIELDS.shippingCountryCode] !== undefined && {
+                shippingCountryCode: SHOPIFY_FIELDS.shippingCountryCode,
+              }),
             }),
           },
         }),
