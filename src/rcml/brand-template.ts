@@ -1057,14 +1057,28 @@ export function createStatusTrackerSection(
   if (steps.length === 0) {
     throw new RuleConfigError('createStatusTrackerSection: steps must not be empty');
   }
+  if (steps.length > 4) {
+    throw new RuleConfigError(
+      'createStatusTrackerSection: steps must contain at most 4 items (RCMLSection supports up to 4 columns)'
+    );
+  }
+  if (activeIndex < 0 || activeIndex >= steps.length) {
+    throw new RuleConfigError(
+      `createStatusTrackerSection: activeIndex ${activeIndex} is out of range [0, ${steps.length - 1}]`
+    );
+  }
 
-  const widthPercent = `${Math.floor(100 / steps.length)}%`;
+  // Distribute width so columns sum to 100%. Math.floor alone would yield
+  // 99% for 3 steps; we give the rounding remainder to the first column.
+  const baseWidth = Math.floor(100 / steps.length);
+  const remainder = 100 - baseWidth * steps.length;
   const inactiveBg = brandStyle.brandColor;
   const activeBg = brandStyle.buttonColor;
   const activeFg = brandStyle.buttonTextColor ?? '#FFFFFF';
   const inactiveFg = brandStyle.textColor;
 
   const columns: RCMLColumn[] = steps.map((step, idx) => {
+    const widthPercent = `${baseWidth + (idx === 0 ? remainder : 0)}%`;
     const isActive = idx <= activeIndex;
     const bg = isActive ? activeBg : inactiveBg;
     const fg = isActive ? activeFg : inactiveFg;

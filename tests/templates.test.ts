@@ -8,7 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
-import { validateCustomFields, toBrandStyleConfig, withTemplateContext } from '../src/rcml/brand-template';
+import { validateCustomFields, toBrandStyleConfig, withTemplateContext, createStatusTrackerSection } from '../src/rcml/brand-template';
 import {
   // Brand template utilities
   createBrandTemplate,
@@ -1830,6 +1830,61 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('Delivered');
       // Active step (Shipped, activeIndex=1) uses the button color as background
       expect(json).toContain('#0066CC');
+    });
+
+    it('rejects status trackers with more than 4 steps', () => {
+      expect(() =>
+        createStatusTrackerSection({
+          steps: [
+            { label: 'a' },
+            { label: 'b' },
+            { label: 'c' },
+            { label: 'd' },
+            { label: 'e' },
+          ],
+          activeIndex: 0,
+          brandStyle: TEST_BRAND_STYLE,
+        })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('rejects status trackers with activeIndex out of range', () => {
+      expect(() =>
+        createStatusTrackerSection({
+          steps: [{ label: 'a' }, { label: 'b' }],
+          activeIndex: 5,
+          brandStyle: TEST_BRAND_STYLE,
+        })
+      ).toThrow(RuleConfigError);
+      expect(() =>
+        createStatusTrackerSection({
+          steps: [{ label: 'a' }, { label: 'b' }],
+          activeIndex: -1,
+          brandStyle: TEST_BRAND_STYLE,
+        })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('rejects empty step lists', () => {
+      expect(() =>
+        createStatusTrackerSection({
+          steps: [],
+          activeIndex: 0,
+          brandStyle: TEST_BRAND_STYLE,
+        })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('distributes rounding remainder so column widths sum to 100%', () => {
+      const section = createStatusTrackerSection({
+        steps: [{ label: 'a' }, { label: 'b' }, { label: 'c' }],
+        activeIndex: 0,
+        brandStyle: TEST_BRAND_STYLE,
+      });
+      const widths = (section as { children: { attributes: { width: string } }[] }).children.map(
+        (col) => parseInt(col.attributes.width, 10)
+      );
+      expect(widths.reduce((a, b) => a + b, 0)).toBe(100);
     });
 
     it('omits the status tracker when any step label is missing', () => {
