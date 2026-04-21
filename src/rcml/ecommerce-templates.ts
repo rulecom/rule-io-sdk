@@ -14,7 +14,7 @@
  * fields to override with your own locale.
  */
 
-import type { RCMLBodyChild, RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch, RCMLText, RCMLProseMirrorDoc } from '../types';
+import type { RCMLBodyChild, RCMLDocument, RCMLSection, RCMLText, RCMLProseMirrorDoc } from '../types';
 import {
   createBrandTemplate,
   createBrandHeading,
@@ -237,7 +237,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // templateName omitted — withTemplateContext wraps the error with the prefix.
     validateCustomFields(customFields, fieldsToValidate);
 
-    const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
+    const sections: RCMLBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
       createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
     ];
@@ -482,7 +482,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     return createBrandTemplate({
       brandStyle: brandStyle,
       preheader: text.preheader,
-      sections: sections as RCMLBodyChild[],
+      sections,
     });
   });
 }
@@ -669,7 +669,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
       );
     };
 
-    const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
+    const sections: RCMLBodyChild[] = [
       ...createLogoSection(config.brandStyle.logoUrl),
 
       // Heading + greeting
@@ -1008,7 +1008,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
       .filter((el): el is NonNullable<typeof el> => !!el);
     const hasSocial = socialElements.length > 0;
 
-    const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
+    const sections: RCMLBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
 
       createContentSection(
@@ -1122,7 +1122,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
     return createBrandTemplate({
       brandStyle: brandStyle,
       preheader: text.preheader,
-      sections: sections as RCMLBodyChild[],
+      sections,
     });
   });
 }
@@ -1183,7 +1183,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     // templateName omitted — withTemplateContext wraps the error with the prefix.
     validateCustomFields(customFields, fieldsToValidate);
 
-    const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
+    const sections: RCMLBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
 
       // Hero banner — brand background so the cancellation status reads as a banner
@@ -1295,7 +1295,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     return createBrandTemplate({
       brandStyle: brandStyle,
       preheader: text.preheader,
-      sections: sections as RCMLBodyChild[],
+      sections,
     });
   });
 }

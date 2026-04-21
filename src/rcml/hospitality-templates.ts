@@ -118,10 +118,9 @@ export interface ReservationTemplateConfig {
  */
 export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RCMLDocument {
   const templateName = 'createReservationConfirmationEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
-
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+    validateCustomFields(customFields, fieldNames);
 
     const detailRows: ReturnType<typeof createBrandText>[] = [
       // Reference
@@ -257,10 +256,9 @@ export interface ReservationCancellationConfig {
  */
 export function createReservationCancellationEmail(config: ReservationCancellationConfig): RCMLDocument {
   const templateName = 'createReservationCancellationEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
-
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+    validateCustomFields(customFields, fieldNames);
 
     return createBrandTemplate({
       brandStyle: config.brandStyle,
@@ -341,10 +339,9 @@ export interface ReservationReminderConfig {
  */
 export function createReservationReminderEmail(config: ReservationReminderConfig): RCMLDocument {
   const templateName = 'createReservationReminderEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
-
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+    validateCustomFields(customFields, fieldNames);
 
     const detailRows: ReturnType<typeof createBrandText>[] = [];
 
@@ -455,10 +452,9 @@ export interface FeedbackRequestConfig {
  */
 export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLDocument {
   const templateName = 'createFeedbackRequestEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
-
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+    validateCustomFields(customFields, fieldNames);
 
     return createBrandTemplate({
       brandStyle: config.brandStyle,
@@ -507,10 +503,9 @@ export interface ReservationRequestConfig {
  */
 export function createReservationRequestEmail(config: ReservationRequestConfig): RCMLDocument {
   const templateName = 'createReservationRequestEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
-
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+    validateCustomFields(customFields, fieldNames);
 
     const dateContent = fieldNames.checkOutDate
       ? [

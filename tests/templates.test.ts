@@ -2791,6 +2791,46 @@ describe('template error context', () => {
     ).toThrow('createReservationConfirmationEmail > createBrandButton: invalid or unsafe URL');
   });
 
+  it('wraps validateCustomFields errors with template prefix exactly once in hospitality', () => {
+    // Regression: hospitality templates previously prefixed validation errors
+    // with their templateName arg AND called validateCustomFields outside
+    // withTemplateContext. Moving the call inside the wrapper lets the
+    // wrapper provide the prefix, matching the e-commerce pattern and
+    // preventing duplicated prefixes if someone later rearranges the code.
+    try {
+      createReservationConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: {},
+        websiteUrl: 'https://example.com',
+        text: {
+          preheader: 'Test',
+          greeting: 'Hi',
+          intro: 'Intro',
+          detailsHeading: 'Details',
+          referenceLabel: 'Ref',
+          serviceLabel: 'Service',
+          checkInLabel: 'Check-in',
+          guestsLabel: 'Guests',
+          ctaButton: 'Click',
+        },
+        fieldNames: {
+          firstName: 'Booking.FirstName',
+          bookingRef: 'Booking.BookingRef',
+          serviceType: 'Booking.ServiceType',
+          checkInDate: 'Booking.CheckInDate',
+          totalGuests: 'Booking.TotalGuests',
+        },
+      });
+      throw new Error('expected createReservationConfirmationEmail to throw');
+    } catch (error) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+      const message = (error as RuleConfigError).message;
+      const occurrences = message.split('createReservationConfirmationEmail').length - 1;
+      expect(occurrences).toBe(1);
+      expect(message).toContain('missing customFields entry for fieldNames.');
+    }
+  });
+
   it('should include template name when createBrandLogo throws inside e-commerce template', () => {
     expect(() =>
       createOrderConfirmationEmail({
