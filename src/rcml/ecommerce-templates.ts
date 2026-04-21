@@ -190,11 +190,19 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       fieldNames.shippingZip ||
       fieldNames.shippingCountryCode
     );
+    if (hasExtendedAddress && !fieldNames.shippingAddress) {
+      throw new RuleConfigError(
+        `${templateName}: fieldNames.shippingAddress is required when any of ` +
+          `shippingAddress2, shippingCity, shippingZip, or shippingCountryCode is provided`
+      );
+    }
+    // Key off fieldName + label pairs so a mapped field with no label doesn't
+    // flip the summary on and silently relocate the total row.
     const hasFinancialSummary = !!(
-      fieldNames.subtotal ||
-      fieldNames.discountAmount ||
-      fieldNames.taxAmount ||
-      fieldNames.shippingCost
+      (fieldNames.subtotal && text.subtotalLabel) ||
+      (fieldNames.discountAmount && text.discountLabel) ||
+      (fieldNames.taxAmount && text.taxLabel) ||
+      (fieldNames.shippingCost && text.shippingCostLabel)
     );
     const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
 
@@ -1159,16 +1167,17 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       let supportLinkText: string | undefined;
       if (safeSupportUrl) {
         supportLinkHref = safeSupportUrl;
-        supportLinkText = text.supportUrl;
+        supportLinkText = safeSupportUrl;
       } else if (text.supportEmail) {
-        // Reject whitespace, control characters, or obviously malformed addresses
-        // so malformed input fails fast instead of producing broken RCML links.
-        if (!/^[^\s\x00-\x1F\x7F]+@[^\s\x00-\x1F\x7F]+$/.test(text.supportEmail)) {
+        // Reject whitespace, control characters, or reserved URI characters
+        // (?, #, &, /, :) so malformed input fails fast instead of producing
+        // broken or parameter-injectable mailto links.
+        if (!/^[^\s\x00-\x1F\x7F?#&/:]+@[^\s\x00-\x1F\x7F?#&/:]+$/.test(text.supportEmail)) {
           throw new RuleConfigError(
             `createOrderCancellationEmail: supportEmail "${text.supportEmail}" is not a valid email address`
           );
         }
-        supportLinkHref = `mailto:${encodeURI(text.supportEmail)}`;
+        supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`;
         supportLinkText = text.supportEmail;
       }
       const supportChildren: RCMLText[] = [

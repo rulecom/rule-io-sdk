@@ -1521,6 +1521,64 @@ describe('E-commerce Templates', () => {
       expect(json).not.toContain('Shipping to');
     });
 
+    it('throws when an extended shipping field is mapped without shippingAddress', () => {
+      expect(() =>
+        createOrderConfirmationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Confirmed',
+            greeting: 'Hi',
+            intro: 'Thanks!',
+            detailsHeading: 'Order Summary',
+            orderRefLabel: 'Order',
+            totalLabel: 'Total',
+            ctaButton: 'View',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            totalPrice: 'Order.TotalPrice',
+            // shippingAddress intentionally omitted
+            shippingCity: 'Order.ShippingCity',
+          },
+        })
+      ).toThrow(RuleConfigError);
+    });
+
+    it('keeps total in details box when financial fields are mapped without labels', () => {
+      // Regression: hasFinancialSummary must require both fieldName + label so
+      // a mapped field with no label cannot relocate the total row into a
+      // near-empty summary box.
+      const doc = createOrderConfirmationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Confirmed',
+          greeting: 'Hi',
+          intro: 'Thanks!',
+          detailsHeading: 'Order Summary',
+          orderRefLabel: 'Order',
+          totalLabel: 'Total',
+          ctaButton: 'View',
+          // subtotalLabel intentionally omitted
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+          totalPrice: 'Order.TotalPrice',
+          subtotal: 'Order.Subtotal',
+        },
+      });
+
+      const json = docToString(doc);
+      // Total still rendered exactly once (in the details box, not the summary)
+      expect(json.match(/Total: /g)).toHaveLength(1);
+      expect(json).not.toContain('Subtotal: ');
+    });
+
     it('renders SKU loop row when itemSku sub-field is provided', () => {
       const doc = createOrderConfirmationEmail({
         brandStyle: TEST_BRAND_STYLE,
@@ -2124,7 +2182,9 @@ describe('E-commerce Templates', () => {
 
       const json = docToString(doc);
       expect(json).toContain('Need help?');
-      expect(json).toContain('mailto:help@shop.example.com');
+      // Email local parts and @ get percent-encoded by encodeURIComponent,
+      // which prevents mailto parameter injection.
+      expect(json).toContain('mailto:help%40shop.example.com');
     });
 
     it('omits the support callout when supportText is not supplied', () => {
@@ -2149,7 +2209,71 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
-      expect(json).not.toContain('mailto:help@shop.example.com');
+      expect(json).not.toContain('mailto:help%40shop.example.com');
+    });
+
+    it('uses the sanitized URL as link text so displayed text and href stay in sync', () => {
+      // sanitizeUrl trims whitespace; displayed link text must reflect that.
+      const doc = createOrderCancellationEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Cancelled',
+          heading: 'Order Cancelled',
+          greeting: 'Hi',
+          message: 'Cancelled.',
+          orderRefLabel: 'Order',
+          followUp: 'Bye.',
+          ctaButton: 'Shop',
+          supportText: 'Need help?',
+          supportUrl: '  https://support.example.com  ',
+        },
+        fieldNames: {
+          firstName: 'Subscriber.FirstName',
+          orderRef: 'Order.Number',
+        },
+      });
+
+      const json = docToString(doc);
+      // Raw padded URL must not appear as displayed text
+      expect(json).not.toContain('  https://support.example.com  ');
+      expect(json).toContain('https://support.example.com');
+    });
+
+    it('rejects support emails containing reserved URI characters that could inject mailto parameters', () => {
+      // `?`, `#`, `&`, `/`, `:` in a mailto address can hijack headers or URL parsing
+      const injectionAttempts = [
+        'help@shop.example.com?bcc=attacker@evil.com',
+        'help@shop.example.com&bcc=attacker@evil.com',
+        'help@shop.example.com#fragment',
+        'help:password@shop.example.com',
+        'help/path@shop.example.com',
+      ];
+      for (const supportEmail of injectionAttempts) {
+        expect(() =>
+          createOrderCancellationEmail({
+            brandStyle: TEST_BRAND_STYLE,
+            customFields: TEST_CUSTOM_FIELDS,
+            websiteUrl: 'https://shop.example.com',
+            text: {
+              preheader: 'Cancelled',
+              heading: 'Order Cancelled',
+              greeting: 'Hi',
+              message: 'Cancelled.',
+              orderRefLabel: 'Order',
+              followUp: 'Bye.',
+              ctaButton: 'Shop',
+              supportText: 'Need help?',
+              supportEmail,
+            },
+            fieldNames: {
+              firstName: 'Subscriber.FirstName',
+              orderRef: 'Order.Number',
+            },
+          })
+        ).toThrow(RuleConfigError);
+      }
     });
 
     it('rejects support emails containing whitespace or control characters', () => {
