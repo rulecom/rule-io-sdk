@@ -177,9 +177,6 @@ export interface OrderConfirmationConfig {
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
   const templateName = 'createOrderConfirmationEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, itemSku: _itemSku, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
     const { brandStyle, customFields, fieldNames, text } = config;
@@ -205,6 +202,39 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       (fieldNames.shippingCost && text.shippingCostLabel)
     );
     const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
+    const hasInlineItemsRow = !!(fieldNames.items && !fieldNames.itemName && text.itemsLabel);
+    const hasInlineShippingRow = !hasExtendedAddress && !!text.shippingLabel && !!fieldNames.shippingAddress;
+    const rendersShippingAddress = hasInlineShippingRow || (hasExtendedAddress && !!fieldNames.shippingAddress);
+    const hasOrderMetaRow = !!(text.orderDateLabel && fieldNames.orderDate);
+    const hasPaymentRow = !!(text.paymentMethodLabel && fieldNames.paymentMethod);
+
+    // Only validate fields that will actually be rendered. Loop sub-fields
+    // (itemName/Quantity/UnitPrice/Total/Sku) are JSON key names in the loop
+    // body, not custom field paths — never validated here.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+      totalPrice: fieldNames.totalPrice,
+    };
+    if ((hasLineItemLoop || hasInlineItemsRow) && fieldNames.items) {
+      fieldsToValidate.items = fieldNames.items;
+    }
+    if (rendersShippingAddress && fieldNames.shippingAddress) {
+      fieldsToValidate.shippingAddress = fieldNames.shippingAddress;
+    }
+    if (hasExtendedAddress) {
+      if (fieldNames.shippingAddress2) fieldsToValidate.shippingAddress2 = fieldNames.shippingAddress2;
+      if (fieldNames.shippingCity) fieldsToValidate.shippingCity = fieldNames.shippingCity;
+      if (fieldNames.shippingZip) fieldsToValidate.shippingZip = fieldNames.shippingZip;
+      if (fieldNames.shippingCountryCode) fieldsToValidate.shippingCountryCode = fieldNames.shippingCountryCode;
+    }
+    if (hasOrderMetaRow && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
+    if (hasPaymentRow && fieldNames.paymentMethod) fieldsToValidate.paymentMethod = fieldNames.paymentMethod;
+    if (fieldNames.subtotal && text.subtotalLabel) fieldsToValidate.subtotal = fieldNames.subtotal;
+    if (fieldNames.discountAmount && text.discountLabel) fieldsToValidate.discountAmount = fieldNames.discountAmount;
+    if (fieldNames.taxAmount && text.taxLabel) fieldsToValidate.taxAmount = fieldNames.taxAmount;
+    if (fieldNames.shippingCost && text.shippingCostLabel) fieldsToValidate.shippingCost = fieldNames.shippingCost;
+    validateCustomFields(customFields, fieldsToValidate, templateName);
 
     const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
       ...createLogoSection(brandStyle.logoUrl),
@@ -226,7 +256,6 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     }
 
     // Two-column order meta row (orderRef + orderDate) — shown instead of a single orderRef row when orderDate mapped
-    const hasOrderMetaRow = !!(text.orderDateLabel && fieldNames.orderDate);
     if (hasOrderMetaRow) {
       sections.push(
         createTwoColumnSection({
@@ -591,12 +620,41 @@ export interface ShippingUpdateConfig {
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
   const templateName = 'createShippingUpdateEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, itemSku: _itemSku, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+
+    // Only validate fields that will actually be rendered. Every detail row
+    // renders through `detailRow(label, fieldName)` which skips silently when
+    // either side is missing — validating unconditionally would force the
+    // caller to provide customFields entries for placeholders that never
+    // appear in the output. Loop sub-fields (itemName/Quantity/UnitPrice/
+    // Total/Sku) are JSON key names in the loop body, not custom field paths,
+    // so they are never validated here.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+    };
+    if (text.trackingLabel && fieldNames.trackingNumber) fieldsToValidate.trackingNumber = fieldNames.trackingNumber;
+    if (text.estimatedDeliveryLabel && fieldNames.estimatedDelivery) fieldsToValidate.estimatedDelivery = fieldNames.estimatedDelivery;
+    if (text.orderDateLabel && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
+    if (text.customerEmailLabel && fieldNames.customerEmail) fieldsToValidate.customerEmail = fieldNames.customerEmail;
+    if (text.billingAddressLabel && fieldNames.billingAddress) fieldsToValidate.billingAddress = fieldNames.billingAddress;
+    if (text.paymentMethodLabel && fieldNames.paymentMethod) fieldsToValidate.paymentMethod = fieldNames.paymentMethod;
+    if (text.companyLabel && fieldNames.companyName) fieldsToValidate.companyName = fieldNames.companyName;
+    if (text.vatLabel && fieldNames.vatNumber) fieldsToValidate.vatNumber = fieldNames.vatNumber;
+    if (text.carrierLabel && fieldNames.shippingCarrier) fieldsToValidate.shippingCarrier = fieldNames.shippingCarrier;
+    if (text.shippingAddressLabel && fieldNames.shippingAddress) fieldsToValidate.shippingAddress = fieldNames.shippingAddress;
+    if (text.subtotalLabel && fieldNames.subtotal) fieldsToValidate.subtotal = fieldNames.subtotal;
+    if (text.taxLabel && fieldNames.taxAmount) fieldsToValidate.taxAmount = fieldNames.taxAmount;
+    if (text.discountLabel && fieldNames.discountAmount) fieldsToValidate.discountAmount = fieldNames.discountAmount;
+    if (text.shippingCostLabel && fieldNames.shippingCost) fieldsToValidate.shippingCost = fieldNames.shippingCost;
+    if (text.totalLabel && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
+    // customerFullName renders unconditionally when mapped (no label gate).
+    if (fieldNames.customerFullName) fieldsToValidate.customerFullName = fieldNames.customerFullName;
+    // Line items loop renders when both items + itemName are mapped.
+    if (fieldNames.items && fieldNames.itemName) fieldsToValidate.items = fieldNames.items;
+    validateCustomFields(customFields, fieldsToValidate, templateName);
 
     /** Helper to create a detail row from an optional field + label pair. */
     const detailRow = (label: string | undefined, fieldName: string | undefined) => {
@@ -1107,10 +1165,21 @@ export interface OrderCancellationConfig {
  */
 export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
   const templateName = 'createOrderCancellationEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
   return withTemplateContext(templateName, () => {
     const { brandStyle, customFields, fieldNames, text } = config;
+
+    // Only validate fields that will actually be rendered. `orderDate` is
+    // rendered via `labeledRow(text.orderDateLabel, ...)` which skips when
+    // either side is missing, so it's only validated when both are set.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+    };
+    if (text.orderDateLabel && fieldNames.orderDate) {
+      fieldsToValidate.orderDate = fieldNames.orderDate;
+    }
+    validateCustomFields(customFields, fieldsToValidate, templateName);
 
     const sections: (RCMLBodyChild | RCMLLoop | RCMLSwitch)[] = [
       ...createLogoSection(brandStyle.logoUrl),

@@ -1608,6 +1608,71 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('SKU: ');
       expect(json).toContain('[LoopValue:sku]');
     });
+
+    it('does not throw when optional fields are mapped without their render partners', () => {
+      // Regression: validation must match render gates. Mapping `subtotal`,
+      // `discountAmount`, `taxAmount`, `shippingCost`, `paymentMethod`, or
+      // `orderDate` without the paired label means the row skips silently at
+      // render — validateCustomFields must not demand a customFields entry.
+      expect(() =>
+        createOrderConfirmationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Confirmed',
+            greeting: 'Hi',
+            intro: 'Thanks!',
+            detailsHeading: 'Order Summary',
+            orderRefLabel: 'Order',
+            totalLabel: 'Total',
+            ctaButton: 'View',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            totalPrice: 'Order.TotalPrice',
+            // All of these are mapped to fields that don't exist in
+            // TEST_CUSTOM_FIELDS — but none of their label partners are set,
+            // so they shouldn't be rendered and shouldn't be validated.
+            subtotal: 'Order.MissingSubtotal',
+            discountAmount: 'Order.MissingDiscount',
+            taxAmount: 'Order.MissingTax',
+            shippingCost: 'Order.MissingShipping',
+            paymentMethod: 'Order.MissingPayment',
+            orderDate: 'Order.MissingDate',
+          },
+        })
+      ).not.toThrow();
+    });
+
+    it('still throws when a field whose render partners are set is missing from customFields', () => {
+      // Rejection test for the same pattern: when both label and fieldName
+      // are set, the row WILL render, so validation must catch missing fields.
+      expect(() =>
+        createOrderConfirmationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Confirmed',
+            greeting: 'Hi',
+            intro: 'Thanks!',
+            detailsHeading: 'Order Summary',
+            orderRefLabel: 'Order',
+            totalLabel: 'Total',
+            subtotalLabel: 'Subtotal',
+            ctaButton: 'View',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            totalPrice: 'Order.TotalPrice',
+            subtotal: 'Order.MissingSubtotal',
+          },
+        })
+      ).toThrow(RuleConfigError);
+    });
   });
 
   describe('createShippingUpdateEmail', () => {
@@ -1971,6 +2036,64 @@ describe('E-commerce Templates', () => {
       expect(json).not.toContain('Confirmed');
       expect(json).not.toContain('Delivered');
     });
+
+    it('does not throw when optional receipt fields are mapped without their labels', () => {
+      // Regression: every detailRow in shipping update skips silently when
+      // either the label or fieldName is missing. Validation must match.
+      expect(() =>
+        createShippingUpdateEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          trackingUrl: 'https://track.example.com',
+          text: {
+            preheader: 'Shipped',
+            heading: 'Shipped',
+            greeting: 'Hi',
+            message: 'your order has shipped.',
+            orderRefLabel: 'Order',
+            ctaButton: 'Track',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            // All mapped to fields not in TEST_CUSTOM_FIELDS, but none of
+            // their label partners are set — so none render, none validate.
+            trackingNumber: 'Order.MissingTracking',
+            orderDate: 'Order.MissingDate',
+            billingAddress: 'Order.MissingBilling',
+            companyName: 'Order.MissingCompany',
+            vatNumber: 'Order.MissingVat',
+            subtotal: 'Order.MissingSubtotal',
+            taxAmount: 'Order.MissingTax',
+            totalPrice: 'Order.MissingTotal',
+          },
+        })
+      ).not.toThrow();
+    });
+
+    it('still throws when a field whose label is set is missing from customFields', () => {
+      expect(() =>
+        createShippingUpdateEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          trackingUrl: 'https://track.example.com',
+          text: {
+            preheader: 'Shipped',
+            heading: 'Shipped',
+            greeting: 'Hi',
+            message: 'your order has shipped.',
+            orderRefLabel: 'Order',
+            trackingLabel: 'Tracking',
+            ctaButton: 'Track',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            trackingNumber: 'Order.MissingTracking',
+          },
+        })
+      ).toThrow(RuleConfigError);
+    });
   });
 
   describe('createAbandonedCartEmail', () => {
@@ -2322,6 +2445,32 @@ describe('E-commerce Templates', () => {
           },
         })
       ).toThrow(RuleConfigError);
+    });
+
+    it('does not throw when orderDate is mapped without orderDateLabel', () => {
+      // Regression: the order-date row uses labeledRow() which skips silently
+      // when either side is missing. Validation must match the render gate.
+      expect(() =>
+        createOrderCancellationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Cancelled',
+            heading: 'Order Cancelled',
+            greeting: 'Hi',
+            message: 'Cancelled.',
+            orderRefLabel: 'Order',
+            followUp: 'Bye.',
+            ctaButton: 'Shop',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+            orderDate: 'Order.MissingDate', // not in customFields, but no label — won't render
+          },
+        })
+      ).not.toThrow();
     });
   });
 

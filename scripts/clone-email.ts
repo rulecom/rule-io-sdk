@@ -308,7 +308,7 @@ async function runSend(): Promise<void> {
         if (r.kind === 'automail') await client.deleteAutomation(r.id);
         else if (r.kind === 'message') await client.deleteMessage(r.id);
         else if (r.kind === 'template') await client.deleteTemplate(r.id);
-        console.error(`  deleted ${r.kind} ${r.id}`);
+        console.log(`  deleted ${r.kind} ${r.id}`);
       } catch (cleanupErr) {
         console.error(`  failed to delete ${r.kind} ${r.id}:`, cleanupErr);
       }
