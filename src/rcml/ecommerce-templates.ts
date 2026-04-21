@@ -1245,7 +1245,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
         // broken or parameter-injectable mailto links.
         if (!/^[^\s\x00-\x1F\x7F?#&/:]+@[^\s\x00-\x1F\x7F?#&/:]+$/.test(text.supportEmail)) {
           throw new RuleConfigError(
-            `createOrderCancellationEmail: supportEmail "${text.supportEmail}" is not a valid email address`
+            `supportEmail "${text.supportEmail}" is not a valid email address`
           );
         }
         supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`;

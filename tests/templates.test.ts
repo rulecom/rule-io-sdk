@@ -2498,6 +2498,40 @@ describe('E-commerce Templates', () => {
       ).toThrow(RuleConfigError);
     });
 
+    it('wraps supportEmail validation error with template prefix exactly once', () => {
+      // Regression: the inner throw must not hardcode the template name, since
+      // withTemplateContext prepends it. A duplicated prefix would look like
+      // "createOrderCancellationEmail > createOrderCancellationEmail: ...".
+      try {
+        createOrderCancellationEmail({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://shop.example.com',
+          text: {
+            preheader: 'Cancelled',
+            heading: 'Order Cancelled',
+            greeting: 'Hi',
+            message: 'Cancelled.',
+            orderRefLabel: 'Order',
+            followUp: 'Bye.',
+            ctaButton: 'Shop',
+            supportText: 'Need help?',
+            supportEmail: 'not-an-email',
+          },
+          fieldNames: {
+            firstName: 'Subscriber.FirstName',
+            orderRef: 'Order.Number',
+          },
+        });
+        throw new Error('expected createOrderCancellationEmail to throw');
+      } catch (error) {
+        expect(error).toBeInstanceOf(RuleConfigError);
+        const message = (error as RuleConfigError).message;
+        const occurrences = message.split('createOrderCancellationEmail').length - 1;
+        expect(occurrences).toBe(1);
+      }
+    });
+
     it('does not throw when orderDate is mapped without orderDateLabel', () => {
       // Regression: the order-date row uses labeledRow() which skips silently
       // when either side is missing. Validation must match the render gate.
