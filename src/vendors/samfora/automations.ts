@@ -12,7 +12,7 @@
 
 import type { VendorAutomation, VendorConsumerConfig } from '../types';
 import type { RCMLDocument, RCMLBodyChild } from '../../types';
-import type { CustomFieldMap } from '../../rcml';
+import type { CustomFieldMap, FooterConfig } from '../../rcml';
 import { SAMFORA_FIELDS } from './fields';
 import { SAMFORA_TAGS } from './tags';
 import {
@@ -150,6 +150,37 @@ function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
 }
 
 // ============================================================================
+// Footer (Swedish defaults)
+// ============================================================================
+
+/**
+ * Swedish footer text defaults. `createFooterSection()` ships with English
+ * link text as its own default — without these, an out-of-the-box Samfora
+ * email mixes Swedish body copy with English footer links, which conflicts
+ * with the preset's stated Swedish-first intent.
+ *
+ * Consumer overrides still win per-field because `config.footer` is
+ * spread after the defaults.
+ */
+const SAMFORA_FOOTER_DEFAULTS: FooterConfig = {
+  viewInBrowserText: 'Öppna i webbläsare',
+  unsubscribeText: 'Avregistrera',
+};
+
+function samforaFooterSection(override: FooterConfig | undefined): RCMLBodyChild {
+  return createFooterSection({ ...SAMFORA_FOOTER_DEFAULTS, ...override });
+}
+
+/**
+ * Swedish plain-text fallback. `createBrandHead()` otherwise defaults to
+ * English ("View this email in your browser: ..." / "Unsubscribe: ...") —
+ * same class of leak as the footer links. Passed explicitly into every
+ * `createBrandTemplate` call below.
+ */
+const SAMFORA_PLAIN_TEXT =
+  'Öppna e-postmeddelandet i webbläsaren: %Link:WebBrowser%\n\n---\nAvregistrera: %Link:Unsubscribe%';
+
+// ============================================================================
 // Shared section builders
 // ============================================================================
 
@@ -255,12 +286,13 @@ function buildDonationConfirmationTemplate(
     ),
     ctaSection(text.ctaButton, config.websiteUrl),
     paragraphSection(text.signOff),
-    createFooterSection(config.footer),
+    samforaFooterSection(config.footer),
   ];
 
   return createBrandTemplate({
     brandStyle: config.brandStyle,
     preheader: text.preheader,
+    plainText: SAMFORA_PLAIN_TEXT,
     sections,
   });
 }
@@ -317,12 +349,13 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocumen
     ),
     ctaSection(t.ctaButton, config.websiteUrl),
     paragraphSection(t.signOff),
-    createFooterSection(config.footer),
+    samforaFooterSection(config.footer),
   ];
 
   return createBrandTemplate({
     brandStyle: config.brandStyle,
     preheader: t.preheader,
+    plainText: SAMFORA_PLAIN_TEXT,
     sections,
   });
 }
@@ -351,12 +384,13 @@ function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
     ]),
     ctaSection(t.ctaButton, config.websiteUrl),
     paragraphSection(t.signOff),
-    createFooterSection(config.footer),
+    samforaFooterSection(config.footer),
   ];
 
   return createBrandTemplate({
     brandStyle: config.brandStyle,
     preheader: t.preheader,
+    plainText: SAMFORA_PLAIN_TEXT,
     sections,
   });
 }
@@ -417,12 +451,13 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RCMLDocument {
     paragraphSection(t.disclaimer),
     ctaSection(t.ctaButton, config.websiteUrl),
     paragraphSection(t.signOff),
-    createFooterSection(config.footer),
+    samforaFooterSection(config.footer),
   ];
 
   return createBrandTemplate({
     brandStyle: config.brandStyle,
     preheader: t.preheader,
+    plainText: SAMFORA_PLAIN_TEXT,
     sections,
   });
 }

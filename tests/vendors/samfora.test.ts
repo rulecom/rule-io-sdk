@@ -296,6 +296,54 @@ describe('samforaPreset', () => {
       expect(json).toContain('Ändamål');
     });
 
+    it('footer defaults to Swedish when config.footer is omitted', () => {
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
+      const first = automations.find(
+        (a) => a.id === 'samfora-donation-confirmation-first',
+      )!;
+
+      const doc = first.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://samfora.org',
+      });
+      const json = docToString(doc);
+
+      // Swedish footer link text (display strings, not merge-tag names).
+      expect(json).toContain('"text":"Öppna i webbläsare"');
+      expect(json).toContain('"text":"Avregistrera"');
+      // Guard against the generic builder's English display defaults
+      // leaking through. (`[Link:Unsubscribe]` merge-tag references are
+      // NOT user-visible — Rule.io substitutes them at send time.)
+      expect(json).not.toContain('"text":"View in browser"');
+      expect(json).not.toContain('"text":"Unsubscribe"');
+      // Plain-text fallback is localised too.
+      expect(json).toContain('Öppna e-postmeddelandet i webbläsaren');
+      expect(json).not.toContain('View this email in your browser');
+    });
+
+    it('consumer footer overrides still win over Swedish defaults', () => {
+      const automations = samforaPreset.getAutomations({
+        ...TEST_CONFIG,
+        footer: { viewInBrowserText: 'Open in browser' },
+      });
+      const first = automations.find(
+        (a) => a.id === 'samfora-donation-confirmation-first',
+      )!;
+
+      const doc = first.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://samfora.org',
+      });
+      const json = docToString(doc);
+
+      // Override of one field wins; untouched fields fall back to Swedish.
+      expect(json).toContain('"text":"Open in browser"');
+      expect(json).not.toContain('"text":"Öppna i webbläsare"');
+      expect(json).toContain('"text":"Avregistrera"');
+    });
+
     it('throws RuleConfigError for an incomplete config', () => {
       expect(() =>
         samforaPreset.getAutomations({ ...TEST_CONFIG, customFields: {} }),
