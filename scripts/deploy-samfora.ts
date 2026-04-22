@@ -5,14 +5,17 @@
  * style (is_default: true) rather than a hardcoded ID. See issue #91 —
  * that's how every deploy script should resolve brand styles.
  *
- *   1. Seed samfora-seed@rule.se with every Samfora field + every trigger
- *      & segment tag so the field definitions and tags exist in the
- *      account and we can resolve their numeric ids.
+ *   1. Sync samfora-seed@rule.se with every trigger & segment tag so the
+ *      tags exist in the account. (No flat subscriber fields: Samfora
+ *      keeps donor data inside the historical Donation group.)
  *   2. Create per-persona test subscribers, one for each automation
  *      trigger, so you can eyeball each flow in the Rule.io UI.
- *   3. Seed the historical Donation.* group for every subscriber that
+ *   3. Seed the historical Donation.* group on every subscriber that
  *      needs donation detail (all personas except the welcome-only one).
- *   4. Resolve numeric field ids from the seed subscriber.
+ *      This creates the Donation.* field definitions in the account as
+ *      a side effect of the first write.
+ *   4. Resolve numeric field ids from the seed subscriber's Donation
+ *      group (read back via v3 custom-field-data).
  *   5. Fetch the account's preferred brand style and build the config.
  *   6. Deploy each automation via createAutomationEmail (auto-handles
  *      automail → message → template → dynamic-set with cleanup on

@@ -15,6 +15,10 @@
  *     [SAMFORA_FIELDS.donationDate]: 200003,
  *     [SAMFORA_FIELDS.donationRef]: 200004,
  *     [SAMFORA_FIELDS.causeName]: 200005,
+ *     [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
+ *     [SAMFORA_FIELDS.taxYear]: 200007,
+ *     [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
+ *     // Optional: donationCurrency, donationType
  *   },
  *   websiteUrl: 'https://samfora.org',
  * };

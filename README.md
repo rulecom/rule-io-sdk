@@ -326,13 +326,16 @@ import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
 const config = {
   brandStyle: myBrand,
   customFields: {
+    // Required for every automation the preset returns
     [SAMFORA_FIELDS.donorFirstName]: 200001,
     [SAMFORA_FIELDS.donationAmount]: 200002,
     [SAMFORA_FIELDS.donationDate]: 200003,
     [SAMFORA_FIELDS.donationRef]: 200004,
     [SAMFORA_FIELDS.causeName]: 200005,
-    // Optional: donationCurrency, totalLifetimeAmount, taxYear,
-    // taxDeductibleAmount (required only for the tax-summary automation)
+    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
+    [SAMFORA_FIELDS.taxYear]: 200007,
+    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
+    // Optional: donationCurrency, donationType
   },
   websiteUrl: 'https://samfora.org',
 };
