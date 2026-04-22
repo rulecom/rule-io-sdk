@@ -267,6 +267,9 @@ export {
   createDefaultContentSection,
   createFooterSection,
   createBrandLoop,
+  createSummaryRowsSection,
+  createStatusTrackerSection,
+  createAddressBlock,
   createPlaceholder,
   createLoopFieldPlaceholder,
   createTextNode,
@@ -279,6 +282,9 @@ export type {
   CustomFieldMap,
   SimpleTemplateConfig,
   FooterConfig,
+  StatusTrackerStep,
+  CreateStatusTrackerSectionOptions,
+  CreateAddressBlockOptions,
 } from './rcml';
 
 // Hospitality templates

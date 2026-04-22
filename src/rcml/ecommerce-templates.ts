@@ -14,7 +14,7 @@
  * fields to override with your own locale.
  */
 
-import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from '../types';
+import type { RCMLBodyChild, RCMLDocument, RCMLSection, RCMLText, RCMLProseMirrorDoc } from '../types';
 import {
   createBrandTemplate,
   createBrandHeading,
@@ -29,13 +29,38 @@ import {
   createLogoSection,
   createGreetingSection,
   createCtaSection,
+  createSummaryRowsSection,
+  createStatusTrackerSection,
+  createAddressBlock,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
   validateCustomFields,
   withTemplateContext,
 } from './brand-template';
+import { createDivider, createSocial, createSocialElement, createTwoColumnSection } from './elements';
+import { RuleConfigError } from '../errors';
 import { sanitizeUrl } from './utils';
+
+/** Wrap a divider in a single-column section so it can sit at body level. */
+function dividerSection(): RCMLBodyChild {
+  return createContentSection([createDivider({ padding: '10px 0' })], { padding: '0' });
+}
+
+/** Build a "label: value" RCMLText row, or undefined when either input is missing. */
+function labeledRow(
+  label: string | undefined,
+  fieldName: string | undefined,
+  customFields: CustomFieldMap,
+): RCMLText | undefined {
+  if (!label || !fieldName) return undefined;
+  return createBrandText(
+    createDocWithPlaceholders([
+      createTextNode(`${label}: `),
+      createPlaceholder(fieldName, customFields[fieldName]),
+    ])
+  );
+}
 
 // ============================================================================
 // Order Confirmation Template
@@ -64,6 +89,26 @@ export interface OrderConfirmationConfig {
     itemUnitPriceLabel?: string;
     /** Label for subtotal in line items (default: 'Subtotal: ') */
     itemSubtotalLabel?: string;
+    /** Label for SKU in line items (default: 'SKU: ') */
+    itemSkuLabel?: string;
+    /** Leading text for the hero heading (e.g. "Order") — rendered as "{prefix} {orderRef} {suffix}" */
+    heroHeadingPrefix?: string;
+    /** Trailing text for the hero heading (e.g. "confirmed") */
+    heroHeadingSuffix?: string;
+    /** Label for order date row (e.g. "Order date") */
+    orderDateLabel?: string;
+    /** Label for payment method row (e.g. "Payment") */
+    paymentMethodLabel?: string;
+    /** Label for financial summary subtotal row */
+    subtotalLabel?: string;
+    /** Label for financial summary tax row */
+    taxLabel?: string;
+    /** Label for financial summary discount row */
+    discountLabel?: string;
+    /** Label for financial summary shipping cost row */
+    shippingCostLabel?: string;
+    /** Heading above the shipping address block (e.g. "Shipping to") */
+    shippingAddressHeading?: string;
   };
   fieldNames: {
     firstName: string;
@@ -79,6 +124,28 @@ export interface OrderConfirmationConfig {
     itemUnitPrice?: string;
     /** Line item sub-field: line total */
     itemTotal?: string;
+    /** Line item sub-field: SKU */
+    itemSku?: string;
+    /** Order date custom field */
+    orderDate?: string;
+    /** Payment method custom field */
+    paymentMethod?: string;
+    /** Pre-tax subtotal */
+    subtotal?: string;
+    /** Tax amount */
+    taxAmount?: string;
+    /** Discount amount */
+    discountAmount?: string;
+    /** Shipping cost */
+    shippingCost?: string;
+    /** Shipping address line 2 */
+    shippingAddress2?: string;
+    /** Shipping city */
+    shippingCity?: string;
+    /** Shipping ZIP / postal code */
+    shippingZip?: string;
+    /** Shipping country code */
+    shippingCountryCode?: string;
   };
 }
 
@@ -110,35 +177,199 @@ export interface OrderConfirmationConfig {
  */
 export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
   const templateName = 'createOrderConfirmationEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    const { brandStyle, customFields, fieldNames, text } = config;
 
-    const detailRows: ReturnType<typeof createBrandText>[] = [
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.orderRefLabel}: `),
-          createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
-        ])
-      ),
+    const hasExtendedAddress = !!(
+      fieldNames.shippingAddress2 ||
+      fieldNames.shippingCity ||
+      fieldNames.shippingZip ||
+      fieldNames.shippingCountryCode
+    );
+    if (hasExtendedAddress && !fieldNames.shippingAddress) {
+      throw new RuleConfigError(
+        'fieldNames.shippingAddress is required when any of ' +
+          'shippingAddress2, shippingCity, shippingZip, or shippingCountryCode is provided'
+      );
+    }
+    // Key off fieldName + label pairs so a mapped field with no label doesn't
+    // flip the summary on and silently relocate the total row.
+    const hasFinancialSummary = !!(
+      (fieldNames.subtotal && text.subtotalLabel) ||
+      (fieldNames.discountAmount && text.discountLabel) ||
+      (fieldNames.taxAmount && text.taxLabel) ||
+      (fieldNames.shippingCost && text.shippingCostLabel)
+    );
+    const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
+    const hasInlineItemsRow = !!(fieldNames.items && !fieldNames.itemName && text.itemsLabel);
+    const hasInlineShippingRow = !hasExtendedAddress && !!text.shippingLabel && !!fieldNames.shippingAddress;
+    const rendersShippingAddress = hasInlineShippingRow || (hasExtendedAddress && !!fieldNames.shippingAddress);
+    const hasOrderMetaRow = !!(text.orderDateLabel && fieldNames.orderDate);
+    const hasPaymentRow = !!(text.paymentMethodLabel && fieldNames.paymentMethod);
+
+    // Only validate fields that will actually be rendered. Loop sub-fields
+    // (itemName/Quantity/UnitPrice/Total/Sku) are JSON key names in the loop
+    // body, not custom field paths — never validated here.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+      totalPrice: fieldNames.totalPrice,
+    };
+    if ((hasLineItemLoop || hasInlineItemsRow) && fieldNames.items) {
+      fieldsToValidate.items = fieldNames.items;
+    }
+    if (rendersShippingAddress && fieldNames.shippingAddress) {
+      fieldsToValidate.shippingAddress = fieldNames.shippingAddress;
+    }
+    if (hasExtendedAddress) {
+      if (fieldNames.shippingAddress2) fieldsToValidate.shippingAddress2 = fieldNames.shippingAddress2;
+      if (fieldNames.shippingCity) fieldsToValidate.shippingCity = fieldNames.shippingCity;
+      if (fieldNames.shippingZip) fieldsToValidate.shippingZip = fieldNames.shippingZip;
+      if (fieldNames.shippingCountryCode) fieldsToValidate.shippingCountryCode = fieldNames.shippingCountryCode;
+    }
+    if (hasOrderMetaRow && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
+    if (hasPaymentRow && fieldNames.paymentMethod) fieldsToValidate.paymentMethod = fieldNames.paymentMethod;
+    if (fieldNames.subtotal && text.subtotalLabel) fieldsToValidate.subtotal = fieldNames.subtotal;
+    if (fieldNames.discountAmount && text.discountLabel) fieldsToValidate.discountAmount = fieldNames.discountAmount;
+    if (fieldNames.taxAmount && text.taxLabel) fieldsToValidate.taxAmount = fieldNames.taxAmount;
+    if (fieldNames.shippingCost && text.shippingCostLabel) fieldsToValidate.shippingCost = fieldNames.shippingCost;
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
+
+    const sections: RCMLBodyChild[] = [
+      ...createLogoSection(brandStyle.logoUrl),
+      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
     ];
 
-    // Build line items section: use rc-loop if sub-fields provided, else single placeholder
-    const hasLineItemFields = fieldNames.items && fieldNames.itemName;
-    let lineItemsSection: RCMLSection | RCMLLoop | undefined;
+    // Hero heading: "{prefix} {orderRef} {suffix}"
+    if (text.heroHeadingPrefix || text.heroHeadingSuffix) {
+      const heroNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+      if (text.heroHeadingPrefix) heroNodes.push(createTextNode(`${text.heroHeadingPrefix} `));
+      heroNodes.push(createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]));
+      if (text.heroHeadingSuffix) heroNodes.push(createTextNode(` ${text.heroHeadingSuffix}`));
+      sections.push(
+        createContentSection(
+          [createBrandHeading(createDocWithPlaceholders(heroNodes), 1)],
+          { padding: '10px 0' }
+        )
+      );
+    }
 
-    if (hasLineItemFields && fieldNames.items && fieldNames.itemName) {
-      const loopChildren: ReturnType<typeof createBrandText>[] = [
+    // Two-column order meta row (orderRef + orderDate) — shown instead of a single orderRef row when orderDate mapped
+    if (hasOrderMetaRow) {
+      sections.push(
+        createTwoColumnSection({
+          padding: '10px 0',
+          leftChildren: [
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.orderRefLabel}: `),
+                createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+              ])
+            ),
+          ],
+          rightChildren: [
+            createBrandText(
+              createDocWithPlaceholders([
+                createTextNode(`${text.orderDateLabel}: `),
+                createPlaceholder(fieldNames.orderDate!, customFields[fieldNames.orderDate!]),
+              ])
+            ),
+          ],
+        })
+      );
+    }
+
+    // Details box (brand background): heading + orderRef (if not in meta row) + optional payment + fallbacks
+    const detailRows: RCMLText[] = [];
+    if (!hasOrderMetaRow) {
+      detailRows.push(
         createBrandText(
           createDocWithPlaceholders([
-            createLoopFieldPlaceholder(fieldNames.itemName),
+            createTextNode(`${text.orderRefLabel}: `),
+            createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
           ])
-        ),
-      ];
+        )
+      );
+    }
 
+    const paymentRow = labeledRow(text.paymentMethodLabel, fieldNames.paymentMethod, customFields);
+    if (paymentRow) detailRows.push(paymentRow);
+
+    // Backward-compat single-placeholder items row (when items mapped but no loop sub-fields)
+    if (fieldNames.items && !fieldNames.itemName && text.itemsLabel) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.itemsLabel}: `),
+            createPlaceholder(fieldNames.items, customFields[fieldNames.items]),
+          ])
+        )
+      );
+    }
+
+    // Total row stays here when no separate financial summary is rendered
+    if (!hasFinancialSummary) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.totalLabel}: `),
+            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+          ])
+        )
+      );
+    }
+
+    // Inline shipping row stays when no extended address fields mapped (backward compat)
+    if (!hasExtendedAddress && text.shippingLabel && fieldNames.shippingAddress) {
+      detailRows.push(
+        createBrandText(
+          createDocWithPlaceholders([
+            createTextNode(`${text.shippingLabel}: `),
+            createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
+          ])
+        )
+      );
+    }
+
+    sections.push(
+      createContentSection(
+        [
+          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+          ...detailRows,
+        ],
+        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+      )
+    );
+
+    // Divider before line items
+    if (hasLineItemLoop) sections.push(dividerSection());
+
+    // Line items loop
+    if (hasLineItemLoop && fieldNames.items && fieldNames.itemName) {
+      if (text.lineItemsHeading) {
+        sections.push(
+          createContentSection(
+            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+            { padding: '10px 0' }
+          )
+        );
+      }
+
+      const loopChildren: RCMLText[] = [
+        createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
+      ];
+      if (fieldNames.itemSku) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(text.itemSkuLabel ?? 'SKU: '),
+              createLoopFieldPlaceholder(fieldNames.itemSku),
+            ])
+          )
+        );
+      }
       if (fieldNames.itemQuantity) {
         loopChildren.push(
           createBrandText(
@@ -149,7 +380,6 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           )
         );
       }
-
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
           createBrandText(
@@ -160,7 +390,6 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           )
         );
       }
-
       if (fieldNames.itemTotal) {
         loopChildren.push(
           createBrandText(
@@ -172,69 +401,77 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         );
       }
 
-      const lineItemsLoop = createBrandLoop(
-        customFields[fieldNames.items],
-        [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
-        { maxIterations: 20 }
-      );
-
-      lineItemsSection = lineItemsLoop;
-    } else if (fieldNames.items && text.itemsLabel) {
-      // Fallback: single placeholder for items field
-      detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.itemsLabel}: `),
-            createPlaceholder(fieldNames.items, customFields[fieldNames.items]),
-          ])
+      sections.push(
+        createBrandLoop(
+          customFields[fieldNames.items],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          { maxIterations: 20 }
         )
       );
     }
 
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.totalLabel}: `),
-          createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-        ])
-      )
-    );
-
-    if (fieldNames.shippingAddress && text.shippingLabel) {
-      detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.shippingLabel}: `),
-            createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
-          ])
-        )
-      );
-    }
-
-    const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
-      ...createLogoSection(config.brandStyle.logoUrl),
-
-      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
-
-      createContentSection(
+    // Financial summary box
+    if (hasFinancialSummary) {
+      sections.push(dividerSection());
+      const summary = createSummaryRowsSection(
         [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-          ...detailRows,
+          labeledRow(text.subtotalLabel, fieldNames.subtotal, customFields),
+          labeledRow(text.discountLabel, fieldNames.discountAmount, customFields),
+          labeledRow(text.taxLabel, fieldNames.taxAmount, customFields),
+          labeledRow(text.shippingCostLabel, fieldNames.shippingCost, customFields),
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(`${text.totalLabel}: `),
+              createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+            ])
+          ),
         ],
-        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-      ),
-    ];
+        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+      );
+      if (summary) sections.push(summary);
+    }
 
-    if (lineItemsSection) {
-      if (text.lineItemsHeading) {
-        sections.push(
-          createContentSection(
-            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
-            { padding: '10px 0' }
-          )
+    // Shipping address block
+    if (hasExtendedAddress && fieldNames.shippingAddress) {
+      sections.push(dividerSection());
+      const addressLines: RCMLProseMirrorDoc[] = [];
+      addressLines.push(
+        createDocWithPlaceholders([
+          createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
+        ])
+      );
+      if (fieldNames.shippingAddress2) {
+        addressLines.push(
+          createDocWithPlaceholders([
+            createPlaceholder(fieldNames.shippingAddress2, customFields[fieldNames.shippingAddress2]),
+          ])
         );
       }
-      sections.push(lineItemsSection);
+      if (fieldNames.shippingCity || fieldNames.shippingZip) {
+        const cityZipNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+        if (fieldNames.shippingZip) {
+          cityZipNodes.push(createPlaceholder(fieldNames.shippingZip, customFields[fieldNames.shippingZip]));
+        }
+        if (fieldNames.shippingZip && fieldNames.shippingCity) {
+          cityZipNodes.push(createTextNode(' '));
+        }
+        if (fieldNames.shippingCity) {
+          cityZipNodes.push(createPlaceholder(fieldNames.shippingCity, customFields[fieldNames.shippingCity]));
+        }
+        addressLines.push(createDocWithPlaceholders(cityZipNodes));
+      }
+      if (fieldNames.shippingCountryCode) {
+        addressLines.push(
+          createDocWithPlaceholders([
+            createPlaceholder(fieldNames.shippingCountryCode, customFields[fieldNames.shippingCountryCode]),
+          ])
+        );
+      }
+      const addressBlock = createAddressBlock({
+        heading: text.shippingAddressHeading ?? text.shippingLabel,
+        lines: addressLines,
+      });
+      if (addressBlock) sections.push(addressBlock);
     }
 
     sections.push(
@@ -243,7 +480,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     );
 
     return createBrandTemplate({
-      brandStyle: config.brandStyle,
+      brandStyle: brandStyle,
       preheader: text.preheader,
       sections,
     });
@@ -316,6 +553,12 @@ export interface ShippingUpdateConfig {
     termsText?: string;
     /** Terms and conditions URL */
     termsUrl?: string;
+    /** Label for the "confirmed" step of the status tracker */
+    statusConfirmedLabel?: string;
+    /** Label for the "shipped" step of the status tracker */
+    statusShippedLabel?: string;
+    /** Label for the "delivered" step of the status tracker */
+    statusDeliveredLabel?: string;
   };
   fieldNames: {
     firstName: string;
@@ -378,12 +621,42 @@ export interface ShippingUpdateConfig {
  */
 export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
   const templateName = 'createShippingUpdateEmail';
-  // Loop sub-fields are JSON key names, not custom field paths — skip validation for them
-  const { itemName: _itemName, itemQuantity: _itemQuantity, itemUnitPrice: _itemUnitPrice, itemTotal: _itemTotal, itemSku: _itemSku, ...regularFields } = config.fieldNames;
-  validateCustomFields(config.customFields, regularFields, templateName);
 
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
+
+    // Only validate fields that will actually be rendered. Every detail row
+    // renders through `detailRow(label, fieldName)` which skips silently when
+    // either side is missing — validating unconditionally would force the
+    // caller to provide customFields entries for placeholders that never
+    // appear in the output. Loop sub-fields (itemName/Quantity/UnitPrice/
+    // Total/Sku) are JSON key names in the loop body, not custom field paths,
+    // so they are never validated here.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+    };
+    if (text.trackingLabel && fieldNames.trackingNumber) fieldsToValidate.trackingNumber = fieldNames.trackingNumber;
+    if (text.estimatedDeliveryLabel && fieldNames.estimatedDelivery) fieldsToValidate.estimatedDelivery = fieldNames.estimatedDelivery;
+    if (text.orderDateLabel && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
+    if (text.customerEmailLabel && fieldNames.customerEmail) fieldsToValidate.customerEmail = fieldNames.customerEmail;
+    if (text.billingAddressLabel && fieldNames.billingAddress) fieldsToValidate.billingAddress = fieldNames.billingAddress;
+    if (text.paymentMethodLabel && fieldNames.paymentMethod) fieldsToValidate.paymentMethod = fieldNames.paymentMethod;
+    if (text.companyLabel && fieldNames.companyName) fieldsToValidate.companyName = fieldNames.companyName;
+    if (text.vatLabel && fieldNames.vatNumber) fieldsToValidate.vatNumber = fieldNames.vatNumber;
+    if (text.carrierLabel && fieldNames.shippingCarrier) fieldsToValidate.shippingCarrier = fieldNames.shippingCarrier;
+    if (text.shippingAddressLabel && fieldNames.shippingAddress) fieldsToValidate.shippingAddress = fieldNames.shippingAddress;
+    if (text.subtotalLabel && fieldNames.subtotal) fieldsToValidate.subtotal = fieldNames.subtotal;
+    if (text.taxLabel && fieldNames.taxAmount) fieldsToValidate.taxAmount = fieldNames.taxAmount;
+    if (text.discountLabel && fieldNames.discountAmount) fieldsToValidate.discountAmount = fieldNames.discountAmount;
+    if (text.shippingCostLabel && fieldNames.shippingCost) fieldsToValidate.shippingCost = fieldNames.shippingCost;
+    if (text.totalLabel && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
+    // customerFullName renders unconditionally when mapped (no label gate).
+    if (fieldNames.customerFullName) fieldsToValidate.customerFullName = fieldNames.customerFullName;
+    // Line items loop renders when both items + itemName are mapped.
+    if (fieldNames.items && fieldNames.itemName) fieldsToValidate.items = fieldNames.items;
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
 
     /** Helper to create a detail row from an optional field + label pair. */
     const detailRow = (label: string | undefined, fieldName: string | undefined) => {
@@ -396,7 +669,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
       );
     };
 
-    const sections: (RCMLSection | RCMLLoop | RCMLSwitch)[] = [
+    const sections: RCMLBodyChild[] = [
       ...createLogoSection(config.brandStyle.logoUrl),
 
       // Heading + greeting
@@ -415,6 +688,23 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
         { padding: '20px 0' }
       ),
     ];
+
+    // Three-step status tracker (Confirmed → Shipped → Delivered), Shipped is active.
+    // Rendered only when all three labels are supplied; otherwise omitted entirely.
+    if (text.statusConfirmedLabel && text.statusShippedLabel && text.statusDeliveredLabel) {
+      sections.push(
+        createStatusTrackerSection({
+          steps: [
+            { label: text.statusConfirmedLabel },
+            { label: text.statusShippedLabel },
+            { label: text.statusDeliveredLabel },
+          ],
+          activeIndex: 1,
+          brandStyle: config.brandStyle,
+        })
+      );
+      sections.push(dividerSection());
+    }
 
     // Seller info section (company, VAT)
     const sellerRows = [
@@ -653,9 +943,31 @@ export interface AbandonedCartConfig {
     message: string;
     reminder: string;
     ctaButton: string;
+    /** Heading above the line items loop section */
+    lineItemsHeading?: string;
+    /** Label for quantity in line items (default: 'Qty: ') */
+    itemQtyLabel?: string;
+    /** Label for unit price in line items (default: 'Price: ') */
+    itemUnitPriceLabel?: string;
+    /** Label for SKU in line items (default: 'SKU: ') */
+    itemSkuLabel?: string;
+    /** Label for the cart total row */
+    totalLabel?: string;
   };
   fieldNames: {
     firstName: string;
+    /** Repeatable items field (enables rc-loop rendering) */
+    items?: string;
+    /** Line item sub-field: product name */
+    itemName?: string;
+    /** Line item sub-field: quantity */
+    itemQuantity?: string;
+    /** Line item sub-field: unit price */
+    itemUnitPrice?: string;
+    /** Line item sub-field: SKU */
+    itemSku?: string;
+    /** Cart total */
+    totalPrice?: string;
   };
 }
 
@@ -664,42 +976,153 @@ export interface AbandonedCartConfig {
  */
 export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
   const templateName = 'createAbandonedCartEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
   return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    const { brandStyle, customFields, fieldNames, text } = config;
+
+    const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
+    const hasTotalRow = !!(text.totalLabel && fieldNames.totalPrice);
+
+    // Only validate fields that will actually be rendered. Loop sub-fields
+    // (itemName/Quantity/UnitPrice/Sku) are JSON key names in the loop body,
+    // not custom field paths — never validated here. `items` is validated only
+    // when the loop will render, and `totalPrice` only when the total row
+    // will render, so mapping either without its render partner does not
+    // produce a misleading missing-field error.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+    };
+    if (hasLineItemLoop && fieldNames.items) fieldsToValidate.items = fieldNames.items;
+    if (hasTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
+    const socialLinks = brandStyle.socialLinks ?? [];
+    const socialElements = socialLinks
+      .map((link) => {
+        try {
+          return createSocialElement({ name: link.name, href: link.href });
+        } catch {
+          return undefined;
+        }
+      })
+      .filter((el): el is NonNullable<typeof el> => !!el);
+    const hasSocial = socialElements.length > 0;
+
+    const sections: RCMLBodyChild[] = [
+      ...createLogoSection(brandStyle.logoUrl),
+
+      createContentSection(
+        [
+          createBrandHeading(
+            createDocWithPlaceholders([
+              createTextNode(`${text.greeting} `),
+              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              createTextNode('!'),
+            ])
+          ),
+          createBrandText(
+            createDocWithPlaceholders([createTextNode(text.message)]),
+            { align: 'center' }
+          ),
+          createBrandText(
+            createDocWithPlaceholders([createTextNode(text.reminder)]),
+            { align: 'center' }
+          ),
+        ],
+        { padding: '20px 0' }
+      ),
+    ];
+
+    // Cart line items loop
+    if (hasLineItemLoop && fieldNames.items && fieldNames.itemName) {
+      sections.push(dividerSection());
+      if (text.lineItemsHeading) {
+        sections.push(
+          createContentSection(
+            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+            { padding: '10px 0' }
+          )
+        );
+      }
+
+      const loopChildren: RCMLText[] = [
+        createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
+      ];
+      if (fieldNames.itemSku) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(text.itemSkuLabel ?? 'SKU: '),
+              createLoopFieldPlaceholder(fieldNames.itemSku),
+            ])
+          )
+        );
+      }
+      if (fieldNames.itemQuantity) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(text.itemQtyLabel ?? 'Qty: '),
+              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+            ])
+          )
+        );
+      }
+      if (fieldNames.itemUnitPrice) {
+        loopChildren.push(
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(text.itemUnitPriceLabel ?? 'Price: '),
+              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+            ])
+          )
+        );
+      }
+
+      sections.push(
+        createBrandLoop(
+          customFields[fieldNames.items],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          { maxIterations: 20 }
+        )
+      );
+    }
+
+    // Cart total row
+    if (hasTotalRow && fieldNames.totalPrice && text.totalLabel) {
+      sections.push(dividerSection());
+      const totalSection = createSummaryRowsSection(
+        [
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(`${text.totalLabel}: `),
+              createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+            ])
+          ),
+        ],
+        { padding: '10px 0', backgroundColor: brandStyle.brandColor }
+      );
+      if (totalSection) sections.push(totalSection);
+    }
+
+    sections.push(createCtaSection(text.ctaButton, config.cartUrl));
+
+    // Social icons when brand has any social link configured
+    if (hasSocial) {
+      sections.push(
+        createContentSection(
+          [createSocial(socialElements, { align: 'center' })],
+          { padding: '10px 0' }
+        )
+      );
+    }
+
+    sections.push(createFooterSection(config.footer));
 
     return createBrandTemplate({
-      brandStyle: config.brandStyle,
+      brandStyle: brandStyle,
       preheader: text.preheader,
-      sections: [
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        createContentSection(
-          [
-            createBrandHeading(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode('!'),
-              ])
-            ),
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.message)]),
-              { align: 'center' }
-            ),
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.reminder)]),
-              { align: 'center' }
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
-
-        createCtaSection(text.ctaButton, config.cartUrl),
-
-        createFooterSection(config.footer),
-      ],
+      sections,
     });
   });
 }
@@ -721,10 +1144,20 @@ export interface OrderCancellationConfig {
     orderRefLabel: string;
     followUp: string;
     ctaButton: string;
+    /** Label for optional order date row */
+    orderDateLabel?: string;
+    /** Optional support/refund callout text — rendered centered when supplied */
+    supportText?: string;
+    /** Optional support email — rendered as a mailto link beside supportText */
+    supportEmail?: string;
+    /** Optional support URL — rendered as a link beside supportText */
+    supportUrl?: string;
   };
   fieldNames: {
     firstName: string;
     orderRef: string;
+    /** Optional order date custom field */
+    orderDate?: string;
   };
 }
 
@@ -733,47 +1166,136 @@ export interface OrderCancellationConfig {
  */
 export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
   const templateName = 'createOrderCancellationEmail';
-  validateCustomFields(config.customFields, config.fieldNames, templateName);
 
   return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    const { brandStyle, customFields, fieldNames, text } = config;
+
+    // Only validate fields that will actually be rendered. `orderDate` is
+    // rendered via `labeledRow(text.orderDateLabel, ...)` which skips when
+    // either side is missing, so it's only validated when both are set.
+    const fieldsToValidate: Record<string, string> = {
+      firstName: fieldNames.firstName,
+      orderRef: fieldNames.orderRef,
+    };
+    if (text.orderDateLabel && fieldNames.orderDate) {
+      fieldsToValidate.orderDate = fieldNames.orderDate;
+    }
+    // templateName omitted — withTemplateContext wraps the error with the prefix.
+    validateCustomFields(customFields, fieldsToValidate);
+
+    const sections: RCMLBodyChild[] = [
+      ...createLogoSection(brandStyle.logoUrl),
+
+      // Hero banner — brand background so the cancellation status reads as a banner
+      createContentSection(
+        [createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)]), 1)],
+        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+      ),
+
+      dividerSection(),
+
+      // Body message
+      createContentSection(
+        [
+          createBrandText(
+            createDocWithPlaceholders([
+              createTextNode(`${text.greeting} `),
+              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              createTextNode(','),
+            ])
+          ),
+          createBrandText(createDocWithPlaceholders([createTextNode(text.message)])),
+        ],
+        { padding: '20px 0' }
+      ),
+    ];
+
+    // Order details box
+    const detailRows: (RCMLText | undefined)[] = [
+      createBrandText(
+        createDocWithPlaceholders([
+          createTextNode(`${text.orderRefLabel}: `),
+          createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+        ])
+      ),
+      labeledRow(text.orderDateLabel, fieldNames.orderDate, customFields),
+    ];
+    const detailsSection = createSummaryRowsSection(detailRows, {
+      padding: '20px 0',
+      backgroundColor: brandStyle.brandColor,
+    });
+    if (detailsSection) sections.push(detailsSection);
+
+    // Optional support callout (centered text + optional link)
+    if (text.supportText) {
+      const supportNodes: Parameters<typeof createDocWithPlaceholders>[0] = [
+        createTextNode(text.supportText),
+      ];
+      // When both supportUrl and supportEmail are supplied, prefer the URL so
+      // the displayed link text and href stay in sync.
+      const safeSupportUrl = text.supportUrl ? sanitizeUrl(text.supportUrl) : undefined;
+      let supportLinkHref: string | undefined;
+      let supportLinkText: string | undefined;
+      if (safeSupportUrl) {
+        supportLinkHref = safeSupportUrl;
+        supportLinkText = safeSupportUrl;
+      } else if (text.supportEmail) {
+        // Reject whitespace, control characters, or reserved URI characters
+        // (?, #, &, /, :) so malformed input fails fast instead of producing
+        // broken or parameter-injectable mailto links.
+        if (!/^[^\s\x00-\x1F\x7F?#&/:]+@[^\s\x00-\x1F\x7F?#&/:]+$/.test(text.supportEmail)) {
+          throw new RuleConfigError(
+            `supportEmail "${text.supportEmail}" is not a valid email address`
+          );
+        }
+        supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`;
+        supportLinkText = text.supportEmail;
+      }
+      const supportChildren: RCMLText[] = [
+        createBrandText(createDocWithPlaceholders(supportNodes), { align: 'center' }),
+      ];
+      if (supportLinkHref && supportLinkText) {
+        supportChildren.push(
+          createBrandText(
+            {
+              type: 'doc',
+              content: [{
+                type: 'paragraph',
+                content: [{
+                  type: 'text',
+                  text: supportLinkText,
+                  marks: [{
+                    type: 'link',
+                    attrs: { href: supportLinkHref, target: '_blank' },
+                  }],
+                }],
+              }],
+            },
+            { align: 'center' }
+          )
+        );
+      }
+      sections.push(dividerSection());
+      sections.push(createContentSection(supportChildren, { padding: '10px 0' }));
+    }
+
+    sections.push(dividerSection());
+
+    // Follow-up copy
+    sections.push(
+      createContentSection(
+        [createBrandText(createDocWithPlaceholders([createTextNode(text.followUp)]))],
+        { padding: '10px 0' }
+      )
+    );
+
+    sections.push(createCtaSection(text.ctaButton, config.websiteUrl));
+    sections.push(createFooterSection(config.footer));
 
     return createBrandTemplate({
-      brandStyle: config.brandStyle,
+      brandStyle: brandStyle,
       preheader: text.preheader,
-      sections: [
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        createContentSection(
-          [
-            createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode(','),
-              ])
-            ),
-
-            createBrandText(createDocWithPlaceholders([createTextNode(text.message)])),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.orderRefLabel}: `),
-                createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
-              ])
-            ),
-
-            createBrandText(createDocWithPlaceholders([createTextNode(text.followUp)])),
-          ],
-          { padding: '20px 0' }
-        ),
-
-        createCtaSection(text.ctaButton, config.websiteUrl),
-
-        createFooterSection(config.footer),
-      ],
+      sections,
     });
   });
 }

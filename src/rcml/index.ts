@@ -66,6 +66,10 @@ export {
   createDefaultContentSection,
   createFooterSection,
   createBrandLoop,
+  // Generic reusable section helpers
+  createSummaryRowsSection,
+  createStatusTrackerSection,
+  createAddressBlock,
   // Placeholder helpers
   createPlaceholder,
   createLoopFieldPlaceholder,
@@ -81,6 +85,9 @@ export type {
   CustomFieldMap,
   SimpleTemplateConfig,
   FooterConfig,
+  StatusTrackerStep,
+  CreateStatusTrackerSectionOptions,
+  CreateAddressBlockOptions,
 } from './brand-template';
 
 // Hospitality templates (hotels, restaurants, experiences)
