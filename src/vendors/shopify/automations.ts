@@ -16,6 +16,7 @@ import {
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
+  createWelcomeEmail,
 } from '../../rcml';
 
 /** Default English text for Shopify order confirmation emails. */
@@ -75,6 +76,16 @@ const ORDER_CANCELLATION_TEXT = {
   orderDateLabel: 'Order date',
   followUp: 'We hope to see you again soon.',
   ctaButton: 'Visit Store',
+} as const;
+
+/** Default English text for Shopify newsletter welcome emails. */
+const WELCOME_TEXT = {
+  preheader: 'Welcome!',
+  heading: 'Welcome!',
+  greeting: 'Hi',
+  intro: "Thanks for joining our newsletter. We're glad to have you on board.",
+  ctaButton: 'Learn More',
+  closing: "We'll be in touch with news and updates.",
 } as const;
 
 /** Default English text for Shopify abandoned cart emails. */
@@ -225,6 +236,25 @@ export function createShopifyAutomations(): VendorAutomation[] {
             ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
               orderDate: SHOPIFY_FIELDS.orderDate,
             }),
+          },
+        }),
+    },
+    {
+      id: 'shopify-welcome',
+      name: 'Shopify Welcome',
+      description: 'Sent when a subscriber joins the newsletter',
+      triggerTag: SHOPIFY_TAGS.newsletter,
+      subject: 'Welcome!',
+      preheader: WELCOME_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createWelcomeEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          websiteUrl: config.websiteUrl,
+          footer: config.footer,
+          text: WELCOME_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
           },
         }),
     },

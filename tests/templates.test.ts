@@ -33,6 +33,7 @@ import {
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
+  createWelcomeEmail,
   createDefaultContentSection,
 } from '../src/rcml';
 import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers';
@@ -2631,6 +2632,172 @@ describe('E-commerce Templates', () => {
         })
       ).toThrow(RuleConfigError);
     });
+  });
+});
+
+// ============================================================================
+// Welcome Email
+// ============================================================================
+
+describe('createWelcomeEmail', () => {
+  it('produces valid RCML with hero + greeting + CTA', () => {
+    const doc = createWelcomeEmail({
+      brandStyle: TEST_BRAND_STYLE,
+      customFields: TEST_CUSTOM_FIELDS,
+      websiteUrl: 'https://shop.example.com',
+      text: {
+        preheader: 'Welcome aboard',
+        heading: 'Welcome!',
+        greeting: 'Hi',
+        intro: 'Thanks for subscribing to our newsletter.',
+        ctaButton: 'Start Shopping',
+      },
+      fieldNames: { firstName: 'Subscriber.FirstName' },
+    });
+
+    assertValidRCMLDocument(doc);
+    const json = docToString(doc);
+    expect(json).toContain('Welcome!');
+    expect(json).toContain('Thanks for subscribing');
+    expect(json).toContain('Start Shopping');
+    expect(json).toContain('https://shop.example.com');
+    expect(json).toContain('[CustomField:200001]'); // Subscriber.FirstName
+  });
+
+  it('renders benefits list when benefits array is provided', () => {
+    const doc = createWelcomeEmail({
+      brandStyle: TEST_BRAND_STYLE,
+      customFields: TEST_CUSTOM_FIELDS,
+      websiteUrl: 'https://shop.example.com',
+      text: {
+        preheader: 'Welcome',
+        heading: 'Welcome!',
+        greeting: 'Hi',
+        intro: 'Glad you are here.',
+        ctaButton: 'Shop',
+        benefitsHeading: 'What you get',
+        benefits: ['Free shipping over $50', 'Early access to sales', 'Members-only perks'],
+      },
+      fieldNames: { firstName: 'Subscriber.FirstName' },
+    });
+
+    const json = docToString(doc);
+    expect(json).toContain('What you get');
+    expect(json).toContain('Free shipping over $50');
+    expect(json).toContain('Early access to sales');
+    expect(json).toContain('Members-only perks');
+  });
+
+  it('renders discount callout when discountCode is supplied', () => {
+    const doc = createWelcomeEmail({
+      brandStyle: TEST_BRAND_STYLE,
+      customFields: TEST_CUSTOM_FIELDS,
+      websiteUrl: 'https://shop.example.com',
+      text: {
+        preheader: 'Welcome',
+        heading: 'Welcome!',
+        greeting: 'Hi',
+        intro: 'Here is a gift.',
+        ctaButton: 'Shop',
+        discountHeading: 'Your welcome gift',
+        discountMessage: 'Use code at checkout',
+        discountCode: 'WELCOME10',
+      },
+      fieldNames: { firstName: 'Subscriber.FirstName' },
+    });
+
+    const json = docToString(doc);
+    expect(json).toContain('Your welcome gift');
+    expect(json).toContain('Use code at checkout');
+    expect(json).toContain('WELCOME10');
+  });
+
+  it('renders social icons when brandStyle.socialLinks is provided', () => {
+    const doc = createWelcomeEmail({
+      brandStyle: {
+        ...TEST_BRAND_STYLE,
+        socialLinks: [
+          { name: 'facebook', href: 'https://facebook.com/shop' },
+          { name: 'instagram', href: 'https://instagram.com/shop' },
+        ],
+      },
+      customFields: TEST_CUSTOM_FIELDS,
+      websiteUrl: 'https://shop.example.com',
+      text: {
+        preheader: 'Welcome',
+        heading: 'Welcome!',
+        greeting: 'Hi',
+        intro: 'Glad you are here.',
+        ctaButton: 'Shop',
+      },
+      fieldNames: { firstName: 'Subscriber.FirstName' },
+    });
+
+    const json = docToString(doc);
+    expect(json).toContain('rc-social');
+    expect(json).toContain('facebook');
+    expect(json).toContain('instagram');
+  });
+
+  it('omits optional sections when not configured', () => {
+    const doc = createWelcomeEmail({
+      brandStyle: TEST_BRAND_STYLE,
+      customFields: TEST_CUSTOM_FIELDS,
+      websiteUrl: 'https://shop.example.com',
+      text: {
+        preheader: 'Welcome',
+        heading: 'Welcome!',
+        greeting: 'Hi',
+        intro: 'Glad you are here.',
+        ctaButton: 'Shop',
+      },
+      fieldNames: { firstName: 'Subscriber.FirstName' },
+    });
+
+    const json = docToString(doc);
+    expect(json).not.toContain('rc-social');
+    expect(json).not.toContain('WELCOME10');
+    expect(json).not.toContain('•');
+  });
+
+  it('throws RuleConfigError when firstName field is not in customFields', () => {
+    expect(() =>
+      createWelcomeEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Welcome',
+          heading: 'Welcome!',
+          greeting: 'Hi',
+          intro: 'Glad you are here.',
+          ctaButton: 'Shop',
+        },
+        fieldNames: { firstName: 'Subscriber.UnmappedFirstName' },
+      })
+    ).toThrow(RuleConfigError);
+  });
+
+  it('wraps config errors with template context', () => {
+    try {
+      createWelcomeEmail({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://shop.example.com',
+        text: {
+          preheader: 'Welcome',
+          heading: 'Welcome!',
+          greeting: 'Hi',
+          intro: 'Glad you are here.',
+          ctaButton: 'Shop',
+        },
+        fieldNames: { firstName: 'Subscriber.UnmappedFirstName' },
+      });
+      throw new Error('expected createWelcomeEmail to throw');
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(RuleConfigError);
+      expect((error as Error).message).toMatch(/createWelcomeEmail/);
+    }
   });
 });
 
