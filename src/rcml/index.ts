@@ -121,3 +121,8 @@ export type {
   AbandonedCartConfig,
   OrderCancellationConfig,
 } from './ecommerce-templates';
+
+// Generic templates (vertical-agnostic)
+export { createWelcomeEmail } from './generic-templates';
+
+export type { WelcomeEmailConfig } from './generic-templates';

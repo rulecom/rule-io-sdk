@@ -1,9 +1,11 @@
 /**
  * Shopify Automation Definitions
  *
- * Pre-configured automations for Shopify e-commerce flows.
- * Each automation wires Shopify-specific field names and default
- * English text into the generic e-commerce template builders.
+ * Pre-configured automations for Shopify order flows plus a newsletter
+ * welcome. Each automation wires Shopify-specific field names and default
+ * English text into the generic template builders — e-commerce templates
+ * for the order flows, and the vertical-agnostic welcome template for the
+ * newsletter signup.
  *
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
@@ -16,6 +18,7 @@ import {
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
+  createWelcomeEmail,
 } from '../../rcml';
 
 /** Default English text for Shopify order confirmation emails. */
@@ -77,6 +80,16 @@ const ORDER_CANCELLATION_TEXT = {
   ctaButton: 'Visit Store',
 } as const;
 
+/** Default English text for Shopify newsletter welcome emails. */
+const WELCOME_TEXT = {
+  preheader: 'Welcome!',
+  heading: 'Welcome!',
+  greeting: 'Hi',
+  intro: "Thanks for joining our newsletter. We're glad to have you on board.",
+  ctaButton: 'Learn More',
+  closing: "We'll be in touch with news and updates.",
+} as const;
+
 /** Default English text for Shopify abandoned cart emails. */
 const ABANDONED_CART_TEXT = {
   preheader: 'You left something behind!',
@@ -95,7 +108,8 @@ const ABANDONED_CART_TEXT = {
  * Create the full set of Shopify automation definitions.
  *
  * Each automation returns a {@link VendorAutomation} that delegates to
- * the generic e-commerce template builders with Shopify field names
+ * the appropriate generic template builder (e-commerce for order flows,
+ * vertical-agnostic for the newsletter welcome) with Shopify field names
  * and default English text.
  */
 export function createShopifyAutomations(): VendorAutomation[] {
@@ -225,6 +239,25 @@ export function createShopifyAutomations(): VendorAutomation[] {
             ...(config.customFields[SHOPIFY_FIELDS.orderDate] !== undefined && {
               orderDate: SHOPIFY_FIELDS.orderDate,
             }),
+          },
+        }),
+    },
+    {
+      id: 'shopify-welcome',
+      name: 'Shopify Welcome',
+      description: 'Sent when a subscriber joins the newsletter',
+      triggerTag: SHOPIFY_TAGS.newsletter,
+      subject: 'Welcome!',
+      preheader: WELCOME_TEXT.preheader,
+      templateBuilder: (config: VendorConsumerConfig) =>
+        createWelcomeEmail({
+          brandStyle: config.brandStyle,
+          customFields: config.customFields,
+          websiteUrl: config.websiteUrl,
+          footer: config.footer,
+          text: WELCOME_TEXT,
+          fieldNames: {
+            firstName: SHOPIFY_FIELDS.firstName,
           },
         }),
     },

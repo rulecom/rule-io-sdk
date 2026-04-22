@@ -136,9 +136,9 @@ describe('shopifyPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 4 automations', () => {
+    it('returns 5 automations', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      expect(automations).toHaveLength(4);
+      expect(automations).toHaveLength(5);
     });
 
     it('returns automations with unique IDs', () => {
@@ -283,6 +283,46 @@ describe('shopifyPreset', () => {
       const json = JSON.stringify(doc);
       expect(json).toContain('[CustomField:200001]'); // firstName
       expect(json).toContain('[CustomField:200003]'); // orderNumber
+    });
+
+    it('welcome automation uses newsletter trigger tag', () => {
+      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+      const welcome = automations.find((a) => a.id === 'shopify-welcome');
+
+      expect(welcome).toBeDefined();
+      expect(welcome!.triggerTag).toBe(SHOPIFY_TAGS.newsletter);
+      expect(welcome!.delayInSeconds).toBeUndefined();
+
+      const doc = welcome!.templateBuilder({
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://myshop.example.com',
+      });
+      assertValidRCMLDocument(doc);
+
+      const json = JSON.stringify(doc);
+      expect(json).toContain('Welcome!');
+      expect(json).toContain('[CustomField:200001]'); // Subscriber.FirstName
+      expect(json).toContain('https://myshop.example.com');
+    });
+
+    it('welcome automation builds with the preset-required fields only', () => {
+      // shopifyPreset.validateConfig requires firstName + orderNumber +
+      // totalPrice — orderNumber and totalPrice are for the order-flow
+      // automations; the welcome template itself only uses firstName.
+      const minimal: VendorConsumerConfig = {
+        brandStyle: TEST_BRAND_STYLE,
+        customFields: {
+          [SHOPIFY_FIELDS.firstName]: 1,
+          [SHOPIFY_FIELDS.orderNumber]: 2,
+          [SHOPIFY_FIELDS.totalPrice]: 3,
+        },
+        websiteUrl: 'https://myshop.example.com',
+      };
+      const welcome = shopifyPreset.getAutomations(minimal).find(
+        (a) => a.id === 'shopify-welcome'
+      )!;
+      expect(() => welcome.templateBuilder(minimal)).not.toThrow();
     });
 
     it('abandoned cart has delay and conditions', () => {

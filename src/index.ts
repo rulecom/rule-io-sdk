@@ -319,6 +319,11 @@ export type {
   OrderCancellationConfig,
 } from './rcml';
 
+// Generic templates (vertical-agnostic)
+export { createWelcomeEmail } from './rcml';
+
+export type { WelcomeEmailConfig } from './rcml';
+
 // Automation configurations
 export {
   getAutomationByIdV2,
