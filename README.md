@@ -313,6 +313,33 @@ const config = {
 const automations = bookzenPreset.getAutomations(config);
 ```
 
+### Samfora (Donation)
+
+Swedish charitable-giving preset. Default email copy ships in Swedish.
+Three donation-confirmation variants are gated by donor-lifecycle tags
+(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
+second-time, and loyal donors see different wording.
+
+```typescript
+import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
+
+const config = {
+  brandStyle: myBrand,
+  customFields: {
+    [SAMFORA_FIELDS.donorFirstName]: 200001,
+    [SAMFORA_FIELDS.donationAmount]: 200002,
+    [SAMFORA_FIELDS.donationDate]: 200003,
+    [SAMFORA_FIELDS.donationRef]: 200004,
+    [SAMFORA_FIELDS.causeName]: 200005,
+    // Optional: donationCurrency, totalLifetimeAmount, taxYear,
+    // taxDeductibleAmount (required only for the tax-summary automation)
+  },
+  websiteUrl: 'https://samfora.org',
+};
+
+const automations = samforaPreset.getAutomations(config);
+```
+
 Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
 
 ---
