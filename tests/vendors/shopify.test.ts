@@ -306,7 +306,10 @@ describe('shopifyPreset', () => {
       expect(json).toContain('https://myshop.example.com');
     });
 
-    it('welcome automation builds with minimal config (only firstName mapped)', () => {
+    it('welcome automation builds with the preset-required fields only', () => {
+      // shopifyPreset.validateConfig requires firstName + orderNumber +
+      // totalPrice — orderNumber and totalPrice are for the order-flow
+      // automations; the welcome template itself only uses firstName.
       const minimal: VendorConsumerConfig = {
         brandStyle: TEST_BRAND_STYLE,
         customFields: {

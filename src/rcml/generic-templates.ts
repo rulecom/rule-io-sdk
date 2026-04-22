@@ -7,6 +7,10 @@
  *
  * All text and configuration must be provided by the consumer —
  * no hardcoded defaults for any specific business.
+ *
+ * Note: The footer section defaults to English link text ("View in browser",
+ * "Unsubscribe") when no `footer` config is provided. Pass a `footer` object
+ * to override with your own locale.
  */
 
 import type { RCMLBodyChild, RCMLColumnChild, RCMLDocument, RCMLText } from '../types';
