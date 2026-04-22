@@ -48,12 +48,18 @@ const FIELD_DESCRIPTIONS: Record<SamforaFieldNames, string> = {
 };
 
 /**
- * Fields required by the core confirmation / monthly / welcome flows.
+ * Fields required by every automation `getAutomations()` returns.
  *
- * The annual-tax-summary automation additionally requires `taxYear`,
- * `totalLifetimeAmount`, and `taxDeductibleAmount`. Those are validated
- * inside that template builder rather than gated at config-level, so a
- * consumer who doesn't ship the tax summary isn't forced to map them.
+ * Includes the tax-summary's extra fields (`taxYear`, `totalLifetimeAmount`,
+ * `taxDeductibleAmount`) so that `validateConfig` passing guarantees every
+ * automation in the returned array is buildable. Earlier versions left the
+ * tax fields out and validated them inside the template builder, which
+ * created a contract mismatch — a consumer could pass validation and still
+ * hit a runtime error while iterating.
+ *
+ * `donationCurrency` and `donationType` stay optional: currency is a nice-
+ * to-have display token, and `donationType` isn't referenced by any of the
+ * current template builders.
  */
 const REQUIRED_FIELDS: readonly SamforaFieldNames[] = [
   'donorFirstName',
@@ -61,6 +67,9 @@ const REQUIRED_FIELDS: readonly SamforaFieldNames[] = [
   'donationDate',
   'donationRef',
   'causeName',
+  'totalLifetimeAmount',
+  'taxYear',
+  'taxDeductibleAmount',
 ];
 
 function validateSamforaConfig(config: VendorConsumerConfig): void {

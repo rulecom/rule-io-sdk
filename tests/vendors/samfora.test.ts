@@ -13,23 +13,26 @@ import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from '../helpe
 // Shared fixtures
 // ============================================================================
 
-/** Core fields required by all automations except the tax summary. */
+/**
+ * Every field `validateConfig` requires. This set guarantees that every
+ * automation returned by `getAutomations(TEST_CONFIG)` is buildable.
+ */
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   [SAMFORA_FIELDS.donorFirstName]: 200001,
   [SAMFORA_FIELDS.donationAmount]: 200002,
   [SAMFORA_FIELDS.donationDate]: 200003,
   [SAMFORA_FIELDS.donationRef]: 200004,
   [SAMFORA_FIELDS.causeName]: 200005,
-};
-
-/** Extended map that also covers the tax-summary automation. */
-const TEST_CUSTOM_FIELDS_FULL: CustomFieldMap = {
-  ...TEST_CUSTOM_FIELDS,
-  [SAMFORA_FIELDS.donationCurrency]: 200006,
-  [SAMFORA_FIELDS.donationType]: 200007,
   [SAMFORA_FIELDS.totalLifetimeAmount]: 200008,
   [SAMFORA_FIELDS.taxYear]: 200009,
   [SAMFORA_FIELDS.taxDeductibleAmount]: 200010,
+};
+
+/** Optional fields (currency display + donation type). */
+const TEST_CUSTOM_FIELDS_WITH_OPTIONAL: CustomFieldMap = {
+  ...TEST_CUSTOM_FIELDS,
+  [SAMFORA_FIELDS.donationCurrency]: 200006,
+  [SAMFORA_FIELDS.donationType]: 200007,
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
@@ -38,9 +41,9 @@ const TEST_CONFIG: VendorConsumerConfig = {
   websiteUrl: 'https://samfora.org',
 };
 
-const TEST_CONFIG_FULL: VendorConsumerConfig = {
+const TEST_CONFIG_WITH_OPTIONAL: VendorConsumerConfig = {
   brandStyle: TEST_BRAND_STYLE,
-  customFields: TEST_CUSTOM_FIELDS_FULL,
+  customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
   websiteUrl: 'https://samfora.org',
 };
 
@@ -86,8 +89,24 @@ describe('samforaPreset', () => {
       );
     });
 
-    it('does not require tax-summary fields', () => {
-      // Tax fields aren't mapped in TEST_CUSTOM_FIELDS — validateConfig passes.
+    it('requires tax-summary fields so every returned automation is buildable', () => {
+      const withoutTaxFields: VendorConsumerConfig = {
+        ...TEST_CONFIG,
+        customFields: {
+          [SAMFORA_FIELDS.donorFirstName]: 200001,
+          [SAMFORA_FIELDS.donationAmount]: 200002,
+          [SAMFORA_FIELDS.donationDate]: 200003,
+          [SAMFORA_FIELDS.donationRef]: 200004,
+          [SAMFORA_FIELDS.causeName]: 200005,
+        },
+      };
+      expect(() => samforaPreset.validateConfig(withoutTaxFields)).toThrow(
+        /taxYear|totalLifetimeAmount|taxDeductibleAmount/,
+      );
+    });
+
+    it('does not require the optional currency / donationType fields', () => {
+      // TEST_CONFIG omits donationCurrency and donationType — still passes.
       expect(() => samforaPreset.validateConfig(TEST_CONFIG)).not.toThrow();
     });
   });
@@ -110,13 +129,25 @@ describe('samforaPreset', () => {
       }
     });
 
-    it('includes the core donation fields', () => {
+    it('includes every field each automation needs to build', () => {
       const logicalNames = samforaPreset.getRequiredFields().map((f) => f.logicalName);
+      // Core fields referenced by the confirmation / monthly flows.
       expect(logicalNames).toContain('donorFirstName');
       expect(logicalNames).toContain('donationAmount');
       expect(logicalNames).toContain('donationDate');
       expect(logicalNames).toContain('donationRef');
       expect(logicalNames).toContain('causeName');
+      // Tax-summary fields — also required so `getAutomations()` never hands
+      // back a tax-summary automation that can't build.
+      expect(logicalNames).toContain('totalLifetimeAmount');
+      expect(logicalNames).toContain('taxYear');
+      expect(logicalNames).toContain('taxDeductibleAmount');
+    });
+
+    it('excludes the optional currency and donationType fields', () => {
+      const logicalNames = samforaPreset.getRequiredFields().map((f) => f.logicalName);
+      expect(logicalNames).not.toContain('donationCurrency');
+      expect(logicalNames).not.toContain('donationType');
     });
   });
 
@@ -126,18 +157,18 @@ describe('samforaPreset', () => {
 
   describe('getAutomations', () => {
     it('returns 6 automations', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       expect(automations).toHaveLength(6);
     });
 
     it('returns automations with unique IDs', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const ids = automations.map((a) => a.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('all automations have trigger tags from SAMFORA_TAGS', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const validTags = new Set(Object.values(SAMFORA_TAGS));
       for (const automation of automations) {
         expect(validTags.has(automation.triggerTag)).toBe(true);
@@ -145,7 +176,7 @@ describe('samforaPreset', () => {
     });
 
     it('the three confirmation variants share a trigger but differ by condition', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const confirmations = automations.filter(
         (a) => a.triggerTag === SAMFORA_TAGS.donationReceived,
       );
@@ -163,7 +194,7 @@ describe('samforaPreset', () => {
     });
 
     it('confirmation variants gate on donor-lifecycle tags', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const first = automations.find(
         (a) => a.id === 'samfora-donation-confirmation-first',
       )!;
@@ -179,51 +210,39 @@ describe('samforaPreset', () => {
       expect(returning.conditions?.hasTag).toEqual([SAMFORA_TAGS.donorReturning]);
     });
 
-    it('all automations produce valid RCML documents (with full fields)', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
-      for (const automation of automations) {
-        const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
-          customFields: TEST_CUSTOM_FIELDS_FULL,
-          websiteUrl: 'https://samfora.org',
-        });
-        assertValidRCMLDocument(doc);
-      }
-    });
-
-    it('core automations produce valid RCML without the optional tax fields', () => {
-      // Skip the tax-summary automation, which legitimately requires tax fields.
-      const automations = samforaPreset
-        .getAutomations(TEST_CONFIG)
-        .filter((a) => a.id !== 'samfora-annual-tax-summary');
-
-      for (const automation of automations) {
-        const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
-          customFields: TEST_CUSTOM_FIELDS,
-          websiteUrl: 'https://samfora.org',
-        });
-        assertValidRCMLDocument(doc);
-      }
-    });
-
-    it('tax-summary template throws when its extra fields are missing', () => {
+    it('all automations produce valid RCML documents with required fields only', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
-      const taxSummary = automations.find(
-        (a) => a.id === 'samfora-annual-tax-summary',
-      )!;
-
-      expect(() =>
-        taxSummary.templateBuilder({
+      for (const automation of automations) {
+        const doc = automation.templateBuilder({
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
-        }),
-      ).toThrow(/taxYear|totalLifetimeAmount|taxDeductibleAmount/);
+        });
+        assertValidRCMLDocument(doc);
+      }
     });
+
+    it('all automations also render with the optional currency / type fields', () => {
+      const automations = samforaPreset.getAutomations(TEST_CONFIG_WITH_OPTIONAL);
+      for (const automation of automations) {
+        const doc = automation.templateBuilder({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
+          websiteUrl: 'https://samfora.org',
+        });
+        assertValidRCMLDocument(doc);
+      }
+    });
+
+    // Note: the tax-summary builder retains an internal `validateCustomFields`
+    // call as a defensive backstop, but it's no longer reachable through the
+    // resolved `templateBuilder` — `resolveVendorAutomations` merges the outer
+    // config's customFields with any override, so required fields always
+    // resolve. The upstream `validateConfig` gate is now the only path where
+    // missing fields surface, which is covered by the validateConfig tests.
 
     it('templateBuilder honors TemplateConfigV2 overrides', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const first = automations.find(
         (a) => a.id === 'samfora-donation-confirmation-first',
       )!;
@@ -231,7 +250,7 @@ describe('samforaPreset', () => {
       const doc = first.templateBuilder({
         brandStyle: TEST_BRAND_STYLE,
         customFields: {
-          ...TEST_CUSTOM_FIELDS_FULL,
+          ...TEST_CUSTOM_FIELDS,
           [SAMFORA_FIELDS.donationAmount]: 999999,
         },
         websiteUrl: 'https://override.example.com',
@@ -243,14 +262,14 @@ describe('samforaPreset', () => {
     });
 
     it('RCML contains Samfora field placeholders', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const first = automations.find(
         (a) => a.id === 'samfora-donation-confirmation-first',
       )!;
 
       const doc = first.templateBuilder({
         brandStyle: TEST_BRAND_STYLE,
-        customFields: TEST_CUSTOM_FIELDS_FULL,
+        customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       });
       const json = docToString(doc);
@@ -261,7 +280,7 @@ describe('samforaPreset', () => {
     });
 
     it('default copy is in Swedish', () => {
-      const automations = samforaPreset.getAutomations(TEST_CONFIG_FULL);
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const first = automations.find(
         (a) => a.id === 'samfora-donation-confirmation-first',
       )!;
@@ -269,7 +288,7 @@ describe('samforaPreset', () => {
       expect(first.subject).toContain('Tack');
       const doc = first.templateBuilder({
         brandStyle: TEST_BRAND_STYLE,
-        customFields: TEST_CUSTOM_FIELDS_FULL,
+        customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       });
       const json = docToString(doc);

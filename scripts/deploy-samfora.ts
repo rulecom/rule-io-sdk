@@ -35,7 +35,7 @@ import {
 } from '../src';
 import { toBrandStyleConfig } from '../src/rcml/brand-template';
 import type { VendorConsumerConfig } from '../src/vendors/types';
-import type { CustomFieldMap } from '../src/rcml';
+import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -233,18 +233,26 @@ async function resolveFieldIds(
 }
 
 /**
- * Fetch the account's preferred brand style. Uses `is_default: true` from the
+ * Fetch the account's preferred brand style and convert it to a
+ * `BrandStyleConfig` in one pass. Uses `is_default: true` from the
  * brand-style list; falls back to the first entry only if no default is set
  * (shouldn't happen in practice). See issue #91 for why this is mandatory.
+ *
+ * Returns the converted config so callers can use it directly without a
+ * second round trip through `getBrandStyle`.
  */
 async function resolvePreferredBrandStyle(
   client: RuleClient,
   overrideId: number | undefined,
-): Promise<{ id: number; name?: string }> {
+): Promise<{ id: number; name?: string; brandStyle: BrandStyleConfig }> {
   if (overrideId !== undefined) {
     const resp = await client.getBrandStyle(overrideId);
     if (!resp?.data) throw new Error(`Brand style ${overrideId} not found`);
-    return { id: overrideId, name: resp.data.name };
+    return {
+      id: overrideId,
+      name: resp.data.name,
+      brandStyle: toBrandStyleConfig(resp.data),
+    };
   }
 
   const listResp = await client.listBrandStyles();
@@ -258,7 +266,30 @@ async function resolvePreferredBrandStyle(
       '  WARN: no brand style is flagged as default — falling back to first in list',
     );
   }
-  return { id: preferred.id, name: preferred.name };
+  const resp = await client.getBrandStyle(preferred.id);
+  if (!resp?.data) throw new Error(`Brand style ${preferred.id} not found`);
+  return {
+    id: preferred.id,
+    name: preferred.name,
+    brandStyle: toBrandStyleConfig(resp.data),
+  };
+}
+
+/**
+ * Parse a `--brand=<id>` CLI argument into a positive integer, throwing a
+ * clear error for non-numeric, negative, or fractional values. Rejecting
+ * `NaN` up front avoids a downstream `getBrandStyle(NaN)` call that would
+ * surface as a confusing 404.
+ */
+function parseBrandOverride(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(
+      `Invalid --brand value "${raw}": expected a positive integer brand style id.`,
+    );
+  }
+  return n;
 }
 
 // ============================================================================
@@ -270,7 +301,7 @@ async function main(): Promise<void> {
   const apiKey = process.env.RULE_API_KEY;
   if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
 
-  const brandOverride = getArg('brand');
+  const brandOverride = parseBrandOverride(getArg('brand'));
   const activate = process.argv.includes('--activate');
 
   const client = new RuleClient({ apiKey });
@@ -339,15 +370,9 @@ async function main(): Promise<void> {
 
   // --- 4. Brand style (preferred / is_default) ---
   console.log('\n→ Resolving preferred brand style (is_default)...');
-  const { id: brandStyleId, name: brandName } = await resolvePreferredBrandStyle(
-    client,
-    brandOverride ? Number(brandOverride) : undefined,
-  );
+  const { id: brandStyleId, name: brandName, brandStyle } =
+    await resolvePreferredBrandStyle(client, brandOverride);
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
-
-  const brandResp = await client.getBrandStyle(brandStyleId);
-  if (!brandResp?.data) throw new Error(`Brand style ${brandStyleId} not found`);
-  const brandStyle = toBrandStyleConfig(brandResp.data);
 
   const config: VendorConsumerConfig = {
     brandStyle,
