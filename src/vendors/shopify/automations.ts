@@ -1,9 +1,11 @@
 /**
  * Shopify Automation Definitions
  *
- * Pre-configured automations for Shopify e-commerce flows.
- * Each automation wires Shopify-specific field names and default
- * English text into the generic e-commerce template builders.
+ * Pre-configured automations for Shopify order flows plus a newsletter
+ * welcome. Each automation wires Shopify-specific field names and default
+ * English text into the generic template builders — e-commerce templates
+ * for the order flows, and the vertical-agnostic welcome template for the
+ * newsletter signup.
  *
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
@@ -106,7 +108,8 @@ const ABANDONED_CART_TEXT = {
  * Create the full set of Shopify automation definitions.
  *
  * Each automation returns a {@link VendorAutomation} that delegates to
- * the generic e-commerce template builders with Shopify field names
+ * the appropriate generic template builder (e-commerce for order flows,
+ * vertical-agnostic for the newsletter welcome) with Shopify field names
  * and default English text.
  */
 export function createShopifyAutomations(): VendorAutomation[] {
