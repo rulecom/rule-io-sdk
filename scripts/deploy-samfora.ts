@@ -5,13 +5,15 @@
  * style (is_default: true) rather than a hardcoded ID. See issue #91 —
  * that's how every deploy script should resolve brand styles.
  *
- *   1. Sync samfora-seed@rule.se with `Subscriber.FirstName` (flat) +
- *      every trigger & segment tag so the tags and the Subscriber-group
- *      field definition exist in the account. Subscriber.* fields are
- *      flat/overwriting per Rule.io praxis.
+ *   1. Sync samfora-seed@rule.se with every standard `Subscriber.*`
+ *      field the preset maps (FirstName, LastName, Address1/2, Zipcode,
+ *      City, Country, Number, Source) plus every trigger & segment tag,
+ *      so the tags and the Subscriber-group field definitions exist in
+ *      the account. Subscriber.* fields are flat/overwriting per
+ *      Rule.io praxis.
  *   2. Create per-persona test subscribers, one for each automation
  *      trigger, so you can eyeball each flow in the Rule.io UI. Each
- *      persona also gets a personalised `Subscriber.FirstName`.
+ *      persona gets the full `Subscriber.*` field set personalised.
  *   3. Seed the historical Donation.* group on every subscriber that
  *      needs donation detail (all personas except the welcome-only one).
  *      This creates the Donation.* field definitions in the account as
@@ -338,7 +340,7 @@ async function main(): Promise<void> {
   const client = new RuleClient({ apiKey });
 
   // --- 1. Seed subscriber (flat Subscriber fields + every tag) ---
-  console.log(`→ Seeding ${SEED_EMAIL} with Subscriber.FirstName + every Samfora tag...`);
+  console.log(`→ Seeding ${SEED_EMAIL} with Subscriber.* fields + every Samfora tag...`);
   await syncSubscriberV2(apiKey, SEED_EMAIL, subscriberFieldSeed('Seed'), ALL_TAGS);
 
   console.log('→ Looking up seed subscriber id...');

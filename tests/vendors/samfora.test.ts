@@ -293,7 +293,7 @@ describe('samforaPreset', () => {
     it('every automation leads with the brand logo section', () => {
       // Parity with bookzen/shopify: the logo must be the first body child
       // when the brand style has a logoUrl. Earlier versions silently
-      // omitted it, so Rule.io renders arrived without a header image.
+      // omitted it, so rendered emails had no header image.
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
       for (const automation of automations) {
         const doc = automation.templateBuilder({
