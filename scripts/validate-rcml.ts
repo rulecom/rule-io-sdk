@@ -110,16 +110,18 @@ const onlySections = process.argv
  * Parse `RULE_BRAND_STYLE_ID` into a positive integer, throwing a clear
  * error for malformed values. Returning `undefined` signals that the
  * preferred (is_default) brand style should be discovered instead.
+ *
+ * The error propagates up to the script's top-level `run().catch()` which
+ * logs and exits — same pattern as `deploy-shopify.ts:parseBrandOverride`.
  */
 function parseBrandStyleEnvOverride(): number | undefined {
   const raw = process.env.RULE_BRAND_STYLE_ID;
   if (!raw) return undefined;
   const n = Number(raw);
   if (!Number.isInteger(n) || n <= 0) {
-    console.error(
+    throw new Error(
       `Invalid RULE_BRAND_STYLE_ID "${raw}": expected a positive integer.`,
     );
-    process.exit(1);
   }
   return n;
 }
