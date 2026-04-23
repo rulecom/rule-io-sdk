@@ -137,9 +137,10 @@ const PERSONAS: Persona[] = [
 /** Every tag the preset references, applied to the seed so they all exist. */
 const ALL_TAGS = Object.values(SAMFORA_TAGS);
 
-// Note: Samfora keeps the donor first name inside the historical Donation
-// group, so there are no subscriber-level flat fields to seed — the v2 sync
-// below just carries tags.
+// Note: donor identity (first name, address, phone, etc.) is seeded on the
+// flat Subscriber group via `subscriberFieldSeed()`; per-donation event data
+// is written into the historical Donation group via `seedDonationGroup()`.
+// The v2 sync below carries both the flat Subscriber fields and the tags.
 
 /**
  * One donation record seeded into the historical Donation.* group. Values are
