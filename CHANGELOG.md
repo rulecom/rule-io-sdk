@@ -19,6 +19,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the account's preferred brand style via `is_default: true` from
   `listBrandStyles()`.
 
+### Changed
+- `BOOKZEN_FIELDS.guestFirstName` moved from `'Booking.FirstName'` to
+  `'Subscriber.FirstName'`. Guest identity belongs on the flat
+  `Subscriber.*` group (overwritten per sync), not the historical
+  `Booking.*` group (appended per sync). Brings Bookzen in line with
+  Shopify and Samfora per Rule.io field-group praxis.
+
 ## [0.3.0] - 2026-04-07
 
 ### Added
