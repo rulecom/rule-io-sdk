@@ -257,6 +257,7 @@ export type {
 // Brand template utilities
 export {
   toBrandStyleConfig,
+  resolvePreferredBrandStyle,
   createBrandTemplate,
   createBrandHead,
   createBrandLogo,
@@ -279,6 +280,8 @@ export {
 
 export type {
   BrandStyleConfig,
+  BrandStyleResolverClient,
+  ResolvedBrandStyle,
   CustomFieldMap,
   SimpleTemplateConfig,
   FooterConfig,

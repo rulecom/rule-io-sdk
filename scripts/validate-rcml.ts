@@ -16,7 +16,7 @@
  *
  * .env variables:
  *   RULE_API_KEY          — Required
- *   RULE_BRAND_STYLE_ID   — Brand style ID to use (auto-detects first one if omitted)
+ *   RULE_BRAND_STYLE_ID   — Brand style ID to use (resolves the account's preferred / is_default brand style if omitted)
  *   RULE_FROM_EMAIL       — Sender email (default: test@example.com)
  *   RULE_FROM_NAME        — Sender name (default: SDK RCML Validation)
  */
@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import {
   RuleClient,
   RULE_API_V2_BASE_URL,
-  toBrandStyleConfig,
+  resolvePreferredBrandStyle,
   createBrandTemplate,
   createDefaultContentSection,
   createFooterSection,
@@ -101,6 +101,45 @@ const onlySections = process.argv
   ?.slice('--sections='.length)
   .split(',')
   .map(Number);
+
+// ---------------------------------------------------------------------------
+// Brand style resolution — shared between create() and probe()
+// ---------------------------------------------------------------------------
+
+/**
+ * Parse `RULE_BRAND_STYLE_ID` into a positive integer, throwing a clear
+ * error for malformed values. Returning `undefined` signals that the
+ * preferred (is_default) brand style should be discovered instead.
+ */
+function parseBrandStyleEnvOverride(): number | undefined {
+  const raw = process.env.RULE_BRAND_STYLE_ID;
+  if (!raw) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    console.error(
+      `Invalid RULE_BRAND_STYLE_ID "${raw}": expected a positive integer.`,
+    );
+    process.exit(1);
+  }
+  return n;
+}
+
+/**
+ * Thin wrapper that turns `resolvePreferredBrandStyle` errors into a
+ * `process.exit(1)` with a readable message — consistent with the rest of
+ * this script's fail-fast style.
+ */
+async function resolvePreferredBrandStyleOrExit(
+  client: RuleClient,
+  overrideId: number | undefined,
+): Promise<Awaited<ReturnType<typeof resolvePreferredBrandStyle>>> {
+  try {
+    return await resolvePreferredBrandStyle(client, overrideId);
+  } catch (err) {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Helpers — all produce nodes with UUIDs
@@ -655,29 +694,20 @@ async function create(): Promise<void> {
 
   const client = new RuleClient({ apiKey: API_KEY!, debug: true });
 
-  // -- Resolve brand style --
-  let brandStyleId = process.env.RULE_BRAND_STYLE_ID
-    ? Number(process.env.RULE_BRAND_STYLE_ID)
-    : undefined;
-
-  if (!brandStyleId) {
-    console.log('No RULE_BRAND_STYLE_ID set, auto-detecting...');
-    const styles = await client.listBrandStyles();
-    const first = styles?.data?.[0];
-    if (!first?.id) {
-      console.error('No brand styles found on account. Create one in Rule.io first.');
-      process.exit(1);
-    }
-    brandStyleId = first.id;
-    console.log(`Using brand style: ${first.name ?? 'unnamed'} (ID: ${brandStyleId})`);
+  // -- Resolve brand style (preferred / is_default) --
+  const override = parseBrandStyleEnvOverride();
+  if (!override) {
+    console.log('No RULE_BRAND_STYLE_ID set, resolving preferred brand style...');
   }
-
-  const brandStyleResponse = await client.getBrandStyle(brandStyleId);
-  if (!brandStyleResponse?.data) {
-    console.error(`Brand style ${brandStyleId} not found.`);
-    process.exit(1);
+  const resolved = await resolvePreferredBrandStyleOrExit(client, override);
+  if (resolved.source === 'fallback') {
+    console.warn(
+      '  WARN: no brand style is flagged as default — falling back to first in list',
+    );
   }
-  const brandStyle = toBrandStyleConfig(brandStyleResponse.data);
+  const brandStyleId = resolved.id;
+  const brandStyle = resolved.brandStyle;
+  console.log(`Using brand style: ${resolved.name ?? 'unnamed'} (ID: ${brandStyleId})`);
 
   console.log('\nBrand style config:');
   console.log(`  ID:         ${brandStyle.brandStyleId}`);
@@ -806,27 +836,12 @@ async function create(): Promise<void> {
 async function probe(): Promise<void> {
   const client = new RuleClient({ apiKey: API_KEY!, debug: false });
 
-  // -- Resolve brand style (same as create) --
-  let brandStyleId = process.env.RULE_BRAND_STYLE_ID
-    ? Number(process.env.RULE_BRAND_STYLE_ID)
-    : undefined;
-
-  if (!brandStyleId) {
-    const styles = await client.listBrandStyles();
-    const first = styles?.data?.[0];
-    if (!first?.id) {
-      console.error('No brand styles found on account.');
-      process.exit(1);
-    }
-    brandStyleId = first.id;
-  }
-
-  const brandStyleResponse = await client.getBrandStyle(brandStyleId);
-  if (!brandStyleResponse?.data) {
-    console.error(`Brand style ${brandStyleId} not found.`);
-    process.exit(1);
-  }
-  const brandStyle = toBrandStyleConfig(brandStyleResponse.data);
+  // -- Resolve brand style (preferred / is_default; same rules as create) --
+  const resolved = await resolvePreferredBrandStyleOrExit(
+    client,
+    parseBrandStyleEnvOverride(),
+  );
+  const brandStyle = resolved.brandStyle;
 
   // Probe doesn't auto-detect fields — test structural validity only
   const groups = buildSectionGroups(brandStyle);

@@ -325,6 +325,104 @@ export function toBrandStyleConfig(data: import('../types').RuleBrandStyle): Bra
 }
 
 /**
+ * Minimal client shape required by {@link resolvePreferredBrandStyle}.
+ *
+ * Kept structural so the helper accepts either a full `RuleClient` or a test
+ * double without dragging in a circular import from `client.ts`.
+ */
+export interface BrandStyleResolverClient {
+  listBrandStyles(): Promise<import('../types').RuleBrandStyleListResponse>;
+  getBrandStyle(
+    brandStyleId: number,
+  ): Promise<import('../types').RuleBrandStyleResponse | null>;
+}
+
+/**
+ * Result of {@link resolvePreferredBrandStyle}.
+ */
+export interface ResolvedBrandStyle {
+  /** The brand style ID that was resolved. */
+  id: number;
+  /** The brand style name, if provided by the API. */
+  name?: string;
+  /** The converted config, ready to pass to `createBrandTemplate` and friends. */
+  brandStyle: BrandStyleConfig;
+  /**
+   * How the brand style was picked:
+   * - `'override'`: `overrideId` was supplied by the caller.
+   * - `'default'`: picked via `is_default: true` on the account's brand styles.
+   * - `'fallback'`: no `is_default` flag on any style — first in the list was used.
+   *
+   * Callers that want to warn on fallback can check for `'fallback'`.
+   */
+  source: 'override' | 'default' | 'fallback';
+}
+
+/**
+ * Resolve the account's preferred brand style and convert it to a
+ * ready-to-use `BrandStyleConfig`.
+ *
+ * Discovery rules:
+ * 1. If `overrideId` is provided, fetch that brand style directly.
+ * 2. Otherwise, list all brand styles and pick the one with `is_default: true`.
+ * 3. If no style is flagged as default, fall back to the first in the list
+ *    (the `source` field is set to `'fallback'` so callers can warn).
+ *
+ * Use this in deploy/provisioning scripts so each account's preferred brand
+ * style is respected — never hardcode brand style IDs, since a customer's
+ * preferred style can change and list order is not guaranteed.
+ *
+ * @param client - `RuleClient` (or any object with `listBrandStyles` + `getBrandStyle`)
+ * @param overrideId - Optional brand style ID to fetch directly, skipping discovery
+ * @throws `RuleConfigError` if no brand styles exist, or the given ID is not found
+ *
+ * @example
+ * ```typescript
+ * const client = new RuleClient(apiKey);
+ * const { id, brandStyle, source } = await resolvePreferredBrandStyle(client);
+ * if (source === 'fallback') console.warn('No is_default style — using first');
+ * ```
+ */
+export async function resolvePreferredBrandStyle(
+  client: BrandStyleResolverClient,
+  overrideId?: number,
+): Promise<ResolvedBrandStyle> {
+  if (overrideId !== undefined) {
+    const resp = await client.getBrandStyle(overrideId);
+    if (!resp?.data) {
+      throw new RuleConfigError(`Brand style ${overrideId} not found`);
+    }
+    return {
+      id: overrideId,
+      name: resp.data.name,
+      brandStyle: toBrandStyleConfig(resp.data),
+      source: 'override',
+    };
+  }
+
+  const listResp = await client.listBrandStyles();
+  const styles = listResp.data ?? [];
+  if (styles.length === 0) {
+    throw new RuleConfigError('No brand styles available in the account');
+  }
+  const preferredIdx = styles.findIndex((s) => s.is_default);
+  const preferred = preferredIdx === -1 ? styles[0] : styles[preferredIdx];
+  const source: 'default' | 'fallback' =
+    preferredIdx === -1 ? 'fallback' : 'default';
+
+  const resp = await client.getBrandStyle(preferred.id);
+  if (!resp?.data) {
+    throw new RuleConfigError(`Brand style ${preferred.id} not found`);
+  }
+  return {
+    id: preferred.id,
+    name: preferred.name,
+    brandStyle: toBrandStyleConfig(resp.data),
+    source,
+  };
+}
+
+/**
  * Create the rc-head element with full brand style attributes.
  */
 export function createBrandHead(

@@ -7,14 +7,15 @@
  *   2. Apply missing Shopify tags (CartInProgress, OrderCancelled) to that
  *      subscriber to ensure they resolve to numeric tag ids.
  *   3. Resolve numeric field ids via the v3 custom-field-data endpoint.
- *   4. Fetch the chosen brand style and build the consumer config.
+ *   4. Resolve the account's preferred brand style (is_default: true) via
+ *      `resolvePreferredBrandStyle`. `--brand=<id>` overrides discovery.
  *   5. Deploy each automation via createAutomationEmail (auto-handles
  *      automail → message → template → dynamic-set with cleanup on failure).
  *
  * Usage:
  *   npx tsx scripts/deploy-shopify.ts                 # deploy, automails inactive
  *   npx tsx scripts/deploy-shopify.ts --activate      # deploy + activate
- *   npx tsx scripts/deploy-shopify.ts --brand=11025   # pick brand style id
+ *   npx tsx scripts/deploy-shopify.ts --brand=12345   # force a specific brand id
  */
 
 import { readFileSync, existsSync } from 'node:fs';
@@ -22,11 +23,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   RuleClient,
+  resolvePreferredBrandStyle,
   shopifyPreset,
   SHOPIFY_FIELDS,
   SHOPIFY_TAGS,
 } from '../src';
-import { toBrandStyleConfig } from '../src/rcml/brand-template';
 import type { VendorConsumerConfig } from '../src/vendors/types';
 import type { CustomFieldMap } from '../src/rcml';
 
@@ -59,8 +60,22 @@ function getArg(name: string): string | undefined {
 }
 
 const SEED_EMAIL = 'shopify-seed@rule.se';
-const DEFAULT_BRAND = 11025;
 const WEBSITE_URL = 'https://shop.rule.se';
+
+/**
+ * Parse `--brand=<id>`. Rejecting non-integers up front prevents a confusing
+ * 404 from `getBrandStyle(NaN)`.
+ */
+function parseBrandOverride(raw: string | undefined): number | undefined {
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n <= 0) {
+    throw new Error(
+      `Invalid --brand value "${raw}": expected a positive integer brand style id.`,
+    );
+  }
+  return n;
+}
 
 /**
  * Subscriber-group seed (flat group). Values are strings; Rule.io infers text.
@@ -196,7 +211,7 @@ async function main(): Promise<void> {
   const apiKey = process.env.RULE_API_KEY;
   if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
 
-  const brandStyleId = Number(getArg('brand')) || DEFAULT_BRAND;
+  const brandOverride = parseBrandOverride(getArg('brand'));
   const activate = process.argv.includes('--activate');
 
   const client = new RuleClient({ apiKey });
@@ -247,11 +262,19 @@ async function main(): Promise<void> {
     console.warn(`  WARN: ${stillMissing.length} expected fields not present in account:`, stillMissing);
   }
 
-  console.log(`→ Fetching brand style ${brandStyleId}...`);
-  const brandResp = await client.getBrandStyle(brandStyleId);
-  if (!brandResp?.data) throw new Error(`Brand style ${brandStyleId} not found`);
-  const brandStyle = toBrandStyleConfig(brandResp.data);
-  console.log(`  "${brandResp.data.name}"`);
+  console.log(
+    brandOverride !== undefined
+      ? `→ Fetching brand style ${brandOverride} (override)...`
+      : '→ Resolving preferred brand style (is_default)...',
+  );
+  const { id: brandStyleId, name: brandName, brandStyle, source } =
+    await resolvePreferredBrandStyle(client, brandOverride);
+  if (source === 'fallback') {
+    console.warn(
+      '  WARN: no brand style is flagged as default — falling back to first in list',
+    );
+  }
+  console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
   const config: VendorConsumerConfig = {
     brandStyle,
