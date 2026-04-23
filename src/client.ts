@@ -75,6 +75,7 @@ import type {
   RuleSubscriberTagsV3Request,
   RuleExportDispatcherParams,
   RuleExportDispatcherResponse,
+  RuleExportStatisticRecord,
   RuleExportStatisticsParams,
   RuleExportStatisticsResponse,
   RuleExportSubscriberParams,
@@ -107,6 +108,58 @@ type QueryParamValue = string | number | boolean | null | undefined;
 
 /** Query-param bag accepted by `buildQueryString`. Array values emit one entry per element. */
 type QueryParamValues = Record<string, QueryParamValue | QueryParamValue[]>;
+
+/**
+ * Decode a base64 string to UTF-8, or return null if the input is not valid
+ * base64 or the decoded bytes are not valid UTF-8.
+ *
+ * Uses platform-native `atob` + `TextDecoder` (available in Node.js 18+ and
+ * all modern browser/edge runtimes) to avoid depending on Node's `Buffer`.
+ */
+function tryDecodeBase64Utf8(input: string): string | null {
+  if (!input) return null;
+  try {
+    const binary = atob(input);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+/** Encode a UTF-8 string to canonical (padded) base64. */
+function encodeBase64Utf8(input: string): string {
+  const bytes = new TextEncoder().encode(input);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/**
+ * Rule.io returns `object.name` base64-encoded on statistics export records
+ * where `object.type === 'message'`. Every other object type returns plain
+ * text. See GitHub issue #95.
+ *
+ * This helper decodes the name transparently, with a round-trip guard so that
+ * values which don't re-encode to the exact original are left untouched. That
+ * keeps the transform idempotent if Rule.io eventually fixes the API to
+ * return plain text.
+ */
+function decodeStatisticMessageName(
+  record: RuleExportStatisticRecord
+): RuleExportStatisticRecord {
+  if (record.object.type !== 'message') return record;
+  const original = record.object.name;
+  const decoded = tryDecodeBase64Utf8(original);
+  if (decoded === null) return record;
+  if (encodeBase64Utf8(decoded) !== original) return record;
+  return { ...record, object: { ...record.object, name: decoded } };
+}
 
 /**
  * Rule.io API Client
@@ -2024,7 +2077,16 @@ export class RuleClient {
    * Uses token-based pagination: if the response includes a `next_page_token`,
    * pass it in the next call to retrieve the following page.
    *
-   * @param params - Date range (required), optional statistic_types filter, optional next_page_token
+   * ## `object.name` decoding
+   *
+   * Rule.io returns `object.name` base64-encoded for records where
+   * `object.type === 'message'` (every other object type is plain text).
+   * By default this method decodes those names transparently so consumers
+   * always see plain text. A round-trip guard keeps the transform safe if
+   * Rule.io fixes the inconsistency upstream. Pass `decodeNames: false` to
+   * disable decoding and inspect the raw API response.
+   *
+   * @param params - Date range (required), optional statistic_types filter, optional next_page_token, optional decodeNames
    * @returns List of statistic records and optional next_page_token
    *
    * @example
@@ -2055,10 +2117,14 @@ export class RuleClient {
       'statistic_types[]': params.statistic_types,
       next_page_token: params.next_page_token || undefined,
     });
-    return this.requestV3<RuleExportStatisticsResponse>(
+    const response = await this.requestV3<RuleExportStatisticsResponse>(
       `/export/statistics${qs}`,
       { method: 'GET' }
     );
+    if (params.decodeNames === false || !response.data) {
+      return response;
+    }
+    return { ...response, data: response.data.map(decodeStatisticMessageName) };
   }
 
   /**

@@ -785,6 +785,18 @@ export interface RuleExportStatisticsParams extends RuleExportDateParams {
   statistic_types?: RuleExportStatisticFilterType[];
   /** Pagination token from the previous response */
   next_page_token?: string;
+  /**
+   * Automatically decode base64-encoded `object.name` for records where
+   * `object.type === 'message'`. Rule.io currently returns these names
+   * base64-encoded while every other object type returns plain text.
+   *
+   * Default: `true`. A round-trip guard ensures values that don't cleanly
+   * re-encode are passed through unchanged, so this remains safe if Rule.io
+   * fixes the inconsistency upstream.
+   *
+   * Set to `false` to inspect raw API values (e.g. for debugging).
+   */
+  decodeNames?: boolean;
 }
 
 /**
