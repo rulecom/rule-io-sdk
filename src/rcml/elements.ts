@@ -918,9 +918,11 @@ export type CreateCaseOptions =
  * ```
  */
 export function createCase(options: CreateCaseOptions, children: [RCMLSection]): RCMLCase {
-  if (children.length !== 1) {
+  // Runtime check protects JS callers who bypass the [RCMLSection] tuple type.
+  const childCount = (children as readonly RCMLSection[]).length;
+  if (childCount !== 1) {
     throw new RuleConfigError(
-      `createCase: each rc-case must contain exactly one section, got ${children.length}`,
+      `createCase: each rc-case must contain exactly one section, got ${childCount}`,
     );
   }
 

@@ -1243,6 +1243,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
         // Reject whitespace, control characters, or reserved URI characters
         // (?, #, &, /, :) so malformed input fails fast instead of producing
         // broken or parameter-injectable mailto links.
+        // eslint-disable-next-line no-control-regex -- intentional: blocks control chars in email input
         if (!/^[^\s\x00-\x1F\x7F?#&/:]+@[^\s\x00-\x1F\x7F?#&/:]+$/.test(text.supportEmail)) {
           throw new RuleConfigError(
             `supportEmail "${text.supportEmail}" is not a valid email address`
