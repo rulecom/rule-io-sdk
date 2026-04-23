@@ -8,7 +8,14 @@
 import { describe, it, expect } from 'vitest';
 import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
 import { RuleConfigError } from '../src/errors';
-import { validateCustomFields, toBrandStyleConfig, withTemplateContext, createStatusTrackerSection } from '../src/rcml/brand-template';
+import { validateCustomFields, toBrandStyleConfig, resolvePreferredBrandStyle, withTemplateContext, createStatusTrackerSection } from '../src/rcml/brand-template';
+import type { BrandStyleResolverClient } from '../src/rcml/brand-template';
+import type {
+  RuleBrandStyle,
+  RuleBrandStyleListItem,
+  RuleBrandStyleListResponse,
+  RuleBrandStyleResponse,
+} from '../src/types';
 import {
   // Brand template utilities
   createBrandTemplate,
@@ -595,6 +602,170 @@ describe('Brand Template Utilities', () => {
       });
 
       expect(result.logoUrl).toBe('https://cdn.rule.io/icon.png');
+    });
+  });
+
+  describe('resolvePreferredBrandStyle', () => {
+    function makeBrand(
+      id: number,
+      name = `Brand ${id}`,
+      isDefault = false,
+    ): RuleBrandStyle {
+      return {
+        id,
+        account_id: 1,
+        name,
+        is_default: isDefault,
+        colours: [],
+        fonts: [],
+        images: [],
+        created_at: '',
+        updated_at: '',
+      };
+    }
+
+    /** Minimal list-item shape matching `GET /brand-styles` list response. */
+    function makeListItem(
+      id: number,
+      name = `Brand ${id}`,
+      isDefault = false,
+    ): RuleBrandStyleListItem {
+      return {
+        id,
+        name,
+        is_default: isDefault,
+        created_at: '',
+        updated_at: '',
+      };
+    }
+
+    /** Lightweight stub that records calls and returns canned responses. */
+    function makeClient(options: {
+      list?: RuleBrandStyleListResponse;
+      get?: Record<number, RuleBrandStyleResponse | null>;
+    }): BrandStyleResolverClient & {
+      listCalls: number;
+      getCalls: number[];
+    } {
+      const getMap = options.get ?? {};
+      const stub = {
+        listCalls: 0,
+        getCalls: [] as number[],
+        async listBrandStyles(): Promise<RuleBrandStyleListResponse> {
+          this.listCalls += 1;
+          if (!options.list) throw new Error('list stub not configured');
+          return options.list;
+        },
+        async getBrandStyle(id: number): Promise<RuleBrandStyleResponse | null> {
+          this.getCalls.push(id);
+          if (!(id in getMap)) throw new Error(`get stub not configured for ${id}`);
+          return getMap[id];
+        },
+      };
+      return stub;
+    }
+
+    it('picks the is_default brand style when one is flagged', async () => {
+      // Give list item and detail different names to prove the returned name
+      // comes from the fetched detail (authoritative/fresh), not the list item.
+      const defaultStyle = makeBrand(7, 'Preferred (fresh)', true);
+      const client = makeClient({
+        list: {
+          data: [
+            makeListItem(1),
+            makeListItem(7, 'Preferred (stale list name)', true),
+            makeListItem(3),
+          ],
+        },
+        get: { 7: { data: defaultStyle } },
+      });
+
+      const result = await resolvePreferredBrandStyle(client);
+
+      expect(result.id).toBe(7);
+      expect(result.name).toBe('Preferred (fresh)');
+      expect(result.source).toBe('default');
+      expect(result.brandStyle.brandStyleId).toBe('7');
+      expect(client.listCalls).toBe(1);
+      expect(client.getCalls).toEqual([7]);
+    });
+
+    it('falls back to the first style and marks source=fallback when none is_default', async () => {
+      const first = makeBrand(11, 'First');
+      const client = makeClient({
+        list: {
+          data: [makeListItem(11, 'First'), makeListItem(12)],
+        },
+        get: { 11: { data: first } },
+      });
+
+      const result = await resolvePreferredBrandStyle(client);
+
+      expect(result.id).toBe(11);
+      expect(result.source).toBe('fallback');
+      expect(client.getCalls).toEqual([11]);
+    });
+
+    it('uses overrideId and does NOT call listBrandStyles', async () => {
+      const style = makeBrand(42, 'Override');
+      const client = makeClient({
+        get: { 42: { data: style } },
+      });
+
+      const result = await resolvePreferredBrandStyle(client, 42);
+
+      expect(result.id).toBe(42);
+      expect(result.source).toBe('override');
+      expect(client.listCalls).toBe(0);
+      expect(client.getCalls).toEqual([42]);
+    });
+
+    it('throws RuleConfigError when no brand styles exist on the account', async () => {
+      const client = makeClient({
+        list: { data: [] satisfies RuleBrandStyleListItem[] },
+      });
+
+      await expect(resolvePreferredBrandStyle(client)).rejects.toBeInstanceOf(
+        RuleConfigError,
+      );
+    });
+
+    it('throws RuleConfigError when overrideId points to a missing brand style', async () => {
+      const client = makeClient({ get: { 99: null } });
+
+      await expect(resolvePreferredBrandStyle(client, 99)).rejects.toBeInstanceOf(
+        RuleConfigError,
+      );
+    });
+
+    it.each([
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+      ['-Infinity', Number.NEGATIVE_INFINITY],
+      ['zero', 0],
+      ['negative integer', -1],
+      ['non-integer', 1.5],
+    ])('rejects overrideId that is %s without calling getBrandStyle', async (_label, bad) => {
+      // No stubs configured — helper must reject before any API call.
+      const client = makeClient({});
+
+      await expect(resolvePreferredBrandStyle(client, bad)).rejects.toBeInstanceOf(
+        RuleConfigError,
+      );
+      expect(client.getCalls).toEqual([]);
+      expect(client.listCalls).toBe(0);
+    });
+
+    it('throws RuleConfigError when the resolved preferred id is not returned by get', async () => {
+      // Race condition: style disappears between list and get.
+      const client = makeClient({
+        list: { data: [makeListItem(5, 'Preferred', true)] },
+        get: { 5: null },
+      });
+
+      await expect(resolvePreferredBrandStyle(client)).rejects.toBeInstanceOf(
+        RuleConfigError,
+      );
     });
   });
 

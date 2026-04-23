@@ -51,8 +51,9 @@ export type {
 
 // Brand template utilities
 export {
-  // Brand style converter
+  // Brand style converter + preferred-style resolver
   toBrandStyleConfig,
+  resolvePreferredBrandStyle,
   // Template builder
   createBrandTemplate,
   // Head builder
@@ -82,6 +83,8 @@ export {
 // Brand template types
 export type {
   BrandStyleConfig,
+  BrandStyleResolverClient,
+  ResolvedBrandStyle,
   CustomFieldMap,
   SimpleTemplateConfig,
   FooterConfig,

@@ -1,9 +1,10 @@
 /**
  * Deploy the SDK's Samfora automations into the test account.
  *
- * Flow mirrors deploy-shopify.ts but uses the account's PREFERRED brand
- * style (is_default: true) rather than a hardcoded ID. See issue #91 —
- * that's how every deploy script should resolve brand styles.
+ * Flow mirrors deploy-shopify.ts: uses the account's PREFERRED brand
+ * style (is_default: true) via the shared `resolvePreferredBrandStyle`
+ * SDK helper. See issue #91 for why hardcoded IDs / list-order fallbacks
+ * are unsafe.
  *
  *   1. Sync samfora-seed@rule.se with every standard `Subscriber.*`
  *      field the preset maps (FirstName, LastName, Address1/2, Zipcode,
@@ -37,13 +38,13 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   RuleClient,
+  resolvePreferredBrandStyle,
   samforaPreset,
   SAMFORA_FIELDS,
   SAMFORA_TAGS,
 } from '../src';
-import { toBrandStyleConfig } from '../src/rcml/brand-template';
 import type { VendorConsumerConfig } from '../src/vendors/types';
-import type { BrandStyleConfig, CustomFieldMap } from '../src/rcml';
+import type { CustomFieldMap } from '../src/rcml';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -266,49 +267,6 @@ async function resolveFieldIds(
 }
 
 /**
- * Fetch the account's preferred brand style and convert it to a
- * `BrandStyleConfig` in one pass. Uses `is_default: true` from the
- * brand-style list; falls back to the first entry only if no default is set
- * (shouldn't happen in practice). See issue #91 for why this is mandatory.
- *
- * Returns the converted config so callers can use it directly without a
- * second round trip through `getBrandStyle`.
- */
-async function resolvePreferredBrandStyle(
-  client: RuleClient,
-  overrideId: number | undefined,
-): Promise<{ id: number; name?: string; brandStyle: BrandStyleConfig }> {
-  if (overrideId !== undefined) {
-    const resp = await client.getBrandStyle(overrideId);
-    if (!resp?.data) throw new Error(`Brand style ${overrideId} not found`);
-    return {
-      id: overrideId,
-      name: resp.data.name,
-      brandStyle: toBrandStyleConfig(resp.data),
-    };
-  }
-
-  const listResp = await client.listBrandStyles();
-  const styles = listResp.data ?? [];
-  if (styles.length === 0) {
-    throw new Error('No brand styles available in the account');
-  }
-  const preferred = styles.find((s) => s.is_default) ?? styles[0];
-  if (!styles.some((s) => s.is_default)) {
-    console.warn(
-      '  WARN: no brand style is flagged as default — falling back to first in list',
-    );
-  }
-  const resp = await client.getBrandStyle(preferred.id);
-  if (!resp?.data) throw new Error(`Brand style ${preferred.id} not found`);
-  return {
-    id: preferred.id,
-    name: preferred.name,
-    brandStyle: toBrandStyleConfig(resp.data),
-  };
-}
-
-/**
  * Parse a `--brand=<id>` CLI argument into a positive integer, throwing a
  * clear error for non-numeric, negative, or fractional values. Rejecting
  * `NaN` up front avoids a downstream `getBrandStyle(NaN)` call that would
@@ -402,9 +360,18 @@ async function main(): Promise<void> {
   }
 
   // --- 4. Brand style (preferred / is_default) ---
-  console.log('\n→ Resolving preferred brand style (is_default)...');
-  const { id: brandStyleId, name: brandName, brandStyle } =
+  console.log(
+    brandOverride !== undefined
+      ? `\n→ Fetching brand style ${brandOverride} (override)...`
+      : '\n→ Resolving preferred brand style (is_default)...',
+  );
+  const { id: brandStyleId, name: brandName, brandStyle, source } =
     await resolvePreferredBrandStyle(client, brandOverride);
+  if (source === 'fallback') {
+    console.warn(
+      '  WARN: no brand style is flagged as default — falling back to first in list',
+    );
+  }
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
   const config: VendorConsumerConfig = {
