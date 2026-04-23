@@ -313,6 +313,46 @@ const config = {
 const automations = bookzenPreset.getAutomations(config);
 ```
 
+### Samfora (Donation)
+
+Swedish charitable-giving preset. Default email copy ships in Swedish.
+Three donation-confirmation variants are gated by donor-lifecycle tags
+(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
+second-time, and loyal donors see different wording.
+
+Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
+`Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
+new custom ones — those fields already exist on every account. Per-donation
+data lives on a historical `Donation.*` group.
+
+```typescript
+import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
+
+const config = {
+  brandStyle: myBrand,
+  customFields: {
+    // Required: standard Subscriber field for the greeting
+    [SAMFORA_FIELDS.donorFirstName]: 47736,
+    // Required: historical Donation.* group
+    [SAMFORA_FIELDS.donationAmount]: 200002,
+    [SAMFORA_FIELDS.donationDate]: 200003,
+    [SAMFORA_FIELDS.donationRef]: 200004,
+    [SAMFORA_FIELDS.causeName]: 200005,
+    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
+    [SAMFORA_FIELDS.taxYear]: 200007,
+    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
+    // Optional Subscriber extensions (not referenced by built-in
+    // templates but available for consumer extensions):
+    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
+    // donorCity, donorCountry, donorPhone, donorSource
+    // Optional Donation extras: donationCurrency, donationType
+  },
+  websiteUrl: 'https://samfora.org',
+};
+
+const automations = samforaPreset.getAutomations(config);
+```
+
 Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
 
 ---

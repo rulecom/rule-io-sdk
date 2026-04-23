@@ -340,6 +340,9 @@ export {
   bookzenPreset,
   BOOKZEN_FIELDS,
   BOOKZEN_TAGS,
+  samforaPreset,
+  SAMFORA_FIELDS,
+  SAMFORA_TAGS,
 } from './vendors';
 
 export type {
@@ -357,4 +360,8 @@ export type {
   BookzenFieldNames,
   BookzenTagSchema,
   BookzenTagNames,
+  SamforaFieldSchema,
+  SamforaFieldNames,
+  SamforaTagSchema,
+  SamforaTagNames,
 } from './vendors';
