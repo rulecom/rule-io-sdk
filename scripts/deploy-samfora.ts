@@ -164,9 +164,22 @@ const DONATION_SEED_VALUES: Array<{ field: string; value: unknown }> = [
  * Flat Subscriber-group fields seeded per persona. These live on the
  * subscriber itself (not historical) — Rule.io overwrites them on each
  * sync, matching the "Subscriber.* is mutable identity" praxis.
+ *
+ * Populates all nine standard Subscriber fields the preset exposes so
+ * each persona has realistic data when previewed in Rule.io's editor.
  */
 function subscriberFieldSeed(firstName: string): Array<{ key: string; value: string }> {
-  return [{ key: SAMFORA_FIELDS.donorFirstName, value: firstName }];
+  return [
+    { key: SAMFORA_FIELDS.donorFirstName, value: firstName },
+    { key: SAMFORA_FIELDS.donorLastName, value: 'Svensson' },
+    { key: SAMFORA_FIELDS.donorAddress1, value: 'Storgatan 1' },
+    { key: SAMFORA_FIELDS.donorAddress2, value: 'Lgh 1201' },
+    { key: SAMFORA_FIELDS.donorZipcode, value: '11122' },
+    { key: SAMFORA_FIELDS.donorCity, value: 'Stockholm' },
+    { key: SAMFORA_FIELDS.donorCountry, value: 'Sweden' },
+    { key: SAMFORA_FIELDS.donorPhone, value: '+46701234567' },
+    { key: SAMFORA_FIELDS.donorSource, value: 'samfora' },
+  ];
 }
 
 // ============================================================================

@@ -39,7 +39,18 @@ import { createSamforaAutomations } from './automations';
 import { RuleConfigError } from '../../errors';
 
 const FIELD_DESCRIPTIONS: Record<SamforaFieldNames, string> = {
-  donorFirstName: 'Donor first name',
+  // Subscriber (standard Rule.io fields)
+  donorFirstName: 'Donor first name (standard Subscriber field)',
+  donorLastName: 'Donor last name (standard Subscriber field)',
+  donorAddress1: 'Donor street address, line 1 (standard Subscriber field)',
+  donorAddress2: 'Donor street address, line 2 (standard Subscriber field)',
+  donorZipcode: 'Donor postal / ZIP code (standard Subscriber field)',
+  donorCity: 'Donor city (standard Subscriber field)',
+  donorCountry: 'Donor country (standard Subscriber field)',
+  donorPhone: 'Donor phone number (standard Subscriber.Number field)',
+  donorSource: 'Signup source (standard Subscriber field)',
+
+  // Donation (historical)
   donationAmount: 'Amount of the donation',
   donationCurrency: 'Currency code (e.g. SEK, EUR)',
   donationDate: 'Date the donation was made',
@@ -60,6 +71,11 @@ const FIELD_DESCRIPTIONS: Record<SamforaFieldNames, string> = {
  * tax fields out and validated them inside the template builder, which
  * created a contract mismatch — a consumer could pass validation and still
  * hit a runtime error while iterating.
+ *
+ * Subscriber-group fields beyond `donorFirstName` (last name, address,
+ * city, etc.) stay optional — they're exposed in `SAMFORA_FIELDS` so
+ * consumers can reference them from custom extensions, but none of the
+ * preset's own template builders currently render them.
  *
  * `donationCurrency` and `donationType` stay optional: currency is a nice-
  * to-have display token, and `donationType` isn't referenced by any of the

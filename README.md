@@ -320,14 +320,20 @@ Three donation-confirmation variants are gated by donor-lifecycle tags
 (`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
 second-time, and loyal donors see different wording.
 
+Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
+`Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
+new custom ones — those fields already exist on every account. Per-donation
+data lives on a historical `Donation.*` group.
+
 ```typescript
 import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
 
 const config = {
   brandStyle: myBrand,
   customFields: {
-    // Required for every automation the preset returns
-    [SAMFORA_FIELDS.donorFirstName]: 200001,
+    // Required: standard Subscriber field for the greeting
+    [SAMFORA_FIELDS.donorFirstName]: 47736,
+    // Required: historical Donation.* group
     [SAMFORA_FIELDS.donationAmount]: 200002,
     [SAMFORA_FIELDS.donationDate]: 200003,
     [SAMFORA_FIELDS.donationRef]: 200004,
@@ -335,7 +341,11 @@ const config = {
     [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
     [SAMFORA_FIELDS.taxYear]: 200007,
     [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
-    // Optional: donationCurrency, donationType
+    // Optional Subscriber extensions (not referenced by built-in
+    // templates but available for consumer extensions):
+    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
+    // donorCity, donorCountry, donorPhone, donorSource
+    // Optional Donation extras: donationCurrency, donationType
   },
   websiteUrl: 'https://samfora.org',
 };

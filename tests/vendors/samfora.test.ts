@@ -144,10 +144,21 @@ describe('samforaPreset', () => {
       expect(logicalNames).toContain('taxDeductibleAmount');
     });
 
-    it('excludes the optional currency and donationType fields', () => {
+    it('excludes the optional donation and subscriber-extension fields', () => {
       const logicalNames = samforaPreset.getRequiredFields().map((f) => f.logicalName);
+      // Donation fields the preset's templates don't reference.
       expect(logicalNames).not.toContain('donationCurrency');
       expect(logicalNames).not.toContain('donationType');
+      // Standard Subscriber fields the preset exposes for consumer
+      // extensions but doesn't itself render.
+      expect(logicalNames).not.toContain('donorLastName');
+      expect(logicalNames).not.toContain('donorAddress1');
+      expect(logicalNames).not.toContain('donorAddress2');
+      expect(logicalNames).not.toContain('donorZipcode');
+      expect(logicalNames).not.toContain('donorCity');
+      expect(logicalNames).not.toContain('donorCountry');
+      expect(logicalNames).not.toContain('donorPhone');
+      expect(logicalNames).not.toContain('donorSource');
     });
   });
 
@@ -429,7 +440,20 @@ describe('SAMFORA_FIELDS', () => {
     // Rule.io praxis: donor identity on the flat Subscriber.* group
     // (overwritten per sync); per-donation event data on the historical
     // Donation.* group (appended per sync).
-    expect(SAMFORA_FIELDS.donorFirstName).toBe('Subscriber.FirstName');
+    const subscriberFields = [
+      SAMFORA_FIELDS.donorFirstName,
+      SAMFORA_FIELDS.donorLastName,
+      SAMFORA_FIELDS.donorAddress1,
+      SAMFORA_FIELDS.donorAddress2,
+      SAMFORA_FIELDS.donorZipcode,
+      SAMFORA_FIELDS.donorCity,
+      SAMFORA_FIELDS.donorCountry,
+      SAMFORA_FIELDS.donorPhone,
+      SAMFORA_FIELDS.donorSource,
+    ];
+    for (const value of subscriberFields) {
+      expect(value.startsWith('Subscriber.')).toBe(true);
+    }
 
     const donationFields = [
       SAMFORA_FIELDS.donationAmount,
@@ -445,6 +469,20 @@ describe('SAMFORA_FIELDS', () => {
     for (const value of donationFields) {
       expect(value.startsWith('Donation.')).toBe(true);
     }
+  });
+
+  it('uses Rule.io standard Subscriber field names exactly', () => {
+    // These must match Rule.io's pre-seeded standard subscriber field
+    // names so consumers don't have to create new custom fields.
+    expect(SAMFORA_FIELDS.donorFirstName).toBe('Subscriber.FirstName');
+    expect(SAMFORA_FIELDS.donorLastName).toBe('Subscriber.LastName');
+    expect(SAMFORA_FIELDS.donorAddress1).toBe('Subscriber.Address1');
+    expect(SAMFORA_FIELDS.donorAddress2).toBe('Subscriber.Address2');
+    expect(SAMFORA_FIELDS.donorZipcode).toBe('Subscriber.Zipcode');
+    expect(SAMFORA_FIELDS.donorCity).toBe('Subscriber.City');
+    expect(SAMFORA_FIELDS.donorCountry).toBe('Subscriber.Country');
+    expect(SAMFORA_FIELDS.donorPhone).toBe('Subscriber.Number');
+    expect(SAMFORA_FIELDS.donorSource).toBe('Subscriber.Source');
   });
 
   it('every field uses either a Subscriber.* or Donation.* prefix', () => {
