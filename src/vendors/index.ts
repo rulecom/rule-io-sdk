@@ -34,3 +34,7 @@ export type { ShopifyFieldSchema, ShopifyFieldNames, ShopifyTagSchema, ShopifyTa
 // Bookzen (hospitality)
 export { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from './bookzen';
 export type { BookzenFieldSchema, BookzenFieldNames, BookzenTagSchema, BookzenTagNames } from './bookzen';
+
+// Samfora (donation)
+export { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from './samfora';
+export type { SamforaFieldSchema, SamforaFieldNames, SamforaTagSchema, SamforaTagNames } from './samfora';
