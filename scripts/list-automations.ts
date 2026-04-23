@@ -62,22 +62,28 @@ async function listRecent(client: RuleClient): Promise<void> {
 async function printUrls(client: RuleClient, ids: number[]): Promise<void> {
   for (const id of ids) {
     const msgs = await client.listMessages({ id, dispatcher_type: 'automail' });
-    const mid = msgs.data?.[0]?.id;
-    if (!mid) {
+    const messages = msgs.data ?? [];
+    if (!messages.length) {
       console.log(`${id}: no message found`);
       continue;
     }
-    console.log(
-      `${id} (message ${mid}): ` +
-        `https://app.rule.io/v5/#/app/automations/automail/${id}/v6/email/${mid}/edit`
-    );
+    if (messages.length > 1) {
+      console.log(`${id}: ${messages.length} messages — printing URL for each`);
+    }
+    for (const m of messages) {
+      if (!m.id) continue;
+      console.log(
+        `${id} (message ${m.id}): ` +
+          `https://app.rule.io/v5/#/app/automations/automail/${id}/v6/email/${m.id}/edit`
+      );
+    }
   }
 }
 
 async function main(): Promise<void> {
   loadEnv();
   const apiKey = process.env.RULE_API_KEY;
-  if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
+  if (!apiKey) throw new Error('Missing RULE_API_KEY in environment or .env');
   const client = new RuleClient({ apiKey });
 
   const cmd = process.argv[2];
