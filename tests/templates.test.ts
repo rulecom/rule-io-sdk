@@ -666,12 +666,14 @@ describe('Brand Template Utilities', () => {
     }
 
     it('picks the is_default brand style when one is flagged', async () => {
-      const defaultStyle = makeBrand(7, 'Preferred', true);
+      // Give list item and detail different names to prove the returned name
+      // comes from the fetched detail (authoritative/fresh), not the list item.
+      const defaultStyle = makeBrand(7, 'Preferred (fresh)', true);
       const client = makeClient({
         list: {
           data: [
             makeListItem(1),
-            makeListItem(7, 'Preferred', true),
+            makeListItem(7, 'Preferred (stale list name)', true),
             makeListItem(3),
           ],
         },
@@ -681,7 +683,7 @@ describe('Brand Template Utilities', () => {
       const result = await resolvePreferredBrandStyle(client);
 
       expect(result.id).toBe(7);
-      expect(result.name).toBe('Preferred');
+      expect(result.name).toBe('Preferred (fresh)');
       expect(result.source).toBe('default');
       expect(result.brandStyle.brandStyleId).toBe('7');
       expect(client.listCalls).toBe(1);
@@ -734,6 +736,24 @@ describe('Brand Template Utilities', () => {
       await expect(resolvePreferredBrandStyle(client, 99)).rejects.toBeInstanceOf(
         RuleConfigError,
       );
+    });
+
+    it.each([
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+      ['-Infinity', Number.NEGATIVE_INFINITY],
+      ['zero', 0],
+      ['negative integer', -1],
+      ['non-integer', 1.5],
+    ])('rejects overrideId that is %s without calling getBrandStyle', async (_label, bad) => {
+      // No stubs configured — helper must reject before any API call.
+      const client = makeClient({});
+
+      await expect(resolvePreferredBrandStyle(client, bad)).rejects.toBeInstanceOf(
+        RuleConfigError,
+      );
+      expect(client.getCalls).toEqual([]);
+      expect(client.listCalls).toBe(0);
     });
 
     it('throws RuleConfigError when the resolved preferred id is not returned by get', async () => {

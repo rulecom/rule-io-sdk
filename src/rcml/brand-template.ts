@@ -388,6 +388,14 @@ export async function resolvePreferredBrandStyle(
   overrideId?: number,
 ): Promise<ResolvedBrandStyle> {
   if (overrideId !== undefined) {
+    // TypeScript's `number` type doesn't exclude NaN, Infinity, negatives, or
+    // non-integers — reject them up front so callers see a clear error instead
+    // of a confusing `/brand-styles/NaN` 404.
+    if (!Number.isInteger(overrideId) || overrideId <= 0) {
+      throw new RuleConfigError(
+        `Invalid brand style id ${String(overrideId)}: expected a positive integer.`,
+      );
+    }
     const resp = await client.getBrandStyle(overrideId);
     if (!resp?.data) {
       throw new RuleConfigError(`Brand style ${overrideId} not found`);
@@ -414,9 +422,12 @@ export async function resolvePreferredBrandStyle(
   if (!resp?.data) {
     throw new RuleConfigError(`Brand style ${preferred.id} not found`);
   }
+  // Prefer the fetched detail's name over `preferred.name` from the list item
+  // — they usually match, but the fetch reflects the authoritative, fresh value
+  // if the list was stale or the name changed between calls.
   return {
     id: preferred.id,
-    name: preferred.name,
+    name: resp.data.name,
     brandStyle: toBrandStyleConfig(resp.data),
     source,
   };
