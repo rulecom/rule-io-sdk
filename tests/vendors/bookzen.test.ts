@@ -239,6 +239,32 @@ describe('BOOKZEN_FIELDS', () => {
       expect(value.length).toBeGreaterThan(0);
     }
   });
+
+  it('splits fields between the flat Subscriber group and the historical Booking group', () => {
+    // Rule.io praxis: guest identity on the flat Subscriber.* group
+    // (overwritten per sync); per-booking event data on the historical
+    // Booking.* group (appended per sync).
+    expect(BOOKZEN_FIELDS.guestFirstName).toBe('Subscriber.FirstName');
+
+    const bookingFields = [
+      BOOKZEN_FIELDS.bookingRef,
+      BOOKZEN_FIELDS.serviceType,
+      BOOKZEN_FIELDS.checkInDate,
+      BOOKZEN_FIELDS.checkOutDate,
+      BOOKZEN_FIELDS.totalGuests,
+      BOOKZEN_FIELDS.totalPrice,
+      BOOKZEN_FIELDS.roomName,
+    ];
+    for (const value of bookingFields) {
+      expect(value.startsWith('Booking.')).toBe(true);
+    }
+  });
+
+  it('every field uses either a Subscriber.* or Booking.* prefix', () => {
+    for (const value of Object.values(BOOKZEN_FIELDS)) {
+      expect(/^(Subscriber|Booking)\./.test(value)).toBe(true);
+    }
+  });
 });
 
 describe('BOOKZEN_TAGS', () => {
