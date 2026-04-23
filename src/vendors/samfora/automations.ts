@@ -17,6 +17,7 @@ import { SAMFORA_FIELDS } from './fields';
 import { SAMFORA_TAGS } from './tags';
 import {
   createBrandTemplate,
+  createBrandLogo,
   createContentSection,
   createBrandHeading,
   createBrandText,
@@ -27,11 +28,6 @@ import {
   createFooterSection,
   validateCustomFields,
 } from '../../rcml';
-// `createLogoSection` is an internal helper (not in the barrel) shared by
-// hospitality/ecommerce templates. Imported directly to keep the Samfora
-// preset consistent with those builders — every other preset's emails lead
-// with the account logo, and earlier this preset was silently missing it.
-import { createLogoSection } from '../../rcml/brand-template';
 import { RuleConfigError } from '../../errors';
 
 // ============================================================================
@@ -177,6 +173,17 @@ function samforaFooterSection(override: FooterConfig | undefined): RCMLBodyChild
 }
 
 /**
+ * Produce a zero-or-one-element array with the brand logo as the first
+ * body section. Matches the `createLogoSection` helper in `brand-template`
+ * but stays local here so the preset doesn't reach past the public `rcml`
+ * barrel — sibling presets (shopify, bookzen) only import via the barrel
+ * and mixing paths risks duplicate module instances under ESM.
+ */
+function samforaLogoSection(logoUrl: string | undefined): RCMLBodyChild[] {
+  return logoUrl ? [createBrandLogo(logoUrl)] : [];
+}
+
+/**
  * Swedish plain-text fallback. `createBrandHead()` otherwise defaults to
  * English ("View this email in your browser: ..." / "Unsubscribe: ...") —
  * same class of leak as the footer links. Passed explicitly into every
@@ -257,7 +264,7 @@ function buildDonationConfirmationTemplate(
   const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
 
   const sections: RCMLBodyChild[] = [
-    ...createLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(text.heading, firstNameId),
     paragraphSection(text.intro),
     createContentSection([
@@ -321,7 +328,7 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocumen
   const t = MONTHLY_DONATION_TEXT;
 
   const sections: RCMLBodyChild[] = [
-    ...createLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
@@ -378,7 +385,7 @@ function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
   const t = WELCOME_TEXT;
 
   const sections: RCMLBodyChild[] = [
-    ...createLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
@@ -420,7 +427,7 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RCMLDocument {
   const t = TAX_SUMMARY_TEXT;
 
   const sections: RCMLBodyChild[] = [
-    ...createLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
