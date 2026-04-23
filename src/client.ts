@@ -75,6 +75,7 @@ import type {
   RuleSubscriberTagsV3Request,
   RuleExportDispatcherParams,
   RuleExportDispatcherResponse,
+  RuleExportStatisticRecord,
   RuleExportStatisticsParams,
   RuleExportStatisticsResponse,
   RuleExportSubscriberParams,
@@ -107,6 +108,74 @@ type QueryParamValue = string | number | boolean | null | undefined;
 
 /** Query-param bag accepted by `buildQueryString`. Array values emit one entry per element. */
 type QueryParamValues = Record<string, QueryParamValue | QueryParamValue[]>;
+
+// Hoisted to module scope so repeated calls don't allocate a new instance per
+// record; statistics exports can contain thousands of records per page.
+const UTF8_ENCODER = new TextEncoder();
+const UTF8_DECODER_FATAL = new TextDecoder('utf-8', { fatal: true });
+
+// `String.fromCharCode(...bytes)` can blow the JS call stack for very long
+// inputs. Process in chunks for bounded stack usage and amortized linear
+// concatenation cost.
+const BYTE_TO_CHAR_CHUNK = 0x8000;
+
+/**
+ * Decode a base64 string to UTF-8, or return null if the input is not valid
+ * base64 or the decoded bytes are not valid UTF-8.
+ *
+ * Uses platform-native `atob` + `TextDecoder` (available in Node.js 18+ and
+ * all modern browser/edge runtimes) to avoid depending on Node's `Buffer`.
+ */
+function tryDecodeBase64Utf8(input: string): string | null {
+  if (!input) return null;
+  try {
+    const binary = atob(input);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return UTF8_DECODER_FATAL.decode(bytes);
+  } catch {
+    return null;
+  }
+}
+
+/** Encode a UTF-8 string to canonical (padded) base64. */
+function encodeBase64Utf8(input: string): string {
+  const bytes = UTF8_ENCODER.encode(input);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += BYTE_TO_CHAR_CHUNK) {
+    binary += String.fromCharCode(
+      ...bytes.subarray(i, i + BYTE_TO_CHAR_CHUNK)
+    );
+  }
+  return btoa(binary);
+}
+
+/**
+ * Rule.io returns `object.name` base64-encoded on statistics export records
+ * where `object.type === 'message'`. Every other object type returns plain
+ * text. See GitHub issue #95.
+ *
+ * This helper decodes the name and then re-encodes the decoded value to check
+ * that it matches the original exactly. Inputs that don't cleanly round-trip
+ * are left untouched, so any value that's not canonical base64 passes through
+ * as-is. The guard does NOT distinguish an intentionally base64-encoded name
+ * from a plain-text name that also happens to be valid base64 (e.g.
+ * `"aGVsbG8="`) — such values will still be decoded. Consumers who need to
+ * preserve raw API output should use the `decodeNames: false` opt-out on
+ * `exportStatistics`.
+ */
+function decodeStatisticMessageName(
+  record: RuleExportStatisticRecord
+): RuleExportStatisticRecord {
+  if (record.object.type !== 'message') return record;
+  const original = record.object.name;
+  const decoded = tryDecodeBase64Utf8(original);
+  if (decoded === null) return record;
+  if (encodeBase64Utf8(decoded) !== original) return record;
+  return { ...record, object: { ...record.object, name: decoded } };
+}
 
 /**
  * Rule.io API Client
@@ -2024,7 +2093,18 @@ export class RuleClient {
    * Uses token-based pagination: if the response includes a `next_page_token`,
    * pass it in the next call to retrieve the following page.
    *
-   * @param params - Date range (required), optional statistic_types filter, optional next_page_token
+   * ## `object.name` decoding
+   *
+   * Rule.io returns `object.name` base64-encoded for records where
+   * `object.type === 'message'` (every other object type is plain text).
+   * By default this method decodes those names transparently so consumers
+   * always see plain text. A round-trip guard limits decoding to inputs that
+   * look like canonical base64, but it cannot distinguish an intentionally
+   * base64-encoded name from a plain-text name that happens to be valid
+   * base64 — pass `decodeNames: false` to preserve raw API values exactly
+   * (for debugging or if upstream behavior changes).
+   *
+   * @param params - Date range (required), optional statistic_types filter, optional next_page_token, optional decodeNames
    * @returns List of statistic records and optional next_page_token
    *
    * @example
@@ -2055,10 +2135,14 @@ export class RuleClient {
       'statistic_types[]': params.statistic_types,
       next_page_token: params.next_page_token || undefined,
     });
-    return this.requestV3<RuleExportStatisticsResponse>(
+    const response = await this.requestV3<RuleExportStatisticsResponse>(
       `/export/statistics${qs}`,
       { method: 'GET' }
     );
+    if (params.decodeNames === false || !response.data) {
+      return response;
+    }
+    return { ...response, data: response.data.map(decodeStatisticMessageName) };
   }
 
   /**

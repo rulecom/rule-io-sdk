@@ -530,6 +530,9 @@ const subscribers = await client.exportSubscribers({ date_from: '2024-01-01', da
 ```
 
 Export statistics supports token-based pagination via `next_page_token`.
+For records where `object.type === 'message'`, `object.name` is returned
+base64-encoded by Rule.io and automatically decoded by the SDK. Pass
+`decodeNames: false` to inspect the raw API response.
 
 ### Recipients
 

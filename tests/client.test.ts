@@ -2612,6 +2612,201 @@ describe('RuleClient', () => {
       expect(url).toContain('next_page_token=token-abc');
     });
 
+    it('should decode base64 object.name for message-type records', async () => {
+      // "VG9kYXkncyBNb3JuaW5nIEJyZWFr" -> "Today's Morning Break"
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-msg',
+            statistic_type: 'sent',
+            event_id: 'evt-msg',
+            subscriber_id: 'sub-msg',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'msg-1',
+              name: 'VG9kYXkncyBNb3JuaW5nIEJyZWFr',
+              type: 'message',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data![0].object.name).toBe("Today's Morning Break");
+    });
+
+    it('should decode base64 names that contain multi-byte UTF-8 characters', async () => {
+      // "w6Vrw6Ugw6RsZ2VuIPCfjIg=" -> "åkå älgen 🌈" (includes an emoji surrogate pair)
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-utf8',
+            statistic_type: 'open',
+            event_id: 'evt-utf8',
+            subscriber_id: 'sub-utf8',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'msg-utf8',
+              name: 'w6Vrw6Ugw6RsZ2VuIPCfjIg=',
+              type: 'message',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data![0].object.name).toBe('åkå älgen 🌈');
+    });
+
+    it('should not decode names for non-message object types', async () => {
+      // Same base64 string; because type !== 'message' it must pass through.
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-camp',
+            statistic_type: 'open',
+            event_id: 'evt-camp',
+            subscriber_id: 'sub-camp',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'camp-1',
+              name: 'VG9kYXkncyBNb3JuaW5nIEJyZWFr',
+              type: 'campaign',
+            },
+          },
+          {
+            statistic_id: 'stat-jour',
+            statistic_type: 'open',
+            event_id: 'evt-jour',
+            subscriber_id: 'sub-jour',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'jour-1',
+              name: 'VG9kYXkncyBNb3JuaW5nIEJyZWFr',
+              type: 'journey',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data![0].object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
+      expect(result.data![1].object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
+    });
+
+    it('should pass through message-type names that are not valid base64', async () => {
+      // Contains characters (space, apostrophe) that are invalid in base64.
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-raw',
+            statistic_type: 'open',
+            event_id: 'evt-raw',
+            subscriber_id: 'sub-raw',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'msg-raw',
+              name: "Today's Morning Break",
+              type: 'message',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data![0].object.name).toBe("Today's Morning Break");
+    });
+
+    it('should pass through base64 input that does not round-trip cleanly', async () => {
+      // Valid base64 whose canonical re-encoding differs from the input
+      // (no padding). Guard must leave the value untouched.
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-noroundtrip',
+            statistic_type: 'open',
+            event_id: 'evt-noroundtrip',
+            subscriber_id: 'sub-noroundtrip',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'msg-noroundtrip',
+              name: 'aGVsbG8', // canonical form is "aGVsbG8="
+              type: 'message',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+      });
+
+      expect(result.data![0].object.name).toBe('aGVsbG8');
+    });
+
+    it('should skip decoding when decodeNames is false', async () => {
+      const mockData = {
+        data: [
+          {
+            statistic_id: 'stat-optout',
+            statistic_type: 'sent',
+            event_id: 'evt-optout',
+            subscriber_id: 'sub-optout',
+            message_type: 'email',
+            created_at: '2024-01-15T10:00:00Z',
+            object: {
+              id: 'msg-optout',
+              name: 'VG9kYXkncyBNb3JuaW5nIEJyZWFr',
+              type: 'message',
+            },
+          },
+        ],
+      };
+      mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.exportStatistics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        decodeNames: false,
+      });
+
+      expect(result.data![0].object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
+    });
+
     it('should export subscribers with date range', async () => {
       const mockData = {
         data: [
