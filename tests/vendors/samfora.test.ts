@@ -279,6 +279,47 @@ describe('samforaPreset', () => {
       expect(json).toContain('[CustomField:200005]'); // causeName
     });
 
+    it('every automation leads with the brand logo section', () => {
+      // Parity with bookzen/shopify: the logo must be the first body child
+      // when the brand style has a logoUrl. Earlier versions silently
+      // omitted it, so Rule.io renders arrived without a header image.
+      const automations = samforaPreset.getAutomations(TEST_CONFIG);
+      for (const automation of automations) {
+        const doc = automation.templateBuilder({
+          brandStyle: TEST_BRAND_STYLE,
+          customFields: TEST_CUSTOM_FIELDS,
+          websiteUrl: 'https://samfora.org',
+        });
+        // The RCML body is the second top-level child (after rc-head).
+        const body = doc.children[1];
+        expect(body.tagName).toBe('rc-body');
+        const firstBodyChild = body.children[0];
+        // rc-logo nests inside rc-section > rc-column > rc-logo.
+        expect(firstBodyChild.tagName).toBe('rc-section');
+        const firstColumn = (firstBodyChild as { children: { tagName: string; children?: { tagName: string }[] }[] }).children[0];
+        expect(firstColumn.tagName).toBe('rc-column');
+        expect(firstColumn.children?.[0].tagName).toBe('rc-logo');
+      }
+    });
+
+    it('omits the logo section when brandStyle has no logoUrl', () => {
+      const automations = samforaPreset.getAutomations({
+        ...TEST_CONFIG,
+        brandStyle: { ...TEST_BRAND_STYLE, logoUrl: undefined },
+      });
+      const first = automations.find(
+        (a) => a.id === 'samfora-donation-confirmation-first',
+      )!;
+
+      const doc = first.templateBuilder({
+        brandStyle: { ...TEST_BRAND_STYLE, logoUrl: undefined },
+        customFields: TEST_CUSTOM_FIELDS,
+        websiteUrl: 'https://samfora.org',
+      });
+      const json = docToString(doc);
+      expect(json).not.toContain('"tagName":"rc-logo"');
+    });
+
     it('default copy is in Swedish', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const first = automations.find(

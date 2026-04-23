@@ -27,6 +27,11 @@ import {
   createFooterSection,
   validateCustomFields,
 } from '../../rcml';
+// `createLogoSection` is an internal helper (not in the barrel) shared by
+// hospitality/ecommerce templates. Imported directly to keep the Samfora
+// preset consistent with those builders — every other preset's emails lead
+// with the account logo, and earlier this preset was silently missing it.
+import { createLogoSection } from '../../rcml/brand-template';
 import { RuleConfigError } from '../../errors';
 
 // ============================================================================
@@ -252,6 +257,7 @@ function buildDonationConfirmationTemplate(
   const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
 
   const sections: RCMLBodyChild[] = [
+    ...createLogoSection(config.brandStyle.logoUrl),
     greetingSection(text.heading, firstNameId),
     paragraphSection(text.intro),
     createContentSection([
@@ -315,6 +321,7 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocumen
   const t = MONTHLY_DONATION_TEXT;
 
   const sections: RCMLBodyChild[] = [
+    ...createLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
@@ -371,6 +378,7 @@ function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
   const t = WELCOME_TEXT;
 
   const sections: RCMLBodyChild[] = [
+    ...createLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
@@ -412,6 +420,7 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RCMLDocument {
   const t = TAX_SUMMARY_TEXT;
 
   const sections: RCMLBodyChild[] = [
+    ...createLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
     createContentSection([
