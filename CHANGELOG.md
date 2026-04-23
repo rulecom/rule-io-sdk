@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `exportStatistics` now transparently decodes the base64-encoded
   `object.name` that Rule.io returns for records where
   `object.type === 'message'` (every other object type returns plain text).
-  A round-trip guard keeps the transform safe if Rule.io fixes the
-  inconsistency upstream. Opt out with `decodeNames: false` to inspect the
-  raw API response. (#95)
+  A round-trip guard limits decoding to values that look like canonical
+  base64. If you need to inspect the raw API response or disable this
+  behavior, opt out with `decodeNames: false`. (#95)
 
 ## [0.3.0] - 2026-04-07
 

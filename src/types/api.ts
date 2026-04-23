@@ -790,11 +790,14 @@ export interface RuleExportStatisticsParams extends RuleExportDateParams {
    * `object.type === 'message'`. Rule.io currently returns these names
    * base64-encoded while every other object type returns plain text.
    *
-   * Default: `true`. A round-trip guard ensures values that don't cleanly
-   * re-encode are passed through unchanged, so this remains safe if Rule.io
-   * fixes the inconsistency upstream.
+   * Default: `true`. A round-trip guard passes through values that do not
+   * cleanly re-encode as canonical base64, but it cannot distinguish between
+   * intentionally base64-encoded names and plain-text names that also happen
+   * to be valid base64.
    *
-   * Set to `false` to inspect raw API values (e.g. for debugging).
+   * Set to `false` to preserve raw API values exactly, including message
+   * names that look like base64 (for example when debugging or if upstream
+   * behavior changes).
    */
   decodeNames?: boolean;
 }
