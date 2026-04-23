@@ -257,6 +257,7 @@ export type {
 // Brand template utilities
 export {
   toBrandStyleConfig,
+  resolvePreferredBrandStyle,
   createBrandTemplate,
   createBrandHead,
   createBrandLogo,
@@ -279,6 +280,8 @@ export {
 
 export type {
   BrandStyleConfig,
+  BrandStyleResolverClient,
+  ResolvedBrandStyle,
   CustomFieldMap,
   SimpleTemplateConfig,
   FooterConfig,
@@ -340,6 +343,9 @@ export {
   bookzenPreset,
   BOOKZEN_FIELDS,
   BOOKZEN_TAGS,
+  samforaPreset,
+  SAMFORA_FIELDS,
+  SAMFORA_TAGS,
 } from './vendors';
 
 export type {
@@ -357,4 +363,8 @@ export type {
   BookzenFieldNames,
   BookzenTagSchema,
   BookzenTagNames,
+  SamforaFieldSchema,
+  SamforaFieldNames,
+  SamforaTagSchema,
+  SamforaTagNames,
 } from './vendors';

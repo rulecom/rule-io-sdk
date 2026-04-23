@@ -89,16 +89,18 @@ const styles = await client.listBrandStyles();
 
 You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 
-When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders:
+When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders. Use `resolvePreferredBrandStyle()` so each account's preferred style (the one flagged `is_default`) is respected — never hardcode brand style IDs, since a customer's preferred style can change and list order is not guaranteed:
 
 ```typescript
-import { toBrandStyleConfig } from 'rule-io-sdk';
+import { resolvePreferredBrandStyle } from 'rule-io-sdk';
 import type { CustomFieldMap } from 'rule-io-sdk';
 
-// Convert a fetched brand style for use with template builders
-const response = await client.getBrandStyle(brandStyleId);
-if (!response?.data) throw new Error('Brand style not found');
-const myBrand = toBrandStyleConfig(response.data);
+// Preferred path: discover the account's default brand style.
+const { id: brandStyleId, brandStyle: myBrand, source } =
+  await resolvePreferredBrandStyle(client);
+if (source === 'fallback') {
+  console.warn('No is_default brand style — using first in list');
+}
 
 // Map your Rule.io custom field IDs (from GET /api/v2/customizations)
 const myFields: CustomFieldMap = {
@@ -107,6 +109,8 @@ const myFields: CustomFieldMap = {
   'Order.Total': 169235,
 };
 ```
+
+If you need to target a specific style (e.g. from a CLI flag or env var), pass the ID as the second argument: `resolvePreferredBrandStyle(client, 12345)`. For direct lookups — when you already know the style ID — you can still call `client.getBrandStyle(id)` and convert the result with `toBrandStyleConfig(response.data)`.
 
 The examples below use `myBrand` and `myFields` as defined here.
 
@@ -313,6 +317,46 @@ const config = {
 const automations = bookzenPreset.getAutomations(config);
 ```
 
+### Samfora (Donation)
+
+Swedish charitable-giving preset. Default email copy ships in Swedish.
+Three donation-confirmation variants are gated by donor-lifecycle tags
+(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
+second-time, and loyal donors see different wording.
+
+Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
+`Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
+new custom ones — those fields already exist on every account. Per-donation
+data lives on a historical `Donation.*` group.
+
+```typescript
+import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
+
+const config = {
+  brandStyle: myBrand,
+  customFields: {
+    // Required: standard Subscriber field for the greeting
+    [SAMFORA_FIELDS.donorFirstName]: 47736,
+    // Required: historical Donation.* group
+    [SAMFORA_FIELDS.donationAmount]: 200002,
+    [SAMFORA_FIELDS.donationDate]: 200003,
+    [SAMFORA_FIELDS.donationRef]: 200004,
+    [SAMFORA_FIELDS.causeName]: 200005,
+    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
+    [SAMFORA_FIELDS.taxYear]: 200007,
+    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
+    // Optional Subscriber extensions (not referenced by built-in
+    // templates but available for consumer extensions):
+    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
+    // donorCity, donorCountry, donorPhone, donorSource
+    // Optional Donation extras: donationCurrency, donationType
+  },
+  websiteUrl: 'https://samfora.org',
+};
+
+const automations = samforaPreset.getAutomations(config);
+```
+
 Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
 
 ---
@@ -510,6 +554,13 @@ await client.deleteAccount(account.data!.id!);
 ### Brand Styles
 
 ```typescript
+import { resolvePreferredBrandStyle } from 'rule-io-sdk';
+
+// Preferred: resolve the account's default brand style (is_default: true)
+// and receive a ready-to-use BrandStyleConfig in a single call.
+const { id, brandStyle } = await resolvePreferredBrandStyle(client);
+
+// Low-level CRUD
 const styles = await client.listBrandStyles();
 const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
 const styleId = fromDomain.data!.id!;
