@@ -425,9 +425,31 @@ describe('SAMFORA_FIELDS', () => {
     }
   });
 
-  it('all values use the Donation.* prefix', () => {
-    for (const value of Object.values(SAMFORA_FIELDS)) {
+  it('splits fields between the flat Subscriber group and the historical Donation group', () => {
+    // Rule.io praxis: donor identity on the flat Subscriber.* group
+    // (overwritten per sync); per-donation event data on the historical
+    // Donation.* group (appended per sync).
+    expect(SAMFORA_FIELDS.donorFirstName).toBe('Subscriber.FirstName');
+
+    const donationFields = [
+      SAMFORA_FIELDS.donationAmount,
+      SAMFORA_FIELDS.donationCurrency,
+      SAMFORA_FIELDS.donationDate,
+      SAMFORA_FIELDS.donationRef,
+      SAMFORA_FIELDS.causeName,
+      SAMFORA_FIELDS.donationType,
+      SAMFORA_FIELDS.totalLifetimeAmount,
+      SAMFORA_FIELDS.taxYear,
+      SAMFORA_FIELDS.taxDeductibleAmount,
+    ];
+    for (const value of donationFields) {
       expect(value.startsWith('Donation.')).toBe(true);
+    }
+  });
+
+  it('every field uses either a Subscriber.* or Donation.* prefix', () => {
+    for (const value of Object.values(SAMFORA_FIELDS)) {
+      expect(/^(Subscriber|Donation)\./.test(value)).toBe(true);
     }
   });
 });

@@ -5,17 +5,20 @@
  * style (is_default: true) rather than a hardcoded ID. See issue #91 —
  * that's how every deploy script should resolve brand styles.
  *
- *   1. Sync samfora-seed@rule.se with every trigger & segment tag so the
- *      tags exist in the account. (No flat subscriber fields: Samfora
- *      keeps donor data inside the historical Donation group.)
+ *   1. Sync samfora-seed@rule.se with `Subscriber.FirstName` (flat) +
+ *      every trigger & segment tag so the tags and the Subscriber-group
+ *      field definition exist in the account. Subscriber.* fields are
+ *      flat/overwriting per Rule.io praxis.
  *   2. Create per-persona test subscribers, one for each automation
- *      trigger, so you can eyeball each flow in the Rule.io UI.
+ *      trigger, so you can eyeball each flow in the Rule.io UI. Each
+ *      persona also gets a personalised `Subscriber.FirstName`.
  *   3. Seed the historical Donation.* group on every subscriber that
  *      needs donation detail (all personas except the welcome-only one).
  *      This creates the Donation.* field definitions in the account as
  *      a side effect of the first write.
- *   4. Resolve numeric field ids from the seed subscriber's Donation
- *      group (read back via v3 custom-field-data).
+ *   4. Resolve numeric field ids from the seed subscriber — both the
+ *      Subscriber and Donation groups are read back via v3
+ *      custom-field-data.
  *   5. Fetch the account's preferred brand style and build the config.
  *   6. Deploy each automation via createAutomationEmail (auto-handles
  *      automail → message → template → dynamic-set with cleanup on
@@ -141,20 +144,29 @@ const ALL_TAGS = Object.values(SAMFORA_TAGS);
 /**
  * One donation record seeded into the historical Donation.* group. Values are
  * typed explicitly so Rule.io creates the right field type on first write.
+ *
+ * Note: `FirstName` lives on the flat `Subscriber` group per Rule.io praxis,
+ * not inside this historical group — see `subscriberFieldSeed()`.
  */
-function donationSeed(firstName: string): Array<{ field: string; value: unknown }> {
-  return [
-    { field: 'FirstName', value: firstName },
-    { field: 'Amount', value: 250 },
-    { field: 'Currency', value: 'SEK' },
-    { field: 'Date', value: '2026-04-22' },
-    { field: 'Reference', value: 'SAM-2026-0001' },
-    { field: 'CauseName', value: 'Barnens Hav' },
-    { field: 'Type', value: 'one-time' },
-    { field: 'TotalLifetime', value: 2450 },
-    { field: 'TaxYear', value: '2026' },
-    { field: 'TaxDeductible', value: 2000 },
-  ];
+const DONATION_SEED_VALUES: Array<{ field: string; value: unknown }> = [
+  { field: 'Amount', value: 250 },
+  { field: 'Currency', value: 'SEK' },
+  { field: 'Date', value: '2026-04-22' },
+  { field: 'Reference', value: 'SAM-2026-0001' },
+  { field: 'CauseName', value: 'Barnens Hav' },
+  { field: 'Type', value: 'one-time' },
+  { field: 'TotalLifetime', value: 2450 },
+  { field: 'TaxYear', value: '2026' },
+  { field: 'TaxDeductible', value: 2000 },
+];
+
+/**
+ * Flat Subscriber-group fields seeded per persona. These live on the
+ * subscriber itself (not historical) — Rule.io overwrites them on each
+ * sync, matching the "Subscriber.* is mutable identity" praxis.
+ */
+function subscriberFieldSeed(firstName: string): Array<{ key: string; value: string }> {
+  return [{ key: SAMFORA_FIELDS.donorFirstName, value: firstName }];
 }
 
 // ============================================================================
@@ -195,11 +207,13 @@ async function syncSubscriberV2(
  * Recreate the Donation custom-field group as historical via v3 so each
  * donation record is its own row rather than a flat overwrite. Matches how
  * deploy-shopify.ts seeds the Order group.
+ *
+ * First-name lives on the flat Subscriber group and is seeded via
+ * `syncSubscriberV2` elsewhere, not here.
  */
 async function seedDonationGroup(
   client: RuleClient,
   subscriberId: number,
-  firstName: string,
 ): Promise<void> {
   await client.createCustomFieldData(subscriberId, {
     groups: [
@@ -207,7 +221,7 @@ async function seedDonationGroup(
         group: 'Donation',
         create_if_not_exists: true,
         historical: true,
-        values: donationSeed(firstName).map(({ field, value }) => ({
+        values: DONATION_SEED_VALUES.map(({ field, value }) => ({
           field,
           create_if_not_exists: true,
           value: value as Parameters<
@@ -309,9 +323,9 @@ async function main(): Promise<void> {
 
   const client = new RuleClient({ apiKey });
 
-  // --- 1. Seed subscriber (all fields + all tags so everything gets created) ---
-  console.log(`→ Seeding ${SEED_EMAIL} with every Samfora tag...`);
-  await syncSubscriberV2(apiKey, SEED_EMAIL, [], ALL_TAGS);
+  // --- 1. Seed subscriber (flat Subscriber fields + every tag) ---
+  console.log(`→ Seeding ${SEED_EMAIL} with Subscriber.FirstName + every Samfora tag...`);
+  await syncSubscriberV2(apiKey, SEED_EMAIL, subscriberFieldSeed('Seed'), ALL_TAGS);
 
   console.log('→ Looking up seed subscriber id...');
   const seed = await client.getSubscriber(SEED_EMAIL);
@@ -321,20 +335,20 @@ async function main(): Promise<void> {
   console.log(`  id: ${seedId}`);
 
   console.log('→ Seeding Donation group on seed subscriber (historical=true)...');
-  await seedDonationGroup(client, seedId, 'Seed');
+  await seedDonationGroup(client, seedId);
 
   // --- 2. Personas ---
   console.log(`\n→ Creating ${PERSONAS.length} persona subscriber(s)...`);
   const personaIds: Record<string, number> = {};
   for (const p of PERSONAS) {
     console.log(`  — ${p.email} (${p.description})`);
-    await syncSubscriberV2(apiKey, p.email, [], p.tags);
+    await syncSubscriberV2(apiKey, p.email, subscriberFieldSeed(p.firstName), p.tags);
     const sub = await client.getSubscriber(p.email);
     const id = Number(sub?.subscriber?.id ?? 0);
     if (!id) throw new Error(`Persona ${p.email} missing after sync`);
     personaIds[p.email] = id;
     if (p.seedDonationGroup) {
-      await seedDonationGroup(client, id, p.firstName);
+      await seedDonationGroup(client, id);
     }
     console.log(`    id: ${id}${p.seedDonationGroup ? ' (+ donation record)' : ''}`);
   }

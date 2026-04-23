@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for Swedish charitable-donation flows: donation confirmation (first-time,
   second-time, returning donors — gated by donor-lifecycle tags), monthly
   donation confirmation, welcome, and annual tax summary. Default copy ships
-  in Swedish.
+  in Swedish. Donor identity lives on the flat `Subscriber.*` group,
+  per-donation event data on the historical `Donation.*` group, per
+  Rule.io field-group praxis.
 - `scripts/deploy-samfora.ts` — reference deployment script that resolves
   the account's preferred brand style via `is_default: true` from
   `listBrandStyles()`.

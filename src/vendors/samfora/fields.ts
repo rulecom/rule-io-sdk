@@ -10,6 +10,13 @@ import type { VendorFieldSchema } from '../types';
 /**
  * Samfora field names for Rule.io custom fields.
  *
+ * Follows Rule.io praxis for custom-field groups:
+ * - **Subscriber group (flat)** — donor identity fields that get
+ *   overwritten on each sync (e.g. `Subscriber.FirstName`).
+ * - **Donation group (historical)** — per-donation event data that
+ *   appends a new record on each sync (`Donation.Amount`,
+ *   `Donation.Date`, `Donation.Reference`, etc.).
+ *
  * @example
  * ```typescript
  * import { SAMFORA_FIELDS } from 'rule-io-sdk';
@@ -22,7 +29,10 @@ import type { VendorFieldSchema } from '../types';
  * ```
  */
 export const SAMFORA_FIELDS = {
-  donorFirstName: 'Donation.FirstName',
+  // Subscriber group — flat, overwritten per sync
+  donorFirstName: 'Subscriber.FirstName',
+
+  // Donation group — historical, append-only
   donationAmount: 'Donation.Amount',
   donationCurrency: 'Donation.Currency',
   donationDate: 'Donation.Date',
