@@ -17,14 +17,14 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RuleClient } from '../src';
+import { RuleClient } from '@rule-io/sdk';
 import type {
   RuleAutomationResponse,
   RuleMessageResponse,
   RuleTemplateResponse,
   RuleDynamicSetResponse,
   RCMLDocument,
-} from '../src';
+} from '@rule-io/sdk';
 
 // ---------------------------------------------------------------------------
 // Env / args

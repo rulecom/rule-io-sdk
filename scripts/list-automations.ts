@@ -8,8 +8,8 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RuleClient } from '../src';
-import type { RuleAutomation } from '../src';
+import { RuleClient } from '@rule-io/sdk';
+import type { RuleAutomation } from '@rule-io/sdk';
 
 type ListedAutomation = RuleAutomation & {
   created_at?: string;

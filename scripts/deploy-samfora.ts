@@ -42,9 +42,9 @@ import {
   samforaPreset,
   SAMFORA_FIELDS,
   SAMFORA_TAGS,
-} from '../src';
-import type { VendorConsumerConfig } from '../src/vendors/types';
-import type { CustomFieldMap } from '../src/rcml';
+} from '@rule-io/sdk';
+import type { VendorConsumerConfig } from '@rule-io/sdk';
+import type { CustomFieldMap } from '@rule-io/sdk';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

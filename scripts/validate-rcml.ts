@@ -46,13 +46,13 @@ import {
   createSocialElement,
   createSwitch,
   createCase,
-} from '../src';
+} from '@rule-io/sdk';
 import type {
   BrandStyleConfig,
   RCMLBodyChild,
   RCMLColumnChild,
   RCMLProseMirrorDoc,
-} from '../src';
+} from '@rule-io/sdk';
 
 // ---------------------------------------------------------------------------
 // Load .env file

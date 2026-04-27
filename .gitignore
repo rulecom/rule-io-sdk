@@ -28,9 +28,19 @@ npm-debug.log*
 # Validation script state
 scripts/.validate-rcml-ids.json
 
+# Nx local-registry / temp
+tmp/
+
 # Cloned email snapshots (may contain prod content)
 email-snapshots/
 
 # Claude Code
 .claude/
 CLAUDE.md
+
+
+
+.nx/cache
+.nx/workspace-data
+vitest.config.*.timestamp*
+.nx/polygraph

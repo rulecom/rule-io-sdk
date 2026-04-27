@@ -6,7 +6,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { RuleClient, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src';
+import { RuleClient, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/sdk';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

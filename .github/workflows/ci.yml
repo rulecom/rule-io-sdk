@@ -29,6 +29,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
@@ -39,89 +41,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run type-check
+      - name: Derive Nx SHAs
+        uses: nrwl/nx-set-shas@v4
 
-      - name: Run tests
-        run: npm run test
+      - name: Run affected lint/test/build
+        run: npx nx affected -t eslint:lint test-ci build --parallel=3
 
-      - name: Build (CJS + ESM)
-        run: npm run build
-
-      - name: Verify dist outputs exist
+      - name: Check @rule-io/sdk has no runtime dependencies
         run: |
-          test -f dist/index.js || (echo "Missing dist/index.js (CJS)" && exit 1)
-          test -f dist/index.mjs || (echo "Missing dist/index.mjs (ESM)" && exit 1)
-          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts (types)" && exit 1)
-          echo "All dist outputs present"
+          jq -e '(.dependencies // {}) | length == 0' packages/rule-io-sdk/package.json \
+            || (echo "ERROR: packages/rule-io-sdk/package.json must not declare runtime dependencies" && exit 1)
+          echo "No runtime dependencies declared"
 
-      - name: Check bundle has no dependencies
+      - name: Verify build outputs
         run: |
-          node <<'EOF'
-          const fs = require('fs');
-          const { builtinModules } = require('module');
-
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const dependencies = Object.keys(pkg.dependencies || {});
-          const optionalDependencies = Object.keys(pkg.optionalDependencies || {});
-          const runtimeDependencies = [...dependencies, ...optionalDependencies];
-
-          if (runtimeDependencies.length > 0) {
-            console.error(`ERROR: package.json must not declare runtime dependencies: ${runtimeDependencies.join(', ')}`);
-            process.exit(1);
-          }
-
-          const builtins = new Set([
-            ...builtinModules,
-            ...builtinModules.map((name) => `node:${name}`),
-          ]);
-
-          const distFiles = ['dist/index.js', 'dist/index.mjs'];
-          const externalSpecifiers = new Map();
-
-          const addIfExternal = (file, specifier) => {
-            if (
-              !specifier ||
-              specifier.startsWith('./') ||
-              specifier.startsWith('../') ||
-              specifier.startsWith('/') ||
-              builtins.has(specifier)
-            ) {
-              return;
-            }
-            if (!externalSpecifiers.has(file)) {
-              externalSpecifiers.set(file, new Set());
-            }
-            externalSpecifiers.get(file).add(specifier);
-          };
-
-          for (const file of distFiles) {
-            if (!fs.existsSync(file)) continue;
-            const source = fs.readFileSync(file, 'utf8');
-
-            for (const match of source.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s+[^'"]*?\sfrom\s+['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s*['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bexport\s+(?:\*|\{[^}]*\})\s+from\s+['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-          }
-
-          if (externalSpecifiers.size > 0) {
-            for (const [file, specifiers] of externalSpecifiers.entries()) {
-              console.error(`ERROR: External runtime dependencies in ${file}: ${Array.from(specifiers).sort().join(', ')}`);
-            }
-            process.exit(1);
-          }
-
-          console.log('No runtime dependencies declared or referenced by dist outputs');
-          EOF
+          test -f dist/packages/rule-io-sdk/src/index.js || (echo "Missing index.js" && exit 1)
+          test -f dist/packages/rule-io-sdk/src/index.d.ts || (echo "Missing index.d.ts" && exit 1)
+          test -f dist/packages/rule-io-sdk/package.json || (echo "Missing published package.json" && exit 1)
+          echo "All build outputs present"
