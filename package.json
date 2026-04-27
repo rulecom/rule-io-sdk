@@ -1,5 +1,5 @@
 {
-  "name": "rule-io-sdk-monorepo",
+  "name": "rule-io-sdk",
   "version": "0.0.0",
   "private": true,
   "description": "Rule.io SDK monorepo — publishable packages under @rule-io/*",
@@ -18,18 +18,25 @@
     "@nx/vitest": "22.7.0",
     "@swc-node/register": "~1.11.1",
     "@swc/core": "~1.15.5",
+    "@swc/helpers": "~0.5.18",
     "@types/node": "^22.0.0",
     "@vitest/coverage-v8": "~4.1.0",
     "eslint": "^10.2.0",
     "jsonc-eslint-parser": "^2.1.0",
     "nx": "22.7.0",
     "prettier": "~3.6.2",
+    "tslib": "^2.3.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.1",
+    "verdaccio": "^6.3.2",
     "vite": "^8.0.0",
     "vitest": "^4.1.4"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {},
+  "nx": {
+    "includedScripts": []
   }
 }

@@ -1,0 +1,35 @@
+{
+  "name": "@rule-io/rcml",
+  "version": "0.3.0",
+  "description": "RCML email template builders and type definitions for the Rule.io SDK.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": ["rule.io", "rcml", "email-templates", "sdk"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/rcml"
+  },
+  "dependencies": {
+    "@rule-io/core": "0.3.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

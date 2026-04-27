@@ -19,7 +19,13 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@rule-io/sdk": ["./packages/rule-io-sdk/src/index.ts"]
+      "@rule-io/sdk": ["./packages/sdk/src/index.ts"],
+      "@rule-io/core": ["./packages/core/src/index.ts"],
+      "@rule-io/rcml": ["./packages/rcml/src/index.ts"],
+      "@rule-io/client": ["./packages/client/src/index.ts"],
+      "@rule-io/vendor-shopify": ["./packages/vendor-shopify/src/index.ts"],
+      "@rule-io/vendor-bookzen": ["./packages/vendor-bookzen/src/index.ts"],
+      "@rule-io/vendor-samfora": ["./packages/vendor-samfora/src/index.ts"]
     }
   },
   "files": [],

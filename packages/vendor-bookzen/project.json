@@ -1,0 +1,41 @@
+{
+  "name": "vendor-bookzen",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/vendor-bookzen/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": [
+        "dist/{projectRoot}"
+      ],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/packages/vendor-bookzen",
+        "main": "packages/vendor-bookzen/src/index.ts",
+        "tsConfig": "packages/vendor-bookzen/tsconfig.lib.json",
+        "assets": [
+          {
+            "input": "./packages/vendor-bookzen",
+            "glob": "*.md",
+            "output": "./"
+          }
+        ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    }
+  }
+}

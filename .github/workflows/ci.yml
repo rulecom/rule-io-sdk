@@ -47,15 +47,28 @@ jobs:
       - name: Run affected lint/test/build
         run: npx nx affected -t eslint:lint test-ci build --parallel=3
 
-      - name: Check @rule-io/sdk has no runtime dependencies
+      - name: Check no package declares external runtime dependencies
         run: |
-          jq -e '(.dependencies // {}) | length == 0' packages/rule-io-sdk/package.json \
-            || (echo "ERROR: packages/rule-io-sdk/package.json must not declare runtime dependencies" && exit 1)
-          echo "No runtime dependencies declared"
+          fail=0
+          for pkg in packages/*/package.json; do
+            name=$(jq -r '.name' "$pkg")
+            bad=$(jq -r '(.dependencies // {}) | to_entries | map(select(.key | startswith("@rule-io/") | not)) | .[].key' "$pkg")
+            if [ -n "$bad" ]; then
+              echo "ERROR: $name ($pkg) declares external runtime dependencies: $bad"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "All packages declare only @rule-io/* workspace dependencies."
 
-      - name: Verify build outputs
+      - name: Verify build outputs for every package
         run: |
-          test -f dist/packages/rule-io-sdk/src/index.js || (echo "Missing index.js" && exit 1)
-          test -f dist/packages/rule-io-sdk/src/index.d.ts || (echo "Missing index.d.ts" && exit 1)
-          test -f dist/packages/rule-io-sdk/package.json || (echo "Missing published package.json" && exit 1)
-          echo "All build outputs present"
+          for pkg in core rcml client vendor-shopify vendor-bookzen vendor-samfora sdk; do
+            test -f "dist/packages/$pkg/src/index.js" \
+              || (echo "Missing dist/packages/$pkg/src/index.js" && exit 1)
+            test -f "dist/packages/$pkg/src/index.d.ts" \
+              || (echo "Missing dist/packages/$pkg/src/index.d.ts" && exit 1)
+            test -f "dist/packages/$pkg/package.json" \
+              || (echo "Missing dist/packages/$pkg/package.json" && exit 1)
+          done
+          echo "All build outputs present for 7 packages."
