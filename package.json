@@ -7,7 +7,16 @@
     "packages/*"
   ],
   "scripts": {
-    "nx": "nx"
+    "nx": "nx",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t vitest:test",
+    "test:ci": "nx run-many -t test-ci",
+    "lint": "nx run-many -t eslint:lint",
+    "graph": "nx graph",
+    "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
+    "release:dry": "nx release --dry-run",
+    "release:first": "nx release --first-release",
+    "release": "nx release"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
