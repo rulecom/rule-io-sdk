@@ -1,6 +1,6 @@
 {
   "name": "rule-io-sdk",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -14,7 +14,9 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "tsup",
@@ -23,7 +25,7 @@
     "test:watch": "vitest",
     "lint": "eslint src/",
     "type-check": "tsc --noEmit",
-    "preversion": "npm run type-check && npm run test",
+    "preversion": "npm run type-check && npm run lint && npm run test",
     "prepare": "[ -f node_modules/.bin/tsup ] && npm run build || true",
     "prepublishOnly": "npm run build"
   },
@@ -36,11 +38,15 @@
     "rcml",
     "email-templates"
   ],
-  "author": "",
+  "author": "Rule Communication - Nordic AB",
   "license": "MIT",
+  "homepage": "https://github.com/rulecom/rule-io-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/rulecom/rule-io-sdk/issues"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rulecom/rule-io-sdk.git"
+    "url": "git+https://github.com/rulecom/rule-io-sdk.git"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
