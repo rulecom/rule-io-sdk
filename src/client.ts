@@ -30,8 +30,8 @@ import type {
   RuleSubscriberFieldsResponse,
   RuleSubscriberTagsResponse,
   RuleSubscribersV2ListResponse,
-  ListSubscribersByTagsParams,
-  ListSubscribersByTagsResult,
+  ListSubscribersByTagIdsParams,
+  ListSubscribersByTagIdsResult,
   RuleTagsResponse,
   RuleAutomationCreateRequest,
   RuleAutomationUpdateRequest,
@@ -704,8 +704,8 @@ export class RuleClient {
    * ```
    */
   async listSubscribersByTagIds(
-    params: ListSubscribersByTagsParams
-  ): Promise<ListSubscribersByTagsResult> {
+    params: ListSubscribersByTagIdsParams
+  ): Promise<ListSubscribersByTagIdsResult> {
     if (!params.tag_ids || params.tag_ids.length === 0) {
       throw new RuleConfigError('tag_ids must not be empty');
     }

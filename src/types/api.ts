@@ -85,7 +85,7 @@ export interface RuleSubscribersV2ListResponse extends RuleApiResponse {
 /**
  * Parameters for `listSubscribersByTagIds`.
  */
-export interface ListSubscribersByTagsParams {
+export interface ListSubscribersByTagIdsParams {
   /** Tag IDs the subscriber must ALL have (intersection). Must be non-empty. */
   tag_ids: number[];
   /** v2 uses `limit`, not `per_page`. Default 100, max ~1000. */
@@ -97,7 +97,7 @@ export interface ListSubscribersByTagsParams {
  * Result shape for `listSubscribersByTagIds`. One page at a time — caller
  * drives pagination by passing `next_page` back until it returns null.
  */
-export interface ListSubscribersByTagsResult {
+export interface ListSubscribersByTagIdsResult {
   /** Subscribers on this page that matched all required tag_ids. */
   subscribers: RuleSubscriberV2[];
   /** Count of subscribers that matched (equals `subscribers.length`). */
