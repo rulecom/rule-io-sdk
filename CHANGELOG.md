@@ -26,8 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by `getDynamicSet` and by the `default_dynamic_set` nested inside
   Message responses; `message_id` is also now optional since the
   `listDynamicSets` endpoint omits it (items return only
-  `{ id, name, template_id }`). Additive, no runtime change.
-  Closes #110.
+  `{ id, name, template_id }`). This is a type correction to match
+  the API and may require strict TypeScript consumers to handle
+  `message_id` as possibly `undefined`; there is no runtime behavior
+  change. Closes #110.
 
 ## [0.4.0] - 2026-04-23
 
