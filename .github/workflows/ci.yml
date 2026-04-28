@@ -47,19 +47,25 @@ jobs:
       - name: Run affected lint/test/build
         run: npx nx affected -t eslint:lint test-ci build --parallel=3
 
-      - name: Check no package declares external runtime dependencies
+      - name: Check library packages declare only @rule-io/* runtime dependencies
         run: |
+          # Allowed external runtime deps per package (CLI needs commander for argv parsing).
+          declare -A ALLOWED
+          ALLOWED["@rule-io/cli"]="commander"
+
           fail=0
           for pkg in packages/*/package.json; do
             name=$(jq -r '.name' "$pkg")
-            bad=$(jq -r '(.dependencies // {}) | to_entries | map(select(.key | startswith("@rule-io/") | not)) | .[].key' "$pkg")
+            allowed="${ALLOWED[$name]:-}"
+            bad=$(jq -r '(.dependencies // {}) | to_entries | map(select(.key | startswith("@rule-io/") | not)) | .[].key' "$pkg" \
+              | grep -v -x -F "$allowed" || true)
             if [ -n "$bad" ]; then
-              echo "ERROR: $name ($pkg) declares external runtime dependencies: $bad"
+              echo "ERROR: $name ($pkg) declares disallowed external runtime dependencies: $bad"
               fail=1
             fi
           done
           if [ "$fail" -ne 0 ]; then exit 1; fi
-          echo "All packages declare only @rule-io/* workspace dependencies."
+          echo "All packages declare only permitted runtime dependencies."
 
       - name: Verify build outputs for every package
         run: |
@@ -71,4 +77,13 @@ jobs:
             test -f "dist/packages/$pkg/package.json" \
               || (echo "Missing dist/packages/$pkg/package.json" && exit 1)
           done
-          echo "All build outputs present for 7 packages."
+          # CLI uses cli.js/cli.d.ts as its entry (bin), not index.*
+          test -f "dist/packages/cli/src/cli.js" \
+            || (echo "Missing dist/packages/cli/src/cli.js" && exit 1)
+          test -f "dist/packages/cli/src/cli.d.ts" \
+            || (echo "Missing dist/packages/cli/src/cli.d.ts" && exit 1)
+          test -f "dist/packages/cli/package.json" \
+            || (echo "Missing dist/packages/cli/package.json" && exit 1)
+          head -1 dist/packages/cli/src/cli.js | grep -q "^#!/usr/bin/env node" \
+            || (echo "CLI shebang missing from dist/packages/cli/src/cli.js" && exit 1)
+          echo "All build outputs present for 8 packages."

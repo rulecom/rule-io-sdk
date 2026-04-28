@@ -1,6 +1,6 @@
 # rule-io-sdk
 
-Nx monorepo for the Rule.io TypeScript SDK. Publishes seven packages under the `@rule-io/*` npm scope:
+Nx monorepo for the Rule.io TypeScript SDK. Publishes eight packages under the `@rule-io/*` npm scope:
 
 | Package | Purpose |
 |---|---|
@@ -10,16 +10,18 @@ Nx monorepo for the Rule.io TypeScript SDK. Publishes seven packages under the `
 | [`@rule-io/vendor-shopify`](packages/vendor-shopify) | Shopify preset — e-commerce automation flows |
 | [`@rule-io/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
 | [`@rule-io/vendor-samfora`](packages/vendor-samfora) | Samfora preset — Swedish donation flows |
-| [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting everything above |
+| [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the six library packages above |
+| [`@rule-io/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
 Dependency graph (clean DAG, no cycles):
 
 ```
 core ← rcml ← client
-  ↑     ↑
+  ↑     ↑       ↑
   └── vendor-{shopify,bookzen,samfora}
-
-sdk (meta) → depends on all six
+                                    ↑
+sdk (meta) ─── depends on all six   │
+cli        ─── depends on client, rcml, core, all three vendor-*
 ```
 
 ---
@@ -30,11 +32,15 @@ Node `>=20` required (the Nx plugins used by this workspace rely on `node:util.s
 
 ```bash
 npm install                         # install + link workspace packages
-npx nx show projects                # sanity-check: 8 projects incl. "sdk" + 6 split packages
-npx nx run-many -t build            # build all publishable packages → dist/packages/<pkg>/
-npx nx run-many -t vitest:test      # run every package's tests
-npx nx run-many -t eslint:lint      # lint every package
-npx nx graph                        # visualise the project graph in a browser
+npx nx show projects                # sanity-check: 8 publishable projects
+npm run build                       # build all publishable packages → dist/packages/<pkg>/
+npm run test                        # run every package's tests
+npm run lint                        # lint every package
+npm run graph                       # visualise the project graph in a browser
+
+# Run the CLI directly against source (no build step):
+npm run cli -- --help
+npm run deploy:shopify -- --activate
 ```
 
 Building a single package (and its deps, in topological order):

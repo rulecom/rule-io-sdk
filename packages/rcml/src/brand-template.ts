@@ -354,10 +354,10 @@ export function toBrandStyleConfig(data: BrandStyleResource): BrandStyleConfig {
  * double without dragging in a circular import from `client.ts`.
  */
 export interface BrandStyleResolverClient {
-  listBrandStyles(): Promise<{ data: BrandStyleListItem[] | null }>;
+  listBrandStyles(): Promise<{ data?: BrandStyleListItem[] | null }>;
   getBrandStyle(
     brandStyleId: number,
-  ): Promise<{ data: BrandStyleResource } | null>;
+  ): Promise<{ data?: BrandStyleResource } | null>;
 }
 
 /**

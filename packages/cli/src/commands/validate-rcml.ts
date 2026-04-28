@@ -23,11 +23,10 @@
 
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import type { Command } from 'commander';
+import { RuleClient, RULE_API_V2_BASE_URL } from '@rule-io/client';
 import {
-  RuleClient,
-  RULE_API_V2_BASE_URL,
   resolvePreferredBrandStyle,
   createBrandTemplate,
   createDefaultContentSection,
@@ -46,61 +45,29 @@ import {
   createSocialElement,
   createSwitch,
   createCase,
-} from '@rule-io/sdk';
+} from '@rule-io/rcml';
 import type {
   BrandStyleConfig,
   RCMLBodyChild,
   RCMLColumnChild,
   RCMLProseMirrorDoc,
-} from '@rule-io/sdk';
+} from '@rule-io/rcml';
 
 // ---------------------------------------------------------------------------
-// Load .env file
+// Run-time config (populated in registerValidateRcml → run())
 // ---------------------------------------------------------------------------
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = join(__dirname, '..');
+/**
+ * Ids of resources created by the most recent `create` run. Persisted to
+ * `.validate-rcml-ids.json` in the current working directory so `--cleanup`
+ * can delete them later.
+ */
+const IDS_FILE = join(process.cwd(), '.validate-rcml-ids.json');
 
-function loadEnv(): void {
-  const envPath = join(ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  const content = readFileSync(envPath, 'utf-8');
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed.slice(eqIndex + 1).trim().replace(/^['"]|['"]$/g, '');
-    if (!process.env[key]) {
-      process.env[key] = value;
-    }
-  }
-}
-
-loadEnv();
-
-// ---------------------------------------------------------------------------
-// Config
-// ---------------------------------------------------------------------------
-
-const API_KEY = process.env.RULE_API_KEY;
-const IDS_FILE = join(__dirname, '.validate-rcml-ids.json');
-
-if (!API_KEY) {
-  console.error('Error: RULE_API_KEY environment variable is required.');
-  console.error('Put RULE_API_KEY in .env or pass it directly.');
-  process.exit(1);
-}
-
-const isCleanup = process.argv.includes('--cleanup');
-const isProbe = process.argv.includes('--probe');
-const onlySections = process.argv
-  .find(a => a.startsWith('--sections='))
-  ?.slice('--sections='.length)
-  .split(',')
-  .map(Number);
+let API_KEY: string | undefined;
+let isCleanup = false;
+let isProbe = false;
+let onlySections: number[] | undefined;
 
 // ---------------------------------------------------------------------------
 // Brand style resolution — shared between create() and probe()
@@ -595,7 +562,7 @@ function buildSectionGroups(
                 createBrandText(createDocWithPlaceholders([
                   createTextNode('This shows when tag ID 1 matches'),
                 ])),
-              ])],
+              ])] as unknown as Parameters<typeof createCase>[1],
             ),
             id: id(),
           },
@@ -606,7 +573,7 @@ function buildSectionGroups(
                 createBrandText(createDocWithPlaceholders([
                   createTextNode('This is the default / fallback content'),
                 ])),
-              ])],
+              ])] as unknown as Parameters<typeof createCase>[1],
             ),
             id: id(),
           },
@@ -662,8 +629,9 @@ function buildShowcase(
   repeatableField?: { id: number; name: string },
 ): RCMLBodyChild[] {
   const allGroups = buildSectionGroups(brandStyle, resolvedField, repeatableField);
-  const groups = onlySections
-    ? allGroups.filter(g => onlySections.includes(g.num))
+  const sectionFilter = onlySections;
+  const groups = sectionFilter
+    ? allGroups.filter(g => sectionFilter.includes(g.num))
     : allGroups;
 
   const result: RCMLBodyChild[] = [];
@@ -735,9 +703,16 @@ async function create(): Promise<void> {
     });
 
     if (custResp.ok) {
-      const custData = await custResp.json();
+      const custData = (await custResp.json()) as unknown;
       // Response is { groups: [{ id, name, fields: [{ id, name, type }] }] }
-      const groups: unknown[] = Array.isArray(custData) ? custData : (custData?.groups ?? custData?.data ?? []);
+      const custObj = (custData ?? {}) as { groups?: unknown; data?: unknown };
+      const groups: unknown[] = Array.isArray(custData)
+        ? custData
+        : (Array.isArray(custObj.groups)
+            ? custObj.groups
+            : Array.isArray(custObj.data)
+              ? custObj.data
+              : []);
       for (const g of groups) {
         const group = g as Record<string, unknown>;
         const groupName = String(group.name ?? group.group_name ?? 'Unknown');
@@ -780,7 +755,7 @@ async function create(): Promise<void> {
       console.log(`  Customizations API returned ${custResp.status}: ${body.slice(0, 300)}`);
     }
   } catch (err) {
-    console.log(`  Error fetching customizations: ${err instanceof Error ? err.message : err}`);
+    console.log(`  Error fetching customizations: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // -- Build showcase template --
@@ -902,11 +877,34 @@ async function probe(): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Main
+// Registration
 // ---------------------------------------------------------------------------
 
-const run = isCleanup ? cleanup : isProbe ? probe : create;
-run().catch((err) => {
-  console.error('Failed:', err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+interface RunOptions {
+  apiKey?: string;
+  cleanup?: boolean;
+  probe?: boolean;
+  sections?: string;
+}
+
+export function registerValidateRcml(program: Command): void {
+  program
+    .command('validate-rcml')
+    .description('Create a showcase campaign of RCML elements in Rule.io, or probe each section individually.')
+    .option('--api-key <key>', 'Rule.io API key (defaults to $RULE_API_KEY)')
+    .option('--cleanup', 'Delete the resources created by the most recent run')
+    .option('--probe', 'Test each section individually instead of creating a full campaign')
+    .option('--sections <csv>', 'Comma-separated section numbers to include (e.g. 1,2,6)')
+    .action(async (opts: RunOptions) => {
+      API_KEY = opts.apiKey ?? process.env['RULE_API_KEY'];
+      if (!API_KEY) {
+        throw new Error('Missing RULE_API_KEY in environment or .env');
+      }
+      isCleanup = opts.cleanup ?? false;
+      isProbe = opts.probe ?? false;
+      onlySections = opts.sections?.split(',').map((n) => Number(n.trim()));
+
+      const run = isCleanup ? cleanup : isProbe ? probe : create;
+      await run();
+    });
+}

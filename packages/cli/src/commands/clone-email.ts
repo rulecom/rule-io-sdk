@@ -1,66 +1,24 @@
 /**
- * Clone an automation email from one Rule.io account into another.
+ * `rule-io clone-email` — copy an automation email between Rule.io accounts.
  *
- * Usage:
- *   npx tsx scripts/clone-email.ts fetch \
- *     --api-key=<prod-key> --automail=29150 --message=38101
- *
- *   npx tsx scripts/clone-email.ts send \
- *     --snapshot=email-snapshots/automail-29150.json \
- *     --tag=OrderCompleted
- *
- * The script loads key/value pairs from .env into process.env when present.
- * `fetch` uses RULE_API_KEY from the environment unless --api-key is passed.
- * `send` uses RULE_API_KEY from the environment.
+ * Subcommands:
+ *   - `fetch`: snapshot a source automail + message + dynamic sets + templates
+ *     to a local JSON file.
+ *   - `send`: recreate the snapshot in the current `RULE_API_KEY` account,
+ *     re-linking the trigger tag and stripping the source brand-style id.
  */
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname, isAbsolute } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { RuleClient } from '@rule-io/sdk';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
+import type { Command } from 'commander';
 import type {
   RuleAutomationResponse,
+  RuleDynamicSetResponse,
   RuleMessageResponse,
   RuleTemplateResponse,
-  RuleDynamicSetResponse,
-  RCMLDocument,
-} from '@rule-io/sdk';
-
-// ---------------------------------------------------------------------------
-// Env / args
-// ---------------------------------------------------------------------------
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = join(__dirname, '..');
-
-function loadEnv(): void {
-  const envPath = join(ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  const content = readFileSync(envPath, 'utf-8');
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) continue;
-    const key = trimmed.slice(0, eqIndex).trim();
-    const value = trimmed
-      .slice(eqIndex + 1)
-      .trim()
-      .replace(/^['"]|['"]$/g, '');
-    if (!process.env[key]) process.env[key] = value;
-  }
-}
-
-function getArg(name: string): string | undefined {
-  const prefix = `--${name}=`;
-  const hit = process.argv.find((a) => a.startsWith(prefix));
-  return hit ? hit.slice(prefix.length) : undefined;
-}
-
-// ---------------------------------------------------------------------------
-// Snapshot shape
-// ---------------------------------------------------------------------------
+} from '@rule-io/client';
+import type { RCMLDocument } from '@rule-io/rcml';
+import { createClient } from '../shared/client.js';
 
 interface EmailSnapshot {
   source: {
@@ -74,20 +32,23 @@ interface EmailSnapshot {
   templates: RuleTemplateResponse[];
 }
 
-// ---------------------------------------------------------------------------
-// fetch
-// ---------------------------------------------------------------------------
+interface FetchOptions {
+  apiKey?: string;
+  automail: string;
+  message: string;
+  out?: string;
+}
 
-async function runFetch(): Promise<void> {
-  const apiKey = getArg('api-key') ?? process.env.RULE_API_KEY;
-  const automailId = Number(getArg('automail'));
-  const messageId = Number(getArg('message'));
-
-  if (!apiKey) throw new Error('Missing --api-key or RULE_API_KEY');
-  if (!automailId) throw new Error('Missing --automail=<id>');
-  if (!messageId) throw new Error('Missing --message=<id>');
-
-  const client = new RuleClient({ apiKey });
+async function runFetch(opts: FetchOptions): Promise<void> {
+  const client = createClient({ apiKey: opts.apiKey });
+  const automailId = Number(opts.automail);
+  const messageId = Number(opts.message);
+  if (!Number.isInteger(automailId) || automailId <= 0) {
+    throw new Error(`Invalid --automail value "${opts.automail}"`);
+  }
+  if (!Number.isInteger(messageId) || messageId <= 0) {
+    throw new Error(`Invalid --message value "${opts.message}"`);
+  }
 
   console.log(`Fetching automail ${automailId}...`);
   const automail = await client.getAutomation(automailId);
@@ -99,7 +60,6 @@ async function runFetch(): Promise<void> {
 
   console.log(`Listing dynamic sets for message ${messageId}...`);
   const dynSetsResponse = await client.listDynamicSets({ message_id: messageId });
-  // Response shape: { data: [...] } or { dynamic_sets: [...] } — normalize.
   const rawSets =
     (dynSetsResponse as { data?: unknown }).data ??
     (dynSetsResponse as { dynamic_sets?: unknown }).dynamic_sets ??
@@ -133,7 +93,7 @@ async function runFetch(): Promise<void> {
     templates,
   };
 
-  const outDir = join(ROOT, 'email-snapshots');
+  const outDir = opts.out ?? join(process.cwd(), 'email-snapshots');
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outFile = join(outDir, `automail-${automailId}.json`);
   writeFileSync(outFile, JSON.stringify(snapshot, null, 2), 'utf-8');
@@ -145,19 +105,10 @@ async function runFetch(): Promise<void> {
   console.log(`  templates: ${templates.length}`);
 }
 
-// ---------------------------------------------------------------------------
-// send
-// ---------------------------------------------------------------------------
-
-/**
- * Remove the `rc-brand-style` element from the template's `rc-head`.
- * The cloned account has its own brand-style id, so the source id (9616) would
- * fail to resolve. Removing the element lets the editor pick its default.
- */
 function stripBrandStyleId(template: RCMLDocument): RCMLDocument {
   const cloned = JSON.parse(JSON.stringify(template)) as RCMLDocument;
   const head = cloned.children?.find(
-    (c) => (c as { tagName?: string }).tagName === 'rc-head'
+    (c) => (c as { tagName?: string }).tagName === 'rc-head',
   ) as { children?: { tagName?: string }[] } | undefined;
   if (head?.children) {
     head.children = head.children.filter((c) => c.tagName !== 'rc-brand-style');
@@ -165,27 +116,24 @@ function stripBrandStyleId(template: RCMLDocument): RCMLDocument {
   return cloned;
 }
 
-async function runSend(): Promise<void> {
-  const apiKey = process.env.RULE_API_KEY;
-  const snapshotPath = getArg('snapshot');
-  const tagName = getArg('tag') ?? 'OrderCompleted';
-  const activate = process.argv.includes('--activate');
+interface SendOptions {
+  apiKey?: string;
+  snapshot: string;
+  tag?: string;
+  activate?: boolean;
+}
 
-  if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
-  if (!snapshotPath) throw new Error('Missing --snapshot=<path>');
+async function runSend(opts: SendOptions): Promise<void> {
+  const client = createClient({ apiKey: opts.apiKey });
+  const tagName = opts.tag ?? 'OrderCompleted';
+  const activate = opts.activate ?? false;
 
-  const absPath = isAbsolute(snapshotPath)
-    ? snapshotPath
-    : join(ROOT, snapshotPath);
+  const absPath = isAbsolute(opts.snapshot) ? opts.snapshot : join(process.cwd(), opts.snapshot);
   if (!existsSync(absPath)) throw new Error(`Snapshot not found: ${absPath}`);
 
   const snapshot = JSON.parse(readFileSync(absPath, 'utf-8')) as EmailSnapshot;
-  const srcAutomail = snapshot.automail.data as unknown as
-    | Record<string, unknown>
-    | undefined;
-  const srcMessage = snapshot.message.data as unknown as
-    | Record<string, unknown>
-    | undefined;
+  const srcAutomail = snapshot.automail.data as unknown as Record<string, unknown> | undefined;
+  const srcMessage = snapshot.message.data as unknown as Record<string, unknown> | undefined;
   const srcTemplate = snapshot.templates[0]?.data as unknown as
     | { template?: RCMLDocument; name?: string }
     | undefined;
@@ -193,26 +141,18 @@ async function runSend(): Promise<void> {
     throw new Error('Snapshot missing automail/message/template data');
   }
 
-  const client = new RuleClient({ apiKey });
-
-  // 1. Resolve trigger tag id in test account
-  console.log(`Looking up tag "${tagName}" in test account...`);
+  console.log(`Looking up tag "${tagName}" in target account...`);
   const tagId = await client.getTagIdByName(tagName);
   if (!tagId) {
     throw new Error(
-      `Tag "${tagName}" not found in test account. Create it first ` +
-        `(e.g. syncSubscriber with tags: ["${tagName}"]).`
+      `Tag "${tagName}" not found in target account. Create it first (e.g. syncSubscriber with tags: ["${tagName}"]).`,
     );
   }
   console.log(`  tag id: ${tagId}`);
 
-  // 2. Create automail — mirror source name + sendout_type
-  const srcSendoutValue = (srcAutomail.sendout_type as { value?: number } | undefined)
-    ?.value;
-  const sendoutType = srcSendoutValue === 1 ? 1 : 2; // default to transactional
-  const automailName = `${srcAutomail.name as string} (cloned ${new Date()
-    .toISOString()
-    .slice(0, 10)})`;
+  const srcSendoutValue = (srcAutomail.sendout_type as { value?: number } | undefined)?.value;
+  const sendoutType = srcSendoutValue === 1 ? 1 : 2;
+  const automailName = `${srcAutomail.name as string} (cloned ${new Date().toISOString().slice(0, 10)})`;
 
   console.log(`Creating automail "${automailName}"...`);
   const automailResp = await client.createAutomation({
@@ -224,17 +164,11 @@ async function runSend(): Promise<void> {
   if (!automailId) throw new Error('Automail create: no id returned');
   console.log(`  automail id: ${automailId}`);
 
-  const created: Array<{ kind: string; id: number }> = [
-    { kind: 'automail', id: automailId },
-  ];
+  const created: Array<{ kind: string; id: number }> = [{ kind: 'automail', id: automailId }];
 
   try {
-    // 3. Create message — only fields supported by RuleMessageCreateRequest.
-    // UTM + sender belong on the dynamic set and are applied after step 5.
-    const sender = (srcMessage.sender as {
-      name?: string | null;
-      email?: string | null;
-    } | null) ?? null;
+    const sender =
+      (srcMessage.sender as { name?: string | null; email?: string | null } | null) ?? null;
     console.log('Creating message...');
     const messageResp = await client.createMessage({
       dispatcher: { id: automailId, type: 'automail' },
@@ -246,7 +180,7 @@ async function runSend(): Promise<void> {
       automail_setting: {
         active: true,
         delay_in_seconds: String(
-          (srcMessage.automail_setting as { delay?: number } | undefined)?.delay ?? 0
+          (srcMessage.automail_setting as { delay?: number } | undefined)?.delay ?? 0,
         ),
       },
     });
@@ -255,7 +189,6 @@ async function runSend(): Promise<void> {
     console.log(`  message id: ${messageId}`);
     created.push({ kind: 'message', id: messageId });
 
-    // 4. Create template (strip brand-style id, append timestamp to name for uniqueness)
     console.log('Creating template (brand-style id stripped)...');
     const strippedTemplate = stripBrandStyleId(srcTemplate.template);
     const tplResp = await client.createTemplate({
@@ -269,7 +202,6 @@ async function runSend(): Promise<void> {
     console.log(`  template id: ${templateId}`);
     created.push({ kind: 'template', id: templateId });
 
-    // 5. Create dynamic set linking message → template
     console.log('Creating dynamic set...');
     const dsResp = await client.createDynamicSet({
       message_id: messageId,
@@ -279,8 +211,6 @@ async function runSend(): Promise<void> {
     if (!dynamicSetId) throw new Error('Dynamic set create: no id returned');
     console.log(`  dynamic set id: ${dynamicSetId}`);
 
-    // 6. Mirror dynamic-set metadata (UTM fields) from the source.
-    // These fields belong on the dynamic set, not the message.
     const utmCampaign = (srcMessage.utm_campaign as string | null) ?? undefined;
     const utmTerm = (srcMessage.utm_term as string | null) ?? undefined;
     if (utmCampaign !== undefined || utmTerm !== undefined) {
@@ -293,7 +223,6 @@ async function runSend(): Promise<void> {
       });
     }
 
-    // 7. Optionally activate
     if (activate) {
       console.log('Activating automail...');
       await client.updateAutomation(automailId, {
@@ -310,7 +239,7 @@ async function runSend(): Promise<void> {
     console.log(`  template:    ${templateId}`);
     console.log(`  dynamic set: ${dynamicSetId}`);
     console.log(
-      `  edit: https://app.rule.io/v5/#/app/automations/automail/${automailId}/v6/email/${messageId}/edit`
+      `  edit: https://app.rule.io/v5/#/app/automations/automail/${automailId}/v6/email/${messageId}/edit`,
     );
   } catch (err) {
     console.error('\nSend failed, cleaning up created resources...');
@@ -328,22 +257,26 @@ async function runSend(): Promise<void> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// main
-// ---------------------------------------------------------------------------
+export function registerCloneEmail(program: Command): void {
+  const cloneEmail = program
+    .command('clone-email')
+    .description('Copy an automation email between Rule.io accounts via a local JSON snapshot.');
 
-async function main(): Promise<void> {
-  loadEnv();
-  const cmd = process.argv[2];
-  if (cmd === 'fetch') await runFetch();
-  else if (cmd === 'send') await runSend();
-  else {
-    console.error('Usage: clone-email.ts <fetch|send> [...args]');
-    process.exit(1);
-  }
+  cloneEmail
+    .command('fetch')
+    .description('Snapshot a source automail + message + templates into email-snapshots/.')
+    .requiredOption('--automail <id>', 'Source automail id')
+    .requiredOption('--message <id>', 'Source message id')
+    .option('--api-key <key>', 'Source-account API key (defaults to $RULE_API_KEY)')
+    .option('--out <dir>', 'Output directory (default: ./email-snapshots)')
+    .action(runFetch);
+
+  cloneEmail
+    .command('send')
+    .description('Recreate a snapshot in the target account (uses $RULE_API_KEY).')
+    .requiredOption('--snapshot <path>', 'Path to the snapshot JSON produced by `fetch`')
+    .option('--api-key <key>', 'Target-account API key (defaults to $RULE_API_KEY)')
+    .option('--tag <name>', 'Trigger tag name in the target account', 'OrderCompleted')
+    .option('--activate', 'Activate the automation after creating it')
+    .action(runSend);
 }
-
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});

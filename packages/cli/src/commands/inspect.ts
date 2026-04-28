@@ -1,44 +1,25 @@
 /**
- * One-off probe: report what's already in the test account so we know what
- * brand styles, custom fields, and Shopify tags we have to work with.
+ * `rule-io inspect` — diagnostic probe: report what brand styles, tags,
+ * custom fields, and Shopify-like automations already exist in the target
+ * Rule.io account.
+ *
+ * Originally the internal `scripts/inspect-test.ts` probe used by the SDK
+ * team to check a fresh test account before running `rule-io deploy shopify`.
+ * Useful for external integrators too when onboarding a new Rule.io account.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { RuleClient, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/sdk';
+import type { Command } from 'commander';
+import { SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
+import { createClient } from '../shared/client.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = join(__dirname, '..');
-
-function loadEnv(): void {
-  const envPath = join(ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  const content = readFileSync(envPath, 'utf-8');
-  for (const line of content.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const i = t.indexOf('=');
-    if (i === -1) continue;
-    const k = t.slice(0, i).trim();
-    const v = t
-      .slice(i + 1)
-      .trim()
-      .replace(/^['"]|['"]$/g, '');
-    if (!process.env[k]) process.env[k] = v;
-  }
+interface Options {
+  apiKey?: string;
 }
 
-async function main(): Promise<void> {
-  loadEnv();
-  const apiKey = process.env.RULE_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      'Missing RULE_API_KEY environment variable. Set it in your shell or .env before running scripts/inspect-test.ts.'
-    );
-  }
-  const client = new RuleClient({ apiKey });
+async function run(opts: Options): Promise<void> {
+  const apiKey = opts.apiKey ?? process.env['RULE_API_KEY'];
+  if (!apiKey) throw new Error('Missing RULE_API_KEY in environment or .env');
+  const client = createClient({ apiKey });
 
   console.log('=== Brand styles ===');
   try {
@@ -58,12 +39,10 @@ async function main(): Promise<void> {
   }
   for (const [key, name] of Object.entries(SHOPIFY_TAGS)) {
     const id = tagMap.get(name);
-    console.log(`  ${key.padEnd(18)} "${name}"  ${id ? 'id=' + id : 'MISSING'}`);
+    console.log(`  ${key.padEnd(18)} "${name}"  ${id ? 'id=' + String(id) : 'MISSING'}`);
   }
 
   console.log('\n=== Shopify custom fields — check which exist ===');
-  // Rule.io v2 exposes fields per-subscriber. Try to find any subscriber and
-  // inspect their field groups so we can see what's defined.
   try {
     const listRes = await fetch('https://app.rule.io/api/v2/subscribers?limit=5', {
       headers: { Authorization: `Bearer ${apiKey}` },
@@ -89,11 +68,9 @@ async function main(): Promise<void> {
   console.log('\n=== Check Shopify-like automails ===');
   const autos = await client.listAutomations({ per_page: 50 });
   const items = (autos.data ?? []) as Array<{ id: number; name?: string; active?: boolean }>;
-  const shopifyish = items.filter(
-    (a) => /shopify|order|cart|ship|cancel|return/i.test(a.name ?? '')
-  );
+  const shopifyish = items.filter((a) => /shopify|order|cart|ship|cancel|return/i.test(a.name ?? ''));
   console.log(`  ${shopifyish.length} matching automails:`);
-  shopifyish.forEach((a) => console.log(`  ${a.id}  active=${a.active}  ${a.name}`));
+  shopifyish.forEach((a) => console.log(`  ${a.id}  active=${String(a.active)}  ${a.name}`));
 
   console.log('\nReference: SDK expects these Shopify field names:');
   for (const [key, name] of Object.entries(SHOPIFY_FIELDS)) {
@@ -101,7 +78,10 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+export function registerInspect(program: Command): void {
+  program
+    .command('inspect')
+    .description('Probe a Rule.io account — report brand styles, Shopify tags/fields, and Shopify-like automations.')
+    .option('--api-key <key>', 'Rule.io API key (defaults to $RULE_API_KEY)')
+    .action(run);
+}

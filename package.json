@@ -14,6 +14,10 @@
     "lint": "nx run-many -t eslint:lint",
     "graph": "nx graph",
     "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
+    "cli": "tsx packages/cli/src/cli.ts",
+    "deploy:shopify": "tsx packages/cli/src/cli.ts deploy shopify",
+    "deploy:bookzen": "tsx packages/cli/src/cli.ts deploy bookzen",
+    "deploy:samfora": "tsx packages/cli/src/cli.ts deploy samfora",
     "release:dry": "nx release --dry-run",
     "release:first": "nx release --first-release",
     "release": "nx release"
@@ -35,6 +39,7 @@
     "nx": "22.7.0",
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.1",
     "verdaccio": "^6.3.2",
@@ -44,7 +49,6 @@
   "engines": {
     "node": ">=20"
   },
-  "dependencies": {},
   "nx": {
     "includedScripts": []
   }

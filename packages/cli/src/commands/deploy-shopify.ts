@@ -1,71 +1,30 @@
 /**
- * Deploy the SDK's standard Shopify automations into the test account.
+ * `rule-io deploy shopify` — deploy the SDK's standard Shopify automations
+ * into a Rule.io account.
  *
  * Flow:
  *   1. Seed a test subscriber with all SHOPIFY_FIELDS populated so the field
  *      definitions exist in the account.
- *   2. Apply missing Shopify tags (CartInProgress, OrderCancelled) to that
- *      subscriber to ensure they resolve to numeric tag ids.
+ *   2. Apply missing Shopify tags to that subscriber so they resolve to numeric
+ *      tag ids.
  *   3. Resolve numeric field ids via the v3 custom-field-data endpoint.
- *   4. Resolve the account's preferred brand style (is_default: true) via
- *      `resolvePreferredBrandStyle`. `--brand=<id>` overrides discovery.
- *   5. Deploy each automation via createAutomationEmail (auto-handles
- *      automail → message → template → dynamic-set with cleanup on failure).
- *
- * Usage:
- *   npx tsx scripts/deploy-shopify.ts                 # deploy, automails inactive
- *   npx tsx scripts/deploy-shopify.ts --activate      # deploy + activate
- *   npx tsx scripts/deploy-shopify.ts --brand=12345   # force a specific brand id
+ *   4. Resolve the account's preferred brand style (is_default: true). The
+ *      `--brand <id>` flag overrides discovery.
+ *   5. Deploy each automation via createAutomationEmail (auto-handles the
+ *      automail → message → template → dynamic-set chain with cleanup on
+ *      failure).
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  RuleClient,
-  resolvePreferredBrandStyle,
-  shopifyPreset,
-  SHOPIFY_FIELDS,
-  SHOPIFY_TAGS,
-} from '@rule-io/sdk';
-import type { VendorConsumerConfig } from '@rule-io/sdk';
-import type { CustomFieldMap } from '@rule-io/sdk';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = join(__dirname, '..');
-
-function loadEnv(): void {
-  const envPath = join(ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  const content = readFileSync(envPath, 'utf-8');
-  for (const line of content.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const i = t.indexOf('=');
-    if (i === -1) continue;
-    const k = t.slice(0, i).trim();
-    const v = t
-      .slice(i + 1)
-      .trim()
-      .replace(/^['"]|['"]$/g, '');
-    if (!process.env[k]) process.env[k] = v;
-  }
-}
-
-function getArg(name: string): string | undefined {
-  const prefix = `--${name}=`;
-  const hit = process.argv.find((a) => a.startsWith(prefix));
-  return hit ? hit.slice(prefix.length) : undefined;
-}
+import type { Command } from 'commander';
+import { RuleClient } from '@rule-io/client';
+import { resolvePreferredBrandStyle } from '@rule-io/rcml';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/rcml';
+import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
+import { createClient } from '../shared/client.js';
 
 const SEED_EMAIL = 'shopify-seed@rule.se';
 const WEBSITE_URL = 'https://shop.rule.se';
 
-/**
- * Parse `--brand=<id>`. Rejecting non-integers up front prevents a confusing
- * 404 from `getBrandStyle(NaN)`.
- */
 function parseBrandOverride(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const n = Number(raw);
@@ -77,10 +36,6 @@ function parseBrandOverride(raw: string | undefined): number | undefined {
   return n;
 }
 
-/**
- * Subscriber-group seed (flat group). Values are strings; Rule.io infers text.
- * Sent via v2 /subscribers together with trigger tags.
- */
 const SUBSCRIBER_SEED: Record<string, string> = {
   [SHOPIFY_FIELDS.firstName]: 'Anna',
   [SHOPIFY_FIELDS.lastName]: 'Andersson',
@@ -93,11 +48,6 @@ const SUBSCRIBER_SEED: Record<string, string> = {
   [SHOPIFY_FIELDS.country]: 'Sweden',
 };
 
-/**
- * Order-group seed. Recreated as a historical group via v3 with explicit
- * types per field: numbers for money/counts, JSON array for line items,
- * strings for everything else (including postal code — international safe).
- */
 const ORDER_SEED: Array<{ field: string; value: unknown }> = [
   { field: 'Number', value: '#1001' },
   { field: 'Date', value: '2026-04-19' },
@@ -125,20 +75,11 @@ const ORDER_SEED: Array<{ field: string; value: unknown }> = [
   { field: 'ShippingCountryCode', value: 'SE' },
 ];
 
-/**
- * Seed the Subscriber group + attach trigger tags via v2 /subscribers.
- * Only Subscriber.* fields here — Order fields go through v3 so we can
- * force `historical: true` on group creation.
- */
-async function seedSubscriber(
-  apiKey: string,
-  baseUrl: string,
-): Promise<void> {
+async function seedSubscriber(apiKey: string, baseUrl: string): Promise<void> {
   const fields = Object.entries(SUBSCRIBER_SEED).map(([key, value]) => ({
     key,
     value,
   }));
-
   const payload = {
     update_on_duplicate: true,
     tags: [
@@ -149,7 +90,6 @@ async function seedSubscriber(
     ],
     subscribers: { email: SEED_EMAIL, fields },
   };
-
   const res = await fetch(`${baseUrl}/subscribers`, {
     method: 'POST',
     headers: {
@@ -163,15 +103,7 @@ async function seedSubscriber(
   }
 }
 
-/**
- * Recreate the Order custom-field group as historical via v3
- * createCustomFieldData. `historical: true` is the group type Shopify order
- * data should live in — each sync is a new record, not a flat overwrite.
- */
-async function seedOrderGroup(
-  client: RuleClient,
-  subscriberId: number,
-): Promise<void> {
+async function seedOrderGroup(client: RuleClient, subscriberId: number): Promise<void> {
   await client.createCustomFieldData(subscriberId, {
     groups: [
       {
@@ -190,10 +122,7 @@ async function seedOrderGroup(
   });
 }
 
-async function resolveFieldIds(
-  client: RuleClient,
-  subscriberId: number,
-): Promise<CustomFieldMap> {
+async function resolveFieldIds(client: RuleClient, subscriberId: number): Promise<CustomFieldMap> {
   const data = await client.getCustomFieldData(subscriberId);
   const map: CustomFieldMap = {};
   for (const record of data.data ?? []) {
@@ -206,18 +135,22 @@ async function resolveFieldIds(
   return map;
 }
 
-async function main(): Promise<void> {
-  loadEnv();
-  const apiKey = process.env.RULE_API_KEY;
-  if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
+interface Options {
+  apiKey?: string;
+  brand?: string;
+  activate?: boolean;
+}
 
-  const brandOverride = parseBrandOverride(getArg('brand'));
-  const activate = process.argv.includes('--activate');
+async function run(opts: Options): Promise<void> {
+  const apiKey = opts.apiKey ?? process.env['RULE_API_KEY'];
+  if (!apiKey) throw new Error('Missing RULE_API_KEY in environment or .env');
+  const brandOverride = parseBrandOverride(opts.brand);
+  const activate = opts.activate ?? false;
 
-  const client = new RuleClient({ apiKey });
+  const client = createClient({ apiKey });
 
   console.log(
-    `→ Seeding Subscriber group (${Object.keys(SUBSCRIBER_SEED).length} fields) + trigger tags...`
+    `→ Seeding Subscriber group (${Object.keys(SUBSCRIBER_SEED).length} fields) + trigger tags...`,
   );
   await seedSubscriber(apiKey, 'https://app.rule.io/api/v2');
 
@@ -229,7 +162,7 @@ async function main(): Promise<void> {
   console.log(`  id: ${subscriberId}`);
 
   console.log(
-    `→ Seeding Order group (${ORDER_SEED.length} fields, historical=true) via v3...`
+    `→ Seeding Order group (${ORDER_SEED.length} fields, historical=true) via v3...`,
   );
   await seedOrderGroup(client, subscriberId);
 
@@ -237,10 +170,6 @@ async function main(): Promise<void> {
   const resolved = await resolveFieldIds(client, subscriberId);
   console.log(`  ${Object.keys(resolved).length} raw field(s) resolved`);
 
-  // The test account has pre-existing fields with slightly different casing
-  // (e.g. "Subscriber.Firstname" vs the Shopify integration's
-  // "Subscriber.FirstName"). Build a case-insensitive alias so the preset's
-  // expected field names still resolve.
   const customFields: CustomFieldMap = { ...resolved };
   const lower: Record<string, number> = {};
   for (const [k, v] of Object.entries(resolved)) lower[k.toLowerCase()] = v;
@@ -259,7 +188,10 @@ async function main(): Promise<void> {
   }
   if (aliased.length) console.log(`  aliased (case-insensitive): ${aliased.join(', ')}`);
   if (stillMissing.length) {
-    console.warn(`  WARN: ${stillMissing.length} expected fields not present in account:`, stillMissing);
+    console.warn(
+      `  WARN: ${stillMissing.length} expected fields not present in account:`,
+      stillMissing,
+    );
   }
 
   console.log(
@@ -270,17 +202,11 @@ async function main(): Promise<void> {
   const { id: brandStyleId, name: brandName, brandStyle, source } =
     await resolvePreferredBrandStyle(client, brandOverride);
   if (source === 'fallback') {
-    console.warn(
-      '  WARN: no brand style is flagged as default — falling back to first in list',
-    );
+    console.warn('  WARN: no brand style is flagged as default — falling back to first in list');
   }
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
-  const config: VendorConsumerConfig = {
-    brandStyle,
-    customFields,
-    websiteUrl: WEBSITE_URL,
-  };
+  const config: VendorConsumerConfig = { brandStyle, customFields, websiteUrl: WEBSITE_URL };
 
   console.log('→ Validating config against shopify preset...');
   shopifyPreset.validateConfig(config);
@@ -304,7 +230,9 @@ async function main(): Promise<void> {
       template,
     });
     console.log(`    automail: ${res.automationId}  message: ${res.messageId}  template: ${res.templateId}`);
-    console.log(`    edit: https://app.rule.io/v5/#/app/automations/automail/${res.automationId}/v6/email/${res.messageId}/edit`);
+    console.log(
+      `    edit: https://app.rule.io/v5/#/app/automations/automail/${res.automationId}/v6/email/${res.messageId}/edit`,
+    );
     if (activate) {
       await client.updateAutomation(res.automationId, { active: true });
       console.log(`    activated ✓`);
@@ -323,7 +251,12 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e instanceof Error ? e.stack ?? e.message : e);
-  process.exit(1);
-});
+export function registerDeployShopify(deploy: Command): void {
+  deploy
+    .command('shopify')
+    .description("Deploy the SDK's standard Shopify e-commerce automations.")
+    .option('--api-key <key>', 'Rule.io API key (defaults to $RULE_API_KEY)')
+    .option('--brand <id>', 'Force a specific brand style id (overrides is_default discovery)')
+    .option('--activate', 'Activate each automation after deploying')
+    .action(run);
+}

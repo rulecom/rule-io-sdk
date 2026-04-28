@@ -1,94 +1,24 @@
 /**
- * Deploy the SDK's Samfora automations into the test account.
- *
- * Flow mirrors deploy-shopify.ts: uses the account's PREFERRED brand
- * style (is_default: true) via the shared `resolvePreferredBrandStyle`
- * SDK helper. See issue #91 for why hardcoded IDs / list-order fallbacks
- * are unsafe.
- *
- *   1. Sync samfora-seed@rule.se with every standard `Subscriber.*`
- *      field the preset maps (FirstName, LastName, Address1/2, Zipcode,
- *      City, Country, Number, Source) plus every trigger & segment tag,
- *      so the tags and the Subscriber-group field definitions exist in
- *      the account. Subscriber.* fields are flat/overwriting per
- *      Rule.io praxis.
- *   2. Create per-persona test subscribers, one for each automation
- *      trigger, so you can eyeball each flow in the Rule.io UI. Each
- *      persona gets the full `Subscriber.*` field set personalised.
- *   3. Seed the historical Donation.* group on every subscriber that
- *      needs donation detail (all personas except the welcome-only one).
- *      This creates the Donation.* field definitions in the account as
- *      a side effect of the first write.
- *   4. Resolve numeric field ids from the seed subscriber — both the
- *      Subscriber and Donation groups are read back via v3
- *      custom-field-data.
- *   5. Fetch the account's preferred brand style and build the config.
- *   6. Deploy each automation via createAutomationEmail (auto-handles
- *      automail → message → template → dynamic-set with cleanup on
- *      failure). Leaves automails INACTIVE unless --activate is passed.
- *
- * Usage:
- *   npx tsx scripts/deploy-samfora.ts                 # deploy, automails inactive
- *   npx tsx scripts/deploy-samfora.ts --activate      # deploy + activate
- *   npx tsx scripts/deploy-samfora.ts --brand=12345   # force a specific style id
+ * `rule-io deploy samfora` — deploy the Samfora donation-platform automations
+ * and seed realistic persona subscribers for QA in Rule.io's editor.
  */
 
-import { readFileSync, existsSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import {
-  RuleClient,
-  resolvePreferredBrandStyle,
-  samforaPreset,
-  SAMFORA_FIELDS,
-  SAMFORA_TAGS,
-} from '@rule-io/sdk';
-import type { VendorConsumerConfig } from '@rule-io/sdk';
-import type { CustomFieldMap } from '@rule-io/sdk';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const ROOT = join(__dirname, '..');
-
-function loadEnv(): void {
-  const envPath = join(ROOT, '.env');
-  if (!existsSync(envPath)) return;
-  const content = readFileSync(envPath, 'utf-8');
-  for (const line of content.split('\n')) {
-    const t = line.trim();
-    if (!t || t.startsWith('#')) continue;
-    const i = t.indexOf('=');
-    if (i === -1) continue;
-    const k = t.slice(0, i).trim();
-    const v = t
-      .slice(i + 1)
-      .trim()
-      .replace(/^['"]|['"]$/g, '');
-    if (!process.env[k]) process.env[k] = v;
-  }
-}
-
-function getArg(name: string): string | undefined {
-  const prefix = `--${name}=`;
-  const hit = process.argv.find((a) => a.startsWith(prefix));
-  return hit ? hit.slice(prefix.length) : undefined;
-}
+import type { Command } from 'commander';
+import { RuleClient } from '@rule-io/client';
+import { resolvePreferredBrandStyle } from '@rule-io/rcml';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/rcml';
+import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rule-io/vendor-samfora';
+import { createClient } from '../shared/client.js';
 
 const V2_BASE = 'https://app.rule.io/api/v2';
 const SEED_EMAIL = 'samfora-seed@rule.se';
 const WEBSITE_URL = 'https://samfora.org';
 
-// ============================================================================
-// Persona test subscribers
-// ============================================================================
-
 interface Persona {
   email: string;
   firstName: string;
   description: string;
-  /** Tags applied via v2 /subscribers — creates the tags in Rule.io as a side effect. */
   tags: string[];
-  /** If false, no Donation.* group data is seeded (e.g. welcome-only persona). */
   seedDonationGroup: boolean;
 }
 
@@ -137,21 +67,8 @@ const PERSONAS: Persona[] = [
   },
 ];
 
-/** Every tag the preset references, applied to the seed so they all exist. */
 const ALL_TAGS = Object.values(SAMFORA_TAGS);
 
-// Note: donor identity (first name, address, phone, etc.) is seeded on the
-// flat Subscriber group via `subscriberFieldSeed()`; per-donation event data
-// is written into the historical Donation group via `seedDonationGroup()`.
-// The v2 sync below carries both the flat Subscriber fields and the tags.
-
-/**
- * One donation record seeded into the historical Donation.* group. Values are
- * typed explicitly so Rule.io creates the right field type on first write.
- *
- * Note: `FirstName` lives on the flat `Subscriber` group per Rule.io praxis,
- * not inside this historical group — see `subscriberFieldSeed()`.
- */
 const DONATION_SEED_VALUES: Array<{ field: string; value: unknown }> = [
   { field: 'Amount', value: 250 },
   { field: 'Currency', value: 'SEK' },
@@ -164,14 +81,6 @@ const DONATION_SEED_VALUES: Array<{ field: string; value: unknown }> = [
   { field: 'TaxDeductible', value: 2000 },
 ];
 
-/**
- * Flat Subscriber-group fields seeded per persona. These live on the
- * subscriber itself (not historical) — Rule.io overwrites them on each
- * sync, matching the "Subscriber.* is mutable identity" praxis.
- *
- * Populates all nine standard Subscriber fields the preset exposes so
- * each persona has realistic data when previewed in Rule.io's editor.
- */
 function subscriberFieldSeed(firstName: string): Array<{ key: string; value: string }> {
   return [
     { key: SAMFORA_FIELDS.donorFirstName, value: firstName },
@@ -186,25 +95,13 @@ function subscriberFieldSeed(firstName: string): Array<{ key: string; value: str
   ];
 }
 
-// ============================================================================
-// Live calls
-// ============================================================================
-
-/**
- * Attach subscriber-level flat fields + trigger/segment tags via v2
- * /subscribers. An empty fields array is fine — v2 still applies the tags.
- */
 async function syncSubscriberV2(
   apiKey: string,
   email: string,
   fields: Array<{ key: string; value: string }>,
   tags: string[],
 ): Promise<void> {
-  const payload = {
-    update_on_duplicate: true,
-    tags,
-    subscribers: { email, fields },
-  };
+  const payload = { update_on_duplicate: true, tags, subscribers: { email, fields } };
   const res = await fetch(`${V2_BASE}/subscribers`, {
     method: 'POST',
     headers: {
@@ -220,18 +117,7 @@ async function syncSubscriberV2(
   }
 }
 
-/**
- * Recreate the Donation custom-field group as historical via v3 so each
- * donation record is its own row rather than a flat overwrite. Matches how
- * deploy-shopify.ts seeds the Order group.
- *
- * First-name lives on the flat Subscriber group and is seeded via
- * `syncSubscriberV2` elsewhere, not here.
- */
-async function seedDonationGroup(
-  client: RuleClient,
-  subscriberId: number,
-): Promise<void> {
+async function seedDonationGroup(client: RuleClient, subscriberId: number): Promise<void> {
   await client.createCustomFieldData(subscriberId, {
     groups: [
       {
@@ -250,10 +136,7 @@ async function seedDonationGroup(
   });
 }
 
-async function resolveFieldIds(
-  client: RuleClient,
-  subscriberId: number,
-): Promise<CustomFieldMap> {
+async function resolveFieldIds(client: RuleClient, subscriberId: number): Promise<CustomFieldMap> {
   const data = await client.getCustomFieldData(subscriberId);
   const map: CustomFieldMap = {};
   for (const record of data.data ?? []) {
@@ -266,12 +149,6 @@ async function resolveFieldIds(
   return map;
 }
 
-/**
- * Parse a `--brand=<id>` CLI argument into a positive integer, throwing a
- * clear error for non-numeric, negative, or fractional values. Rejecting
- * `NaN` up front avoids a downstream `getBrandStyle(NaN)` call that would
- * surface as a confusing 404.
- */
 function parseBrandOverride(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const n = Number(raw);
@@ -283,21 +160,20 @@ function parseBrandOverride(raw: string | undefined): number | undefined {
   return n;
 }
 
-// ============================================================================
-// Main
-// ============================================================================
+interface Options {
+  apiKey?: string;
+  brand?: string;
+  activate?: boolean;
+}
 
-async function main(): Promise<void> {
-  loadEnv();
-  const apiKey = process.env.RULE_API_KEY;
-  if (!apiKey) throw new Error('Missing RULE_API_KEY in .env');
+async function run(opts: Options): Promise<void> {
+  const apiKey = opts.apiKey ?? process.env['RULE_API_KEY'];
+  if (!apiKey) throw new Error('Missing RULE_API_KEY in environment or .env');
+  const brandOverride = parseBrandOverride(opts.brand);
+  const activate = opts.activate ?? false;
 
-  const brandOverride = parseBrandOverride(getArg('brand'));
-  const activate = process.argv.includes('--activate');
+  const client = createClient({ apiKey });
 
-  const client = new RuleClient({ apiKey });
-
-  // --- 1. Seed subscriber (flat Subscriber fields + every tag) ---
   console.log(`→ Seeding ${SEED_EMAIL} with Subscriber.* fields + every Samfora tag...`);
   await syncSubscriberV2(apiKey, SEED_EMAIL, subscriberFieldSeed('Seed'), ALL_TAGS);
 
@@ -311,7 +187,6 @@ async function main(): Promise<void> {
   console.log('→ Seeding Donation group on seed subscriber (historical=true)...');
   await seedDonationGroup(client, seedId);
 
-  // --- 2. Personas ---
   console.log(`\n→ Creating ${PERSONAS.length} persona subscriber(s)...`);
   const personaIds: Record<string, number> = {};
   for (const p of PERSONAS) {
@@ -321,20 +196,14 @@ async function main(): Promise<void> {
     const id = Number(sub?.subscriber?.id ?? 0);
     if (!id) throw new Error(`Persona ${p.email} missing after sync`);
     personaIds[p.email] = id;
-    if (p.seedDonationGroup) {
-      await seedDonationGroup(client, id);
-    }
+    if (p.seedDonationGroup) await seedDonationGroup(client, id);
     console.log(`    id: ${id}${p.seedDonationGroup ? ' (+ donation record)' : ''}`);
   }
 
-  // --- 3. Resolve field ids from the seed (after donation group is in place) ---
   console.log('\n→ Resolving custom field ids from seed subscriber...');
   const resolved = await resolveFieldIds(client, seedId);
   console.log(`  ${Object.keys(resolved).length} raw field(s) resolved`);
 
-  // Case-insensitive alias pass — the test account may have pre-existing
-  // fields with slightly different casing (e.g. Donation.Firstname vs
-  // Donation.FirstName). Mirrors the shopify deploy's handling.
   const customFields: CustomFieldMap = { ...resolved };
   const lower: Record<string, number> = {};
   for (const [k, v] of Object.entries(resolved)) lower[k.toLowerCase()] = v;
@@ -359,7 +228,6 @@ async function main(): Promise<void> {
     );
   }
 
-  // --- 4. Brand style (preferred / is_default) ---
   console.log(
     brandOverride !== undefined
       ? `\n→ Fetching brand style ${brandOverride} (override)...`
@@ -368,31 +236,19 @@ async function main(): Promise<void> {
   const { id: brandStyleId, name: brandName, brandStyle, source } =
     await resolvePreferredBrandStyle(client, brandOverride);
   if (source === 'fallback') {
-    console.warn(
-      '  WARN: no brand style is flagged as default — falling back to first in list',
-    );
+    console.warn('  WARN: no brand style is flagged as default — falling back to first in list');
   }
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
-  const config: VendorConsumerConfig = {
-    brandStyle,
-    customFields,
-    websiteUrl: WEBSITE_URL,
-  };
+  const config: VendorConsumerConfig = { brandStyle, customFields, websiteUrl: WEBSITE_URL };
 
   console.log('→ Validating config against samfora preset...');
   samforaPreset.validateConfig(config);
 
-  // --- 5. Deploy the 6 automations ---
   const automations = samforaPreset.getAutomations(config);
   console.log(`\n→ Deploying ${automations.length} automation(s)...`);
 
-  const results: Array<{
-    name: string;
-    automationId: number;
-    messageId: number;
-    templateId: number;
-  }> = [];
+  const results: Array<{ name: string; automationId: number; messageId: number; templateId: number }> = [];
   for (const a of automations) {
     console.log(`\n  — ${a.name}`);
     const template = a.templateBuilder(config);
@@ -407,9 +263,7 @@ async function main(): Promise<void> {
       delayInSeconds: a.delayInSeconds,
       template,
     });
-    console.log(
-      `    automail: ${res.automationId}  message: ${res.messageId}  template: ${res.templateId}`,
-    );
+    console.log(`    automail: ${res.automationId}  message: ${res.messageId}  template: ${res.templateId}`);
     console.log(
       `    edit: https://app.rule.io/v5/#/app/automations/automail/${res.automationId}/v6/email/${res.messageId}/edit`,
     );
@@ -435,7 +289,12 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error(e instanceof Error ? e.stack ?? e.message : e);
-  process.exit(1);
-});
+export function registerDeploySamfora(deploy: Command): void {
+  deploy
+    .command('samfora')
+    .description('Deploy the Samfora donation-platform automations (Swedish).')
+    .option('--api-key <key>', 'Rule.io API key (defaults to $RULE_API_KEY)')
+    .option('--brand <id>', 'Force a specific brand style id (overrides is_default discovery)')
+    .option('--activate', 'Activate each automation after deploying')
+    .action(run);
+}

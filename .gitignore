@@ -25,8 +25,8 @@ coverage/
 *.log
 npm-debug.log*
 
-# Validation script state
-scripts/.validate-rcml-ids.json
+# Validation script state (created by `rule-io validate-rcml` in the CWD)
+.validate-rcml-ids.json
 
 # Nx local-registry / temp
 tmp/

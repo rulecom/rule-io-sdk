@@ -1,0 +1,43 @@
+{
+  "name": "@rule-io/cli",
+  "version": "0.3.0",
+  "description": "Command-line tools for the Rule.io SDK — deploy vendor presets, validate RCML, inspect automations.",
+  "type": "module",
+  "main": "./src/cli.js",
+  "types": "./src/cli.d.ts",
+  "bin": {
+    "rule-io": "./src/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./src/cli.d.ts",
+      "import": "./src/cli.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": ["rule.io", "cli", "sdk", "email", "marketing"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/cli"
+  },
+  "dependencies": {
+    "@rule-io/client": "0.3.0",
+    "@rule-io/rcml": "0.3.0",
+    "@rule-io/vendor-shopify": "0.3.0",
+    "@rule-io/vendor-bookzen": "0.3.0",
+    "@rule-io/vendor-samfora": "0.3.0",
+    "commander": "^12.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
