@@ -19,7 +19,7 @@ import type { VendorFieldSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { BOOKZEN_FIELDS } from 'rule-io-sdk';
+ * import { BOOKZEN_FIELDS } from '@rule-io/sdk';
  *
  * const customFields = {
  *   [BOOKZEN_FIELDS.guestFirstName]: 100001,

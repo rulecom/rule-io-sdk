@@ -167,7 +167,7 @@ export interface VendorFieldInfo {
  *
  * @example
  * ```typescript
- * import { shopifyPreset, SHOPIFY_FIELDS } from 'rule-io-sdk';
+ * import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
  *
  * shopifyPreset.validateConfig(config);
  * const automations = shopifyPreset.getAutomations(config);

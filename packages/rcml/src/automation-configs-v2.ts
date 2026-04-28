@@ -32,8 +32,8 @@ export interface TemplateConfigV2 {
  *
  * @example
  * ```typescript
- * import { RuleTags, createAbandonedCartEmail } from 'rule-io-sdk';
- * import type { AutomationConfigV2 } from 'rule-io-sdk';
+ * import { RuleTags, createAbandonedCartEmail } from '@rule-io/sdk';
+ * import type { AutomationConfigV2 } from '@rule-io/sdk';
  *
  * const abandonedCartAutomation: AutomationConfigV2 = {
  *   id: 'abandoned-cart',

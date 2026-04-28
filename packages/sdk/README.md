@@ -2,7 +2,7 @@
 
 A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and send email campaigns, set up tag-triggered automations, manage subscribers, and create RCML templates — all from code.
 
-**Zero runtime dependencies** | **Full TypeScript types** | **Node.js >= 18**
+**Zero external runtime dependencies** | **Full TypeScript types** | **Node.js >= 20**
 
 ## Table of Contents
 
@@ -21,13 +21,13 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 ## Installation
 
 ```bash
-npm install rule-io-sdk
+npm install @rule-io/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { RuleClient } from 'rule-io-sdk';
+import { RuleClient } from '@rule-io/sdk';
 
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
@@ -92,8 +92,8 @@ You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders. Use `resolvePreferredBrandStyle()` so each account's preferred style (the one flagged `is_default`) is respected — never hardcode brand style IDs, since a customer's preferred style can change and list order is not guaranteed:
 
 ```typescript
-import { resolvePreferredBrandStyle } from 'rule-io-sdk';
-import type { CustomFieldMap } from 'rule-io-sdk';
+import { resolvePreferredBrandStyle } from '@rule-io/sdk';
+import type { CustomFieldMap } from '@rule-io/sdk';
 
 // Preferred path: discover the account's default brand style.
 const { id: brandStyleId, brandStyle: myBrand, source } =
@@ -166,7 +166,7 @@ Ready-to-use templates for common use cases. All require consumer-provided confi
 **E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`
 
 ```typescript
-import { createOrderConfirmationEmail } from 'rule-io-sdk';
+import { createOrderConfirmationEmail } from '@rule-io/sdk';
 
 const email = createOrderConfirmationEmail({
   brandStyle: myBrand,        // BrandStyleConfig (see Brand Styles above)
@@ -206,7 +206,7 @@ import {
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
-} from 'rule-io-sdk';
+} from '@rule-io/sdk';
 
 const template = createBrandTemplate({
   brandStyle: myBrand,
@@ -243,7 +243,7 @@ import {
   createText,
   createButton,
   createLogo,
-} from 'rule-io-sdk';
+} from '@rule-io/sdk';
 
 const template = createRCMLDocument({
   preheader: 'Your order is confirmed!',
@@ -281,7 +281,7 @@ Pre-configured integrations that bundle field names, tags, and automation flows 
 ### Shopify
 
 ```typescript
-import { shopifyPreset, SHOPIFY_FIELDS } from 'rule-io-sdk';
+import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -302,7 +302,7 @@ const single = shopifyPreset.getAutomation('shopify-order-confirmation', config)
 ### Bookzen (Hospitality)
 
 ```typescript
-import { bookzenPreset, BOOKZEN_FIELDS } from 'rule-io-sdk';
+import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -330,7 +330,7 @@ new custom ones — those fields already exist on every account. Per-donation
 data lives on a historical `Donation.*` group.
 
 ```typescript
-import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
+import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -463,7 +463,7 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
-import { createRCMLDocument, createCenteredSection, createText } from 'rule-io-sdk';
+import { createRCMLDocument, createCenteredSection, createText } from '@rule-io/sdk';
 
 const rcmlDocument = createRCMLDocument({
   sections: [createCenteredSection({ children: [createText('Hello!')] })],
@@ -554,7 +554,7 @@ await client.deleteAccount(account.data!.id!);
 ### Brand Styles
 
 ```typescript
-import { resolvePreferredBrandStyle } from 'rule-io-sdk';
+import { resolvePreferredBrandStyle } from '@rule-io/sdk';
 
 // Preferred: resolve the account's default brand style (is_default: true)
 // and receive a ready-to-use BrandStyleConfig in a single call.
@@ -610,7 +610,7 @@ Also: `updateCustomFieldData`, `getCustomFieldDataByGroup`, `searchCustomFieldDa
 ## Error Handling
 
 ```typescript
-import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
+import { RuleApiError, RuleConfigError } from '@rule-io/sdk';
 
 try {
   await client.createSubscriberV3({ email: 'user@example.com' });
@@ -631,7 +631,7 @@ RCML element builders (`createButton`, `createImage`, `createVideo`) sanitize UR
 For custom raw HTML templates outside of RCML:
 
 ```typescript
-import { escapeHtml, sanitizeUrl } from 'rule-io-sdk';
+import { escapeHtml, sanitizeUrl } from '@rule-io/sdk';
 
 const safeName = escapeHtml(userInput);       // For raw HTML interpolation
 const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs

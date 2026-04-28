@@ -12,7 +12,7 @@ import type { VendorTagSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { SHOPIFY_TAGS } from 'rule-io-sdk';
+ * import { SHOPIFY_TAGS } from '@rule-io/sdk';
  *
  * await client.syncSubscriber({
  *   email: 'customer@example.com',

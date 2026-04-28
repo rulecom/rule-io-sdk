@@ -11,7 +11,7 @@ import type { VendorTagSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { BOOKZEN_TAGS } from 'rule-io-sdk';
+ * import { BOOKZEN_TAGS } from '@rule-io/sdk';
  *
  * await client.syncSubscriber({
  *   email: 'guest@example.com',

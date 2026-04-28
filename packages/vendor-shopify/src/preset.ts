@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { shopifyPreset, SHOPIFY_FIELDS } from 'rule-io-sdk';
+ * import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
  *
  * const config = {
  *   brandStyle: myBrandStyle,

@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { bookzenPreset, BOOKZEN_FIELDS } from 'rule-io-sdk';
+ * import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
  *
  * const config = {
  *   brandStyle: myBrandStyle,

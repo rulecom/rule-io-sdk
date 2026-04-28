@@ -24,7 +24,7 @@ import type { VendorFieldSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { SAMFORA_FIELDS } from 'rule-io-sdk';
+ * import { SAMFORA_FIELDS } from '@rule-io/sdk';
  *
  * const customFields = {
  *   [SAMFORA_FIELDS.donorFirstName]: 47736,   // pre-existing in account

@@ -6,4 +6,4 @@ Shopify preset for the Rule.io SDK. Ships pre-configured e-commerce automation f
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
 ```
 
-See the [main `@rule-io/sdk` README](../rule-io-sdk/README.md) for full SDK docs.
+See the [main `@rule-io/sdk` README](../sdk/README.md) for full SDK docs.

@@ -14,7 +14,7 @@ import type { VendorFieldSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { SHOPIFY_FIELDS } from 'rule-io-sdk';
+ * import { SHOPIFY_FIELDS } from '@rule-io/sdk';
  *
  * const customFields = {
  *   [SHOPIFY_FIELDS.firstName]: 169233,

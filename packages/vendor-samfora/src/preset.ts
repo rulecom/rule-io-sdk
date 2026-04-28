@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { samforaPreset, SAMFORA_FIELDS } from 'rule-io-sdk';
+ * import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
  *
  * const config = {
  *   brandStyle: myBrandStyle,

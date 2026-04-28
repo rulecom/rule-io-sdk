@@ -15,7 +15,7 @@ import type { VendorTagSchema } from '@rule-io/rcml';
  *
  * @example
  * ```typescript
- * import { SAMFORA_TAGS } from 'rule-io-sdk';
+ * import { SAMFORA_TAGS } from '@rule-io/sdk';
  *
  * await client.syncSubscriber({
  *   email: 'donor@example.com',

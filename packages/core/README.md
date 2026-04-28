@@ -18,4 +18,4 @@ try {
 }
 ```
 
-See the [main `@rule-io/sdk` README](../rule-io-sdk/README.md) for the full SDK documentation.
+See the [main `@rule-io/sdk` README](../sdk/README.md) for the full SDK documentation.

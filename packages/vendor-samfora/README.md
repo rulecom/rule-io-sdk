@@ -6,4 +6,4 @@ Samfora preset for the Rule.io SDK. Donation-platform automation flows for [Samf
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rule-io/vendor-samfora';
 ```
 
-See the [main `@rule-io/sdk` README](../rule-io-sdk/README.md) for full SDK docs.
+See the [main `@rule-io/sdk` README](../sdk/README.md) for full SDK docs.

@@ -18,4 +18,4 @@ import {
 - **Types**: full RCML structural type hierarchy (`RCMLDocument`, `RCMLSection`, `RCMLProseMirrorDoc`, etc.)
 - **Automation config schema**: `AutomationConfigV2`, `TemplateConfigV2`, `getAutomationByIdV2`, `getAutomationByTriggerV2` (used by the vendor preset packages)
 
-See the [main `@rule-io/sdk` README](../rule-io-sdk/README.md) for end-to-end usage examples.
+See the [main `@rule-io/sdk` README](../sdk/README.md) for end-to-end usage examples.

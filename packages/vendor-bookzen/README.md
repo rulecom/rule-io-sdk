@@ -6,4 +6,4 @@ Bookzen preset for the Rule.io SDK. Hospitality automation flows — reservation
 import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '@rule-io/vendor-bookzen';
 ```
 
-See the [main `@rule-io/sdk` README](../rule-io-sdk/README.md) for full SDK docs.
+See the [main `@rule-io/sdk` README](../sdk/README.md) for full SDK docs.
