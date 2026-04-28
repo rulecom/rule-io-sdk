@@ -16,6 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   inline. Caller drives pagination via the returned `next_page` cursor.
   Closes #99.
 
+### Fixed
+- `RuleMessage` now surfaces `utm_campaign` and `utm_term` (both
+  `string | null`). The Rule.io API returns these on Message objects in
+  automation/campaign responses, but the type dropped them, so typed
+  consumers couldn't read UTM values from the wire. `RuleDynamicSet`
+  similarly gains `name`, `subject`, `pre_header`, `utm_campaign`, and
+  `utm_term` to match fields returned by `getDynamicSet` and by the
+  `default_dynamic_set` nested inside Message responses (the list
+  endpoint only returns a subset — fields remain optional). Additive,
+  optional, no runtime change. Closes #110.
+
 ## [0.4.0] - 2026-04-23
 
 ### Added

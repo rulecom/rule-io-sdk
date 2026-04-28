@@ -230,6 +230,8 @@ export interface RuleMessage {
   from_name?: string;
   from_email?: string;
   reply_to?: string;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
 }
 
 export interface RuleMessageCreateRequest {
@@ -290,6 +292,11 @@ export interface RuleDynamicSet {
   id?: number;
   message_id: number;
   template_id: number;
+  name?: string | null;
+  subject?: string | null;
+  pre_header?: string | null;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
 }
 
 export interface RuleDynamicSetCreateRequest {
