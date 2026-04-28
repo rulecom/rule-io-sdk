@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
     "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -11,16 +11,24 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
     "noEmit": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "paths": {
+      "@rule-io/sdk": ["./packages/sdk/src/index.ts"],
+      "@rule-io/core": ["./packages/core/src/index.ts"],
+      "@rule-io/rcml": ["./packages/rcml/src/index.ts"],
+      "@rule-io/client": ["./packages/client/src/index.ts"],
+      "@rule-io/vendor-shopify": ["./packages/vendor-shopify/src/index.ts"],
+      "@rule-io/vendor-bookzen": ["./packages/vendor-bookzen/src/index.ts"],
+      "@rule-io/vendor-samfora": ["./packages/vendor-samfora/src/index.ts"],
+      "@rule-io/cli": ["./packages/cli/src/index.ts"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "tests"]
+  "files": [],
+  "include": []
 }

@@ -3,6 +3,10 @@ name: CI
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
@@ -23,105 +27,56 @@ jobs:
   quality:
     name: Quality Checks
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js ${{ matrix.node-version }}
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Type check
-        run: npm run type-check
+      - name: Lint, test, build all packages
+        run: npx nx run-many -t eslint:lint vitest:test build --parallel=3
 
-      - name: Run tests
-        run: npm run test
-
-      - name: Build (CJS + ESM)
-        run: npm run build
-
-      - name: Verify dist outputs exist
+      - name: Check library packages declare only permitted runtime dependencies
         run: |
-          test -f dist/index.js || (echo "Missing dist/index.js (CJS)" && exit 1)
-          test -f dist/index.mjs || (echo "Missing dist/index.mjs (ESM)" && exit 1)
-          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts (types)" && exit 1)
-          echo "All dist outputs present"
+          fail=0
+          for pkg in packages/*/package.json; do
+            name=$(jq -r '.name' "$pkg")
+            case "$name" in
+              "@rule-io/cli") allowed='["commander"]' ;;
+              *)              allowed='[]' ;;
+            esac
+            bad=$(jq --argjson allowed "$allowed" -r '
+              (.dependencies // {})
+              | to_entries
+              | map(select(.key | startswith("@rule-io/") | not))
+              | map(select(.key as $k | ($allowed | index($k)) | not))
+              | .[].key
+            ' "$pkg")
+            if [ -n "$bad" ]; then
+              echo "ERROR: $name ($pkg) declares disallowed external runtime dependencies: $bad"
+              fail=1
+            fi
+          done
+          if [ "$fail" -ne 0 ]; then exit 1; fi
+          echo "All packages declare only permitted runtime dependencies."
 
-      - name: Check bundle has no dependencies
+      - name: Verify build outputs for every package
         run: |
-          node <<'EOF'
-          const fs = require('fs');
-          const { builtinModules } = require('module');
-
-          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-          const dependencies = Object.keys(pkg.dependencies || {});
-          const optionalDependencies = Object.keys(pkg.optionalDependencies || {});
-          const runtimeDependencies = [...dependencies, ...optionalDependencies];
-
-          if (runtimeDependencies.length > 0) {
-            console.error(`ERROR: package.json must not declare runtime dependencies: ${runtimeDependencies.join(', ')}`);
-            process.exit(1);
-          }
-
-          const builtins = new Set([
-            ...builtinModules,
-            ...builtinModules.map((name) => `node:${name}`),
-          ]);
-
-          const distFiles = ['dist/index.js', 'dist/index.mjs'];
-          const externalSpecifiers = new Map();
-
-          const addIfExternal = (file, specifier) => {
-            if (
-              !specifier ||
-              specifier.startsWith('./') ||
-              specifier.startsWith('../') ||
-              specifier.startsWith('/') ||
-              builtins.has(specifier)
-            ) {
-              return;
-            }
-            if (!externalSpecifiers.has(file)) {
-              externalSpecifiers.set(file, new Set());
-            }
-            externalSpecifiers.get(file).add(specifier);
-          };
-
-          for (const file of distFiles) {
-            if (!fs.existsSync(file)) continue;
-            const source = fs.readFileSync(file, 'utf8');
-
-            for (const match of source.matchAll(/\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s+[^'"]*?\sfrom\s+['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s*['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bimport\s*\(\s*['"]([^'"]+)['"]\s*\)/g)) {
-              addIfExternal(file, match[1]);
-            }
-            for (const match of source.matchAll(/\bexport\s+(?:\*|\{[^}]*\})\s+from\s+['"]([^'"]+)['"]/g)) {
-              addIfExternal(file, match[1]);
-            }
-          }
-
-          if (externalSpecifiers.size > 0) {
-            for (const [file, specifiers] of externalSpecifiers.entries()) {
-              console.error(`ERROR: External runtime dependencies in ${file}: ${Array.from(specifiers).sort().join(', ')}`);
-            }
-            process.exit(1);
-          }
-
-          console.log('No runtime dependencies declared or referenced by dist outputs');
-          EOF
+          for pkg in core rcml client vendor-shopify vendor-bookzen vendor-samfora sdk; do
+            test -f "dist/packages/$pkg/src/index.js"   || { echo "Missing dist/packages/$pkg/src/index.js"; exit 1; }
+            test -f "dist/packages/$pkg/src/index.d.ts" || { echo "Missing dist/packages/$pkg/src/index.d.ts"; exit 1; }
+            test -f "dist/packages/$pkg/package.json"   || { echo "Missing dist/packages/$pkg/package.json"; exit 1; }
+          done
+          test -f "dist/packages/cli/src/cli.js"   || { echo "Missing dist/packages/cli/src/cli.js"; exit 1; }
+          test -f "dist/packages/cli/src/cli.d.ts" || { echo "Missing dist/packages/cli/src/cli.d.ts"; exit 1; }
+          test -f "dist/packages/cli/package.json" || { echo "Missing dist/packages/cli/package.json"; exit 1; }
+          head -1 dist/packages/cli/src/cli.js | grep -q "^#!/usr/bin/env node" \
+            || { echo "CLI shebang missing from dist/packages/cli/src/cli.js"; exit 1; }
+          echo "All build outputs present for 8 packages."

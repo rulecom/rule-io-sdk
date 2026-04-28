@@ -1,0 +1,41 @@
+{
+  "name": "vendor-samfora",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/vendor-samfora/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "manifestRootsToUpdate": [
+        "dist/{projectRoot}"
+      ],
+      "currentVersionResolver": "git-tag",
+      "fallbackCurrentVersionResolver": "disk"
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": [
+        "{options.outputPath}"
+      ],
+      "options": {
+        "outputPath": "dist/packages/vendor-samfora",
+        "main": "packages/vendor-samfora/src/index.ts",
+        "tsConfig": "packages/vendor-samfora/tsconfig.lib.json",
+        "assets": [
+          {
+            "input": "./packages/vendor-samfora",
+            "glob": "*.md",
+            "output": "./"
+          }
+        ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    }
+  }
+}

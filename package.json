@@ -1,60 +1,55 @@
 {
   "name": "rule-io-sdk",
-  "version": "0.3.0",
-  "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md"
+  "version": "0.0.0",
+  "private": true,
+  "description": "Rule.io SDK monorepo — publishable packages under @rule-io/*",
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "eslint src/",
-    "type-check": "tsc --noEmit",
-    "preversion": "npm run type-check && npm run test",
-    "prepare": "[ -f node_modules/.bin/tsup ] && npm run build || true",
-    "prepublishOnly": "npm run build"
-  },
-  "keywords": [
-    "rule.io",
-    "email",
-    "marketing",
-    "api",
-    "sdk",
-    "rcml",
-    "email-templates"
-  ],
-  "author": "",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/rulecom/rule-io-sdk.git"
+    "nx": "nx",
+    "build": "nx run-many -t build",
+    "test": "nx run-many -t vitest:test",
+    "test:ci": "nx run-many -t test-ci",
+    "lint": "nx run-many -t eslint:lint",
+    "graph": "nx graph",
+    "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
+    "cli": "tsx packages/cli/src/cli.ts",
+    "deploy:shopify": "tsx packages/cli/src/cli.ts deploy shopify",
+    "deploy:bookzen": "tsx packages/cli/src/cli.ts deploy bookzen",
+    "deploy:samfora": "tsx packages/cli/src/cli.ts deploy samfora",
+    "release:dry": "nx release --dry-run",
+    "release:first": "nx release --first-release",
+    "release": "nx release"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@nx/eslint": "22.7.0",
+    "@nx/eslint-plugin": "22.7.0",
+    "@nx/js": "22.7.0",
+    "@nx/vite": "22.7.0",
+    "@nx/vitest": "22.7.0",
+    "@swc-node/register": "~1.11.1",
+    "@swc/core": "~1.15.5",
+    "@swc/helpers": "~0.5.18",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "~4.1.0",
     "eslint": "^10.2.0",
-    "tsup": "^8.0.0",
+    "jsonc-eslint-parser": "^2.1.0",
+    "nx": "22.7.0",
+    "prettier": "~3.6.2",
+    "tslib": "^2.3.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.1",
+    "verdaccio": "^6.3.2",
+    "vite": "^8.0.0",
     "vitest": "^4.1.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
-  "overrides": {
-    "picomatch": "^4.0.4"
+  "nx": {
+    "includedScripts": []
   }
 }

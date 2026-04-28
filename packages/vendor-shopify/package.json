@@ -1,0 +1,36 @@
+{
+  "name": "@rule-io/vendor-shopify",
+  "version": "0.3.0",
+  "description": "Shopify preset for the Rule.io SDK — e-commerce automation flows (order confirmation, shipping, abandoned cart, cancellation, welcome).",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": ["rule.io", "shopify", "e-commerce", "preset", "sdk"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/vendor-shopify"
+  },
+  "dependencies": {
+    "@rule-io/core": "0.3.0",
+    "@rule-io/rcml": "0.3.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

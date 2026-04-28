@@ -1,0 +1,48 @@
+{
+  "name": "@rule-io/sdk",
+  "version": "0.3.0",
+  "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders — meta-package re-exporting @rule-io/core, @rule-io/rcml, @rule-io/client, and the vendor presets.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "rule.io",
+    "email",
+    "marketing",
+    "api",
+    "sdk",
+    "rcml",
+    "email-templates"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/sdk"
+  },
+  "dependencies": {
+    "@rule-io/core": "0.3.0",
+    "@rule-io/rcml": "0.3.0",
+    "@rule-io/client": "0.3.0",
+    "@rule-io/vendor-shopify": "0.3.0",
+    "@rule-io/vendor-bookzen": "0.3.0",
+    "@rule-io/vendor-samfora": "0.3.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

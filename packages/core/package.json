@@ -1,0 +1,32 @@
+{
+  "name": "@rule-io/core",
+  "version": "0.3.0",
+  "description": "Shared error classes and primitives for the Rule.io SDK family.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": ["rule.io", "sdk", "errors"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/core"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
