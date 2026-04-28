@@ -290,7 +290,12 @@ export interface RuleTemplateResponse extends RuleApiResponse {
  */
 export interface RuleDynamicSet {
   id?: number;
-  message_id: number;
+  /**
+   * Present on getDynamicSet responses and on the nested default_dynamic_set
+   * inside Message responses. Omitted from listDynamicSets list items, so
+   * marked optional on the read type.
+   */
+  message_id?: number;
   template_id: number;
   name?: string | null;
   subject?: string | null;
