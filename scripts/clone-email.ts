@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import { RuleClient } from '../src';
 import type {
   RuleAutomationResponse,
+  RuleMessage,
   RuleMessageResponse,
   RuleTemplateResponse,
   RuleDynamicSetResponse,
@@ -184,7 +185,7 @@ async function runSend(): Promise<void> {
     | Record<string, unknown>
     | undefined;
   const srcMessage = snapshot.message.data as unknown as
-    | Record<string, unknown>
+    | (RuleMessage & Record<string, unknown>)
     | undefined;
   const srcTemplate = snapshot.templates[0]?.data as unknown as
     | { template?: RCMLDocument; name?: string }
@@ -281,8 +282,8 @@ async function runSend(): Promise<void> {
 
     // 6. Mirror dynamic-set metadata (UTM fields) from the source.
     // These fields belong on the dynamic set, not the message.
-    const utmCampaign = (srcMessage.utm_campaign as string | null) ?? undefined;
-    const utmTerm = (srcMessage.utm_term as string | null) ?? undefined;
+    const utmCampaign = srcMessage.utm_campaign ?? undefined;
+    const utmTerm = srcMessage.utm_term ?? undefined;
     if (utmCampaign !== undefined || utmTerm !== undefined) {
       console.log('Applying dynamic-set metadata (utm_campaign/utm_term)...');
       await client.updateDynamicSet(dynamicSetId, {
