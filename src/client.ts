@@ -29,6 +29,9 @@ import type {
   RuleSubscriberResponse,
   RuleSubscriberFieldsResponse,
   RuleSubscriberTagsResponse,
+  RuleSubscribersV2ListResponse,
+  ListSubscribersByTagsParams,
+  ListSubscribersByTagsResult,
   RuleTagsResponse,
   RuleAutomationCreateRequest,
   RuleAutomationUpdateRequest,
@@ -175,6 +178,22 @@ function decodeStatisticMessageName(
   if (decoded === null) return record;
   if (encodeBase64Utf8(decoded) !== original) return record;
   return { ...record, object: { ...record.object, name: decoded } };
+}
+
+/**
+ * Extract the `page` query parameter from a v2 `meta.next` URL.
+ * Returns null for null/empty input, missing `page`, or unparseable URLs.
+ */
+function parseNextPage(nextUrl: string | null): number | null {
+  if (!nextUrl) return null;
+  try {
+    const pageStr = new URL(nextUrl).searchParams.get('page');
+    if (!pageStr) return null;
+    const page = Number.parseInt(pageStr, 10);
+    return Number.isFinite(page) && page > 0 ? page : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -653,6 +672,66 @@ export class RuleClient {
       }
       throw error;
     }
+  }
+
+  /**
+   * List subscribers tagged with ALL of the given tag IDs (intersection).
+   *
+   * Cost model: Rule.io does not support server-side tag filtering as of
+   * 2026-04 — `tag_id`, `tag_ids[]`, `filter[tag_id]`, etc. are all silently
+   * ignored. This method scans one page of the v2 `/subscribers` response
+   * (which includes `tags` inline, so no N+1) and filters client-side.
+   * Caller drives pagination by passing the returned `next_page` back in,
+   * stopping when it returns `null`.
+   *
+   * @param params - `tag_ids` (required, non-empty), optional `limit` and `page`
+   * @returns Matched subscribers for this page, counts, and `next_page` cursor
+   * @throws RuleConfigError when `tag_ids` is empty
+   *
+   * @example
+   * ```typescript
+   * const all: RuleSubscriberV2[] = [];
+   * let page: number | null = 1;
+   * while (page !== null) {
+   *   const res = await client.listSubscribersByTagIds({
+   *     tag_ids: [42, 99],
+   *     page,
+   *     limit: 500,
+   *   });
+   *   all.push(...res.subscribers);
+   *   page = res.next_page;
+   * }
+   * ```
+   */
+  async listSubscribersByTagIds(
+    params: ListSubscribersByTagsParams
+  ): Promise<ListSubscribersByTagsResult> {
+    if (!params.tag_ids || params.tag_ids.length === 0) {
+      throw new RuleConfigError('listSubscribersByTagIds requires at least one tag_id');
+    }
+
+    const qs = RuleClient.buildQueryString({
+      page: params.page,
+      limit: params.limit,
+    });
+    const response = await this.request<RuleSubscribersV2ListResponse>(
+      `/subscribers${qs}`,
+      { method: 'GET' }
+    );
+
+    const scanned = response.subscribers ?? [];
+    const required = params.tag_ids;
+    const matched = scanned.filter((sub) => {
+      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
+      return required.every((id) => subTagIds.has(id));
+    });
+
+    return {
+      subscribers: matched,
+      matched: matched.length,
+      scanned: scanned.length,
+      next_page: parseNextPage(response.meta?.next ?? null),
+    };
   }
 
   // ==========================================================================

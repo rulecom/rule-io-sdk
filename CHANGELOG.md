@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `listSubscribersByTagIds()` on `RuleClient` — page-at-a-time listing of
+  subscribers tagged with ALL of the given tag IDs (intersection). Rule.io's
+  API does not support server-side tag filtering as of 2026-04 (all filter
+  params are silently ignored on both v2 and v3 list endpoints), so filtering
+  runs client-side over the v2 `/subscribers` response, which includes tags
+  inline. Caller drives pagination via the returned `next_page` cursor.
+  Closes #99.
+
 ## [0.4.0] - 2026-04-23
 
 ### Added
