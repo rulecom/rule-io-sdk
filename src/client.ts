@@ -707,7 +707,7 @@ export class RuleClient {
     params: ListSubscribersByTagsParams
   ): Promise<ListSubscribersByTagsResult> {
     if (!params.tag_ids || params.tag_ids.length === 0) {
-      throw new RuleConfigError('listSubscribersByTagIds requires at least one tag_id');
+      throw new RuleConfigError('tag_ids must not be empty');
     }
 
     const qs = RuleClient.buildQueryString({

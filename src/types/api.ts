@@ -57,8 +57,9 @@ export interface RuleSubscriberTagsResponse extends RuleApiResponse {
 /**
  * A subscriber record as returned by `GET /api/v2/subscribers` (list endpoint).
  * Tags are included inline, which enables client-side tag filtering without
- * N+1 calls. `tags` is marked optional because the API's representation for
- * subscribers with zero tags is not strictly guaranteed across accounts.
+ * N+1 calls. `tags` allows `null` or absent because the API's representation
+ * for subscribers with zero tags is not strictly guaranteed across accounts —
+ * observed shapes include `[]`, `null`, and the field being omitted.
  */
 export interface RuleSubscriberV2 {
   id: number;
@@ -69,7 +70,7 @@ export interface RuleSubscriberV2 {
   suppressed: boolean;
   created_at: string;
   updated_at: string;
-  tags?: Array<{ id: number; name: string }>;
+  tags?: Array<{ id: number; name: string }> | null;
 }
 
 /**
