@@ -309,6 +309,209 @@ describe('RuleClient', () => {
     });
   });
 
+  describe('listSubscribersByTagIds', () => {
+    // Shared fixture for building subscriber records with arbitrary tag IDs.
+    function sub(id: number, email: string, tagIds: number[]) {
+      return {
+        id,
+        email,
+        phone_number: null,
+        language: 'en',
+        opted_in: true,
+        suppressed: false,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+        tags: tagIds.map((tid) => ({ id: tid, name: `tag-${tid}` })),
+      };
+    }
+
+    it('filters subscribers by a single tag id', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [sub(1, 'a@example.com', [42]), sub(2, 'b@example.com', [7])],
+          meta: { next: null },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [42] });
+
+      expect(result.scanned).toBe(2);
+      expect(result.matched).toBe(1);
+      expect(result.subscribers).toHaveLength(1);
+      expect(result.subscribers[0].email).toBe('a@example.com');
+      expect(result.next_page).toBeNull();
+    });
+
+    it('requires intersection (ALL tag_ids) when multiple are passed', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [
+            sub(1, 'only1@example.com', [1]),
+            sub(2, 'only2@example.com', [2]),
+            sub(3, 'both@example.com', [1, 2]),
+            sub(4, 'superset@example.com', [1, 2, 3]),
+          ],
+          meta: { next: null },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [1, 2] });
+
+      expect(result.scanned).toBe(4);
+      expect(result.matched).toBe(2);
+      expect(result.subscribers.map((s) => s.email)).toEqual([
+        'both@example.com',
+        'superset@example.com',
+      ]);
+    });
+
+    it('returns empty result when nothing on the page matches', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [sub(1, 'a@example.com', [7])],
+          meta: { next: null },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [42] });
+
+      expect(result.scanned).toBe(1);
+      expect(result.matched).toBe(0);
+      expect(result.subscribers).toEqual([]);
+    });
+
+    it('handles empty subscribers array', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: null } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [1] });
+
+      expect(result.scanned).toBe(0);
+      expect(result.matched).toBe(0);
+      expect(result.next_page).toBeNull();
+    });
+
+    it('treats subscribers missing a tags field as having no tags', async () => {
+      // Rule.io's representation of a zero-tag subscriber is not strictly
+      // guaranteed — could be `tags: []`, `tags: null`, or the field absent.
+      // All three must filter out when tag_ids are required.
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [
+            { ...sub(1, 'notags@example.com', []), tags: undefined },
+            { ...sub(2, 'nulltags@example.com', []), tags: null },
+            sub(3, 'emptytags@example.com', []),
+          ],
+          meta: { next: null },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [1] });
+
+      expect(result.scanned).toBe(3);
+      expect(result.matched).toBe(0);
+    });
+
+    it('parses page number from meta.next URL', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [sub(1, 'a@example.com', [1])],
+          meta: { next: 'https://app.rule.io/api/v2/subscribers?page=3&limit=100' },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listSubscribersByTagIds({ tag_ids: [1] });
+
+      expect(result.next_page).toBe(3);
+    });
+
+    it('returns null next_page when meta.next is absent, null, or malformed', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      // meta absent
+      mockFetch.mockResolvedValueOnce(createMockResponse({ subscribers: [] }));
+      expect((await client.listSubscribersByTagIds({ tag_ids: [1] })).next_page).toBeNull();
+
+      // meta.next = null
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: null } })
+      );
+      expect((await client.listSubscribersByTagIds({ tag_ids: [1] })).next_page).toBeNull();
+
+      // meta.next lacks page param
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: 'https://x.example/?limit=50' } })
+      );
+      expect((await client.listSubscribersByTagIds({ tag_ids: [1] })).next_page).toBeNull();
+
+      // meta.next is not a valid URL
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: 'not-a-url' } })
+      );
+      expect((await client.listSubscribersByTagIds({ tag_ids: [1] })).next_page).toBeNull();
+    });
+
+    it('throws RuleConfigError and does not call fetch when tag_ids is empty', async () => {
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.listSubscribersByTagIds({ tag_ids: [] })
+      ).rejects.toThrow(RuleConfigError);
+
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('passes page and limit as query-string params', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: null } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      await client.listSubscribersByTagIds({ tag_ids: [1], page: 2, limit: 500 });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+      expect(url).toContain('/subscribers?');
+      expect(url).toContain('page=2');
+      expect(url).toContain('limit=500');
+    });
+
+    it('supports caller-driven pagination loop across multiple pages', async () => {
+      // Page 1 → next_page = 2; page 2 → next_page = null
+      mockFetch
+        .mockResolvedValueOnce(
+          createMockResponse({
+            subscribers: [sub(1, 'p1@example.com', [1])],
+            meta: { next: 'https://app.rule.io/api/v2/subscribers?page=2&limit=100' },
+          })
+        )
+        .mockResolvedValueOnce(
+          createMockResponse({
+            subscribers: [sub(2, 'p2@example.com', [1])],
+            meta: { next: null },
+          })
+        );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const collected: string[] = [];
+      let page: number | null = 1;
+      while (page !== null) {
+        const res = await client.listSubscribersByTagIds({ tag_ids: [1], page });
+        collected.push(...res.subscribers.map((s) => s.email!));
+        page = res.next_page;
+      }
+
+      expect(collected).toEqual(['p1@example.com', 'p2@example.com']);
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('error handling', () => {
     it('should throw RuleApiError on 401', async () => {
       mockFetch.mockResolvedValue(createMockResponse({ error: 'Unauthorized' }, 401));
