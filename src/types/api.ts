@@ -104,7 +104,10 @@ export interface ListSubscribersByTagIdsResult {
   matched: number;
   /** Count of subscribers scanned on this page before filtering. */
   scanned: number;
-  /** Page number to request next, or null when `meta.next` was absent. */
+  /**
+   * Page number to request next. Null when `meta.next` is absent, null,
+   * malformed, or missing a `page` query parameter.
+   */
   next_page: number | null;
 }
 
