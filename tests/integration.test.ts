@@ -632,6 +632,88 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         throw error;
       }
     });
+
+    describe('exportStatistics base64 scope (#109 verification)', () => {
+      // Duplicated from src/client.ts — internal helpers, not exported
+      const decodeB64 = (input: string): string | null => {
+        if (!input) return null;
+        try {
+          const binary = atob(input);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+          return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+          return null;
+        }
+      };
+      const encodeB64 = (input: string): string => {
+        const bytes = new TextEncoder().encode(input);
+        let s = '';
+        for (let i = 0; i < bytes.length; i += 0x8000) {
+          s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        }
+        return btoa(s);
+      };
+      const isCanonicalB64 = (s: string): boolean => {
+        const d = decodeB64(s);
+        return d !== null && encodeB64(d) === s;
+      };
+
+      it('only message-type records return canonical base64 names', async () => {
+        const now = new Date();
+        const pad = (d: Date) => d.toISOString().slice(0, 10);
+        const dateTo = `${pad(now)} 23:59:59`;
+        const dateFrom = `${pad(new Date(now.getTime() - 90 * 86400_000))} 00:00:00`;
+
+        type Bucket = { b64: number; plain: number; samples: string[] };
+        const byType = new Map<string, Bucket>();
+        let token: string | undefined;
+        const MAX_PAGES = 5;
+
+        try {
+          for (let page = 0; page < MAX_PAGES; page++) {
+            const resp = await client.exportStatistics({
+              date_from: dateFrom,
+              date_to: dateTo,
+              next_page_token: token,
+              decodeNames: false,
+            });
+            for (const rec of resp.data ?? []) {
+              const b = byType.get(rec.object.type) ?? { b64: 0, plain: 0, samples: [] };
+              if (isCanonicalB64(rec.object.name)) b.b64++;
+              else b.plain++;
+              if (b.samples.length < 3) b.samples.push(rec.object.name);
+              byType.set(rec.object.type, b);
+            }
+            token = resp.next_page_token || undefined;
+            if (!token) break;
+          }
+        } catch (err) {
+          if (err instanceof RuleApiError && [400, 404, 422].includes(err.statusCode)) return;
+          throw err;
+        }
+
+        // No data in the window — inconclusive but not a failure
+        if (byType.size === 0) return;
+
+        if (process.env.DEBUG_INTEGRATION === '1') {
+          for (const [t, s] of byType) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[${t}] b64=${s.b64} plain=${s.plain} samples=${s.samples.join(' | ')}`
+            );
+          }
+        }
+
+        for (const [type, stats] of byType) {
+          if (type === 'message') continue;
+          expect(
+            stats.b64,
+            `type "${type}" returned ${stats.b64} canonical-base64 name(s); samples: ${stats.samples.join(', ')}`
+          ).toBe(0);
+        }
+      }, 60_000);
+    });
   });
 
   // ==========================================================================
