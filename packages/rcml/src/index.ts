@@ -113,12 +113,12 @@ export type {
 // RCML structural types (ProseMirror doc, Document, Elements, Switch/Case, etc.)
 export type * from './types.js';
 
-// Automation config schema shared across vendors
-export { getAutomationByIdV2, getAutomationByTriggerV2 } from './automation-configs-v2.js';
-export type { AutomationConfigV2, TemplateConfigV2 } from './automation-configs-v2.js';
+// Automation config schema shared across vendors (canonical home: @rule-io/core).
+export { getAutomationByIdV2, getAutomationByTriggerV2 } from '@rule-io/core';
+export type { AutomationConfigV2, TemplateConfigV2 } from '@rule-io/core';
 
-// Vendor interface types (consumed by @rule-io/vendor-*)
-export { resolveVendorAutomations } from './vendor-types.js';
+// Vendor interface types (canonical home: @rule-io/core).
+export { resolveVendorAutomations } from '@rule-io/core';
 export type {
   VendorPreset,
   VendorConsumerConfig,
@@ -126,7 +126,7 @@ export type {
   VendorFieldSchema,
   VendorFieldInfo,
   VendorTagSchema,
-} from './vendor-types.js';
+} from '@rule-io/core';
 
 // Email-template validator (AI-generated RCML validation)
 export {

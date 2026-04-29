@@ -1,20 +1,24 @@
 /**
- * Vendor Preset System
+ * Vendor Preset System — shared contract between a vendor integration and
+ * the Rule.io platform.
  *
- * Provides a two-layer abstraction for vendor integrations:
- * - **Vendor Preset** (shipped by SDK): field names, tags, automation flows, default text
- * - **Consumer Config** (provided at runtime): brand style, field IDs, URLs
+ * Provides a two-layer abstraction:
+ * - **Vendor Preset** (shipped by a `@rule-io/vendor-*` package): field
+ *   names, tags, automation flows, default text.
+ * - **Consumer Config** (provided at runtime): brand style, field IDs,
+ *   URLs.
  *
  * @module vendors
  */
 
-import type { RCMLDocument } from './types.js';
-import type { FooterConfig } from './brand-template.js';
-import type { AutomationConfigV2, TemplateConfigV2 } from './automation-configs-v2.js';
+import type {
+  AutomationConfigV2,
+  TemplateConfigV2,
+} from './automation-configs-v2.js'
+import type { FooterConfig } from './brand-types.js'
+import type { RCMLDocumentRoot } from './rcml-document-root.js'
 
-// ============================================================================
-// Schema Types
-// ============================================================================
+// ─── Schema types ────────────────────────────────────────────────────────────
 
 /**
  * Maps logical field names to Rule.io custom field path strings.
@@ -32,7 +36,7 @@ import type { AutomationConfigV2, TemplateConfigV2 } from './automation-configs-
  * ```
  */
 export interface VendorFieldSchema {
-  readonly [logicalName: string]: string;
+  readonly [logicalName: string]: string
 }
 
 /**
@@ -47,12 +51,10 @@ export interface VendorFieldSchema {
  * ```
  */
 export interface VendorTagSchema {
-  readonly [logicalName: string]: string;
+  readonly [logicalName: string]: string
 }
 
-// ============================================================================
-// Consumer Config
-// ============================================================================
+// ─── Consumer config ─────────────────────────────────────────────────────────
 
 /**
  * Configuration that every consumer must provide, regardless of vendor.
@@ -72,53 +74,53 @@ export interface VendorTagSchema {
  */
 export interface VendorConsumerConfig extends TemplateConfigV2 {
   /** Optional footer configuration for localization */
-  footer?: FooterConfig;
+  footer?: FooterConfig
 }
 
-// ============================================================================
-// Vendor Automation
-// ============================================================================
+// ─── Vendor automation ───────────────────────────────────────────────────────
 
 /**
- * A vendor automation definition pairs an automation config skeleton
- * with the template builder that produces the RCML.
+ * A vendor automation definition pairs an automation config skeleton with
+ * the template builder that produces the RCML document.
+ *
+ * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level;
+ * concrete implementations return a full `RCMLDocument` (a subtype),
+ * accepted via function-return covariance.
  */
 export interface VendorAutomation {
   /** Unique automation identifier within this vendor */
-  id: string;
+  id: string
   /** Display name */
-  name: string;
+  name: string
   /** Description of what this automation does */
-  description: string;
+  description: string
   /** Tag name that triggers this automation */
-  triggerTag: string;
+  triggerTag: string
   /** Delay before sending (seconds as string) */
-  delayInSeconds?: string;
+  delayInSeconds?: string
   /** Tag-based conditions */
   conditions?: {
-    hasTag?: string[];
-    notHasTag?: string[];
-  };
+    hasTag?: string[]
+    notHasTag?: string[]
+  }
   /** Email subject line */
-  subject: string;
+  subject: string
   /** Preview text shown in inbox */
-  preheader?: string;
+  preheader?: string
   /**
    * Builds the RCML template using the consumer's account-specific config.
    */
-  templateBuilder: (config: VendorConsumerConfig) => RCMLDocument;
+  templateBuilder: (config: VendorConsumerConfig) => RCMLDocumentRoot
 }
 
-// ============================================================================
-// Shared Utilities
-// ============================================================================
+// ─── Shared utilities ────────────────────────────────────────────────────────
 
 /**
  * Resolve vendor automations into standard `AutomationConfigV2` objects.
  *
  * Maps each `VendorAutomation` to an `AutomationConfigV2` whose
- * `templateBuilder` merges the caller's `TemplateConfigV2` overrides
- * with the captured consumer config.
+ * `templateBuilder` merges the caller's `TemplateConfigV2` overrides with
+ * the captured consumer config.
  *
  * @internal Used by vendor preset implementations.
  */
@@ -141,21 +143,19 @@ export function resolveVendorAutomations(
         ...overrides,
         customFields: { ...config.customFields, ...overrides.customFields },
       }),
-  }));
+  }))
 }
 
-// ============================================================================
-// Vendor Preset
-// ============================================================================
+// ─── Vendor preset ───────────────────────────────────────────────────────────
 
 /** Description of a required field for setup documentation. */
 export interface VendorFieldInfo {
   /** Logical name used in the preset (e.g., 'customerFirstName') */
-  logicalName: string;
+  logicalName: string
   /** Rule.io field path (e.g., 'Order.CustomerName') */
-  fieldName: string;
+  fieldName: string
   /** Human-readable description of what this field contains */
-  description: string;
+  description: string
 }
 
 /**
@@ -178,24 +178,24 @@ export interface VendorPreset<
   TTags extends VendorTagSchema = VendorTagSchema,
 > {
   /** Vendor identifier (e.g., 'shopify', 'bookzen') */
-  readonly vendor: string;
+  readonly vendor: string
   /** Human-readable vendor name */
-  readonly displayName: string;
+  readonly displayName: string
   /** Business vertical */
-  readonly vertical: 'ecommerce' | 'hospitality' | (string & {});
+  readonly vertical: 'ecommerce' | 'hospitality' | (string & {})
 
   /**
    * The field names this vendor uses in Rule.io.
    * Consumers must create these fields in their Rule.io account
    * and provide the numeric IDs via `customFields` in {@link VendorConsumerConfig}.
    */
-  readonly fields: TFields;
+  readonly fields: TFields
 
   /**
    * The tag names this vendor uses.
    * Consumers should create these tags in their Rule.io account.
    */
-  readonly tags: TTags;
+  readonly tags: TTags
 
   /**
    * Get all automations resolved with the consumer's config.
@@ -203,23 +203,23 @@ export interface VendorPreset<
    *
    * @throws {RuleConfigError} if required custom fields are missing
    */
-  getAutomations(config: VendorConsumerConfig): AutomationConfigV2[];
+  getAutomations(config: VendorConsumerConfig): AutomationConfigV2[]
 
   /**
    * Get a single automation by ID, resolved with consumer config.
    */
-  getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined;
+  getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined
 
   /**
    * Validate that a consumer's config has entries for all required fields.
    *
    * @throws {RuleConfigError} if any required fields are missing from customFields
    */
-  validateConfig(config: VendorConsumerConfig): void;
+  validateConfig(config: VendorConsumerConfig): void
 
   /**
    * Get the list of fields the consumer needs to map.
    * Useful for setup wizards, documentation, or onboarding flows.
    */
-  getRequiredFields(): readonly VendorFieldInfo[];
+  getRequiredFields(): readonly VendorFieldInfo[]
 }

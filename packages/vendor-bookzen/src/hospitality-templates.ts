@@ -13,26 +13,8 @@
  * to override with your own locale.
  */
 
-import {
-  createBrandTemplate,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createContentSection,
-  createFooterSection,
-  createPlaceholder,
-  createTextNode,
-  createDocWithPlaceholders,
-  createLogoSection,
-  createGreetingSection,
-  createCtaSection,
-  validateCustomFields,
-  withTemplateContext,
-  type BrandStyleConfig,
-  type CustomFieldMap,
-  type FooterConfig,
-  type RCMLDocument,
-} from '@rule-io/rcml';
+import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext, type RCMLDocument } from '@rule-io/rcml';
 
 // ============================================================================
 // Template Configuration

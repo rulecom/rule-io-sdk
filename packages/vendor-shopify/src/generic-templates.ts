@@ -13,30 +13,8 @@
  * to override with your own locale.
  */
 
-import {
-  createBrandTemplate,
-  createBrandHeading,
-  createBrandText,
-  createContentSection,
-  createFooterSection,
-  createTextNode,
-  createDocWithPlaceholders,
-  createLogoSection,
-  createGreetingSection,
-  createCtaSection,
-  createDivider,
-  createSocial,
-  createSocialElement,
-  validateCustomFields,
-  withTemplateContext,
-  type BrandStyleConfig,
-  type CustomFieldMap,
-  type FooterConfig,
-  type RCMLBodyChild,
-  type RCMLColumnChild,
-  type RCMLDocument,
-  type RCMLText,
-} from '@rule-io/rcml';
+import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
+import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createDivider, createSocial, createSocialElement, validateCustomFields, withTemplateContext, type RCMLBodyChild, type RCMLColumnChild, type RCMLDocument, type RCMLText } from '@rule-io/rcml';
 
 function dividerSection(): RCMLBodyChild {
   return createContentSection([createDivider({ padding: '10px 0' })], { padding: '0' });

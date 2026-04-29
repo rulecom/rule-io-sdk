@@ -29,9 +29,14 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumn, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from './types.js';
 import { RuleConfigError } from '@rule-io/core';
+import type { BrandStyleConfig, CustomFieldMap, FooterConfig } from '@rule-io/core';
+import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumn, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from './types.js';
 import { sanitizeUrl } from './utils.js';
+
+// Re-export from core so existing `import { BrandStyleConfig } from '@rule-io/rcml'`
+// consumers keep compiling after the types moved to core.
+export type { BrandStyleConfig, CustomFieldMap, FooterConfig };
 
 /**
  * Minimal structural types describing the Rule.io brand-style API response
@@ -99,23 +104,7 @@ export function withTemplateContext<T>(templateName: string, fn: () => T): T {
 // Custom Field Definitions
 // ============================================================================
 
-/**
- * Maps custom field names to their Rule.io field IDs.
- *
- * Get your field IDs from: `GET https://app.rule.io/api/v2/customizations`
- *
- * @example
- * ```typescript
- * const myFields: CustomFieldMap = {
- *   'Order.CustomerName': 169233,
- *   'Order.OrderRef': 169234,
- *   'Order.TotalPrice': 169235,
- * };
- * ```
- */
-export interface CustomFieldMap {
-  [fieldName: string]: number;
-}
+// `CustomFieldMap` now lives in `@rule-io/core` and is re-exported at the top of this file.
 
 /**
  * Validate that all required field names have corresponding entries in the custom fields map.
@@ -242,58 +231,7 @@ export function createDocWithPlaceholders(
 // Brand Style Configuration
 // ============================================================================
 
-/**
- * Brand style configuration for Rule.io templates.
- *
- * Get these values from your Rule.io account:
- * - Brand style ID: Settings → Brand
- * - Font URLs: Inspect the brand style in Rule.io's editor
- *
- * @example
- * ```typescript
- * const myBrandStyle: BrandStyleConfig = {
- *   brandStyleId: '12345',
- *   logoUrl: 'https://example.com/logo.png',
- *   buttonColor: '#0066CC',
- *   bodyBackgroundColor: '#f3f3f3',
- *   sectionBackgroundColor: '#ffffff',
- *   brandColor: '#f6f8f9',
- *   headingFont: "'Helvetica Neue', sans-serif",
- *   headingFontUrl: 'https://app.rule.io/brand-style/12345/font/1234/css',
- *   bodyFont: "'Arial', sans-serif",
- *   bodyFontUrl: 'https://app.rule.io/brand-style/12345/font/5678/css',
- *   textColor: '#1A1A1A',
- * };
- * ```
- */
-export interface BrandStyleConfig {
-  /** Brand style ID from Rule.io */
-  brandStyleId: string;
-  /** Logo URL (optional — some brand styles have no logo) */
-  logoUrl?: string;
-  /** Button background color */
-  buttonColor: string;
-  /** Body background color */
-  bodyBackgroundColor: string;
-  /** Section background color */
-  sectionBackgroundColor: string;
-  /** Brand color for sections */
-  brandColor: string;
-  /** Heading font family */
-  headingFont: string;
-  /** Heading font URL (optional — system fonts have no URL) */
-  headingFontUrl?: string;
-  /** Body font family */
-  bodyFont: string;
-  /** Body font URL (optional — system fonts have no URL) */
-  bodyFontUrl?: string;
-  /** Text color */
-  textColor: string;
-  /** Button text/label color (default: '#FFFFFF') */
-  buttonTextColor?: string;
-  /** Social media links from brand style */
-  socialLinks?: Array<{ name: string; href: string }>;
-}
+// `BrandStyleConfig` now lives in `@rule-io/core` and is re-exported at the top of this file.
 
 /**
  * Convert a Rule.io brand style API response to a `BrandStyleConfig` for template building.
@@ -891,18 +829,7 @@ export function createBrandLoop(
   };
 }
 
-export interface FooterConfig {
-  /** "View in browser" link text (default: 'View in browser') */
-  viewInBrowserText?: string;
-  /** Unsubscribe link text (default: 'Unsubscribe') */
-  unsubscribeText?: string;
-  /** Footer background color (default: '#f3f3f3') */
-  backgroundColor?: string;
-  /** Footer text color (default: '#666666') */
-  textColor?: string;
-  /** Footer text size (default: '10px') */
-  fontSize?: string;
-}
+// `FooterConfig` now lives in `@rule-io/core` and is re-exported at the top of this file.
 
 /**
  * Create a footer section with unsubscribe and web browser links.

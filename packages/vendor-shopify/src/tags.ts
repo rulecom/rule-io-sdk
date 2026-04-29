@@ -5,7 +5,7 @@
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
-import type { VendorTagSchema } from '@rule-io/rcml';
+import type { VendorTagSchema } from '@rule-io/core';
 
 /**
  * Shopify tags for Rule.io automations.

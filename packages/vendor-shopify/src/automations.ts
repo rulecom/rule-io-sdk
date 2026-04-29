@@ -10,7 +10,7 @@
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
+import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
 import {
   createOrderConfirmationEmail,
   createShippingUpdateEmail,

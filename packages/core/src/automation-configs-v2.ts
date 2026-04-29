@@ -1,34 +1,37 @@
 /**
- * Automation Configuration Definitions
+ * Automation configuration contract shared between vendor presets and the
+ * Rule.io platform.
  *
- * Provides types and utilities for structuring Rule.io automations.
- * Consumers create their own automation configs with their specific
- * brand styles, field mappings, and localized text.
+ * These types describe *how* a vendor preset declares an automation
+ * (trigger, subject, template-builder callback, etc.). They intentionally
+ * live in `@rule-io/core` rather than `@rule-io/rcml` so vendor packages
+ * don't have to depend on rcml just for the contract shape.
  *
  * @module automation-configs-v2
  */
 
-import type { RCMLDocument } from './types.js';
-import type { BrandStyleConfig, CustomFieldMap } from './brand-template.js';
-
-// ============================================================================
-// Types
-// ============================================================================
+import type { BrandStyleConfig, CustomFieldMap } from './brand-types.js'
+import type { RCMLDocumentRoot } from './rcml-document-root.js'
 
 /**
  * Configuration for building templates.
  */
 export interface TemplateConfigV2 {
   /** Brand style configuration */
-  brandStyle: BrandStyleConfig;
+  brandStyle: BrandStyleConfig
   /** Custom field ID mapping */
-  customFields: CustomFieldMap;
+  customFields: CustomFieldMap
   /** Website base URL */
-  websiteUrl: string;
+  websiteUrl: string
 }
 
 /**
  * Full automation configuration.
+ *
+ * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level so the
+ * contract doesn't depend on `@rule-io/rcml`; concrete implementations in
+ * `@rule-io/rcml` / vendor packages return a full `RCMLDocument` (a subtype),
+ * which TypeScript accepts by function-return covariance.
  *
  * @example
  * ```typescript
@@ -53,40 +56,36 @@ export interface TemplateConfigV2 {
  */
 export interface AutomationConfigV2 {
   /** Unique identifier for this automation */
-  id: string;
+  id: string
   /** Display name in Rule.io */
-  name: string;
+  name: string
   /** Description of what this automation does */
-  description: string;
+  description: string
   /** Tag that triggers this automation */
-  triggerTag: string;
+  triggerTag: string
   /** Delay before sending (seconds as string) */
-  delayInSeconds?: string;
+  delayInSeconds?: string
   /** Optional conditions for execution */
   conditions?: {
-    hasTag?: string[];
-    notHasTag?: string[];
-  };
+    hasTag?: string[]
+    notHasTag?: string[]
+  }
   /** Email subject */
-  subject: string;
+  subject: string
   /** Preview text shown in inbox */
-  preheader?: string;
+  preheader?: string
   /** Function to build the RCML template */
-  templateBuilder: (config: TemplateConfigV2) => RCMLDocument;
+  templateBuilder: (config: TemplateConfigV2) => RCMLDocumentRoot
 }
-
-// ============================================================================
-// Utilities
-// ============================================================================
 
 /**
  * Get automation by ID from a list of automations.
  */
 export function getAutomationByIdV2(
   id: string,
-  automations: AutomationConfigV2[]
+  automations: AutomationConfigV2[],
 ): AutomationConfigV2 | undefined {
-  return automations.find((a) => a.id === id);
+  return automations.find((a) => a.id === id)
 }
 
 /**
@@ -94,7 +93,7 @@ export function getAutomationByIdV2(
  */
 export function getAutomationByTriggerV2(
   tag: string,
-  automations: AutomationConfigV2[]
+  automations: AutomationConfigV2[],
 ): AutomationConfigV2 | undefined {
-  return automations.find((a) => a.triggerTag === tag);
+  return automations.find((a) => a.triggerTag === tag)
 }

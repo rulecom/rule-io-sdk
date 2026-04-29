@@ -8,8 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { CustomFieldMap } from '@rule-io/rcml'
-import { createStatusTrackerSection } from '@rule-io/rcml'
+import type { CustomFieldMap } from '@rule-io/core';import { createStatusTrackerSection } from '@rule-io/rcml'
 import { RuleConfigError } from '@rule-io/core'
 import {
   createAbandonedCartEmail,

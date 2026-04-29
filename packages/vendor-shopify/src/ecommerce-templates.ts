@@ -15,39 +15,8 @@
  */
 
 import { RuleConfigError } from '@rule-io/core';
-import {
-  createBrandTemplate,
-  createBrandHeading,
-  createBrandText,
-  createBrandLoop,
-  createContentSection,
-  createFooterSection,
-  createPlaceholder,
-  createLoopFieldPlaceholder,
-  createTextNode,
-  createDocWithPlaceholders,
-  createLogoSection,
-  createGreetingSection,
-  createCtaSection,
-  createSummaryRowsSection,
-  createStatusTrackerSection,
-  createAddressBlock,
-  createDivider,
-  createSocial,
-  createSocialElement,
-  createTwoColumnSection,
-  sanitizeUrl,
-  validateCustomFields,
-  withTemplateContext,
-  type BrandStyleConfig,
-  type CustomFieldMap,
-  type FooterConfig,
-  type RCMLBodyChild,
-  type RCMLDocument,
-  type RCMLSection,
-  type RCMLText,
-  type RCMLProseMirrorDoc,
-} from '@rule-io/rcml';
+import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, createDivider, createSocial, createSocialElement, createTwoColumnSection, sanitizeUrl, validateCustomFields, withTemplateContext, type RCMLBodyChild, type RCMLDocument, type RCMLSection, type RCMLText, type RCMLProseMirrorDoc } from '@rule-io/rcml';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
 function dividerSection(): RCMLBodyChild {

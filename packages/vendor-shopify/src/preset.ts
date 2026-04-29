@@ -22,9 +22,9 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/rcml';
-import { resolveVendorAutomations } from '@rule-io/rcml';
-import type { AutomationConfigV2 } from '@rule-io/rcml';
+import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
+import { resolveVendorAutomations } from '@rule-io/core';
+import type { AutomationConfigV2 } from '@rule-io/core';
 import type { ShopifyFieldSchema, ShopifyFieldNames } from './fields.js';
 import type { ShopifyTagSchema } from './tags.js';
 import { SHOPIFY_FIELDS } from './fields.js';

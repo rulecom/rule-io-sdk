@@ -11,6 +11,8 @@
  * @see https://github.com/rulecom/wiki/wiki/RCML-Components
  */
 
+import type { RCMLDocumentRoot } from '@rule-io/core';
+
 // ============================================================================
 // ProseMirror Document Types (for rich text content)
 // ============================================================================
@@ -71,8 +73,12 @@ export interface RCMLProseMirrorMark {
  * RCML Document root structure.
  * An RCML document always starts with an `rcml` tag.
  * It can contain only `rc-head` and `rc-body` tags.
+ *
+ * Extends {@link RCMLDocumentRoot} from `@rule-io/core` — core defines the
+ * minimal `{ tagName: 'rcml' }` shape so vendor-contract types there can
+ * reference an RCML document root without dragging the full tree in.
  */
-export interface RCMLDocument {
+export interface RCMLDocument extends RCMLDocumentRoot {
   id?: string;
   tagName: 'rcml';
   children: [RCMLHead, RCMLBody];

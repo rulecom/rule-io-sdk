@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/rcml';
-import type { VendorConsumerConfig } from '@rule-io/rcml';
+import type { CustomFieldMap } from '@rule-io/core';
+import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
 import { TEST_BRAND_STYLE, assertValidRCMLDocument } from './helpers.js';

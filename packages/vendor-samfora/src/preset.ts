@@ -28,9 +28,9 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/rcml';
-import { resolveVendorAutomations } from '@rule-io/rcml';
-import type { AutomationConfigV2 } from '@rule-io/rcml';
+import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
+import { resolveVendorAutomations } from '@rule-io/core';
+import type { AutomationConfigV2 } from '@rule-io/core';
 import type { SamforaFieldSchema, SamforaFieldNames } from './fields.js';
 import type { SamforaTagSchema } from './tags.js';
 import { SAMFORA_FIELDS } from './fields.js';

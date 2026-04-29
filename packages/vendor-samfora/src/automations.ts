@@ -10,9 +10,9 @@
  * still override any field value via the merged `TemplateConfigV2`.
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
+import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
 import type { RCMLDocument, RCMLBodyChild } from '@rule-io/rcml';
-import type { CustomFieldMap, FooterConfig } from '@rule-io/rcml';
+import type { CustomFieldMap, FooterConfig } from '@rule-io/core';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
 import {

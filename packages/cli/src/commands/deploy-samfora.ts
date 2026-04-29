@@ -5,8 +5,8 @@
 
 import type { Command } from 'commander';
 import { RuleClient } from '@rule-io/client';
-import { resolvePreferredBrandStyle } from '@rule-io/rcml';
-import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/rcml';
+import { resolvePreferredBrandStyle, type RCMLDocument } from '@rule-io/rcml';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rule-io/vendor-samfora';
 import { createClient } from '../shared/client.js';
 
@@ -251,7 +251,7 @@ async function run(opts: Options): Promise<void> {
   const results: Array<{ name: string; automationId: number; messageId: number; templateId: number }> = [];
   for (const a of automations) {
     console.log(`\n  — ${a.name}`);
-    const template = a.templateBuilder(config);
+    const template = a.templateBuilder(config) as RCMLDocument;
     const res = await client.createAutomationEmail({
       name: `${a.name} (SDK standard)`,
       description: a.description,

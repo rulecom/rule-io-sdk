@@ -7,8 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import type { CustomFieldMap } from '@rule-io/rcml'
-import { RuleConfigError } from '@rule-io/core'
+import type { CustomFieldMap } from '@rule-io/core';import { RuleConfigError } from '@rule-io/core'
 import {
   createFeedbackRequestEmail,
   createReservationCancellationEmail,

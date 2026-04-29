@@ -7,7 +7,7 @@
  * Consumers provide the numeric IDs from their Rule.io account.
  */
 
-import type { VendorFieldSchema } from '@rule-io/rcml';
+import type { VendorFieldSchema } from '@rule-io/core';
 
 /**
  * Shopify field names for Rule.io custom fields.

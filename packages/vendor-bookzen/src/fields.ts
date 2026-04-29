@@ -5,7 +5,7 @@
  * Covers accommodation, restaurant, and experience bookings.
  */
 
-import type { VendorFieldSchema } from '@rule-io/rcml';
+import type { VendorFieldSchema } from '@rule-io/core';
 
 /**
  * Bookzen field names for Rule.io custom fields.

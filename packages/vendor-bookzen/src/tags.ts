@@ -4,7 +4,7 @@
  * Standard tags used by Bookzen hospitality integrations with Rule.io.
  */
 
-import type { VendorTagSchema } from '@rule-io/rcml';
+import type { VendorTagSchema } from '@rule-io/core';
 
 /**
  * Bookzen tags for Rule.io automations.

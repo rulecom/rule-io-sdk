@@ -6,7 +6,7 @@
  * English text into the generic hospitality template builders.
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
+import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
 import { BOOKZEN_FIELDS } from './fields.js';
 import {
   createReservationConfirmationEmail,
