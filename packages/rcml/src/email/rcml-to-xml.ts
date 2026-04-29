@@ -1,12 +1,12 @@
 /**
- * Public API: `RCMLDocument` JSON AST → RCML XML string conversion.
+ * Public API: `RcmlDocument` JSON AST → RCML XML string conversion.
  *
  * This file contains **only public exports**. Every symbol here is part of
  * the `@rule-io/rcml` contract and is marked `@public` in its JSDoc. All
  * implementation details live in `./xml/serialize-helpers.ts`.
  */
 
-import type { RCMLDocument } from '../types.js'
+import type { RcmlDocument } from './rcml-types.js'
 import { serializeRcmlToXml } from './xml/index.js'
 
 // ─── Options type ────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ export type RcmlToXmlOptions = {
 // ─── Public conversion function ──────────────────────────────────────────────
 
 /**
- * Serialize an `RCMLDocument` JSON AST to an RCML XML string.
+ * Serialize an `RcmlDocument` JSON AST to an RCML XML string.
  *
  * Useful for exporting a template to a human-readable form (e.g. for
  * debugging or sharing) and for JSON → XML → JSON round-trips. Combine with
@@ -43,6 +43,6 @@ export type RcmlToXmlOptions = {
  * ```
  * @public
  */
-export function rcmlToXml(doc: RCMLDocument, options: RcmlToXmlOptions = {}): string {
+export function rcmlToXml(doc: RcmlDocument, options: RcmlToXmlOptions = {}): string {
   return serializeRcmlToXml(doc, options)
 }

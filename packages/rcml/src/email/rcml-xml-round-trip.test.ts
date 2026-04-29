@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RCMLDocument } from '../types.js'
+import type { RcmlDocument } from './rcml-types.js'
 import { rcmlToXml } from './rcml-to-xml.js'
 import { xmlToRcml } from './xml-to-rcml.js'
 
@@ -7,7 +7,7 @@ import { xmlToRcml } from './xml-to-rcml.js'
  * Docs that exercise a mix of structural nodes, attributes, PM content,
  * special characters, and the optional `id` field.
  */
-const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: RCMLDocument }> = [
+const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: RcmlDocument }> = [
   {
     name: 'minimal head + body',
     doc: {

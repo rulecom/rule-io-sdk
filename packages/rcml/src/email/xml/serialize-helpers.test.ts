@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RCMLDocument } from '../../types.js'
+import type { RcmlDocument } from '../rcml-types.js'
 import { serializeRcmlToXml } from './serialize-helpers.js'
 
 /**
@@ -10,7 +10,7 @@ import { serializeRcmlToXml } from './serialize-helpers.js'
  * `../rcml-xml-round-trip.test.ts`.
  */
 
-const MIN_DOC: RCMLDocument = {
+const MIN_DOC: RcmlDocument = {
   tagName: 'rcml',
   children: [
     { tagName: 'rc-head', children: [] },

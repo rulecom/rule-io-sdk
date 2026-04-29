@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { RCMLDocument } from '../types.js'
+import type { RcmlDocument } from './rcml-types.js'
 import {
   EmailTemplateErrorCodes,
   EmailTemplateValidationError,
@@ -8,10 +8,10 @@ import {
 } from './validate-email-template.js'
 
 /**
- * Minimal but legitimate RCMLDocument. Not meant to exercise every edge —
+ * Minimal but legitimate RcmlDocument. Not meant to exercise every edge —
  * just something the validator should accept end-to-end.
  */
-const VALID_DOC: RCMLDocument = {
+const VALID_DOC: RcmlDocument = {
   tagName: 'rcml',
   children: [
     { tagName: 'rc-head', children: [] },
@@ -44,12 +44,12 @@ describe('validateEmailTemplate — JSON AST input', () => {
   })
 
   it('rejects an unknown root tagName', () => {
-    const bad = { tagName: 'not-rcml', children: [] } as unknown as RCMLDocument
+    const bad = { tagName: 'not-rcml', children: [] } as unknown as RcmlDocument
     expect(() => validateEmailTemplate(bad)).toThrow(EmailTemplateValidationError)
   })
 
   it('rejects a rc-column placed directly under rc-body', () => {
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -70,7 +70,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
   })
 
   it('rejects an unknown attribute on rc-section', () => {
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -94,7 +94,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
   })
 
   it('rejects an invalid padding value (via Zod)', () => {
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -119,7 +119,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
   })
 
   it('rejects a malformed color on rc-body background', () => {
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -138,7 +138,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
       tagName: 'rc-column' as const,
       children: [],
     }))
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -160,7 +160,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
 
 describe('validateEmailTemplate — ProseMirror content delegation', () => {
   it('accepts a rc-text with a valid ProseMirror content doc', () => {
-    const doc: RCMLDocument = {
+    const doc: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -192,7 +192,7 @@ describe('validateEmailTemplate — ProseMirror content delegation', () => {
   })
 
   it('surfaces invalid content as CONTENT_INVALID with prefixed path', () => {
-    const doc: RCMLDocument = {
+    const doc: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },
@@ -256,7 +256,7 @@ describe('validateEmailTemplate — XML string input', () => {
 
 describe('EmailTemplateValidationError shape', () => {
   it('matches the expected error format', () => {
-    const bad = { tagName: 'rcml' } as unknown as RCMLDocument
+    const bad = { tagName: 'rcml' } as unknown as RcmlDocument
     let captured: EmailTemplateValidationError | null = null
     try {
       validateEmailTemplate(bad)
@@ -271,7 +271,7 @@ describe('EmailTemplateValidationError shape', () => {
 
   it("truncates the summary with '...and N more' past 5 issues", () => {
     // Produce ≥6 issues by stacking bad attribute values on a section.
-    const bad: RCMLDocument = {
+    const bad: RcmlDocument = {
       tagName: 'rcml',
       children: [
         { tagName: 'rc-head', children: [] },

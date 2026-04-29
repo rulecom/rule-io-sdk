@@ -1,5 +1,5 @@
 /**
- * Internal: XML → `RCMLDocument` JSON AST conversion helpers.
+ * Internal: XML → `RcmlDocument` JSON AST conversion helpers.
  *
  * All the heavy lifting for `../xml-to-rcml.ts` lives here — the public file
  * only defines the error surface and the two public functions that orchestrate
@@ -7,7 +7,7 @@
  */
 
 import { XMLParser, XMLValidator } from 'fast-xml-parser'
-import type { RCMLDocument } from '../../types.js'
+import type { RcmlDocument } from '../rcml-types.js'
 import { inlineRfmToJson, rfmToJson } from '../rfm-to-json.js'
 import { RCML_SCHEMA_SPEC, RcmlTagNamesEnum, type RcmlTagName } from '../schema/index.js'
 import type { RcmlXmlParseIssue } from '../xml-to-rcml.js'
@@ -37,7 +37,7 @@ const parser = new XMLParser({
 })
 
 /**
- * Parse an RCML XML string into an `RCMLDocument`.
+ * Parse an RCML XML string into an `RcmlDocument`.
  *
  * Runs every stage (XML validation, XML parsing, root detection, tree
  * conversion) and collapses them into the discriminated result returned by
@@ -50,7 +50,7 @@ const parser = new XMLParser({
 export function convertXmlToRcml(
   xml: string,
 ):
-  | { success: true; data: RCMLDocument }
+  | { success: true; data: RcmlDocument }
   | { success: false; errors: RcmlXmlParseIssue[] } {
   const validationResult = XMLValidator.validate(xml)
   if (validationResult !== true) {
@@ -111,7 +111,7 @@ export function convertXmlToRcml(
   if (issues.length > 0) {
     return { success: false, errors: issues }
   }
-  return { success: true, data: converted as unknown as RCMLDocument }
+  return { success: true, data: converted as unknown as RcmlDocument }
 }
 
 /**

@@ -10,11 +10,11 @@
  *   2. Zod per-attribute value check (see `./validator/attr-value-validate.ts`).
  *   3. ProseMirror content delegation (see `./validator/content-validate.ts`).
  *
- * Input may be either an `RCMLDocument` JSON AST or an RCML XML string; XML
+ * Input may be either an `RcmlDocument` JSON AST or an RCML XML string; XML
  * is parsed first via {@link safeXmlToRcml}.
  */
 
-import type { RCMLDocument } from '../types.js'
+import type { RcmlDocument } from './rcml-types.js'
 import { validateAttrValues, validateContent, validateStructure } from './validator/index.js'
 import { RcmlXmlErrorCodes, safeXmlToRcml } from './xml-to-rcml.js'
 
@@ -59,7 +59,7 @@ export type EmailTemplateErrorCode =
  */
 export type EmailTemplateValidationIssue = {
   /**
-   * JSON Pointer into the RCMLDocument (e.g.
+   * JSON Pointer into the RcmlDocument (e.g.
    * `/children/1/children/0/attributes/width`). Empty string means the
    * root of the document.
    */
@@ -105,7 +105,7 @@ export class EmailTemplateValidationError extends Error {
  * @public
  */
 export type SafeValidateResult =
-  | { success: true; data: RCMLDocument }
+  | { success: true; data: RcmlDocument }
   | { success: false; errors: EmailTemplateValidationIssue[] }
 
 // ─── Validators ──────────────────────────────────────────────────────────────
@@ -113,18 +113,18 @@ export type SafeValidateResult =
 /**
  * Validate an AI-generated RCML email template against the RCML schema.
  *
- * Accepts either an `RCMLDocument` JSON AST or an RCML XML string. XML is
+ * Accepts either an `RcmlDocument` JSON AST or an RCML XML string. XML is
  * parsed first; the resulting tree is then validated structurally,
  * attribute-wise, and for embedded ProseMirror content. LLMs should feed the
  * structured `errors` list on the thrown error back into their next
  * iteration.
  *
  * @param input - JSON AST or RCML XML string.
- * @returns The validated document narrowed to `RCMLDocument`.
+ * @returns The validated document narrowed to `RcmlDocument`.
  * @throws {EmailTemplateValidationError} When one or more issues are found.
  * @public
  */
-export function validateEmailTemplate(input: RCMLDocument | string): RCMLDocument {
+export function validateEmailTemplate(input: RcmlDocument | string): RcmlDocument {
   const result = safeValidateEmailTemplate(input)
   if (!result.success) {
     throw new EmailTemplateValidationError(result.errors)
@@ -140,7 +140,7 @@ export function validateEmailTemplate(input: RCMLDocument | string): RCMLDocumen
  *   `{ success: false, errors }` with the full issue list otherwise.
  * @public
  */
-export function safeValidateEmailTemplate(input: RCMLDocument | string): SafeValidateResult {
+export function safeValidateEmailTemplate(input: RcmlDocument | string): SafeValidateResult {
   let json: unknown
   const issues: EmailTemplateValidationIssue[] = []
 
@@ -173,5 +173,5 @@ export function safeValidateEmailTemplate(input: RCMLDocument | string): SafeVal
   if (issues.length > 0) {
     return { success: false, errors: issues }
   }
-  return { success: true, data: json as RCMLDocument }
+  return { success: true, data: json as RcmlDocument }
 }

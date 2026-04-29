@@ -417,8 +417,12 @@ export enum RcmlAttributeValidatorsEnum {
  * Dense map from {@link RcmlAttributeValidatorsEnum} to the Zod schema that
  * validates an attribute value of that class. `./attr-value-validate.ts`
  * indexes into this map via the validator key on each NodeSpec attr entry.
+ *
+ * Uses `satisfies` (not a `: Record<...>` annotation) so the per-entry Zod
+ * schema types survive — consumers can do `z.input<typeof
+ * RCML_ATTR_VALIDATORS[V]>` to derive the precise attribute-value type.
  */
-export const RCML_ATTR_VALIDATORS: Record<RcmlAttributeValidatorsEnum, ZodSchema> = {
+export const RCML_ATTR_VALIDATORS = {
   [RcmlAttributeValidatorsEnum.Align]: alignSchema,
   [RcmlAttributeValidatorsEnum.BackgroundPosition]: backgroundPositionSchema,
   [RcmlAttributeValidatorsEnum.BackgroundPositionX]: backgroundPositionXSchema,
@@ -463,4 +467,4 @@ export const RCML_ATTR_VALIDATORS: Record<RcmlAttributeValidatorsEnum, ZodSchema
   [RcmlAttributeValidatorsEnum.LoopType]: loopTypeSchema,
   [RcmlAttributeValidatorsEnum.LoopValue]: stringOrNumberSchema,
   [RcmlAttributeValidatorsEnum.LoopMaxIterations]: positiveNumberSchema,
-}
+} satisfies Record<RcmlAttributeValidatorsEnum, ZodSchema>

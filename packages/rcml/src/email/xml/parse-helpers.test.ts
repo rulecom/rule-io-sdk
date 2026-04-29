@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type {
-  RCMLBody,
-  RCMLButton,
-  RCMLColumn,
-  RCMLSection,
-  RCMLSpacer,
-  RCMLText,
-} from '../../types.js'
+  RcmlBody,
+  RcmlButton,
+  RcmlColumn,
+  RcmlSection,
+  RcmlSpacer,
+  RcmlText,
+} from '../rcml-types.js'
 import { convertXmlToRcml } from './parse-helpers.js'
 
 /**
@@ -92,7 +92,7 @@ describe('convertXmlToRcml — leaf vs container handling', () => {
     )
     expect(result.success).toBe(true)
     if (!result.success) return
-    const spacer = firstColumnChild<RCMLSpacer>(result.data.children[1])
+    const spacer = firstColumnChild<RcmlSpacer>(result.data.children[1])
     expect(spacer.tagName).toBe('rc-spacer')
     expect(spacer).not.toHaveProperty('children')
   })
@@ -126,7 +126,7 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     )
     expect(result.success).toBe(true)
     if (!result.success) return
-    const textNode = firstColumnChild<RCMLText>(result.data.children[1])
+    const textNode = firstColumnChild<RcmlText>(result.data.children[1])
     expect(textNode.tagName).toBe('rc-text')
     expect(textNode.content).toMatchObject({ type: 'doc' })
     expect(textNode).not.toHaveProperty('children')
@@ -138,7 +138,7 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     )
     expect(result.success).toBe(true)
     if (!result.success) return
-    const textNode = firstColumnChild<RCMLText>(result.data.children[1])
+    const textNode = firstColumnChild<RcmlText>(result.data.children[1])
     expect(textNode.content).toEqual({ type: 'doc', content: [] })
   })
 
@@ -160,7 +160,7 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     )
     expect(result.success).toBe(true)
     if (!result.success) return
-    const btn = firstColumnChild<RCMLButton>(result.data.children[1])
+    const btn = firstColumnChild<RcmlButton>(result.data.children[1])
     expect(btn.tagName).toBe('rc-button')
     expect(btn.content.type).toBe('doc')
   })
@@ -173,8 +173,8 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
  * column-child narrowing. The runtime check on the final tag name fails
  * loudly if the XML fixture and the expected leaf type drift apart.
  */
-function firstColumnChild<T extends { tagName: string }>(body: RCMLBody): T {
-  const section = body.children[0] as RCMLSection
-  const column = section.children[0] as RCMLColumn
+function firstColumnChild<T extends { tagName: string }>(body: RcmlBody): T {
+  const section = body.children[0] as RcmlSection
+  const column = section.children[0] as RcmlColumn
   return column.children[0] as T
 }

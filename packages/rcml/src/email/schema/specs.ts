@@ -19,45 +19,45 @@ import { RcmlTagNamesEnum as T, type RcmlTagName } from './tag-names.js'
 // Root + head
 // ---------------------------------------------------------------------------
 
-const rcmlSpec: RcmlNodeSpec = {
+const rcmlSpec = {
   attrs: {},
   isLeaf: false,
   validChildTypes: [T.Head, T.Body],
-}
+} as const satisfies RcmlNodeSpec
 
-const headSpec: RcmlNodeSpec = {
+const headSpec = {
   attrs: {},
   isLeaf: false,
   validChildTypes: [T.BrandStyle, T.Attributes, T.Preview, T.Class, T.PlainText],
-}
+} as const satisfies RcmlNodeSpec
 
-const brandStyleSpec: RcmlNodeSpec = {
+const brandStyleSpec = {
   attrs: {
     id: { validator: V.PositiveNumber },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const fontSpec: RcmlNodeSpec = {
+const fontSpec = {
   attrs: {
     name: { validator: V.String },
     href: { validator: V.Url },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const attributesSpec: RcmlNodeSpec = {
+const attributesSpec = {
   attrs: {},
   isLeaf: false,
   validChildTypes: [T.Body, T.Section, T.Button, T.Heading, T.Text, T.Social],
-}
+} as const satisfies RcmlNodeSpec
 
-const previewSpec: RcmlNodeSpec = {
+const previewSpec = {
   attrs: {},
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const classSpec: RcmlNodeSpec = {
+const classSpec = {
   attrs: {
     name: { validator: V.String },
     'background-color': { validator: V.Color },
@@ -74,32 +74,32 @@ const classSpec: RcmlNodeSpec = {
     width: { validator: V.Px },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const plainTextSpec: RcmlNodeSpec = {
+const plainTextSpec = {
   attrs: {},
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const rawSpec: RcmlNodeSpec = {
+const rawSpec = {
   attrs: {},
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
 // ---------------------------------------------------------------------------
 // Body / structural
 // ---------------------------------------------------------------------------
 
-const bodySpec: RcmlNodeSpec = {
+const bodySpec = {
   attrs: {
     'background-color': { validator: V.Color },
     width: { validator: V.Px, default: '600px' },
   },
   isLeaf: false,
   validChildTypes: [T.Section, T.Loop, T.Switch, T.Wrapper],
-}
+} as const satisfies RcmlNodeSpec
 
-const sectionSpec: RcmlNodeSpec = {
+const sectionSpec = {
   attrs: {
     'background-color': { validator: V.Color },
     'background-url': { validator: V.Url },
@@ -130,7 +130,7 @@ const sectionSpec: RcmlNodeSpec = {
   isLeaf: false,
   validChildTypes: [T.Column],
   maxChildCount: 20,
-}
+} as const satisfies RcmlNodeSpec
 
 const VALID_COLUMN_CHILDREN: readonly RcmlTagName[] = Object.values(T).filter(
   (tag) =>
@@ -150,7 +150,7 @@ const VALID_COLUMN_CHILDREN: readonly RcmlTagName[] = Object.values(T).filter(
     ].includes(tag as T),
 ) as readonly RcmlTagName[]
 
-const columnSpec: RcmlNodeSpec = {
+const columnSpec = {
   attrs: {
     'background-color': { validator: V.Color },
     border: { validator: V.Border },
@@ -179,9 +179,9 @@ const columnSpec: RcmlNodeSpec = {
   },
   isLeaf: false,
   validChildTypes: VALID_COLUMN_CHILDREN,
-}
+} as const satisfies RcmlNodeSpec
 
-const wrapperSpec: RcmlNodeSpec = {
+const wrapperSpec = {
   attrs: {
     'background-color': { validator: V.Color },
     'background-url': { validator: V.Url },
@@ -206,25 +206,25 @@ const wrapperSpec: RcmlNodeSpec = {
   },
   isLeaf: false,
   validChildTypes: [T.Switch, T.Section],
-}
+} as const satisfies RcmlNodeSpec
 
-const groupSpec: RcmlNodeSpec = {
+const groupSpec = {
   attrs: {},
   isLeaf: false,
   validChildTypes: [T.Column],
-}
+} as const satisfies RcmlNodeSpec
 
 // ---------------------------------------------------------------------------
 // Control flow
 // ---------------------------------------------------------------------------
 
-const switchSpec: RcmlNodeSpec = {
+const switchSpec = {
   attrs: {},
   isLeaf: false,
   validChildTypes: [T.Case],
-}
+} as const satisfies RcmlNodeSpec
 
-const caseSpec: RcmlNodeSpec = {
+const caseSpec = {
   attrs: {
     'case-type': { validator: V.CaseType },
     'case-property': { validator: V.CaseProperty },
@@ -234,9 +234,9 @@ const caseSpec: RcmlNodeSpec = {
   },
   isLeaf: false,
   validChildTypes: [T.Section],
-}
+} as const satisfies RcmlNodeSpec
 
-const loopSpec: RcmlNodeSpec = {
+const loopSpec = {
   attrs: {
     'loop-type': { validator: V.LoopType },
     'loop-value': { validator: V.LoopValue },
@@ -244,13 +244,13 @@ const loopSpec: RcmlNodeSpec = {
   },
   isLeaf: false,
   validChildTypes: [T.Section],
-}
+} as const satisfies RcmlNodeSpec
 
 // ---------------------------------------------------------------------------
 // Content leaves
 // ---------------------------------------------------------------------------
 
-const textSpec: RcmlNodeSpec = {
+const textSpec = {
   attrs: {
     align: { validator: V.TextAlign, default: 'left' },
     color: { validator: V.Color },
@@ -275,9 +275,9 @@ const textSpec: RcmlNodeSpec = {
     'vertical-align': { validator: V.VerticalAlign },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const headingSpec: RcmlNodeSpec = {
+const headingSpec = {
   attrs: {
     align: { validator: V.TextAlign, default: 'left' },
     'background-color': { validator: V.Color },
@@ -303,9 +303,9 @@ const headingSpec: RcmlNodeSpec = {
     'vertical-align': { validator: V.VerticalAlign },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const buttonSpec: RcmlNodeSpec = {
+const buttonSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'background-color': { validator: V.Color },
@@ -345,9 +345,9 @@ const buttonSpec: RcmlNodeSpec = {
     width: { validator: V.PxOrPercentage },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const imageSpec: RcmlNodeSpec = {
+const imageSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'align-on-mobile': { validator: V.Align },
@@ -379,9 +379,9 @@ const imageSpec: RcmlNodeSpec = {
     width: { validator: V.Px },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const logoSpec: RcmlNodeSpec = {
+const logoSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'align-on-mobile': { validator: V.Align },
@@ -414,9 +414,9 @@ const logoSpec: RcmlNodeSpec = {
     'rc-class': { validator: V.String },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const videoSpec: RcmlNodeSpec = {
+const videoSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'align-on-mobile': { validator: V.Align },
@@ -449,9 +449,9 @@ const videoSpec: RcmlNodeSpec = {
     width: { validator: V.Px },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const spacerSpec: RcmlNodeSpec = {
+const spacerSpec = {
   attrs: {
     'container-background-color': { validator: V.Color },
     'css-class': { validator: V.String },
@@ -464,9 +464,9 @@ const spacerSpec: RcmlNodeSpec = {
     'padding-on-mobile': { validator: V.Padding },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const dividerSpec: RcmlNodeSpec = {
+const dividerSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'border-color': { validator: V.Color, default: '#000000' },
@@ -483,9 +483,9 @@ const dividerSpec: RcmlNodeSpec = {
     width: { validator: V.PxOrPercentage, default: '100%' },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
-const socialSpec: RcmlNodeSpec = {
+const socialSpec = {
   attrs: {
     align: { validator: V.Align, default: 'center' },
     'border-radius': { validator: V.BorderRadius, default: '3px' },
@@ -515,9 +515,9 @@ const socialSpec: RcmlNodeSpec = {
   },
   isLeaf: false,
   validChildTypes: [T.SocialElement],
-}
+} as const satisfies RcmlNodeSpec
 
-const socialElementSpec: RcmlNodeSpec = {
+const socialElementSpec = {
   attrs: {
     align: { validator: V.Align, default: 'left' },
     alt: { validator: V.String, default: '' },
@@ -550,13 +550,13 @@ const socialElementSpec: RcmlNodeSpec = {
     'vertical-align': { validator: V.VerticalAlign, default: 'middle' },
   },
   isLeaf: true,
-}
+} as const satisfies RcmlNodeSpec
 
 // ---------------------------------------------------------------------------
 // Aggregate
 // ---------------------------------------------------------------------------
 
-export const RCML_SCHEMA_SPEC: Readonly<Record<RcmlTagName, RcmlNodeSpec>> = {
+export const RCML_SCHEMA_SPEC = {
   [T.Rcml]: rcmlSpec,
   [T.Head]: headSpec,
   [T.BrandStyle]: brandStyleSpec,
@@ -584,4 +584,4 @@ export const RCML_SCHEMA_SPEC: Readonly<Record<RcmlTagName, RcmlNodeSpec>> = {
   [T.Divider]: dividerSpec,
   [T.Social]: socialSpec,
   [T.SocialElement]: socialElementSpec,
-}
+} as const satisfies Readonly<Record<RcmlTagName, RcmlNodeSpec>>

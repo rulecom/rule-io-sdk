@@ -1,5 +1,5 @@
 /**
- * Internal: `RCMLDocument` JSON AST → RCML XML string conversion helpers.
+ * Internal: `RcmlDocument` JSON AST → RCML XML string conversion helpers.
  *
  * All the heavy lifting for `../rcml-to-xml.ts` lives here — the public file
  * only defines the options type and the `rcmlToXml` function that
@@ -7,7 +7,7 @@
  */
 
 import { XMLBuilder } from 'fast-xml-parser'
-import type { RCMLDocument } from '../../types.js'
+import type { RcmlDocument } from '../rcml-types.js'
 import { jsonToInlineRfm, jsonToRfm } from '../json-to-rfm.js'
 import type { RcmlToXmlOptions } from '../rcml-to-xml.js'
 import { RcmlTagNamesEnum } from '../schema/index.js'
@@ -15,7 +15,7 @@ import type { Json } from '../validate-rcml-json.js'
 
 /**
  * Structural view of an RCML AST node — a superset that matches every node
- * in the public `RCMLDocument` union. Every field is optional so the
+ * in the public `RcmlDocument` union. Every field is optional so the
  * recursive walker can be defensive without having to narrow on specific
  * discriminants.
  */
@@ -45,7 +45,7 @@ type PreservedEntry = Record<string, unknown>
  * @param options - Formatting options (defaults handled by the public wrapper).
  * @returns An XML string.
  */
-export function serializeRcmlToXml(doc: RCMLDocument, options: RcmlToXmlOptions): string {
+export function serializeRcmlToXml(doc: RcmlDocument, options: RcmlToXmlOptions): string {
   const pretty = options.pretty ?? true
   const indent = options.indent ?? '  '
 

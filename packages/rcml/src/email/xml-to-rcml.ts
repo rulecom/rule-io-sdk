@@ -1,5 +1,5 @@
 /**
- * Public API: RCML XML → `RCMLDocument` JSON-AST conversion.
+ * Public API: RCML XML → `RcmlDocument` JSON-AST conversion.
  *
  * This file contains **only public exports**. Every symbol here is part of
  * the `@rule-io/rcml` contract and is marked `@public` in its JSDoc. All
@@ -10,7 +10,7 @@
  * `content` field then matches the shape expected by downstream consumers.
  */
 
-import type { RCMLDocument } from '../types.js'
+import type { RcmlDocument } from './rcml-types.js'
 import { convertXmlToRcml } from './xml/index.js'
 
 // ─── Error codes ─────────────────────────────────────────────────────────────
@@ -43,7 +43,7 @@ export type RcmlXmlErrorCode = (typeof RcmlXmlErrorCodes)[keyof typeof RcmlXmlEr
  * @public
  */
 export type RcmlXmlParseIssue = {
-  /** JSON Pointer into the resulting RCMLDocument. Empty string means root. */
+  /** JSON Pointer into the resulting RcmlDocument. Empty string means root. */
   path: string
   /** Machine-readable code from {@link RcmlXmlErrorCodes}. */
   code: RcmlXmlErrorCode
@@ -83,13 +83,13 @@ export class RcmlXmlParseError extends Error {
  * @public
  */
 export type SafeXmlToRcmlResult =
-  | { success: true; data: RCMLDocument }
+  | { success: true; data: RcmlDocument }
   | { success: false; errors: RcmlXmlParseIssue[] }
 
 // ─── Public conversion functions ─────────────────────────────────────────────
 
 /**
- * Parse an RCML XML string into an `RCMLDocument`.
+ * Parse an RCML XML string into an `RcmlDocument`.
  *
  * @param xml - The RCML XML string to parse.
  * @returns The parsed document.
@@ -97,7 +97,7 @@ export type SafeXmlToRcmlResult =
  *   body inside a text element, missing root).
  * @public
  */
-export function xmlToRcml(xml: string): RCMLDocument {
+export function xmlToRcml(xml: string): RcmlDocument {
   const result = safeXmlToRcml(xml)
   if (!result.success) {
     throw new RcmlXmlParseError(result.errors)
