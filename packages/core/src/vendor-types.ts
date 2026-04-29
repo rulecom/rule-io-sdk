@@ -84,7 +84,7 @@ export interface VendorConsumerConfig extends TemplateConfigV2 {
  * the template builder that produces the RCML document.
  *
  * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level;
- * concrete implementations return a full `RCMLDocument` (a subtype),
+ * concrete implementations return a full `RcmlDocument` (a subtype),
  * accepted via function-return covariance.
  */
 export interface VendorAutomation {

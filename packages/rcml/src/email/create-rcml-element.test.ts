@@ -413,7 +413,7 @@ describe('createAttributesElement / createPreviewElement / createPlainTextElemen
   it('createAttributesElement with a style-override body child', () => {
     // Per schema, <rc-attributes> accepts body/section/button/heading/text/social
     // as style-override declarations (not <rc-class>; that goes directly under <rc-head>).
-    // The legacy RCMLAttributes.children type lists distinct "*Style" shapes that
+    // The legacy RcmlAttributes.children type lists distinct "*Style" shapes that
     // share the tag with their content-bearing counterparts; cast to bridge.
     type AttrsChild = Parameters<typeof createAttributesElement>[0]['children'][number]
     const styleBody = createBodyElement({

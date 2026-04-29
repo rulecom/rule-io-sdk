@@ -200,7 +200,7 @@ export interface RuleMessageResponse extends RuleApiResponse {
 // v3 Editor API Types - Template
 // ============================================================================
 
-import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from '@rule-io/rcml';
+import type { RcmlDocument, RcmlSection, RcmlLoop, RcmlSwitch } from '@rule-io/rcml';
 
 /**
  * Template represents an RCML email template in Rule.io's new editor
@@ -208,14 +208,14 @@ import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from '@rule-io/r
 export interface RuleTemplate {
   id?: number;
   name: string;
-  content: RCMLDocument;
+  content: RcmlDocument;
 }
 
 export interface RuleTemplateCreateRequest {
   message_id: number;
   name: string;
   message_type: 'email' | 'sms';
-  template: RCMLDocument;
+  template: RcmlDocument;
 }
 
 export interface RuleTemplateResponse extends RuleApiResponse {
@@ -1422,7 +1422,7 @@ export interface CreateAutomationEmailConfig {
   /**
    * Full RCML template document. Provide this OR `brandStyleId`, not both.
    */
-  template?: RCMLDocument;
+  template?: RcmlDocument;
   /**
    * Rule.io brand style ID. When provided (without `template`), the SDK
    * auto-fetches the brand style and builds editor-compatible RCML.
@@ -1433,7 +1433,7 @@ export interface CreateAutomationEmailConfig {
    * sections, loops, and switch blocks. If omitted or empty, a default
    * placeholder content section is added automatically.
    */
-  sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
+  sections?: (RcmlSection | RcmlLoop | RcmlSwitch)[];
 }
 
 export interface CreateAutomationEmailResult {
@@ -1475,11 +1475,11 @@ export interface CreateCampaignEmailConfig {
   segments?: RuleCampaignRecipientSegment[];
   subscribers?: number[];
   /** Full RCML template. Provide this OR `brandStyleId`, not both. */
-  template?: RCMLDocument;
+  template?: RcmlDocument;
   /** Brand style ID to auto-build editor-compatible RCML. */
   brandStyleId?: number;
   /** RCML body sections when using `brandStyleId`. Defaults to placeholder content when omitted or empty. */
-  sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
+  sections?: (RcmlSection | RcmlLoop | RcmlSwitch)[];
 }
 
 export interface CreateCampaignEmailResult {

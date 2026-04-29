@@ -6,10 +6,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client.js';
 import { RuleApiError, RuleConfigError } from '@rule-io/core';
 import type { RuleAnalyticsParams } from '../src/types.js';
-import type { RCMLDocument } from '@rule-io/rcml';
+import type { RcmlDocument } from '@rule-io/rcml';
 
-/** Minimal valid RCMLDocument for tests that need a template value. */
-const minimalTemplate: RCMLDocument = {
+/** Minimal valid RcmlDocument for tests that need a template value. */
+const minimalTemplate: RcmlDocument = {
   tagName: 'rcml',
   children: [
     { tagName: 'rc-head', children: [] },
@@ -3062,7 +3062,7 @@ describe('RuleClient', () => {
     it('should use provided template directly without brandStyleId', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
-      const fakeTemplate: RCMLDocument = {
+      const fakeTemplate: RcmlDocument = {
         tagName: 'rcml',
         id: 'test-id',
         children: [

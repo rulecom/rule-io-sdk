@@ -14,10 +14,10 @@
  */
 
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createDivider, createSocial, createSocialElement, validateCustomFields, withTemplateContext, type RCMLBodyChild, type RCMLColumnChild, type RCMLDocument, type RCMLText } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createDividerElement, createSocialElement, createSocialChildElement, validateCustomFields, withTemplateContext, type RcmlBodyChild, type RcmlColumnChild, type RcmlDocument, type RcmlText } from '@rule-io/rcml';
 
-function dividerSection(): RCMLBodyChild {
-  return createContentSection([createDivider({ padding: '10px 0' })], { padding: '0' });
+function dividerSection(): RcmlBodyChild {
+  return createContentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
 }
 
 // ============================================================================
@@ -88,7 +88,7 @@ export interface WelcomeEmailConfig {
  * });
  * ```
  */
-export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
+export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
   const templateName = 'createWelcomeEmail';
 
   return withTemplateContext(templateName, () => {
@@ -102,7 +102,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
     const socialElements = socialLinks
       .map((link) => {
         try {
-          return createSocialElement({ name: link.name, href: link.href });
+          return createSocialChildElement({ attrs: { name: link.name, href: link.href } });
         } catch {
           return undefined;
         }
@@ -110,7 +110,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
       .filter((el): el is NonNullable<typeof el> => !!el);
     const hasSocial = socialElements.length > 0;
 
-    const sections: RCMLBodyChild[] = [
+    const sections: RcmlBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
 
       // Hero banner — brand background
@@ -132,7 +132,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
     const benefits = text.benefits ?? [];
     if (benefits.length > 0) {
       sections.push(dividerSection());
-      const benefitRows: RCMLText[] = [];
+      const benefitRows: RcmlText[] = [];
       if (text.benefitsHeading) {
         benefitRows.push(
           createBrandText(
@@ -154,7 +154,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
 
     if (text.discountCode) {
       sections.push(dividerSection());
-      const discountRows: RCMLColumnChild[] = [];
+      const discountRows: RcmlColumnChild[] = [];
       if (text.discountHeading) {
         discountRows.push(
           createBrandHeading(
@@ -203,7 +203,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RCMLDocument {
 
     if (hasSocial) {
       sections.push(
-        createContentSection([createSocial(socialElements, { align: 'center' })], {
+        createContentSection([createSocialElement({ attrs: { align: 'center' }, children: socialElements })], {
           padding: '10px 0',
         })
       );

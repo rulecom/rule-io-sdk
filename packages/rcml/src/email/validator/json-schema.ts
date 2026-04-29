@@ -152,7 +152,7 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
 }
 
 /**
- * Complete JSON Schema 2020-12 describing an RCMLDocument (rooted at `rcml`).
+ * Complete JSON Schema 2020-12 describing an RcmlDocument (rooted at `rcml`).
  * AJV can compile this once at startup and validate any input against it.
  */
 export const RCML_JSON_SCHEMA: JsonSchema = (() => {

@@ -16,19 +16,19 @@
 
 import { RuleConfigError } from '@rule-io/core';
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, createDivider, createSocial, createSocialElement, createTwoColumnSection, sanitizeUrl, validateCustomFields, withTemplateContext, type RCMLBodyChild, type RCMLDocument, type RCMLSection, type RCMLText, type RCMLProseMirrorDoc } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, createColumnElement, createDividerElement, createSectionElement, createSocialElement, createSocialChildElement, sanitizeUrl, validateCustomFields, withTemplateContext, type Json, type RcmlBodyChild, type RcmlDocument, type RcmlSection, type RcmlText } from '@rule-io/rcml';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
-function dividerSection(): RCMLBodyChild {
-  return createContentSection([createDivider({ padding: '10px 0' })], { padding: '0' });
+function dividerSection(): RcmlBodyChild {
+  return createContentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
 }
 
-/** Build a "label: value" RCMLText row, or undefined when either input is missing. */
+/** Build a "label: value" RcmlText row, or undefined when either input is missing. */
 function labeledRow(
   label: string | undefined,
   fieldName: string | undefined,
   customFields: CustomFieldMap,
-): RCMLText | undefined {
+): RcmlText | undefined {
   if (!label || !fieldName) return undefined;
   return createBrandText(
     createDocWithPlaceholders([
@@ -151,7 +151,7 @@ export interface OrderConfirmationConfig {
  * });
  * ```
  */
-export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RCMLDocument {
+export function createOrderConfirmationEmail(config: OrderConfirmationConfig): RcmlDocument {
   const templateName = 'createOrderConfirmationEmail';
 
   return withTemplateContext(templateName, () => {
@@ -213,7 +213,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // templateName omitted — withTemplateContext wraps the error with the prefix.
     validateCustomFields(customFields, fieldsToValidate);
 
-    const sections: RCMLBodyChild[] = [
+    const sections: RcmlBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
       createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
     ];
@@ -235,30 +235,38 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Two-column order meta row (orderRef + orderDate) — shown instead of a single orderRef row when orderDate mapped
     if (hasOrderMetaRow) {
       sections.push(
-        createTwoColumnSection({
-          padding: '10px 0',
-          leftChildren: [
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.orderRefLabel}: `),
-                createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
-              ])
-            ),
-          ],
-          rightChildren: [
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.orderDateLabel}: `),
-                createPlaceholder(fieldNames.orderDate!, customFields[fieldNames.orderDate!]),
-              ])
-            ),
+        createSectionElement({
+          attrs: { padding: '10px 0' },
+          children: [
+            createColumnElement({
+              attrs: { width: '50%' },
+              children: [
+                createBrandText(
+                  createDocWithPlaceholders([
+                    createTextNode(`${text.orderRefLabel}: `),
+                    createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+                  ])
+                ),
+              ],
+            }),
+            createColumnElement({
+              attrs: { width: '50%' },
+              children: [
+                createBrandText(
+                  createDocWithPlaceholders([
+                    createTextNode(`${text.orderDateLabel}: `),
+                    createPlaceholder(fieldNames.orderDate!, customFields[fieldNames.orderDate!]),
+                  ])
+                ),
+              ],
+            }),
           ],
         })
       );
     }
 
     // Details box (brand background): heading + orderRef (if not in meta row) + optional payment + fallbacks
-    const detailRows: RCMLText[] = [];
+    const detailRows: RcmlText[] = [];
     if (!hasOrderMetaRow) {
       detailRows.push(
         createBrandText(
@@ -333,7 +341,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         );
       }
 
-      const loopChildren: RCMLText[] = [
+      const loopChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
       ];
       if (fieldNames.itemSku) {
@@ -380,7 +388,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       sections.push(
         createBrandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -410,7 +418,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Shipping address block
     if (hasExtendedAddress && fieldNames.shippingAddress) {
       sections.push(dividerSection());
-      const addressLines: RCMLProseMirrorDoc[] = [];
+      const addressLines: Json[] = [];
       addressLines.push(
         createDocWithPlaceholders([
           createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
@@ -595,7 +603,7 @@ export interface ShippingUpdateConfig {
  * notification. When receipt fields are provided (seller info, line items,
  * financial summary, legal text), renders a full legally-binding receipt.
  */
-export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDocument {
+export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDocument {
   const templateName = 'createShippingUpdateEmail';
 
   return withTemplateContext(templateName, () => {
@@ -645,7 +653,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
       );
     };
 
-    const sections: RCMLBodyChild[] = [
+    const sections: RcmlBodyChild[] = [
       ...createLogoSection(config.brandStyle.logoUrl),
 
       // Heading + greeting
@@ -790,7 +798,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
       sections.push(
         createBrandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -862,7 +870,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
                 }],
               }],
             }],
-          }, { align: 'center' })
+          } as unknown as Json, { align: 'center' })
         );
       }
     }
@@ -884,7 +892,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RCMLDoc
                 }],
               }],
             }],
-          }, { align: 'center' })
+          } as unknown as Json, { align: 'center' })
         );
       }
     }
@@ -950,7 +958,7 @@ export interface AbandonedCartConfig {
 /**
  * Create an abandoned cart recovery email template.
  */
-export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocument {
+export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocument {
   const templateName = 'createAbandonedCartEmail';
 
   return withTemplateContext(templateName, () => {
@@ -976,7 +984,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
     const socialElements = socialLinks
       .map((link) => {
         try {
-          return createSocialElement({ name: link.name, href: link.href });
+          return createSocialChildElement({ attrs: { name: link.name, href: link.href } });
         } catch {
           return undefined;
         }
@@ -984,7 +992,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
       .filter((el): el is NonNullable<typeof el> => !!el);
     const hasSocial = socialElements.length > 0;
 
-    const sections: RCMLBodyChild[] = [
+    const sections: RcmlBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
 
       createContentSection(
@@ -1021,7 +1029,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
         );
       }
 
-      const loopChildren: RCMLText[] = [
+      const loopChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
       ];
       if (fieldNames.itemSku) {
@@ -1058,7 +1066,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
       sections.push(
         createBrandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RCMLSection],
+          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -1087,7 +1095,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RCMLDocum
     if (hasSocial) {
       sections.push(
         createContentSection(
-          [createSocial(socialElements, { align: 'center' })],
+          [createSocialElement({ attrs: { align: 'center' }, children: socialElements })],
           { padding: '10px 0' }
         )
       );
@@ -1140,7 +1148,7 @@ export interface OrderCancellationConfig {
 /**
  * Create an order cancellation email template.
  */
-export function createOrderCancellationEmail(config: OrderCancellationConfig): RCMLDocument {
+export function createOrderCancellationEmail(config: OrderCancellationConfig): RcmlDocument {
   const templateName = 'createOrderCancellationEmail';
 
   return withTemplateContext(templateName, () => {
@@ -1159,7 +1167,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     // templateName omitted — withTemplateContext wraps the error with the prefix.
     validateCustomFields(customFields, fieldsToValidate);
 
-    const sections: RCMLBodyChild[] = [
+    const sections: RcmlBodyChild[] = [
       ...createLogoSection(brandStyle.logoUrl),
 
       // Hero banner — brand background so the cancellation status reads as a banner
@@ -1187,7 +1195,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     ];
 
     // Order details box
-    const detailRows: (RCMLText | undefined)[] = [
+    const detailRows: (RcmlText | undefined)[] = [
       createBrandText(
         createDocWithPlaceholders([
           createTextNode(`${text.orderRefLabel}: `),
@@ -1227,7 +1235,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
         supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`;
         supportLinkText = text.supportEmail;
       }
-      const supportChildren: RCMLText[] = [
+      const supportChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders(supportNodes), { align: 'center' }),
       ];
       if (supportLinkHref && supportLinkText) {
@@ -1246,7 +1254,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
                   }],
                 }],
               }],
-            },
+            } as unknown as Json,
             { align: 'center' }
           )
         );

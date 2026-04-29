@@ -25,7 +25,7 @@ type RcmlNodeLike = {
  * element (`rc-text`, `rc-heading`, `rc-button`). Non-objects / non-RCML
  * shapes are skipped — structural problems are the AJV pass's concern.
  *
- * @param doc - Any value (expected to be an {@link import('../../types.js').RCMLDocument}-shaped tree).
+ * @param doc - Any value (expected to be an {@link import('../rcml-types.js').RcmlDocument}-shaped tree).
  * @returns A list of `CONTENT_INVALID` issues (empty on success).
  */
 export function validateContent(doc: unknown): EmailTemplateValidationIssue[] {

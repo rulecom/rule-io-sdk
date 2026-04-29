@@ -4,7 +4,7 @@
  * The generated JSON Schema checks structure and cheap attribute constraints
  * (enums, types). Rich formats — padding shorthand, border shorthand,
  * background-position, border-radius — live as Zod schemas in
- * `./attr-validators.ts` and are enforced by walking the `RCMLDocument` tree
+ * `./attr-validators.ts` and are enforced by walking the `RcmlDocument` tree
  * directly here.
  *
  * Only known attributes are re-validated; unknown ones are already flagged
@@ -27,7 +27,7 @@ type RcmlNodeLike = {
  * Zod schema. Non-objects / non-RCML-shaped nodes are skipped silently —
  * AJV will have already reported those problems.
  *
- * @param doc - Any value (expected to be an {@link import('../../types.js').RCMLDocument}-shaped tree).
+ * @param doc - Any value (expected to be an {@link import('../rcml-types.js').RcmlDocument}-shaped tree).
  * @returns A list of `ATTR_INVALID_VALUE` issues (empty on success).
  */
 export function validateAttrValues(doc: unknown): EmailTemplateValidationIssue[] {

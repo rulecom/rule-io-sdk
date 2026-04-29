@@ -41,16 +41,16 @@ import {
   createPlaceholder,
   createBrandLoop,
   createLoopFieldPlaceholder,
-  createSocial,
   createSocialElement,
-  createSwitch,
-  createCase,
+  createSocialChildElement,
+  createSwitchElement,
+  createCaseElement,
 } from '@rule-io/rcml';
 import type {
   BrandStyleConfig,
-  RCMLBodyChild,
-  RCMLColumnChild,
-  RCMLProseMirrorDoc,
+  Json,
+  RcmlBodyChild,
+  RcmlColumnChild,
 } from '@rule-io/rcml';
 
 // ---------------------------------------------------------------------------
@@ -117,20 +117,25 @@ async function resolvePreferredBrandStyleOrExit(
 const id = (): string => randomUUID();
 
 /** Plain ProseMirror doc from a string */
-function doc(text: string): RCMLProseMirrorDoc {
+function doc(text: string): Json {
   return {
     type: 'doc',
     content: [{ type: 'paragraph', content: [{ type: 'text', text }] }],
-  };
+  } as unknown as Json;
 }
 
-/** Rich ProseMirror doc with inline nodes */
-function richDoc(nodes: RCMLProseMirrorDoc['content'][0][]): RCMLProseMirrorDoc {
-  return { type: 'doc', content: [{ type: 'paragraph', content: nodes }] };
+/**
+ * Rich ProseMirror doc with inline nodes. Accepts loosely-typed inline
+ * objects (partial FontMark attrs are fine) and casts the result to `Json`
+ * — the canonical InlineNode/FontMark types are stricter than what this
+ * script's demonstration fixtures supply, but Rule.io accepts both shapes.
+ */
+function richDoc(nodes: Array<Record<string, unknown>>): Json {
+  return { type: 'doc', content: [{ type: 'paragraph', content: nodes }] } as unknown as Json;
 }
 
 /** Section label — grey bar to separate test groups in the editor */
-function label(title: string): RCMLBodyChild {
+function label(title: string): RcmlBodyChild {
   return {
     tagName: 'rc-section',
     id: id(),
@@ -153,11 +158,11 @@ function label(title: string): RCMLBodyChild {
         content: doc(title),
       }],
     }],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /** Centered section with UUID on section + column */
-function section(children: RCMLColumnChild[], bg?: string): RCMLBodyChild {
+function section(children: RcmlColumnChild[], bg?: string): RcmlBodyChild {
   return {
     tagName: 'rc-section',
     id: id(),
@@ -171,16 +176,16 @@ function section(children: RCMLColumnChild[], bg?: string): RCMLBodyChild {
       attributes: { padding: '0 20px' },
       children,
     }],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /** Two-column section with UUIDs */
 function twoColSection(
-  left: RCMLColumnChild[],
-  right: RCMLColumnChild[],
+  left: RcmlColumnChild[],
+  right: RcmlColumnChild[],
   leftWidth = '50%',
   rightWidth = '50%',
-): RCMLBodyChild {
+): RcmlBodyChild {
   return {
     tagName: 'rc-section',
     id: id(),
@@ -199,11 +204,11 @@ function twoColSection(
         children: right,
       },
     ],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /** rc-image with UUID */
-function image(src: string, opts?: { alt?: string; width?: string; href?: string; borderRadius?: string }): RCMLColumnChild {
+function image(src: string, opts?: { alt?: string; width?: string; href?: string; borderRadius?: string }): RcmlColumnChild {
   return {
     tagName: 'rc-image',
     id: id(),
@@ -219,12 +224,12 @@ function image(src: string, opts?: { alt?: string; width?: string; href?: string
 }
 
 /** rc-spacer with UUID */
-function spacer(height = '20px'): RCMLColumnChild {
+function spacer(height = '20px'): RcmlColumnChild {
   return { tagName: 'rc-spacer', id: id(), attributes: { height } };
 }
 
 /** rc-divider with UUID */
-function divider(opts?: { borderStyle?: 'solid' | 'dashed' | 'dotted'; borderColor?: string; borderWidth?: string; width?: string }): RCMLColumnChild {
+function divider(opts?: { borderStyle?: 'solid' | 'dashed' | 'dotted'; borderColor?: string; borderWidth?: string; width?: string }): RcmlColumnChild {
   return {
     tagName: 'rc-divider',
     id: id(),
@@ -239,7 +244,7 @@ function divider(opts?: { borderStyle?: 'solid' | 'dashed' | 'dotted'; borderCol
 }
 
 /** rc-text with inline styles + UUID (for non-brand styled text like notes) */
-function noteText(text: string, opts?: { align?: 'left' | 'center' | 'right'; color?: string; fontSize?: string }): RCMLColumnChild {
+function noteText(text: string, opts?: { align?: 'left' | 'center' | 'right'; color?: string; fontSize?: string }): RcmlColumnChild {
   return {
     tagName: 'rc-text',
     id: id(),
@@ -304,7 +309,7 @@ async function cleanup(): Promise<void> {
 interface SectionGroup {
   num: number;
   name: string;
-  sections: RCMLBodyChild[];
+  sections: RcmlBodyChild[];
 }
 
 function buildSectionGroups(
@@ -554,30 +559,32 @@ function buildSectionGroups(
     sections: [
       label('14. rc-switch / rc-case (conditional content)'),
       {
-        ...createSwitch([
-          {
-            ...createCase(
-              { caseType: 'tag', caseCondition: 'eq', caseValue: 1 },
-              [createContentSection([
-                createBrandText(createDocWithPlaceholders([
-                  createTextNode('This shows when tag ID 1 matches'),
-                ])),
-              ])] as unknown as Parameters<typeof createCase>[1],
-            ),
-            id: id(),
-          },
-          {
-            ...createCase(
-              { caseType: 'default' },
-              [createContentSection([
-                createBrandText(createDocWithPlaceholders([
-                  createTextNode('This is the default / fallback content'),
-                ])),
-              ])] as unknown as Parameters<typeof createCase>[1],
-            ),
-            id: id(),
-          },
-        ]),
+        ...createSwitchElement({
+          children: [
+            {
+              ...createCaseElement({
+                attrs: { 'case-type': 'tag', 'case-condition': 'eq', 'case-value': 1 },
+                children: [createContentSection([
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('This shows when tag ID 1 matches'),
+                  ])),
+                ])] as unknown as Parameters<typeof createCaseElement>[0]['children'],
+              }),
+              id: id(),
+            },
+            {
+              ...createCaseElement({
+                attrs: { 'case-type': 'default' },
+                children: [createContentSection([
+                  createBrandText(createDocWithPlaceholders([
+                    createTextNode('This is the default / fallback content'),
+                  ])),
+                ])] as unknown as Parameters<typeof createCaseElement>[0]['children'],
+              }),
+              id: id(),
+            },
+          ],
+        }),
         id: id(),
       },
     ],
@@ -593,10 +600,10 @@ function buildSectionGroups(
         { name: 'web', href: 'https://example.com' },
       ];
 
-  // Filter out links with invalid/unsafe URLs (createSocialElement throws on bad hrefs)
+  // Filter out links with invalid/unsafe URLs (createSocialChildElement throws on bad hrefs)
   const socialElements = rawSocialLinks.flatMap(l => {
     try {
-      return [{ ...createSocialElement(l), id: id() }];
+      return [{ ...createSocialChildElement({ attrs: l }), id: id() }];
     } catch {
       console.warn(`  Skipping social link "${l.name}" — invalid URL: ${l.href}`);
       return [];
@@ -611,7 +618,10 @@ function buildSectionGroups(
         label('15. rc-social / rc-social-element'),
         section([
           {
-            ...createSocial(socialElements, { align: 'center', iconSize: '24px' }),
+            ...createSocialElement({
+              attrs: { align: 'center', 'icon-size': '24px' },
+              children: socialElements,
+            }),
             id: id(),
           },
           noteText(`Social icons row — ${socialNames}`),
@@ -627,14 +637,14 @@ function buildShowcase(
   brandStyle: BrandStyleConfig,
   resolvedField?: { id: number; name: string },
   repeatableField?: { id: number; name: string },
-): RCMLBodyChild[] {
+): RcmlBodyChild[] {
   const allGroups = buildSectionGroups(brandStyle, resolvedField, repeatableField);
   const sectionFilter = onlySections;
   const groups = sectionFilter
     ? allGroups.filter(g => sectionFilter.includes(g.num))
     : allGroups;
 
-  const result: RCMLBodyChild[] = [];
+  const result: RcmlBodyChild[] = [];
 
   // == Logo ==
   if (brandStyle.logoUrl) {
@@ -827,7 +837,7 @@ async function probe(): Promise<void> {
   console.log(`\nProbing ${groups.length} section groups individually...\n`);
 
   for (const group of groups) {
-    const bodySections: RCMLBodyChild[] = [];
+    const bodySections: RcmlBodyChild[] = [];
     if (brandStyle.logoUrl) {
       bodySections.push(createBrandLogo(brandStyle.logoUrl));
     }

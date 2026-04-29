@@ -20,7 +20,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { RuleClient, RuleApiError } from '../src/index.js';
-import type { RCMLDocument } from '../src/index.js';
+import type { RcmlDocument } from '../src/index.js';
 
 const API_KEY = process.env.RULE_API_KEY;
 const OPT_IN = process.env.RUN_INTEGRATION === '1';
@@ -31,7 +31,7 @@ const runIntegration = !!API_KEY && OPT_IN;
 const RUN_ID = `sdk-test-${Date.now()}`;
 
 /** Minimal valid RCML document for template creation */
-function minimalRCML(): RCMLDocument {
+function minimalRCML(): RcmlDocument {
   return {
     head: { title: 'Test', preheader: '' },
     body: { sections: [] },

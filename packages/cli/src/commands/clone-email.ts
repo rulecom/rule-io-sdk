@@ -17,7 +17,7 @@ import type {
   RuleMessageResponse,
   RuleTemplateResponse,
 } from '@rule-io/client';
-import type { RCMLDocument } from '@rule-io/rcml';
+import type { RcmlDocument } from '@rule-io/rcml';
 import { createClient } from '../shared/client.js';
 
 interface EmailSnapshot {
@@ -105,8 +105,8 @@ async function runFetch(opts: FetchOptions): Promise<void> {
   console.log(`  templates: ${templates.length}`);
 }
 
-function stripBrandStyleId(template: RCMLDocument): RCMLDocument {
-  const cloned = JSON.parse(JSON.stringify(template)) as RCMLDocument;
+function stripBrandStyleId(template: RcmlDocument): RcmlDocument {
+  const cloned = JSON.parse(JSON.stringify(template)) as RcmlDocument;
   const head = cloned.children?.find(
     (c) => (c as { tagName?: string }).tagName === 'rc-head',
   ) as { children?: { tagName?: string }[] } | undefined;
@@ -135,7 +135,7 @@ async function runSend(opts: SendOptions): Promise<void> {
   const srcAutomail = snapshot.automail.data as unknown as Record<string, unknown> | undefined;
   const srcMessage = snapshot.message.data as unknown as Record<string, unknown> | undefined;
   const srcTemplate = snapshot.templates[0]?.data as unknown as
-    | { template?: RCMLDocument; name?: string }
+    | { template?: RcmlDocument; name?: string }
     | undefined;
   if (!srcAutomail || !srcMessage || !srcTemplate?.template) {
     throw new Error('Snapshot missing automail/message/template data');

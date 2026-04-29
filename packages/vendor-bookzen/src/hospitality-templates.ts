@@ -14,7 +14,7 @@
  */
 
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext, type RCMLDocument } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext, type RcmlDocument } from '@rule-io/rcml';
 
 // ============================================================================
 // Template Configuration
@@ -98,7 +98,7 @@ export interface ReservationTemplateConfig {
  * });
  * ```
  */
-export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RCMLDocument {
+export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RcmlDocument {
   const templateName = 'createReservationConfirmationEmail';
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
@@ -236,7 +236,7 @@ export interface ReservationCancellationConfig {
 /**
  * Create a reservation cancellation email template.
  */
-export function createReservationCancellationEmail(config: ReservationCancellationConfig): RCMLDocument {
+export function createReservationCancellationEmail(config: ReservationCancellationConfig): RcmlDocument {
   const templateName = 'createReservationCancellationEmail';
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
@@ -319,7 +319,7 @@ export interface ReservationReminderConfig {
 /**
  * Create a reservation reminder email template.
  */
-export function createReservationReminderEmail(config: ReservationReminderConfig): RCMLDocument {
+export function createReservationReminderEmail(config: ReservationReminderConfig): RcmlDocument {
   const templateName = 'createReservationReminderEmail';
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
@@ -362,7 +362,7 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
       );
     }
 
-    const sections: RCMLDocument['children'][1]['children'] = [
+    const sections: RcmlDocument['children'][1]['children'] = [
       ...createLogoSection(config.brandStyle.logoUrl),
 
       createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
@@ -432,7 +432,7 @@ export interface FeedbackRequestConfig {
  * Create a feedback/review request email template.
  * Works for post-stay, post-purchase, or any review request.
  */
-export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RCMLDocument {
+export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RcmlDocument {
   const templateName = 'createFeedbackRequestEmail';
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;
@@ -483,7 +483,7 @@ export interface ReservationRequestConfig {
 /**
  * Create a reservation request confirmation email (for pending/manual approval flows).
  */
-export function createReservationRequestEmail(config: ReservationRequestConfig): RCMLDocument {
+export function createReservationRequestEmail(config: ReservationRequestConfig): RcmlDocument {
   const templateName = 'createReservationRequestEmail';
   return withTemplateContext(templateName, () => {
     const { customFields, fieldNames, text } = config;

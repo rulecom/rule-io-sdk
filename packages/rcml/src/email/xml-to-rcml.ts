@@ -6,7 +6,7 @@
  * implementation details live in `./xml/parse-helpers.ts`.
  *
  * Text inside `<rc-text>`, `<rc-heading>`, and `<rc-button>` is treated as
- * RFM markdown and converted to a `RCMLProseMirrorDoc` — the embedded
+ * RFM markdown and converted to a `Json` — the embedded
  * `content` field then matches the shape expected by downstream consumers.
  */
 

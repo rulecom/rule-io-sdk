@@ -31,7 +31,7 @@
 import { randomUUID } from 'node:crypto';
 import { RuleConfigError } from '@rule-io/core';
 import type { BrandStyleConfig, CustomFieldMap, FooterConfig } from '@rule-io/core';
-import type { RCMLAttributes, RCMLBodyChild, RCMLButton, RCMLColumn, RCMLColumnChild, RCMLDocument, RCMLHead, RCMLHeading, RCMLProseMirrorDoc, RCMLLoop, RCMLSection, RCMLText } from './types.js';
+import type { Json, RcmlAttributes, RcmlBodyChild, RcmlButton, RcmlColumn, RcmlColumnChild, RcmlDocument, RcmlHead, RcmlHeading, RcmlLoop, RcmlSection, RcmlText } from './email/index.js';
 import { sanitizeUrl } from './utils.js';
 
 // Re-export from core so existing `import { BrandStyleConfig } from '@rule-io/rcml'`
@@ -215,7 +215,12 @@ export function createDocWithPlaceholders(
     | { type: 'text'; text: string }
     | { type: 'placeholder'; attrs: { type: string; name: string; value: string | number; original: string } }
   >
-): RCMLProseMirrorDoc {
+): Json {
+  // The legacy placeholder shape lacks `max-length`, which the canonical
+  // `PlaceholderNode` in `email/` marks as required. Cast through `unknown`
+  // to preserve the legacy runtime shape while letting the return type stay
+  // `Json` for downstream consumers — validateEmailTemplate tolerates the
+  // gap today; a future pass can canonicalise the shape.
   return {
     type: 'doc',
     content: [
@@ -224,7 +229,7 @@ export function createDocWithPlaceholders(
         content,
       },
     ],
-  };
+  } as unknown as Json;
 }
 
 // ============================================================================
@@ -405,7 +410,7 @@ export function createBrandHead(
     /** Plain text fallback content */
     plainText?: string;
   }
-): RCMLHead {
+): RcmlHead {
   const plainTextContent = options?.plainText
     ?? 'View this email in your browser: %Link:WebBrowser%\n\n---\nUnsubscribe: %Link:Unsubscribe%';
 
@@ -434,18 +439,22 @@ export function createBrandHead(
     }
   }
 
-  // Build rc-attributes children
-  const attributeChildren: NonNullable<RCMLAttributes['children']> = [
+  // Build rc-attributes children. The legacy brand head puts rc-class and
+  // rc-social nodes under rc-attributes (and rc-font directly under rc-head
+  // below); the canonical RcmlAttributesChild / RcmlHeadChild unions don't
+  // allow that. The Rule.io renderer tolerates it, so we preserve the legacy
+  // shape and cast at the array boundary.
+  const attributeChildren = [
     { tagName: 'rc-body', id: generateId(), attributes: { 'background-color': brandStyle.bodyBackgroundColor } },
     { tagName: 'rc-section', id: generateId(), attributes: { 'background-color': brandStyle.sectionBackgroundColor } },
     { tagName: 'rc-button', id: generateId(), attributes: { 'background-color': brandStyle.buttonColor } },
-  ];
+  ] as unknown as RcmlAttributes['children'];
 
   if (sanitizedLogoUrl) {
     attributeChildren.push({
       tagName: 'rc-class', id: generateId(),
       attributes: { name: 'rcml-logo-style', src: sanitizedLogoUrl },
-    });
+    } as unknown as RcmlAttributes['children'][number]);
   }
 
   if (brandStyle.socialLinks && brandStyle.socialLinks.length > 0) {
@@ -459,47 +468,49 @@ export function createBrandHead(
           tagName: 'rc-social-element', id: generateId(),
           attributes: { name: link.name, href: link.href },
         })),
-      });
+      } as unknown as RcmlAttributes['children'][number]);
     }
   }
 
   attributeChildren.push(
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-brand-color', 'background-color': brandStyle.brandColor } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-p-style', 'font-family': brandStyle.bodyFont, 'font-size': '16px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h1-style', 'font-family': brandStyle.headingFont, 'font-size': '36px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h2-style', 'font-family': brandStyle.headingFont, 'font-size': '28px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h3-style', 'font-family': brandStyle.headingFont, 'font-size': '24px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h4-style', 'font-family': brandStyle.headingFont, 'font-size': '18px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
-    { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: brandStyle.buttonTextColor ?? '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+    ...([
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-brand-color', 'background-color': brandStyle.brandColor } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-p-style', 'font-family': brandStyle.bodyFont, 'font-size': '16px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h1-style', 'font-family': brandStyle.headingFont, 'font-size': '36px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h2-style', 'font-family': brandStyle.headingFont, 'font-size': '28px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h3-style', 'font-family': brandStyle.headingFont, 'font-size': '24px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-h4-style', 'font-family': brandStyle.headingFont, 'font-size': '18px', color: brandStyle.textColor, 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+      { tagName: 'rc-class', id: generateId(), attributes: { name: 'rcml-label-style', 'font-family': brandStyle.bodyFont, 'font-size': '14px', color: brandStyle.buttonTextColor ?? '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+    ] as unknown as RcmlAttributes['children']),
   );
 
   // Build head children
-  const headChildren: NonNullable<RCMLHead['children']> = [
+  const headChildren = [
     { tagName: 'rc-brand-style', id: generateId(), attributes: { id: brandStyle.brandStyleId } },
     { tagName: 'rc-attributes', id: generateId(), children: attributeChildren },
     { tagName: 'rc-preview', id: generateId(), ...(options?.preheader ? { content: options.preheader } : {}) },
     { tagName: 'rc-plain-text', id: generateId(), content: { type: 'text' as const, text: plainTextContent } },
-  ];
+  ] as unknown as RcmlHead['children'];
 
   // Add font definitions only when URLs are available (system fonts don't need them)
   if (sanitizedHeadingFontUrl) {
     headChildren.push({
       tagName: 'rc-font', id: generateId(),
       attributes: { name: brandStyle.headingFont.split(',')[0].trim(), href: sanitizedHeadingFontUrl },
-    });
+    } as unknown as RcmlHead['children'][number]);
   }
   if (sanitizedBodyFontUrl) {
     headChildren.push({
       tagName: 'rc-font', id: generateId(),
       attributes: { name: brandStyle.bodyFont.split(',')[0].trim(), href: sanitizedBodyFontUrl },
-    });
+    } as unknown as RcmlHead['children'][number]);
   }
 
   return {
     tagName: 'rc-head',
     id: generateId(),
     children: headChildren,
-  } as RCMLHead;
+  } as RcmlHead;
 }
 
 // ============================================================================
@@ -514,7 +525,7 @@ export interface SimpleTemplateConfig {
   /** Plain text fallback content */
   plainText?: string;
   /** Email body sections */
-  sections: RCMLBodyChild[];
+  sections: RcmlBodyChild[];
 }
 
 /**
@@ -537,7 +548,7 @@ export interface SimpleTemplateConfig {
  * });
  * ```
  */
-export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument {
+export function createBrandTemplate(config: SimpleTemplateConfig): RcmlDocument {
   return {
     tagName: 'rcml',
     id: generateId(),
@@ -569,7 +580,7 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RCMLDocument 
  *
  * @param logoUrl - Logo image URL (must be a safe http/https URL)
  */
-export function createBrandLogo(logoUrl: string): RCMLBodyChild {
+export function createBrandLogo(logoUrl: string): RcmlBodyChild {
   const sanitizedSrc = sanitizeUrl(logoUrl);
   if (!sanitizedSrc) {
     throw new RuleConfigError('createBrandLogo: invalid or unsafe logoUrl');
@@ -599,16 +610,16 @@ export function createBrandLogo(logoUrl: string): RCMLBodyChild {
         ],
       },
     ],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /**
  * Create a heading using brand style.
  */
 export function createBrandHeading(
-  content: RCMLProseMirrorDoc,
+  content: Json,
   level: 1 | 2 | 3 | 4 = 1
-): RCMLHeading {
+): RcmlHeading {
   return {
     tagName: 'rc-heading',
     id: generateId(),
@@ -623,9 +634,9 @@ export function createBrandHeading(
  * Create a text element using brand style.
  */
 export function createBrandText(
-  content: RCMLProseMirrorDoc,
+  content: Json,
   options?: { align?: 'left' | 'center' | 'right'; padding?: string }
-): RCMLText {
+): RcmlText {
   return {
     tagName: 'rc-text',
     id: generateId(),
@@ -642,9 +653,9 @@ export function createBrandText(
  * Create a button using brand style.
  */
 export function createBrandButton(
-  content: RCMLProseMirrorDoc,
+  content: Json,
   href: string
-): RCMLButton {
+): RcmlButton {
   const sanitizedHref = sanitizeUrl(href);
   if (!sanitizedHref) {
     throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
@@ -672,9 +683,9 @@ export function createBrandButton(
  * Create a content section with a single column.
  */
 export function createContentSection(
-  children: RCMLColumnChild[],
+  children: RcmlColumnChild[],
   options?: { padding?: string; backgroundColor?: string }
-): RCMLBodyChild {
+): RcmlBodyChild {
   return {
     tagName: 'rc-section',
     id: generateId(),
@@ -690,7 +701,7 @@ export function createContentSection(
         children,
       },
     ],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /**
@@ -719,7 +730,7 @@ export function createDefaultContentSection(options?: {
   bodyText?: string;
   buttonText?: string;
   buttonUrl?: string;
-}): RCMLBodyChild {
+}): RcmlBodyChild {
   const heading = options?.headingText ?? 'Replace this title';
   const body = options?.bodyText ?? 'Click into this box to change the font settings. Edit this text to include additional information and a description of the image.';
   const button = options?.buttonText ?? 'Click me!';
@@ -786,7 +797,7 @@ export function createDefaultContentSection(options?: {
         ],
       },
     ],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 /**
@@ -812,9 +823,9 @@ export function createDefaultContentSection(options?: {
  */
 export function createBrandLoop(
   fieldId: number,
-  children: RCMLSection[],
+  children: RcmlSection[],
   options?: { maxIterations?: number; rangeStart?: number; rangeEnd?: number }
-): RCMLLoop {
+): RcmlLoop {
   return {
     tagName: 'rc-loop',
     id: generateId(),
@@ -851,7 +862,7 @@ export function createBrandLoop(
  */
 export function createFooterSection(
   config?: FooterConfig
-): RCMLBodyChild {
+): RcmlBodyChild {
   const viewText = config?.viewInBrowserText ?? 'View in browser';
   const unsubText = config?.unsubscribeText ?? 'Unsubscribe';
   const bgColor = config?.backgroundColor ?? '#f3f3f3';
@@ -971,7 +982,7 @@ export function createFooterSection(
         ],
       },
     ],
-  } as RCMLBodyChild;
+  } as RcmlBodyChild;
 }
 
 // ============================================================================
@@ -986,7 +997,7 @@ export function createFooterSection(
  *
  * @internal Not exported from barrel — used by template builders only.
  */
-export function createLogoSection(logoUrl?: string): RCMLBodyChild[] {
+export function createLogoSection(logoUrl?: string): RcmlBodyChild[] {
   return logoUrl ? [createBrandLogo(logoUrl)] : [];
 }
 
@@ -1005,7 +1016,7 @@ export function createGreetingSection(
   intro: string,
   firstNameFieldName: string,
   firstNameFieldId: number
-): RCMLBodyChild {
+): RcmlBodyChild {
   return createContentSection(
     [
       createBrandHeading(
@@ -1029,7 +1040,7 @@ export function createGreetingSection(
  *
  * @internal Not exported from barrel — used by template builders only.
  */
-export function createCtaSection(buttonText: string, url: string): RCMLBodyChild {
+export function createCtaSection(buttonText: string, url: string): RcmlBodyChild {
   return createContentSection(
     [
       createBrandButton(
@@ -1066,10 +1077,10 @@ export function createCtaSection(buttonText: string, url: string): RCMLBodyChild
  * ```
  */
 export function createSummaryRowsSection(
-  rows: Array<RCMLText | undefined | false | null>,
+  rows: Array<RcmlText | undefined | false | null>,
   options?: { backgroundColor?: string; padding?: string }
-): RCMLBodyChild | undefined {
-  const filtered = rows.filter((r): r is RCMLText => !!r);
+): RcmlBodyChild | undefined {
+  const filtered = rows.filter((r): r is RcmlText => !!r);
   if (filtered.length === 0) return undefined;
   return createContentSection(filtered, {
     padding: options?.padding ?? '20px 0',
@@ -1118,14 +1129,14 @@ export interface CreateStatusTrackerSectionOptions {
  */
 export function createStatusTrackerSection(
   options: CreateStatusTrackerSectionOptions
-): RCMLBodyChild {
+): RcmlBodyChild {
   const { steps, activeIndex, brandStyle } = options;
   if (steps.length === 0) {
     throw new RuleConfigError('createStatusTrackerSection: steps must not be empty');
   }
   if (steps.length > 4) {
     throw new RuleConfigError(
-      'createStatusTrackerSection: steps must contain at most 4 items (RCMLSection supports up to 4 columns)'
+      'createStatusTrackerSection: steps must contain at most 4 items (RcmlSection supports up to 4 columns)'
     );
   }
   if (activeIndex < 0 || activeIndex >= steps.length) {
@@ -1143,7 +1154,10 @@ export function createStatusTrackerSection(
   const activeFg = brandStyle.buttonTextColor ?? '#FFFFFF';
   const inactiveFg = brandStyle.textColor;
 
-  const columns: RCMLColumn[] = steps.map((step, idx) => {
+  // Legacy font marks only set color + font-weight; canonical FontMark
+  // declares all 8 style fields (nullable). Rule.io accepts the partial
+  // shape, so cast at the array boundary.
+  const columns = steps.map((step, idx) => {
     const widthPercent = `${baseWidth + (idx === 0 ? remainder : 0)}%`;
     const isActive = idx <= activeIndex;
     const bg = isActive ? activeBg : inactiveBg;
@@ -1196,13 +1210,13 @@ export function createStatusTrackerSection(
     attributes: {
       padding: options.padding ?? '10px 0',
     },
-    children: columns,
+    children: columns as unknown as RcmlColumn[],
   };
 }
 
 export interface CreateAddressBlockOptions {
   /** Pre-built ProseMirror docs — one per visible line. */
-  lines: RCMLProseMirrorDoc[];
+  lines: Json[];
   /** Optional heading rendered above the lines (level 4). */
   heading?: string;
   /** Section padding (default: '10px 0'). */
@@ -1237,10 +1251,10 @@ export interface CreateAddressBlockOptions {
  */
 export function createAddressBlock(
   options: CreateAddressBlockOptions
-): RCMLBodyChild | undefined {
+): RcmlBodyChild | undefined {
   if (options.lines.length === 0) return undefined;
 
-  const children: RCMLColumnChild[] = [];
+  const children: RcmlColumnChild[] = [];
   if (options.heading) {
     children.push(
       createBrandHeading(

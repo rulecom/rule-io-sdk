@@ -30,7 +30,7 @@ export interface TemplateConfigV2 {
  *
  * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level so the
  * contract doesn't depend on `@rule-io/rcml`; concrete implementations in
- * `@rule-io/rcml` / vendor packages return a full `RCMLDocument` (a subtype),
+ * `@rule-io/rcml` / vendor packages return a full `RcmlDocument` (a subtype),
  * which TypeScript accepts by function-return covariance.
  *
  * @example
