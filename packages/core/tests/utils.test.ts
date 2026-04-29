@@ -1,12 +1,12 @@
 /**
- * Tests for the small HTML / URL / date utilities in `packages/rcml/src/utils.ts`.
- * Extracted from the previously-legacy `rcml.test.ts` when `elements.ts` was
- * retired; the template builders now have their own coverage under
- * `packages/rcml/src/email/` and `packages/rcml/tests/templates.test.ts`.
+ * Tests for the small HTML / URL / date utilities in `packages/core/src/utils.ts`.
+ * Originally lived under `@rule-io/rcml` alongside the legacy element builders;
+ * relocated to `@rule-io/core` with the rest of rcml's cleanup since these
+ * helpers are dependency-free and shared by multiple packages.
  */
 
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, sanitizeUrl, formatDateForRule } from '../src/index.js';
+import { escapeHtml, sanitizeUrl, formatDateForRule } from '../src/utils.js';
 
 describe('RCML Utils', () => {
   describe('escapeHtml', () => {

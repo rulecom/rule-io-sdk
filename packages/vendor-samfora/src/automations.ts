@@ -15,19 +15,7 @@ import type { RcmlDocument, RcmlBodyChild } from '@rule-io/rcml';
 import type { CustomFieldMap, FooterConfig } from '@rule-io/core';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
-import {
-  createBrandTemplate,
-  createBrandLogo,
-  createContentSection,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createDocWithPlaceholders,
-  createPlaceholder,
-  createTextNode,
-  createFooterSection,
-  validateCustomFields,
-} from '@rule-io/rcml';
+import { createBrandTemplate, createBrandLogo, createContentSection, createBrandHeading, createBrandText, createBrandButton, createDocWithPlaceholders, createPlaceholder, createTextNode, createFooterSection, validateCustomFields } from '@rule-io/client';
 import { RuleConfigError } from '@rule-io/core';
 
 // ============================================================================

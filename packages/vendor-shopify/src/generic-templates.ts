@@ -14,7 +14,8 @@
  */
 
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createDividerElement, createSocialElement, createSocialChildElement, validateCustomFields, withTemplateContext, type RcmlBodyChild, type RcmlColumnChild, type RcmlDocument, type RcmlText } from '@rule-io/rcml';
+import { createDividerElement, createSocialElement, createSocialChildElement, type RcmlBodyChild, type RcmlColumnChild, type RcmlDocument, type RcmlText } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext } from '@rule-io/client';
 
 function dividerSection(): RcmlBodyChild {
   return createContentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });

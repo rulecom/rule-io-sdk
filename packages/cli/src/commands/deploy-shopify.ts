@@ -17,7 +17,8 @@
 
 import type { Command } from 'commander';
 import { RuleClient } from '@rule-io/client';
-import { resolvePreferredBrandStyle, type RcmlDocument } from '@rule-io/rcml';
+import { type RcmlDocument } from '@rule-io/rcml';
+import { resolvePreferredBrandStyle } from '@rule-io/client';
 import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
 import { createClient } from '../shared/client.js';

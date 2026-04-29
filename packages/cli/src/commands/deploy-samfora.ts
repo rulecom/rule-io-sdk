@@ -5,7 +5,8 @@
 
 import type { Command } from 'commander';
 import { RuleClient } from '@rule-io/client';
-import { resolvePreferredBrandStyle, type RcmlDocument } from '@rule-io/rcml';
+import { type RcmlDocument } from '@rule-io/rcml';
+import { resolvePreferredBrandStyle } from '@rule-io/client';
 import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rule-io/vendor-samfora';
 import { createClient } from '../shared/client.js';

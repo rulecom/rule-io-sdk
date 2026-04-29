@@ -6,8 +6,8 @@
  */
 
 import { expect } from 'vitest';
-import type { RcmlDocument } from '../src/index.js';
-import type { BrandStyleConfig } from '../src/index.js';
+import type { RcmlDocument } from '@rule-io/rcml';
+import type { BrandStyleConfig } from '@rule-io/core';
 
 // ============================================================================
 // Shared brand-style fixture

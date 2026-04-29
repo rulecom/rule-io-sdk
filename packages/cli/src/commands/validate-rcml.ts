@@ -26,28 +26,10 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Command } from 'commander';
 import { RuleClient, RULE_API_V2_BASE_URL } from '@rule-io/client';
-import {
-  resolvePreferredBrandStyle,
-  createBrandTemplate,
-  createDefaultContentSection,
-  createFooterSection,
-  createBrandLogo,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createContentSection,
-  createDocWithPlaceholders,
-  createTextNode,
-  createPlaceholder,
-  createBrandLoop,
-  createLoopFieldPlaceholder,
-  createSocialElement,
-  createSocialChildElement,
-  createSwitchElement,
-  createCaseElement,
-} from '@rule-io/rcml';
+import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement } from '@rule-io/rcml';
+import { resolvePreferredBrandStyle, createBrandTemplate, createDefaultContentSection, createFooterSection, createBrandLogo, createBrandHeading, createBrandText, createBrandButton, createContentSection, createDocWithPlaceholders, createTextNode, createPlaceholder, createBrandLoop, createLoopFieldPlaceholder } from '@rule-io/client';
+import type { BrandStyleConfig } from '@rule-io/core';
 import type {
-  BrandStyleConfig,
   Json,
   RcmlBodyChild,
   RcmlColumnChild,
@@ -601,7 +583,7 @@ function buildSectionGroups(
       ];
 
   // Filter out links with invalid/unsafe URLs (createSocialChildElement throws on bad hrefs)
-  const socialElements = rawSocialLinks.flatMap(l => {
+  const socialElements = rawSocialLinks.flatMap((l: { name: string; href: string }) => {
     try {
       return [{ ...createSocialChildElement({ attrs: l }), id: id() }];
     } catch {
@@ -611,7 +593,10 @@ function buildSectionGroups(
   });
 
   if (socialElements.length > 0) {
-    const socialNames = socialElements.map(el => el.attributes.name).join(', ');
+    const socialNames = socialElements
+      .map((el: { attributes: { name?: string } }) => el.attributes.name ?? '')
+      .filter((n) => n.length > 0)
+      .join(', ');
     groups.push({
       num: 15, name: 'Social icons (rc-social)',
       sections: [

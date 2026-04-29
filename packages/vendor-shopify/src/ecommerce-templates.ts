@@ -14,9 +14,10 @@
  * fields to override with your own locale.
  */
 
-import { RuleConfigError } from '@rule-io/core';
+import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, createColumnElement, createDividerElement, createSectionElement, createSocialElement, createSocialChildElement, sanitizeUrl, validateCustomFields, withTemplateContext, type Json, type RcmlBodyChild, type RcmlDocument, type RcmlSection, type RcmlText } from '@rule-io/rcml';
+import { createColumnElement, createDividerElement, createSectionElement, createSocialElement, createSocialChildElement, type Json, type RcmlBodyChild, type RcmlDocument, type RcmlSection, type RcmlText } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, validateCustomFields, withTemplateContext } from '@rule-io/client';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
 function dividerSection(): RcmlBodyChild {

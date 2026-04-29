@@ -101,7 +101,7 @@ import type {
   RuleApiKeyResponse,
   RuleApiKeyListResponse,
 } from './types.js';
-import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createDefaultContentSection, createFooterSection } from '@rule-io/rcml';
+import { toBrandStyleConfig, createBrandTemplate, createBrandLogo, createDefaultContentSection, createFooterSection } from './brand-template.js';
 
 /** Scalar query-param value. */
 type QueryParamValue = string | number | boolean | null | undefined;

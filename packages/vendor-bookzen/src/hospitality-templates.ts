@@ -14,7 +14,8 @@
  */
 
 import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext, type RcmlDocument } from '@rule-io/rcml';
+import { type RcmlDocument } from '@rule-io/rcml';
+import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext } from '@rule-io/client';
 
 // ============================================================================
 // Template Configuration

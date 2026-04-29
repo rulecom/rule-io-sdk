@@ -29,10 +29,10 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import { RuleConfigError } from '@rule-io/core';
+import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
 import type { BrandStyleConfig, CustomFieldMap, FooterConfig } from '@rule-io/core';
-import type { Json, RcmlAttributes, RcmlBodyChild, RcmlButton, RcmlColumn, RcmlColumnChild, RcmlDocument, RcmlHead, RcmlHeading, RcmlLoop, RcmlSection, RcmlText } from './email/index.js';
-import { sanitizeUrl } from './utils.js';
+import type { Json, RcmlAttributes, RcmlBodyChild, RcmlButton, RcmlColumn, RcmlColumnChild, RcmlDocument, RcmlHead, RcmlHeading, RcmlLoop, RcmlSection, RcmlText } from '@rule-io/rcml';
+import { createTextNode } from '@rule-io/rcml';
 
 // Re-export from core so existing `import { BrandStyleConfig } from '@rule-io/rcml'`
 // consumers keep compiling after the types moved to core.
@@ -191,12 +191,10 @@ export function createLoopFieldPlaceholder(
   };
 }
 
-/**
- * Create a text node for use in ProseMirror documents.
- */
-export function createTextNode(text: string): { type: 'text'; text: string } {
-  return { type: 'text', text };
-}
+// `createTextNode` lives in `@rule-io/rcml` (from `email/create-rcml-element.ts`).
+// Re-export it here so consumers who previously imported from `@rule-io/rcml` and
+// now migrate to `@rule-io/client` for brand-template symbols still have it to hand.
+export { createTextNode } from '@rule-io/rcml';
 
 /**
  * Create a ProseMirror document with mixed text and placeholder nodes.

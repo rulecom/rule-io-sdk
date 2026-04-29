@@ -1,7 +1,7 @@
 {
   "name": "@rule-io/vendor-samfora",
   "version": "0.3.0",
-  "description": "Samfora preset for the Rule.io SDK — Swedish donation-platform automation flows.",
+  "description": "Samfora preset for the Rule.io SDK \u2014 Swedish donation-platform automation flows.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -16,7 +16,14 @@
     "README.md",
     "CHANGELOG.md"
   ],
-  "keywords": ["rule.io", "samfora", "donations", "swedish", "preset", "sdk"],
+  "keywords": [
+    "rule.io",
+    "samfora",
+    "donations",
+    "swedish",
+    "preset",
+    "sdk"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -24,6 +31,7 @@
     "directory": "packages/vendor-samfora"
   },
   "dependencies": {
+    "@rule-io/client": "0.3.0",
     "@rule-io/core": "0.3.0",
     "@rule-io/rcml": "0.3.0"
   },

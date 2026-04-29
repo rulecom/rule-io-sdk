@@ -22,3 +22,6 @@ export type {
   VendorFieldInfo,
   VendorTagSchema,
 } from './vendor-types.js';
+
+// Small utility helpers — HTML/URL/date sanitisation shared by rcml + client.
+export { escapeHtml, sanitizeUrl, formatDateForRule } from './utils.js';
