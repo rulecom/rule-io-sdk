@@ -151,3 +151,68 @@ export type {
   VendorFieldInfo,
   VendorTagSchema,
 } from './vendor-types.js';
+
+// Email-template validator (AI-generated RCML validation)
+export {
+  validateEmailTemplate,
+  safeValidateEmailTemplate,
+  EmailTemplateValidationError,
+  EmailTemplateErrorCodes,
+} from './email/validate-email-template.js';
+export type {
+  SafeValidateResult,
+  EmailTemplateValidationIssue,
+  EmailTemplateErrorCode,
+} from './email/validate-email-template.js';
+
+// RCML XML ↔ JSON conversion (round-trip, for debug / export)
+export { rcmlToXml } from './email/rcml-to-xml.js';
+export type { RcmlToXmlOptions } from './email/rcml-to-xml.js';
+export {
+  xmlToRcml,
+  safeXmlToRcml,
+  RcmlXmlParseError,
+  RcmlXmlErrorCodes,
+} from './email/xml-to-rcml.js';
+export type {
+  SafeXmlToRcmlResult,
+  RcmlXmlErrorCode,
+  RcmlXmlParseIssue,
+} from './email/xml-to-rcml.js';
+
+// RFM markdown ↔ RCML content JSON conversion
+export { rfmToJson, inlineRfmToJson } from './email/rfm-to-json.js';
+export { jsonToRfm, jsonToInlineRfm } from './email/json-to-rfm.js';
+
+// RCML content JSON validation + typed node/mark tree
+export {
+  validateJson,
+  safeParseJson,
+  JsonParseError,
+  validateJsonSemantics,
+  assertJsonSemantics,
+  normalizeJson,
+} from './email/validate-rcml-json.js';
+export type {
+  Json,
+  JsonValidationError,
+  SafeParseResult,
+  SemanticIssue,
+  SemanticValidationResult,
+  FlavorConfig,
+  BlockNode,
+  InlineNode,
+  Mark,
+  TextNode,
+  HardbreakNode,
+  PlaceholderNode,
+  LoopValueNode,
+  PlaceholderValueFragmentNode,
+  ParagraphNode,
+  BulletListNode,
+  OrderedListNode,
+  ListItemNode,
+  AlignNode,
+  FontMark,
+  LinkMark,
+} from './email/validate-rcml-json.js';

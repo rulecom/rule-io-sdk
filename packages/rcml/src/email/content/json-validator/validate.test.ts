@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { validateJson, safeParseJson, JsonParseError } from '../validate-json.js'
-import { rfmToJson, inlineRfmToJson } from '../index.js'
+import { validateJson, safeParseJson, JsonParseError } from '../../validate-rcml-json.js'
+import { rfmToJson, inlineRfmToJson } from '../../rfm-to-json.js'
 import { rfmConfig } from '../flavors/rfm.js'
 import { inlineRfmConfig } from '../flavors/inline-rfm.js'
 

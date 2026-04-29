@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { rfmToJson, inlineRfmToJson } from './markdown-to-json.js'
-import { jsonToRfm, jsonToInlineRfm } from './json-to-markdown.js'
-import type { Json } from './json-validator/types.js'
+import { rfmToJson, inlineRfmToJson } from './rfm-to-json.js'
+import { jsonToRfm, jsonToInlineRfm } from './json-to-rfm.js'
+import type { Json } from './validate-rcml-json.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

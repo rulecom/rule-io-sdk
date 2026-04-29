@@ -13,48 +13,53 @@ import { renderWithMarks, renderMark, marksEqual } from './mark.js'
 /**
  * Serialize a sequence of inline nodes to an RFM markdown string.
  *
- * When all nodes in the sequence are text nodes that share the same outermost
- * mark, they are grouped under a single directive wrapper and the process
- * recurses on the inner mark layers. This mirrors how `flattenInline` in
- * `convert.ts` flattens IR nesting into flat per-node mark arrays.
+ * When all nodes in the sequence are text nodes that share at least one
+ * common mark — at *any* position in their mark arrays, not just the first —
+ * the shared mark is pulled out as a single directive wrapper and the
+ * process recurses on the stripped inner content. This keeps adjacent runs
+ * that share an outer mark wrapped together (e.g. a `:link` covering a plain
+ * run plus a `:font`-styled run), which avoids asymmetric whitespace handling
+ * in remark-directive when the group would otherwise be split into separate
+ * top-level directives.
  *
  * @internal
  */
 export function serializeInlineNodes(nodes: InlineNode[]): string {
   if (nodes.length === 0) return ''
 
-  // All text nodes sharing the same outermost mark → group under one directive.
   if (nodes.every((n): n is TextNode => n.type === 'text')) {
-    let sharedMark: Mark | undefined
-    let allShare = true
+    const sharedMark = findSharedMark(nodes)
 
-    for (const n of nodes) {
-      const first = n.marks?.at(0)
-
-      if (!first) {
-        allShare = false
-        break
-      }
-
-      if (!sharedMark) {
-        sharedMark = first
-        continue
-      }
-
-      if (!marksEqual(first, sharedMark)) {
-        allShare = false
-        break
-      }
-    }
-
-    if (allShare && sharedMark) {
-      const stripped = nodes.map((n) => ({ ...n, marks: n.marks?.slice(1) ?? [] }))
+    if (sharedMark) {
+      const stripped = nodes.map((n) => ({
+        ...n,
+        marks: (n.marks ?? []).filter((m) => !marksEqual(m, sharedMark)),
+      }))
 
       return renderMark(serializeInlineNodes(stripped), sharedMark)
     }
   }
 
   return nodes.map(serializeInlineNode).join('')
+}
+
+/**
+ * Find the first mark (scanning the first node's marks in order) that is
+ * present on *every* node in the sequence. Returns `undefined` when no mark
+ * is common to all nodes (or when the first node has no marks).
+ */
+function findSharedMark(nodes: TextNode[]): Mark | undefined {
+  const firstMarks = nodes[0]?.marks ?? []
+
+  for (const candidate of firstMarks) {
+    const onEveryNode = nodes.every((n) =>
+      (n.marks ?? []).some((m) => marksEqual(m, candidate)),
+    )
+
+    if (onEveryNode) return candidate
+  }
+
+  return undefined
 }
 
 // ─── Single-node serializer ───────────────────────────────────────────────────

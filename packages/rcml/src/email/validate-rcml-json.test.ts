@@ -6,8 +6,8 @@ import {
   validateJsonSemantics,
   assertJsonSemantics,
   normalizeJson,
-} from './validate-json.js'
-import type { Json } from './json-validator/types.js'
+  type Json,
+} from './validate-rcml-json.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyJson = Record<string, any>

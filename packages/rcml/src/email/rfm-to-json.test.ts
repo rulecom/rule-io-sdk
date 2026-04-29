@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { rfmToJson, inlineRfmToJson } from './markdown-to-json.js'
-import { RcmlValidationError } from './parser/parse.js'
+import { rfmToJson, inlineRfmToJson } from './rfm-to-json.js'
+import { RcmlValidationError } from './content/parser/parse.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyJson = Record<string, any>

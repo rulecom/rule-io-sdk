@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { validateJsonSemantics, assertJsonSemantics, normalizeJson } from '../validate-json.js'
+import { validateJsonSemantics, assertJsonSemantics, normalizeJson } from '../../validate-rcml-json.js'
 import type { Json, TextNode, Mark } from './types.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
