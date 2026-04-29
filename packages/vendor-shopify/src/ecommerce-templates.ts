@@ -14,7 +14,7 @@
  * fields to override with your own locale.
  */
 
-import type { RCMLBodyChild, RCMLDocument, RCMLSection, RCMLText, RCMLProseMirrorDoc } from './types.js';
+import { RuleConfigError } from '@rule-io/core';
 import {
   createBrandTemplate,
   createBrandHeading,
@@ -32,15 +32,22 @@ import {
   createSummaryRowsSection,
   createStatusTrackerSection,
   createAddressBlock,
+  createDivider,
+  createSocial,
+  createSocialElement,
+  createTwoColumnSection,
+  sanitizeUrl,
+  validateCustomFields,
+  withTemplateContext,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
-  validateCustomFields,
-  withTemplateContext,
-} from './brand-template.js';
-import { createDivider, createSocial, createSocialElement, createTwoColumnSection } from './elements.js';
-import { RuleConfigError } from '@rule-io/core';
-import { sanitizeUrl } from './utils.js';
+  type RCMLBodyChild,
+  type RCMLDocument,
+  type RCMLSection,
+  type RCMLText,
+  type RCMLProseMirrorDoc,
+} from '@rule-io/rcml';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
 function dividerSection(): RCMLBodyChild {

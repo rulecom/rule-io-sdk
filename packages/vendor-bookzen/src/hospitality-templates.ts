@@ -13,7 +13,6 @@
  * to override with your own locale.
  */
 
-import type { RCMLDocument } from './types.js';
 import {
   createBrandTemplate,
   createBrandHeading,
@@ -27,12 +26,13 @@ import {
   createLogoSection,
   createGreetingSection,
   createCtaSection,
+  validateCustomFields,
+  withTemplateContext,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
-  validateCustomFields,
-  withTemplateContext,
-} from './brand-template.js';
+  type RCMLDocument,
+} from '@rule-io/rcml';
 
 // ============================================================================
 // Template Configuration

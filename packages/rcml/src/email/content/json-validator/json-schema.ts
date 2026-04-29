@@ -405,7 +405,6 @@ export const rcmlContentJsonSchema = {
  *
  * @internal — not part of the public API; use {@link validateJson} or {@link safeParseJson} instead.
  */
-// eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types -- return type is a deeply nested schema object; let TypeScript infer it
 export function buildJsonSchema(config: FlavorConfig) {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema' as const,

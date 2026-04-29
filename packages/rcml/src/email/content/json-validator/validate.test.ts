@@ -855,7 +855,7 @@ describe('validateJson — config with no text directives rejects marks', () => 
     }
     const doc = validDoc(paragraph(text('x', [fontMark({ 'font-weight': 'bold' })])))
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => validateJson(doc, noMarksConfig as any)).toThrow(JsonParseError)
   })
 })

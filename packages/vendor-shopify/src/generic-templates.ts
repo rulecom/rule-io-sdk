@@ -13,7 +13,6 @@
  * to override with your own locale.
  */
 
-import type { RCMLBodyChild, RCMLColumnChild, RCMLDocument, RCMLText } from './types.js';
 import {
   createBrandTemplate,
   createBrandHeading,
@@ -25,13 +24,19 @@ import {
   createLogoSection,
   createGreetingSection,
   createCtaSection,
+  createDivider,
+  createSocial,
+  createSocialElement,
+  validateCustomFields,
+  withTemplateContext,
   type BrandStyleConfig,
   type CustomFieldMap,
   type FooterConfig,
-  validateCustomFields,
-  withTemplateContext,
-} from './brand-template.js';
-import { createDivider, createSocial, createSocialElement } from './elements.js';
+  type RCMLBodyChild,
+  type RCMLColumnChild,
+  type RCMLDocument,
+  type RCMLText,
+} from '@rule-io/rcml';
 
 function dividerSection(): RCMLBodyChild {
   return createContentSection([createDivider({ padding: '10px 0' })], { padding: '0' });

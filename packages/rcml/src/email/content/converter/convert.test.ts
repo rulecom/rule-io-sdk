@@ -256,7 +256,7 @@ describe('convert() — hardbreak', () => {
       ],
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const doc = convert(ir as any).toJSON() as Json
 
     expect(doc.content[0].content[1].type).toBe('hardbreak')
@@ -488,7 +488,7 @@ describe('convert() — error handling', () => {
       children: [{ type: 'unknown-block', children: [] }],
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => convert(ir as any)).toThrow(/Unexpected IR block type "unknown-block"/)
   })
 
@@ -503,7 +503,7 @@ describe('convert() — error handling', () => {
       ],
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(() => convert(ir as any)).toThrow(/Unexpected IR inline type "unknown-inline"/)
   })
 })

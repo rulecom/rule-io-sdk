@@ -11,15 +11,15 @@
  */
 
 import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
-import { SHOPIFY_FIELDS } from './fields.js';
-import { SHOPIFY_TAGS } from './tags.js';
 import {
   createOrderConfirmationEmail,
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
-  createWelcomeEmail,
-} from '@rule-io/rcml';
+} from './ecommerce-templates.js';
+import { SHOPIFY_FIELDS } from './fields.js';
+import { createWelcomeEmail } from './generic-templates.js';
+import { SHOPIFY_TAGS } from './tags.js';
 
 /** Default English text for Shopify order confirmation emails. */
 const ORDER_CONFIRMATION_TEXT = {

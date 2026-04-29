@@ -75,8 +75,6 @@ export type { SemanticValidationResult }
  */
 export type { FlavorConfig }
 
-/* eslint-disable @typescript-eslint/no-duplicate-type-constituents -- type re-exports below are grouped by role */
-
 /** RCML block-level node. @public */
 export type { BlockNode }
 /** RCML inline node. @public */
@@ -108,7 +106,6 @@ export type { FontMark }
 /** Link inline mark. @public */
 export type { LinkMark }
 
-/* eslint-enable @typescript-eslint/no-duplicate-type-constituents */
 
 // ─── Error class ─────────────────────────────────────────────────────────────
 

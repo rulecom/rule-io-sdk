@@ -8,14 +8,14 @@
 
 import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
 import { BOOKZEN_FIELDS } from './fields.js';
-import { BOOKZEN_TAGS } from './tags.js';
 import {
   createReservationConfirmationEmail,
   createReservationCancellationEmail,
   createReservationReminderEmail,
   createFeedbackRequestEmail,
   createReservationRequestEmail,
-} from '@rule-io/rcml';
+} from './hospitality-templates.js';
+import { BOOKZEN_TAGS } from './tags.js';
 
 /** Default English text for reservation confirmation emails. */
 const RESERVATION_CONFIRMATION_TEXT = {

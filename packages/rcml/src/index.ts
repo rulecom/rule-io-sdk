@@ -70,6 +70,9 @@ export {
   createFooterSection,
   createBrandLoop,
   // Generic reusable section helpers
+  createLogoSection,
+  createGreetingSection,
+  createCtaSection,
   createSummaryRowsSection,
   createStatusTrackerSection,
   createAddressBlock,
@@ -97,42 +100,15 @@ export type {
   CreateAddressBlockOptions,
 } from './brand-template.js';
 
-// Hospitality templates (hotels, restaurants, experiences)
-export {
-  createReservationConfirmationEmail,
-  createReservationCancellationEmail,
-  createReservationReminderEmail,
-  createFeedbackRequestEmail,
-  createReservationRequestEmail,
-} from './hospitality-templates.js';
-
-export type {
-  ReservationTemplateConfig,
-  ReservationCancellationConfig,
-  ReservationReminderConfig,
-  FeedbackRequestConfig,
-  ReservationRequestConfig,
-} from './hospitality-templates.js';
-
-// E-commerce templates (online stores)
-export {
-  createOrderConfirmationEmail,
-  createShippingUpdateEmail,
-  createAbandonedCartEmail,
-  createOrderCancellationEmail,
-} from './ecommerce-templates.js';
-
-export type {
-  OrderConfirmationConfig,
-  ShippingUpdateConfig,
-  AbandonedCartConfig,
-  OrderCancellationConfig,
-} from './ecommerce-templates.js';
-
-// Generic templates (vertical-agnostic)
-export { createWelcomeEmail } from './generic-templates.js';
-
-export type { WelcomeEmailConfig } from './generic-templates.js';
+// Vertical email templates live with their consuming vendor packages:
+//   - Hospitality (`createReservation*`, `createFeedbackRequestEmail`) →
+//       `@rule-io/vendor-bookzen`
+//   - E-commerce (`createOrderConfirmation*`, `createShippingUpdate*`,
+//       `createAbandonedCart*`, `createOrderCancellation*`) →
+//       `@rule-io/vendor-shopify`
+//   - Generic (`createWelcomeEmail`) → `@rule-io/vendor-shopify`
+// They are still surfaced by the `@rule-io/sdk` meta-package via its
+// `export * from '@rule-io/vendor-*'` lines.
 
 // RCML structural types (ProseMirror doc, Document, Elements, Switch/Case, etc.)
 export type * from './types.js';
