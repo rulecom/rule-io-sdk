@@ -152,7 +152,7 @@ describe('shopifyPreset', () => {
 
     it('all automations have trigger tags from SHOPIFY_TAGS', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set(Object.values(SHOPIFY_TAGS));
+      const validTags = new Set<string>(Object.values(SHOPIFY_TAGS));
 
       for (const automation of automations) {
         expect(validTags.has(automation.triggerTag)).toBe(true);

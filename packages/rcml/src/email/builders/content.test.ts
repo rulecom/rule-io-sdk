@@ -11,7 +11,7 @@ describe('coerceContent', () => {
   })
 
   it('passes through a pre-built Json doc after normalize+validate', () => {
-    const input = { type: 'doc', content: [{ type: 'paragraph' }] } as const
+    const input = { type: 'doc', content: [{ type: 'paragraph' }] } as unknown as Parameters<typeof coerceContent>[0]
     const { json, issues } = coerceContent(input)
 
     expect(issues).toEqual([])

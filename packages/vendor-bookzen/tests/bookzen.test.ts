@@ -126,7 +126,7 @@ describe('bookzenPreset', () => {
 
     it('all automations have trigger tags from BOOKZEN_TAGS', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set(Object.values(BOOKZEN_TAGS));
+      const validTags = new Set<string>(Object.values(BOOKZEN_TAGS));
 
       for (const automation of automations) {
         expect(validTags.has(automation.triggerTag)).toBe(true);

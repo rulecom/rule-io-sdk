@@ -50,6 +50,21 @@ describe('convertXmlToRcml — discriminated result', () => {
     if (result.success) return
     expect(['XML_PARSE_ERROR', 'ROOT_INVALID']).toContain(result.errors[0]?.code)
   })
+
+  it('returns XML_PARSE_ERROR when fast-xml-parser throws on a broken tag', () => {
+    // Unclosed tag forces a parser throw rather than a lenient parse.
+    const result = convertXmlToRcml('<rcml><rc-head></rcml>')
+
+    expect(result.success).toBe(false)
+    if (result.success) return
+    expect(['XML_PARSE_ERROR', 'ROOT_INVALID']).toContain(result.errors[0]?.code)
+  })
+
+  it('returns an error when a text-only payload has no element', () => {
+    const result = convertXmlToRcml('just plain text')
+
+    expect(result.success).toBe(false)
+  })
 })
 
 describe('convertXmlToRcml — attribute handling', () => {

@@ -149,6 +149,12 @@ describe('createHeadingElement', () => {
     expect(node.tagName).toBe('rc-heading')
   })
 
+  it('attaches attributes when supplied', () => {
+    const node = createHeadingElement({ attrs: { align: 'center', color: '#333333' }, content: 'Hi' })
+
+    expect(node.attributes).toEqual({ align: 'center', color: '#333333' })
+  })
+
   it('throws on invalid attr', () => {
     expect(() =>
       createHeadingElement({ attrs: { 'font-size': 'huge' }, content: 'x' }),
@@ -264,6 +270,18 @@ describe('createSocialElement', () => {
     expect(node.children).toHaveLength(1)
   })
 
+  it('attaches attributes when supplied', () => {
+    const child = createSocialChildElement({
+      attrs: { name: 'x', href: 'https://x.com' },
+    })
+    const node = createSocialElement({
+      attrs: { align: 'center', mode: 'horizontal' },
+      children: [child],
+    })
+
+    expect(node.attributes).toEqual({ align: 'center', mode: 'horizontal' })
+  })
+
   it('rejects non-social-element children', () => {
     const text = createTextElement({ content: 'oops' })
 
@@ -377,6 +395,18 @@ describe('createWrapperElement', () => {
 
     expect(node.tagName).toBe('rc-wrapper')
   })
+
+  it('attaches attributes when supplied', () => {
+    const section = createSectionElement({
+      children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
+    })
+    const node = createWrapperElement({
+      attrs: { 'background-color': '#f3f3f3', padding: '40px 0' },
+      children: [section],
+    })
+
+    expect(node.attributes).toEqual({ 'background-color': '#f3f3f3', padding: '40px 0' })
+  })
 })
 
 // ─── Head / metadata ────────────────────────────────────────────────────────
@@ -481,6 +511,60 @@ describe('createAttributesElement / createPreviewElement / createPlainTextElemen
       tagName: 'rc-raw',
       content: '<p>raw</p>',
     })
+  })
+
+  it('createRawElement without content omits the content field', () => {
+    expect(createRawElement()).toEqual({ tagName: 'rc-raw' })
+    expect(createRawElement({})).toEqual({ tagName: 'rc-raw' })
+  })
+})
+
+// ─── attrs-less variants (cover `if (attributes)` false branches) ────────────
+
+describe('factories accept no-attrs invocations and omit the attributes field', () => {
+  it('createSocialElement without attrs', () => {
+    const child = createSocialChildElement({
+      attrs: { name: 'x', href: 'https://x.com' },
+    })
+    const node = createSocialElement({ children: [child] })
+
+    expect(node.tagName).toBe('rc-social')
+    expect(node.attributes).toBeUndefined()
+  })
+
+  it('createWrapperElement without attrs', () => {
+    const section = createSectionElement({
+      children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
+    })
+    const node = createWrapperElement({ children: [section] })
+
+    expect(node.tagName).toBe('rc-wrapper')
+    expect(node.attributes).toBeUndefined()
+  })
+
+  it('createBodyElement without attrs', () => {
+    const section = createSectionElement({
+      children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
+    })
+    const node = createBodyElement({ children: [section] })
+
+    expect(node.tagName).toBe('rc-body')
+    expect(node.attributes).toBeUndefined()
+  })
+
+  it('createSectionElement without attrs', () => {
+    const col = createColumnElement({ children: [createTextElement({ content: 'x' })] })
+    const node = createSectionElement({ children: [col] })
+
+    expect(node.attributes).toBeUndefined()
+  })
+
+  it('createColumnElement without attrs', () => {
+    const node = createColumnElement({
+      children: [createTextElement({ content: 'x' })],
+    })
+
+    expect(node.attributes).toBeUndefined()
   })
 })
 

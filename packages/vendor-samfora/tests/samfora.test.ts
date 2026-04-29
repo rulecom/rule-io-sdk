@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
+import type { RcmlDocument } from '@rule-io/rcml';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '../src/index.js';
 import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers.js';
 
@@ -189,7 +190,7 @@ describe('samforaPreset', () => {
 
     it('all automations have trigger tags from SAMFORA_TAGS', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set(Object.values(SAMFORA_TAGS));
+      const validTags = new Set<string>(Object.values(SAMFORA_TAGS));
 
       for (const automation of automations) {
         expect(validTags.has(automation.triggerTag)).toBe(true);
@@ -242,7 +243,7 @@ describe('samforaPreset', () => {
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
-        });
+        }) as unknown as RcmlDocument;
 
         assertValidRCMLDocument(doc);
       }
@@ -256,7 +257,7 @@ describe('samforaPreset', () => {
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
           websiteUrl: 'https://samfora.org',
-        });
+        }) as unknown as RcmlDocument;
 
         assertValidRCMLDocument(doc);
       }
@@ -282,7 +283,7 @@ describe('samforaPreset', () => {
           [SAMFORA_FIELDS.donationAmount]: 999999,
         },
         websiteUrl: 'https://override.example.com',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       expect(json).toContain('[CustomField:999999]');
@@ -299,7 +300,7 @@ describe('samforaPreset', () => {
         brandStyle: TEST_BRAND_STYLE,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       expect(json).toContain('[CustomField:200001]'); // donorFirstName
@@ -318,7 +319,7 @@ describe('samforaPreset', () => {
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
-        });
+        }) as unknown as RcmlDocument;
         // The RCML body is the second top-level child (after rc-head).
         const body = doc.children[1];
 
@@ -347,7 +348,7 @@ describe('samforaPreset', () => {
         brandStyle: { ...TEST_BRAND_STYLE, logoUrl: undefined },
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       expect(json).not.toContain('"tagName":"rc-logo"');
@@ -364,7 +365,7 @@ describe('samforaPreset', () => {
         brandStyle: TEST_BRAND_STYLE,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       expect(json).toContain('Tack för din första gåva');
@@ -381,7 +382,7 @@ describe('samforaPreset', () => {
         brandStyle: TEST_BRAND_STYLE,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       // Swedish footer link text (display strings, not merge-tag names).
@@ -410,7 +411,7 @@ describe('samforaPreset', () => {
         brandStyle: TEST_BRAND_STYLE,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
-      });
+      }) as unknown as RcmlDocument;
       const json = docToString(doc);
 
       // Override of one field wins; untouched fields fall back to Swedish.

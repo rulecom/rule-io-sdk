@@ -95,7 +95,10 @@ describe('rcmlToXml output', () => {
     const xml = rcmlToXml(
       {
         tagName: 'rcml',
-        children: [{ tagName: 'rc-head', children: [] }],
+        children: [
+          { tagName: 'rc-head', children: [] },
+          { tagName: 'rc-body', children: [] },
+        ],
       },
       { indent: '    ' },
     )

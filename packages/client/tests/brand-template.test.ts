@@ -10,6 +10,7 @@ import type { BrandStyleConfig, CustomFieldMap } from '../src/index.js';
 import { RuleConfigError } from '@rule-io/core';
 import { validateCustomFields, toBrandStyleConfig, resolvePreferredBrandStyle, withTemplateContext } from '../src/index.js';
 import type { BrandStyleResolverClient } from '../src/index.js';
+import type { RcmlLogo, RcmlSection } from '@rule-io/rcml';
 import type {
   RuleBrandStyle,
   RuleBrandStyleListItem,
@@ -333,24 +334,20 @@ describe('Brand Template Utilities', () => {
     it('should map a full brand style response to BrandStyleConfig', () => {
       const result = toBrandStyleConfig({
         id: 976,
-        account_id: 1,
         name: 'Test Brand',
-        is_default: true,
         colours: [
-          { id: 1, brand_style_id: 976, type: 'accent', hex: '#FF0000', brightness: 50, created_at: '', updated_at: '' },
-          { id: 2, brand_style_id: 976, type: 'dark', hex: '#111111', brightness: 10, created_at: '', updated_at: '' },
-          { id: 3, brand_style_id: 976, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
-          { id: 4, brand_style_id: 976, type: 'brand', hex: '#0066CC', brightness: 40, created_at: '', updated_at: '' },
+          { type: 'accent', hex: '#FF0000'},
+          { type: 'dark', hex: '#111111'},
+          { type: 'light', hex: '#FAFAFA'},
+          { type: 'brand', hex: '#0066CC'},
         ],
         fonts: [
-          { id: 1, brand_style_id: 976, type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
-          { id: 2, brand_style_id: 976, type: 'body', name: 'Open Sans', url: 'https://app.rule.io/fonts/2/css', created_at: '', updated_at: '' },
+          { type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css'},
+          { type: 'body', name: 'Open Sans', url: 'https://app.rule.io/fonts/2/css'},
         ],
         images: [
-          { id: 1, brand_style_id: 976, type: 'logo', public_path: 'https://cdn.rule.io/logo.png', created_at: '', updated_at: '' },
+          { type: 'logo', public_path: 'https://cdn.rule.io/logo.png'},
         ],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.brandStyleId).toBe('976');
@@ -369,14 +366,10 @@ describe('Brand Template Utilities', () => {
     it('should use defaults for missing colours and fonts', () => {
       const result = toBrandStyleConfig({
         id: 100,
-        account_id: 1,
         name: 'Minimal',
-        is_default: false,
         colours: [],
         fonts: [],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.brandStyleId).toBe('100');
@@ -394,14 +387,10 @@ describe('Brand Template Utilities', () => {
     it('should handle null arrays gracefully', () => {
       const result = toBrandStyleConfig({
         id: 200,
-        account_id: 1,
         name: 'Null arrays',
-        is_default: false,
         colours: null,
         fonts: null,
         images: null,
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.brandStyleId).toBe('200');
@@ -412,17 +401,13 @@ describe('Brand Template Utilities', () => {
     it('should prefer "side" colour for bodyBackgroundColor over "light"', () => {
       const result = toBrandStyleConfig({
         id: 400,
-        account_id: 1,
         name: 'Side colour',
-        is_default: false,
         colours: [
-          { id: 1, brand_style_id: 400, type: 'side', hex: '#FF5204', brightness: 50, created_at: '', updated_at: '' },
-          { id: 2, brand_style_id: 400, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
+          { type: 'side', hex: '#FF5204'},
+          { type: 'light', hex: '#FAFAFA'},
         ],
         fonts: [],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.bodyBackgroundColor).toBe('#FF5204');
@@ -431,16 +416,12 @@ describe('Brand Template Utilities', () => {
     it('should fall back to "light" colour when "side" is missing', () => {
       const result = toBrandStyleConfig({
         id: 401,
-        account_id: 1,
         name: 'No side colour',
-        is_default: false,
         colours: [
-          { id: 1, brand_style_id: 401, type: 'light', hex: '#FAFAFA', brightness: 95, created_at: '', updated_at: '' },
+          { type: 'light', hex: '#FAFAFA'},
         ],
         fonts: [],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.bodyBackgroundColor).toBe('#FAFAFA');
@@ -449,18 +430,14 @@ describe('Brand Template Utilities', () => {
     it('should extract social links from brand style links', () => {
       const result = toBrandStyleConfig({
         id: 500,
-        account_id: 1,
         name: 'With social',
-        is_default: false,
         colours: [],
         fonts: [],
         images: [],
         links: [
-          { id: 1, brand_style_id: 500, type: 'facebook', link: 'https://facebook.com/test', created_at: '', updated_at: '' },
-          { id: 2, brand_style_id: 500, type: 'instagram', link: 'https://instagram.com/test', created_at: '', updated_at: '' },
+          { type: 'facebook', link: 'https://facebook.com/test'},
+          { type: 'instagram', link: 'https://instagram.com/test'},
         ],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.socialLinks).toEqual([
@@ -472,17 +449,13 @@ describe('Brand Template Utilities', () => {
     it('should map "website" link type to "web" for RCML compatibility', () => {
       const result = toBrandStyleConfig({
         id: 502,
-        account_id: 1,
         name: 'Website link',
-        is_default: false,
         colours: [],
         fonts: [],
         images: [],
         links: [
-          { id: 1, brand_style_id: 502, type: 'website', link: 'https://example.com', created_at: '', updated_at: '' },
+          { type: 'website', link: 'https://example.com'},
         ],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.socialLinks).toEqual([
@@ -493,14 +466,10 @@ describe('Brand Template Utilities', () => {
     it('should return undefined socialLinks when no links present', () => {
       const result = toBrandStyleConfig({
         id: 501,
-        account_id: 1,
         name: 'No links',
-        is_default: false,
         colours: [],
         fonts: [],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.socialLinks).toBeUndefined();
@@ -509,17 +478,13 @@ describe('Brand Template Utilities', () => {
     it('should use origin_name over name for font display', () => {
       const result = toBrandStyleConfig({
         id: 600,
-        account_id: 1,
         name: 'Origin name font',
-        is_default: false,
         colours: [],
         fonts: [
-          { id: 1, brand_style_id: 600, type: 'title', name: 'Sora-Medium.ttf', origin_name: 'Sora Medium', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
-          { id: 2, brand_style_id: 600, type: 'body', name: 'Lato-Regular.ttf', origin_name: 'Lato', url: 'https://app.rule.io/fonts/2/css', created_at: '', updated_at: '' },
+          { type: 'title', name: 'Sora-Medium.ttf', origin_name: 'Sora Medium', url: 'https://app.rule.io/fonts/1/css'},
+          { type: 'body', name: 'Lato-Regular.ttf', origin_name: 'Lato', url: 'https://app.rule.io/fonts/2/css'},
         ],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.headingFont).toBe("'Sora Medium', sans-serif");
@@ -529,16 +494,12 @@ describe('Brand Template Utilities', () => {
     it('should fall back to name when origin_name is missing', () => {
       const result = toBrandStyleConfig({
         id: 601,
-        account_id: 1,
         name: 'No origin name',
-        is_default: false,
         colours: [],
         fonts: [
-          { id: 1, brand_style_id: 601, type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css', created_at: '', updated_at: '' },
+          { type: 'title', name: 'Montserrat', url: 'https://app.rule.io/fonts/1/css'},
         ],
         images: [],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.headingFont).toBe("'Montserrat', sans-serif");
@@ -547,14 +508,10 @@ describe('Brand Template Utilities', () => {
     it('should fall back to first image when no logo type exists', () => {
       const result = toBrandStyleConfig({
         id: 300,
-        account_id: 1,
         name: 'No logo type',
-        is_default: false,
         images: [
-          { id: 1, brand_style_id: 300, type: 'icon', public_path: 'https://cdn.rule.io/icon.png', created_at: '', updated_at: '' },
+          { type: 'icon', public_path: 'https://cdn.rule.io/icon.png'},
         ],
-        created_at: '',
-        updated_at: '',
       });
 
       expect(result.logoUrl).toBe('https://cdn.rule.io/icon.png');
@@ -843,7 +800,7 @@ describe('Brand Template Utilities', () => {
 
   describe('createBrandLogo', () => {
     it('should create a logo element with correct structure', () => {
-      const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456');
+      const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456') as RcmlSection;
 
       expect(logo.tagName).toBe('rc-section');
       expect(logo.id).toBeDefined();
@@ -855,7 +812,7 @@ describe('Brand Template Utilities', () => {
       expect(column.id).toBeDefined();
 
       // Check rc-logo
-      const rcLogo = column.children[0];
+      const rcLogo = column.children[0] as RcmlLogo;
 
       expect(rcLogo.tagName).toBe('rc-logo');
       expect(rcLogo.id).toBeDefined();
@@ -941,7 +898,7 @@ describe('Brand Template Utilities', () => {
       const section = createContentSection(
         [createBrandText(createDocWithPlaceholders([createTextNode('Content')]))],
         { padding: '40px 0', backgroundColor: '#FF0000' }
-      );
+      ) as RcmlSection;
 
       expect(section.attributes?.padding).toBe('40px 0');
       expect(section.attributes?.['background-color']).toBe('#FF0000');

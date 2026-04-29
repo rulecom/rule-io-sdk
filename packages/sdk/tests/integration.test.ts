@@ -18,7 +18,7 @@
  * happens to be set for other tooling.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
 import { RuleClient, RuleApiError } from '../src/index.js';
 import type { RcmlDocument } from '../src/index.js';
 
@@ -33,8 +33,11 @@ const RUN_ID = `sdk-test-${Date.now()}`;
 /** Minimal valid RCML document for template creation */
 function minimalRCML(): RcmlDocument {
   return {
-    head: { title: 'Test', preheader: '' },
-    body: { sections: [] },
+    tagName: 'rcml',
+    children: [
+      { tagName: 'rc-head', children: [] },
+      { tagName: 'rc-body', children: [] },
+    ],
   };
 }
 
@@ -284,7 +287,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.getAutomation(automationId);
 
       expect(result).toBeDefined();
-      expect(result.data?.id).toBe(automationId);
+      expect(result!.data?.id).toBe(automationId);
     });
 
     it('should update an automation', async () => {
@@ -345,7 +348,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.getMessage(messageId);
 
       expect(result).toBeDefined();
-      expect(result.data?.id).toBe(messageId);
+      expect(result!.data?.id).toBe(messageId);
     });
 
     it('should update a message', async () => {
@@ -389,7 +392,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.getTemplate(templateId);
 
       expect(result).toBeDefined();
-      expect(result.data?.id).toBe(templateId);
+      expect(result!.data?.id).toBe(templateId);
     });
 
     it('should update a template', async () => {
@@ -531,7 +534,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       expect(created.data).toBeDefined();
       expect(created.data!.id).toBeGreaterThan(0);
-      campaignId = created.data!.id;
+      campaignId = created.data!.id!;
 
       // Get
       const fetched = await client.getCampaign(campaignId);
@@ -570,11 +573,11 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         subscribers: [],
       });
 
-      campaignId = created.data!.id;
+      campaignId = created.data!.id!;
       await client.deleteCampaign(campaignId);
       campaignId = 0;
 
-      const result = await client.getCampaign(created.data!.id);
+      const result = await client.getCampaign(created.data!.id!);
 
       expect(result).toBeNull();
     });
@@ -589,7 +592,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         segments: [],
         subscribers: [],
       });
-      const sourceId = source.data!.id;
+      const sourceId = source.data!.id!;
 
       try {
         const copy = await client.copyCampaign(sourceId);
@@ -734,17 +737,17 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         const automation = await client.getAutomation(result.automationId);
 
         expect(automation).toBeDefined();
-        expect(automation.data?.id).toBe(result.automationId);
+        expect(automation!.data?.id).toBe(result.automationId);
 
         const message = await client.getMessage(result.messageId);
 
         expect(message).toBeDefined();
-        expect(message.data?.id).toBe(result.messageId);
+        expect(message!.data?.id).toBe(result.messageId);
 
         const template = await client.getTemplate(result.templateId);
 
         expect(template).toBeDefined();
-        expect(template.data?.id).toBe(result.templateId);
+        expect(template!.data?.id).toBe(result.templateId);
       } finally {
         // Clean up all created resources (reverse dependency order)
         if (result) {

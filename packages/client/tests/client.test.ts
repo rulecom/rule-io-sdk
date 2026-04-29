@@ -363,11 +363,11 @@ describe('RuleClient', () => {
       );
 
       const rcmlDoc = {
-        tagName: 'rcml',
+        tagName: 'rcml' as const,
         children: [
-          { tagName: 'rc-head', children: [] },
-          { tagName: 'rc-body', children: [] },
-        ],
+          { tagName: 'rc-head' as const, children: [] },
+          { tagName: 'rc-body' as const, children: [] },
+        ] as [{ tagName: 'rc-head'; children: [] }, { tagName: 'rc-body'; children: [] }],
       };
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
