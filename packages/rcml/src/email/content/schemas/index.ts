@@ -1,0 +1,5 @@
+export { FontAttrsSchema } from './font.js'
+export { LinkAttrsSchema } from './link.js'
+export { PlaceholderAttrsSchema } from './placeholder.js'
+export { AlignAttrsSchema } from './align.js'
+export { LoopValueAttrsSchema } from './loop-value.js'
