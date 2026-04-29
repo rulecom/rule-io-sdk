@@ -105,6 +105,7 @@ describe('Brand Template Utilities', () => {
       const brandStyleEl = head.children?.find(
         (c: { tagName: string }) => c.tagName === 'rc-brand-style'
       );
+
       expect(brandStyleEl).toBeDefined();
     });
 
@@ -121,6 +122,7 @@ describe('Brand Template Utilities', () => {
 
       // Collect all IDs and assert every RCML node has one
       const ids: string[] = [];
+
       function traverse(node: unknown): void {
         if (!node || typeof node !== 'object') return;
         const n = node as Record<string, unknown>;
@@ -138,6 +140,7 @@ describe('Brand Template Utilities', () => {
           }
         }
       }
+
       traverse(doc as unknown);
 
       expect(ids.length).toBeGreaterThan(0);
@@ -148,12 +151,15 @@ describe('Brand Template Utilities', () => {
   describe('createBrandHead', () => {
     const findLabelStyle = (node: Record<string, unknown>): Record<string, unknown> | undefined => {
       if (node.tagName === 'rc-class' && (node.attributes as Record<string, string>)?.name === 'rcml-label-style') return node;
+
       if (Array.isArray(node.children)) {
         for (const child of node.children as Array<Record<string, unknown>>) {
           const found = findLabelStyle(child);
+
           if (found) return found;
         }
       }
+
       return undefined;
     };
 
@@ -164,6 +170,7 @@ describe('Brand Template Utilities', () => {
       const preview = head.children?.find(
         (c: { tagName: string }) => c.tagName === 'rc-preview'
       );
+
       expect(preview).toBeDefined();
     });
 
@@ -173,6 +180,7 @@ describe('Brand Template Utilities', () => {
       const plainText = head.children?.find(
         (c: { tagName: string }) => c.tagName === 'rc-plain-text'
       );
+
       expect(plainText).toBeDefined();
     });
 
@@ -196,21 +204,25 @@ describe('Brand Template Utilities', () => {
 
     it('should work without logoUrl', () => {
       const styleNoLogo = { ...TEST_BRAND_STYLE };
+
       delete (styleNoLogo as Record<string, unknown>).logoUrl;
       const head = createBrandHead(styleNoLogo);
 
       const json = JSON.stringify(head);
+
       expect(json).not.toContain('rcml-logo-style');
       expect(json).toContain('rcml-h1-style');
     });
 
     it('should work without font URLs (system fonts)', () => {
       const styleNoFonts = { ...TEST_BRAND_STYLE };
+
       delete (styleNoFonts as Record<string, unknown>).headingFontUrl;
       delete (styleNoFonts as Record<string, unknown>).bodyFontUrl;
       const head = createBrandHead(styleNoFonts);
 
       const json = JSON.stringify(head);
+
       expect(json).not.toContain('rc-font');
       expect(json).toContain('rcml-h1-style');
       expect(json).toContain('rcml-p-style');
@@ -264,6 +276,7 @@ describe('Brand Template Utilities', () => {
       // Find the rcml-label-style class
       const attrs = JSON.parse(json);
       const labelStyle = findLabelStyle(attrs);
+
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#FFFFFF');
     });
@@ -278,6 +291,7 @@ describe('Brand Template Utilities', () => {
 
       const parsed = JSON.parse(json);
       const labelStyle = findLabelStyle(parsed);
+
       expect(labelStyle).toBeDefined();
       expect((labelStyle!.attributes as Record<string, string>).color).toBe('#000000');
     });
@@ -288,20 +302,28 @@ describe('Brand Template Utilities', () => {
 
       // rc-font name should keep single quotes (e.g. "'Sora Medium'")
       const parsed = JSON.parse(json);
+
       const findRcFont = (node: Record<string, unknown>): Array<Record<string, unknown>> => {
         const results: Array<Record<string, unknown>> = [];
+
         if (node.tagName === 'rc-font') results.push(node);
+
         if (Array.isArray(node.children)) {
           for (const child of node.children as Array<Record<string, unknown>>) {
             results.push(...findRcFont(child));
           }
         }
+
         return results;
       };
+
       const fonts = findRcFont(parsed);
+
       expect(fonts.length).toBeGreaterThan(0);
+
       for (const font of fonts) {
         const name = (font.attributes as Record<string, string>)?.name;
+
         expect(name).toContain("'");
       }
     });
@@ -588,14 +610,17 @@ describe('Brand Template Utilities', () => {
         async listBrandStyles(): Promise<RuleBrandStyleListResponse> {
           this.listCalls += 1;
           if (!options.list) throw new Error('list stub not configured');
+
           return options.list;
         },
         async getBrandStyle(id: number): Promise<RuleBrandStyleResponse | null> {
           this.getCalls.push(id);
           if (!(id in getMap)) throw new Error(`get stub not configured for ${id}`);
+
           return getMap[id];
         },
       };
+
       return stub;
     }
 
@@ -819,16 +844,19 @@ describe('Brand Template Utilities', () => {
   describe('createBrandLogo', () => {
     it('should create a logo element with correct structure', () => {
       const logo = createBrandLogo('https://app.rule.io/brand-style/123/image/456');
+
       expect(logo.tagName).toBe('rc-section');
       expect(logo.id).toBeDefined();
 
       // Check column
       const column = logo.children[0];
+
       expect(column.tagName).toBe('rc-column');
       expect(column.id).toBeDefined();
 
       // Check rc-logo
       const rcLogo = column.children[0];
+
       expect(rcLogo.tagName).toBe('rc-logo');
       expect(rcLogo.id).toBeDefined();
       expect(rcLogo.attributes?.['rc-class']).toBe('rcml-logo-style rc-initial-logo');
@@ -838,6 +866,7 @@ describe('Brand Template Utilities', () => {
     it('should generate unique IDs across nodes', () => {
       const logo = createBrandLogo('https://example.com/logo.png');
       const ids = [logo.id, logo.children[0].id, logo.children[0].children[0].id];
+
       expect(new Set(ids).size).toBe(3);
     });
 
@@ -855,6 +884,7 @@ describe('Brand Template Utilities', () => {
       const heading = createBrandHeading(
         createDocWithPlaceholders([createTextNode('Welcome')])
       );
+
       expect(heading.tagName).toBe('rc-heading');
     });
 
@@ -863,6 +893,7 @@ describe('Brand Template Utilities', () => {
         createDocWithPlaceholders([createTextNode('Subtitle')]),
         2
       );
+
       expect(heading.tagName).toBe('rc-heading');
     });
   });
@@ -873,6 +904,7 @@ describe('Brand Template Utilities', () => {
         createDocWithPlaceholders([createTextNode('Click')]),
         'https://example.com'
       );
+
       expect(button.tagName).toBe('rc-button');
       expect(button.attributes?.href).toBe('https://example.com');
     });
@@ -901,6 +933,7 @@ describe('Brand Template Utilities', () => {
       const section = createContentSection([
         createBrandText(createDocWithPlaceholders([createTextNode('Content')])),
       ]);
+
       expect(section.tagName).toBe('rc-section');
     });
 
@@ -909,6 +942,7 @@ describe('Brand Template Utilities', () => {
         [createBrandText(createDocWithPlaceholders([createTextNode('Content')]))],
         { padding: '40px 0', backgroundColor: '#FF0000' }
       );
+
       expect(section.attributes?.padding).toBe('40px 0');
       expect(section.attributes?.['background-color']).toBe('#FF0000');
     });
@@ -925,6 +959,7 @@ describe('validateCustomFields', () => {
       'Order.Ref': 100,
       'Order.Name': 101,
     };
+
     expect(() =>
       validateCustomFields(customFields, { orderRef: 'Order.Ref', name: 'Order.Name' }, 'test')
     ).not.toThrow();
@@ -934,6 +969,7 @@ describe('validateCustomFields', () => {
     const customFields: CustomFieldMap = {
       'Order.Ref': 100,
     };
+
     expect(() =>
       validateCustomFields(customFields, { orderRef: 'Order.Ref', name: 'Order.Name' }, 'test')
     ).toThrow(RuleConfigError);
@@ -941,6 +977,7 @@ describe('validateCustomFields', () => {
 
   it('should include field name in error message', () => {
     const customFields: CustomFieldMap = {};
+
     expect(() =>
       validateCustomFields(customFields, { orderRef: 'Order.Ref' }, 'createOrderEmail')
     ).toThrow('createOrderEmail: missing customFields entry for fieldNames.orderRef ("Order.Ref")');
@@ -950,6 +987,7 @@ describe('validateCustomFields', () => {
     const customFields: CustomFieldMap = {
       'Order.Ref': 100,
     };
+
     expect(() =>
       validateCustomFields(
         customFields,
@@ -961,9 +999,11 @@ describe('validateCustomFields', () => {
 
   it('should omit template prefix when templateName is not provided', () => {
     const customFields: CustomFieldMap = {};
+
     expect(() =>
       validateCustomFields(customFields, { orderRef: 'Order.Ref' })
     ).toThrow('missing customFields entry for fieldNames.orderRef ("Order.Ref")');
+
     // Assert the prefix is absent — withTemplateContext callers rely on this
     // so their wrapper's prefix is the only one in the final message.
     try {
@@ -992,11 +1032,13 @@ describe('validateCustomFields', () => {
 describe('barrel exports', () => {
   it('should export validateCustomFields from the barrel', async () => {
     const barrel = await import('../src/index.js');
+
     expect(barrel.validateCustomFields).toBe(validateCustomFields);
   });
 
   it('should export validateCustomFields from the top-level barrel', async () => {
     const topBarrel = await import('../src/index.js');
+
     expect(topBarrel.validateCustomFields).toBe(validateCustomFields);
   });
 
@@ -1005,6 +1047,7 @@ describe('barrel exports', () => {
     // helper re-exported from `src/rcml/index.ts` but not from `src/index.ts`
     // is unreachable by external consumers.
     const topBarrel = await import('../src/index.js');
+
     expect(typeof topBarrel.createSummaryRowsSection).toBe('function');
     expect(typeof topBarrel.createStatusTrackerSection).toBe('function');
     expect(typeof topBarrel.createAddressBlock).toBe('function');
@@ -1018,6 +1061,7 @@ describe('barrel exports', () => {
 describe('withTemplateContext', () => {
   it('should return the value from the callback', () => {
     const result = withTemplateContext('myTemplate', () => 42);
+
     expect(result).toBe(42);
   });
 
@@ -1041,6 +1085,7 @@ describe('withTemplateContext', () => {
 
   it('should attach original error as cause', () => {
     const original = new RuleConfigError('createBrandButton: invalid or unsafe URL');
+
     try {
       withTemplateContext('createOrderConfirmationEmail', () => {
         throw original;
@@ -1053,6 +1098,7 @@ describe('withTemplateContext', () => {
 
   it('should preserve original stack frames with wrapped message', () => {
     const original = new RuleConfigError('createBrandButton: invalid or unsafe URL');
+
     try {
       withTemplateContext('createOrderConfirmationEmail', () => {
         throw original;
@@ -1060,11 +1106,13 @@ describe('withTemplateContext', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(RuleConfigError);
       const wrapped = error as RuleConfigError;
+
       // Stack header should reflect the wrapped message
       expect(wrapped.stack).toContain('createOrderConfirmationEmail > createBrandButton: invalid or unsafe URL');
       // Original stack frames should be preserved
       const originalFrames = original.stack!.split('\n').slice(1);
       const wrappedFrames = wrapped.stack!.split('\n').slice(1);
+
       expect(wrappedFrames).toEqual(originalFrames);
     }
   });

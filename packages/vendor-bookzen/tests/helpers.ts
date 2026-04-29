@@ -37,6 +37,7 @@ export const TEST_BRAND_STYLE: BrandStyleConfig = {
  */
 export function assertValidRCMLDocument(doc: unknown): asserts doc is RcmlDocument {
   const d = doc as RcmlDocument;
+
   expect(d.tagName).toBe('rcml');
   expect(d.children).toHaveLength(2);
   expect(d.children[0].tagName).toBe('rc-head');

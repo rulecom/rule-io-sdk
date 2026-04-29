@@ -131,9 +131,11 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
     ];
 
     const benefits = text.benefits ?? [];
+
     if (benefits.length > 0) {
       sections.push(dividerSection());
       const benefitRows: RcmlText[] = [];
+
       if (text.benefitsHeading) {
         benefitRows.push(
           createBrandText(
@@ -142,6 +144,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
           )
         );
       }
+
       for (const benefit of benefits) {
         benefitRows.push(
           createBrandText(
@@ -150,12 +153,14 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
           )
         );
       }
+
       sections.push(createContentSection(benefitRows, { padding: '20px 0' }));
     }
 
     if (text.discountCode) {
       sections.push(dividerSection());
       const discountRows: RcmlColumnChild[] = [];
+
       if (text.discountHeading) {
         discountRows.push(
           createBrandHeading(
@@ -164,6 +169,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
           )
         );
       }
+
       if (text.discountMessage) {
         discountRows.push(
           createBrandText(
@@ -172,6 +178,7 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
           )
         );
       }
+
       discountRows.push(
         createBrandHeading(
           createDocWithPlaceholders([createTextNode(text.discountCode)]),

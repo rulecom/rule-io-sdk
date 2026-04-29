@@ -65,6 +65,7 @@ describe('RCML Utils', () => {
   describe('formatDateForRule', () => {
     it('should format date as YYYY-MM-DD', () => {
       const date = new Date('2026-03-15T10:00:00Z');
+
       expect(formatDateForRule(date)).toBe('2026-03-15');
     });
   });

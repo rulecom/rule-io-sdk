@@ -32,7 +32,9 @@ type RcmlNodeLike = {
  */
 export function validateAttrValues(doc: unknown): EmailTemplateValidationIssue[] {
   const issues: EmailTemplateValidationIssue[] = []
+
   visit(doc, '', issues)
+
   return issues
 }
 
@@ -44,21 +46,26 @@ function visit(node: unknown, path: string, issues: EmailTemplateValidationIssue
   if (!isPlainObject(node)) return
 
   const n = node as RcmlNodeLike
+
   if (typeof n.tagName === 'string') {
     const tagName = n.tagName as RcmlTagName
     // Widen to `RcmlNodeSpec` for dynamic attr-name lookup — the narrow
     // per-tag type preserves literal attr keys for type-level derivation
     // elsewhere but refuses `spec.attrs[name]` for a `string` name.
     const spec: RcmlNodeSpec | undefined = RCML_SCHEMA_SPEC[tagName]
+
     if (spec && isPlainObject(n.attributes)) {
       for (const [name, value] of Object.entries(n.attributes)) {
         const attrSpec = spec.attrs[name] as RcmlAttrSpec | undefined
+
         if (!attrSpec) continue // unknown — AJV already reported it
 
         const zod = RCML_ATTR_VALIDATORS[attrSpec.validator as RcmlAttributeValidatorsEnum]
         const result = zod.safeParse(value)
+
         if (!result.success) {
           const firstMessage = result.error.issues[0]?.message ?? 'Invalid attribute value.'
+
           issues.push({
             path: `${path}/attributes/${name}`,
             code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,

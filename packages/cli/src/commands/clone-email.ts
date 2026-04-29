@@ -43,19 +43,23 @@ async function runFetch(opts: FetchOptions): Promise<void> {
   const client = createClient({ apiKey: opts.apiKey });
   const automailId = Number(opts.automail);
   const messageId = Number(opts.message);
+
   if (!Number.isInteger(automailId) || automailId <= 0) {
     throw new Error(`Invalid --automail value "${opts.automail}"`);
   }
+
   if (!Number.isInteger(messageId) || messageId <= 0) {
     throw new Error(`Invalid --message value "${opts.message}"`);
   }
 
   console.log(`Fetching automail ${automailId}...`);
   const automail = await client.getAutomation(automailId);
+
   if (!automail) throw new Error(`Automail ${automailId} not found`);
 
   console.log(`Fetching message ${messageId}...`);
   const message = await client.getMessage(messageId);
+
   if (!message) throw new Error(`Message ${messageId} not found`);
 
   console.log(`Listing dynamic sets for message ${messageId}...`);
@@ -65,19 +69,24 @@ async function runFetch(opts: FetchOptions): Promise<void> {
     (dynSetsResponse as { dynamic_sets?: unknown }).dynamic_sets ??
     [];
   const sets = Array.isArray(rawSets) ? (rawSets as RuleDynamicSetResponse[]) : [];
+
   console.log(`  Found ${sets.length} dynamic set(s)`);
 
   const templates: RuleTemplateResponse[] = [];
+
   for (const set of sets) {
     const templateId =
       (set as { template_id?: number }).template_id ??
       (set as { data?: { template_id?: number } }).data?.template_id;
+
     if (!templateId) {
       console.warn(`  Dynamic set missing template_id, skipping`);
       continue;
     }
+
     console.log(`  Fetching template ${templateId}...`);
     const tpl = await client.getTemplate(templateId);
+
     if (tpl) templates.push(tpl);
   }
 
@@ -94,8 +103,10 @@ async function runFetch(opts: FetchOptions): Promise<void> {
   };
 
   const outDir = opts.out ?? join(process.cwd(), 'email-snapshots');
+
   if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
   const outFile = join(outDir, `automail-${automailId}.json`);
+
   writeFileSync(outFile, JSON.stringify(snapshot, null, 2), 'utf-8');
 
   console.log(`\n✓ Saved snapshot to ${outFile}`);
@@ -110,9 +121,11 @@ function stripBrandStyleId(template: RcmlDocument): RcmlDocument {
   const head = cloned.children?.find(
     (c) => (c as { tagName?: string }).tagName === 'rc-head',
   ) as { children?: { tagName?: string }[] } | undefined;
+
   if (head?.children) {
     head.children = head.children.filter((c) => c.tagName !== 'rc-brand-style');
   }
+
   return cloned;
 }
 
@@ -129,6 +142,7 @@ async function runSend(opts: SendOptions): Promise<void> {
   const activate = opts.activate ?? false;
 
   const absPath = isAbsolute(opts.snapshot) ? opts.snapshot : join(process.cwd(), opts.snapshot);
+
   if (!existsSync(absPath)) throw new Error(`Snapshot not found: ${absPath}`);
 
   const snapshot = JSON.parse(readFileSync(absPath, 'utf-8')) as EmailSnapshot;
@@ -137,17 +151,20 @@ async function runSend(opts: SendOptions): Promise<void> {
   const srcTemplate = snapshot.templates[0]?.data as unknown as
     | { template?: RcmlDocument; name?: string }
     | undefined;
+
   if (!srcAutomail || !srcMessage || !srcTemplate?.template) {
     throw new Error('Snapshot missing automail/message/template data');
   }
 
   console.log(`Looking up tag "${tagName}" in target account...`);
   const tagId = await client.getTagIdByName(tagName);
+
   if (!tagId) {
     throw new Error(
       `Tag "${tagName}" not found in target account. Create it first (e.g. syncSubscriber with tags: ["${tagName}"]).`,
     );
   }
+
   console.log(`  tag id: ${tagId}`);
 
   const srcSendoutValue = (srcAutomail.sendout_type as { value?: number } | undefined)?.value;
@@ -161,6 +178,7 @@ async function runSend(opts: SendOptions): Promise<void> {
     sendout_type: sendoutType,
   });
   const automailId = automailResp.data?.id;
+
   if (!automailId) throw new Error('Automail create: no id returned');
   console.log(`  automail id: ${automailId}`);
 
@@ -169,6 +187,7 @@ async function runSend(opts: SendOptions): Promise<void> {
   try {
     const sender =
       (srcMessage.sender as { name?: string | null; email?: string | null } | null) ?? null;
+
     console.log('Creating message...');
     const messageResp = await client.createMessage({
       dispatcher: { id: automailId, type: 'automail' },
@@ -185,6 +204,7 @@ async function runSend(opts: SendOptions): Promise<void> {
       },
     });
     const messageId = messageResp.data?.id;
+
     if (!messageId) throw new Error('Message create: no id returned');
     console.log(`  message id: ${messageId}`);
     created.push({ kind: 'message', id: messageId });
@@ -198,6 +218,7 @@ async function runSend(opts: SendOptions): Promise<void> {
       template: strippedTemplate,
     });
     const templateId = tplResp.data?.id;
+
     if (!templateId) throw new Error('Template create: no id returned');
     console.log(`  template id: ${templateId}`);
     created.push({ kind: 'template', id: templateId });
@@ -208,11 +229,13 @@ async function runSend(opts: SendOptions): Promise<void> {
       template_id: templateId,
     });
     const dynamicSetId = dsResp.data?.id;
+
     if (!dynamicSetId) throw new Error('Dynamic set create: no id returned');
     console.log(`  dynamic set id: ${dynamicSetId}`);
 
     const utmCampaign = (srcMessage.utm_campaign as string | null) ?? undefined;
     const utmTerm = (srcMessage.utm_term as string | null) ?? undefined;
+
     if (utmCampaign !== undefined || utmTerm !== undefined) {
       console.log('Applying dynamic-set metadata (utm_campaign/utm_term)...');
       await client.updateDynamicSet(dynamicSetId, {
@@ -243,6 +266,7 @@ async function runSend(opts: SendOptions): Promise<void> {
     );
   } catch (err) {
     console.error('\nSend failed, cleaning up created resources...');
+
     for (const r of created.reverse()) {
       try {
         if (r.kind === 'automail') await client.deleteAutomation(r.id);
@@ -253,6 +277,7 @@ async function runSend(opts: SendOptions): Promise<void> {
         console.error(`  failed to delete ${r.kind} ${r.id}:`, cleanupErr);
       }
     }
+
     throw err;
   }
 }

@@ -31,6 +31,7 @@ function labeledRow(
   customFields: CustomFieldMap,
 ): RcmlText | undefined {
   if (!label || !fieldName) return undefined;
+
   return createBrandText(
     createDocWithPlaceholders([
       createTextNode(`${label}: `),
@@ -164,12 +165,14 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       fieldNames.shippingZip ||
       fieldNames.shippingCountryCode
     );
+
     if (hasExtendedAddress && !fieldNames.shippingAddress) {
       throw new RuleConfigError(
         'fieldNames.shippingAddress is required when any of ' +
           'shippingAddress2, shippingCity, shippingZip, or shippingCountryCode is provided'
       );
     }
+
     // Key off fieldName + label pairs so a mapped field with no label doesn't
     // flip the summary on and silently relocate the total row.
     const hasFinancialSummary = !!(
@@ -193,18 +196,22 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       orderRef: fieldNames.orderRef,
       totalPrice: fieldNames.totalPrice,
     };
+
     if ((hasLineItemLoop || hasInlineItemsRow) && fieldNames.items) {
       fieldsToValidate.items = fieldNames.items;
     }
+
     if (rendersShippingAddress && fieldNames.shippingAddress) {
       fieldsToValidate.shippingAddress = fieldNames.shippingAddress;
     }
+
     if (hasExtendedAddress) {
       if (fieldNames.shippingAddress2) fieldsToValidate.shippingAddress2 = fieldNames.shippingAddress2;
       if (fieldNames.shippingCity) fieldsToValidate.shippingCity = fieldNames.shippingCity;
       if (fieldNames.shippingZip) fieldsToValidate.shippingZip = fieldNames.shippingZip;
       if (fieldNames.shippingCountryCode) fieldsToValidate.shippingCountryCode = fieldNames.shippingCountryCode;
     }
+
     if (hasOrderMetaRow && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
     if (hasPaymentRow && fieldNames.paymentMethod) fieldsToValidate.paymentMethod = fieldNames.paymentMethod;
     if (fieldNames.subtotal && text.subtotalLabel) fieldsToValidate.subtotal = fieldNames.subtotal;
@@ -222,6 +229,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Hero heading: "{prefix} {orderRef} {suffix}"
     if (text.heroHeadingPrefix || text.heroHeadingSuffix) {
       const heroNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+
       if (text.heroHeadingPrefix) heroNodes.push(createTextNode(`${text.heroHeadingPrefix} `));
       heroNodes.push(createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]));
       if (text.heroHeadingSuffix) heroNodes.push(createTextNode(` ${text.heroHeadingSuffix}`));
@@ -268,6 +276,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 
     // Details box (brand background): heading + orderRef (if not in meta row) + optional payment + fallbacks
     const detailRows: RcmlText[] = [];
+
     if (!hasOrderMetaRow) {
       detailRows.push(
         createBrandText(
@@ -280,6 +289,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     }
 
     const paymentRow = labeledRow(text.paymentMethodLabel, fieldNames.paymentMethod, customFields);
+
     if (paymentRow) detailRows.push(paymentRow);
 
     // Backward-compat single-placeholder items row (when items mapped but no loop sub-fields)
@@ -345,6 +355,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       const loopChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
       ];
+
       if (fieldNames.itemSku) {
         loopChildren.push(
           createBrandText(
@@ -355,6 +366,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           )
         );
       }
+
       if (fieldNames.itemQuantity) {
         loopChildren.push(
           createBrandText(
@@ -365,6 +377,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           )
         );
       }
+
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
           createBrandText(
@@ -375,6 +388,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           )
         );
       }
+
       if (fieldNames.itemTotal) {
         loopChildren.push(
           createBrandText(
@@ -413,6 +427,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
         ],
         { padding: '20px 0', backgroundColor: brandStyle.brandColor }
       );
+
       if (summary) sections.push(summary);
     }
 
@@ -420,11 +435,13 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     if (hasExtendedAddress && fieldNames.shippingAddress) {
       sections.push(dividerSection());
       const addressLines: Json[] = [];
+
       addressLines.push(
         createDocWithPlaceholders([
           createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
         ])
       );
+
       if (fieldNames.shippingAddress2) {
         addressLines.push(
           createDocWithPlaceholders([
@@ -432,19 +449,25 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           ])
         );
       }
+
       if (fieldNames.shippingCity || fieldNames.shippingZip) {
         const cityZipNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+
         if (fieldNames.shippingZip) {
           cityZipNodes.push(createPlaceholder(fieldNames.shippingZip, customFields[fieldNames.shippingZip]));
         }
+
         if (fieldNames.shippingZip && fieldNames.shippingCity) {
           cityZipNodes.push(createTextNode(' '));
         }
+
         if (fieldNames.shippingCity) {
           cityZipNodes.push(createPlaceholder(fieldNames.shippingCity, customFields[fieldNames.shippingCity]));
         }
+
         addressLines.push(createDocWithPlaceholders(cityZipNodes));
       }
+
       if (fieldNames.shippingCountryCode) {
         addressLines.push(
           createDocWithPlaceholders([
@@ -452,10 +475,12 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
           ])
         );
       }
+
       const addressBlock = createAddressBlock({
         heading: text.shippingAddressHeading ?? text.shippingLabel,
         lines: addressLines,
       });
+
       if (addressBlock) sections.push(addressBlock);
     }
 
@@ -621,6 +646,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
       firstName: fieldNames.firstName,
       orderRef: fieldNames.orderRef,
     };
+
     if (text.trackingLabel && fieldNames.trackingNumber) fieldsToValidate.trackingNumber = fieldNames.trackingNumber;
     if (text.estimatedDeliveryLabel && fieldNames.estimatedDelivery) fieldsToValidate.estimatedDelivery = fieldNames.estimatedDelivery;
     if (text.orderDateLabel && fieldNames.orderDate) fieldsToValidate.orderDate = fieldNames.orderDate;
@@ -646,6 +672,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     /** Helper to create a detail row from an optional field + label pair. */
     const detailRow = (label: string | undefined, fieldName: string | undefined) => {
       if (!label || !fieldName) return undefined;
+
       return createBrandText(
         createDocWithPlaceholders([
           createTextNode(`${label}: `),
@@ -856,6 +883,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
     if (text.returnPolicyText && text.returnPolicyUrl) {
       const safeReturnPolicyUrl = sanitizeUrl(text.returnPolicyUrl);
+
       if (safeReturnPolicyUrl) {
         legalChildren.push(
           createBrandText({
@@ -878,6 +906,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
     if (text.termsText && text.termsUrl) {
       const safeTermsUrl = sanitizeUrl(text.termsUrl);
+
       if (safeTermsUrl) {
         legalChildren.push(
           createBrandText({
@@ -977,6 +1006,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
     const fieldsToValidate: Record<string, string> = {
       firstName: fieldNames.firstName,
     };
+
     if (hasLineItemLoop && fieldNames.items) fieldsToValidate.items = fieldNames.items;
     if (hasTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
     // templateName omitted — withTemplateContext wraps the error with the prefix.
@@ -1021,6 +1051,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
     // Cart line items loop
     if (hasLineItemLoop && fieldNames.items && fieldNames.itemName) {
       sections.push(dividerSection());
+
       if (text.lineItemsHeading) {
         sections.push(
           createContentSection(
@@ -1033,6 +1064,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
       const loopChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
       ];
+
       if (fieldNames.itemSku) {
         loopChildren.push(
           createBrandText(
@@ -1043,6 +1075,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
           )
         );
       }
+
       if (fieldNames.itemQuantity) {
         loopChildren.push(
           createBrandText(
@@ -1053,6 +1086,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
           )
         );
       }
+
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
           createBrandText(
@@ -1087,6 +1121,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
         ],
         { padding: '10px 0', backgroundColor: brandStyle.brandColor }
       );
+
       if (totalSection) sections.push(totalSection);
     }
 
@@ -1162,9 +1197,11 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       firstName: fieldNames.firstName,
       orderRef: fieldNames.orderRef,
     };
+
     if (text.orderDateLabel && fieldNames.orderDate) {
       fieldsToValidate.orderDate = fieldNames.orderDate;
     }
+
     // templateName omitted — withTemplateContext wraps the error with the prefix.
     validateCustomFields(customFields, fieldsToValidate);
 
@@ -1209,6 +1246,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       padding: '20px 0',
       backgroundColor: brandStyle.brandColor,
     });
+
     if (detailsSection) sections.push(detailsSection);
 
     // Optional support callout (centered text + optional link)
@@ -1221,6 +1259,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       const safeSupportUrl = text.supportUrl ? sanitizeUrl(text.supportUrl) : undefined;
       let supportLinkHref: string | undefined;
       let supportLinkText: string | undefined;
+
       if (safeSupportUrl) {
         supportLinkHref = safeSupportUrl;
         supportLinkText = safeSupportUrl;
@@ -1233,12 +1272,15 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
             `supportEmail "${text.supportEmail}" is not a valid email address`
           );
         }
+
         supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`;
         supportLinkText = text.supportEmail;
       }
+
       const supportChildren: RcmlText[] = [
         createBrandText(createDocWithPlaceholders(supportNodes), { align: 'center' }),
       ];
+
       if (supportLinkHref && supportLinkText) {
         supportChildren.push(
           createBrandText(
@@ -1260,6 +1302,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
           )
         );
       }
+
       sections.push(dividerSection());
       sections.push(createContentSection(supportChildren, { padding: '10px 0' }));
     }

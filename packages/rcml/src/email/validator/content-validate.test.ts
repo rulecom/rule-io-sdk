@@ -40,6 +40,7 @@ describe('validateContent — happy path', () => {
         },
       ],
     }
+
     expect(validateContent(doc)).toEqual([])
   })
 
@@ -64,6 +65,7 @@ describe('validateContent — happy path', () => {
         },
       ],
     }
+
     expect(validateContent(doc)).toEqual([])
   })
 })
@@ -91,6 +93,7 @@ describe('validateContent — failure paths', () => {
       ],
     }
     const issues = validateContent(doc)
+
     expect(issues.length).toBeGreaterThan(0)
     expect(issues[0]?.code).toBe('CONTENT_INVALID')
     expect(issues[0]?.path.startsWith('/children/1/children/0/children/0/children/0/content')).toBe(
@@ -197,6 +200,7 @@ describe('validateContent — shape defence', () => {
     const issues = validateContent(doc)
     const textIssues = issues.filter((i) => i.path.includes('/children/0/content'))
     const headingIssues = issues.filter((i) => i.path.includes('/children/1/content'))
+
     expect(textIssues.length).toBeGreaterThan(0)
     expect(headingIssues.length).toBeGreaterThan(0)
   })

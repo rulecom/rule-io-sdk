@@ -61,6 +61,7 @@ export function serializeRcmlToXml(doc: RcmlDocument, options: RcmlToXmlOptions)
 
   const entry = toPreservedEntry(doc as unknown as RcmlNodeLike)
   const xml = builder.build([entry]) as string
+
   // fast-xml-parser's pretty output brackets the document with stray
   // newlines — strip them so the result is stable across round-trips.
   return pretty ? xml.trim() : xml
@@ -77,12 +78,15 @@ function toPreservedEntry(node: RcmlNodeLike): PreservedEntry {
 
   // Lift `id` into the XML attribute bag so round-trip preserves it.
   const mergedAttrs: Record<string, unknown> = {}
+
   if (typeof node.id === 'string') mergedAttrs['id'] = node.id
+
   if (node.attributes && typeof node.attributes === 'object') {
     for (const [key, value] of Object.entries(node.attributes)) {
       mergedAttrs[key] = normalizeAttrValue(value)
     }
   }
+
   if (Object.keys(mergedAttrs).length > 0) {
     entry[':@'] = mergedAttrs
   }
@@ -97,7 +101,9 @@ function toPreservedEntry(node: RcmlNodeLike): PreservedEntry {
       tagName === RcmlTagNamesEnum.Button
         ? jsonToInlineRfm(content ?? emptyDoc())
         : jsonToRfm(content ?? emptyDoc())
+
     entry[tagName] = rfm === '' ? [] : [{ '#text': rfm }]
+
     return entry
   }
 
@@ -108,6 +114,7 @@ function toPreservedEntry(node: RcmlNodeLike): PreservedEntry {
   } else {
     entry[tagName] = []
   }
+
   return entry
 }
 
@@ -120,5 +127,6 @@ function emptyDoc(): Json {
 function normalizeAttrValue(value: unknown): string {
   if (typeof value === 'string') return value
   if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+
   return ''
 }

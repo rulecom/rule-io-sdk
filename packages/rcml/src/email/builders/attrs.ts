@@ -46,6 +46,7 @@ export function validateAttrs(
     if (value === undefined) continue
 
     const attrSpec = spec.attrs[name] as RcmlAttrSpec | undefined
+
     if (!attrSpec) {
       issues.push({
         code: RcmlElementBuildErrorCodes.ATTR_UNKNOWN,
@@ -57,8 +58,10 @@ export function validateAttrs(
 
     const zod = RCML_ATTR_VALIDATORS[attrSpec.validator as RcmlAttributeValidatorsEnum]
     const parsed = zod.safeParse(value)
+
     if (!parsed.success) {
       const firstMessage = parsed.error.issues[0]?.message ?? 'Invalid attribute value.'
+
       issues.push({
         code: RcmlElementBuildErrorCodes.ATTR_INVALID_VALUE,
         path: `attrs/${name}`,
@@ -82,10 +85,12 @@ export function normalizeAttrs(
   if (!attrs) return undefined
   const out: Record<string, AttrValue> = {}
   let any = false
+
   for (const [name, value] of Object.entries(attrs)) {
     if (value === undefined) continue
     out[name] = value
     any = true
   }
+
   return any ? out : undefined
 }

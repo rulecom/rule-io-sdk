@@ -293,8 +293,10 @@ function collectAttrIssues(tag: Parameters<typeof validateAttrs>[0], attrs: Attr
  */
 export function createTextElement(options: TextElementOptions): RcmlText {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-text', options.attrs))
   const contentResult = coerceContent(options.content)
+
   issues.push(...contentResult.issues)
   throwIfIssues('rc-text', issues)
 
@@ -303,7 +305,9 @@ export function createTextElement(options: TextElementOptions): RcmlText {
     tagName: 'rc-text',
     content: contentResult.json!,
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -329,8 +333,10 @@ export function createTextElement(options: TextElementOptions): RcmlText {
  */
 export function createHeadingElement(options: HeadingElementOptions): RcmlHeading {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-heading', options.attrs))
   const contentResult = coerceContent(options.content)
+
   issues.push(...contentResult.issues)
   throwIfIssues('rc-heading', issues)
 
@@ -339,7 +345,9 @@ export function createHeadingElement(options: HeadingElementOptions): RcmlHeadin
     tagName: 'rc-heading',
     content: contentResult.json!,
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -365,8 +373,10 @@ export function createHeadingElement(options: HeadingElementOptions): RcmlHeadin
  */
 export function createButtonElement(options: ButtonElementOptions): RcmlButton {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-button', options.attrs))
   const contentResult = coerceContent(options.content)
+
   issues.push(...contentResult.issues)
   throwIfIssues('rc-button', issues)
 
@@ -375,7 +385,9 @@ export function createButtonElement(options: ButtonElementOptions): RcmlButton {
     tagName: 'rc-button',
     content: contentResult.json!,
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -405,7 +417,9 @@ export function createButtonElement(options: ButtonElementOptions): RcmlButton {
  */
 export function createImageElement(options: ImageElementOptions): RcmlImage {
   const issues = collectAttrIssues('rc-image', options.attrs)
+
   throwIfIssues('rc-image', issues)
+
   return {
     tagName: 'rc-image',
     attributes: normalizeAttrs(options.attrs) as RcmlImage['attributes'],
@@ -432,10 +446,13 @@ export function createImageElement(options: ImageElementOptions): RcmlImage {
  */
 export function createLogoElement(options: LogoElementOptions = {}): RcmlLogo {
   const issues = collectAttrIssues('rc-logo', options.attrs)
+
   throwIfIssues('rc-logo', issues)
   const attributes = normalizeAttrs(options.attrs) as RcmlLogo['attributes']
   const node: RcmlLogo = { tagName: 'rc-logo' }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -463,7 +480,9 @@ export function createLogoElement(options: LogoElementOptions = {}): RcmlLogo {
  */
 export function createVideoElement(options: VideoElementOptions): RcmlVideo {
   const issues = collectAttrIssues('rc-video', options.attrs)
+
   throwIfIssues('rc-video', issues)
+
   return {
     tagName: 'rc-video',
     attributes: normalizeAttrs(options.attrs) as RcmlVideo['attributes'],
@@ -487,10 +506,13 @@ export function createVideoElement(options: VideoElementOptions): RcmlVideo {
  */
 export function createSpacerElement(options: SpacerElementOptions = {}): RcmlSpacer {
   const issues = collectAttrIssues('rc-spacer', options.attrs)
+
   throwIfIssues('rc-spacer', issues)
   const attributes = normalizeAttrs(options.attrs) as RcmlSpacer['attributes']
   const node: RcmlSpacer = { tagName: 'rc-spacer' }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -512,10 +534,13 @@ export function createSpacerElement(options: SpacerElementOptions = {}): RcmlSpa
  */
 export function createDividerElement(options: DividerElementOptions = {}): RcmlDivider {
   const issues = collectAttrIssues('rc-divider', options.attrs)
+
   throwIfIssues('rc-divider', issues)
   const attributes = normalizeAttrs(options.attrs) as RcmlDivider['attributes']
   const node: RcmlDivider = { tagName: 'rc-divider' }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -547,6 +572,7 @@ export function createDividerElement(options: DividerElementOptions = {}): RcmlD
  */
 export function createSocialElement(options: SocialElementOptions): RcmlSocial {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-social', options.attrs))
   issues.push(...validateChildren('rc-social', options.children))
   throwIfIssues('rc-social', issues)
@@ -556,7 +582,9 @@ export function createSocialElement(options: SocialElementOptions): RcmlSocial {
     tagName: 'rc-social',
     children: [...options.children],
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -585,12 +613,15 @@ export function createSocialElement(options: SocialElementOptions): RcmlSocial {
  */
 export function createSocialChildElement(options: SocialChildElementOptions): RcmlSocialElement {
   const issues = collectAttrIssues('rc-social-element', options.attrs)
+
   throwIfIssues('rc-social-element', issues)
   const node: RcmlSocialElement = {
     tagName: 'rc-social-element',
     attributes: normalizeAttrs(options.attrs) as RcmlSocialElement['attributes'],
   }
+
   if (options.content !== undefined) node.content = options.content
+
   return node
 }
 
@@ -619,6 +650,7 @@ export function createSocialChildElement(options: SocialChildElementOptions): Rc
  */
 export function createSectionElement(options: SectionElementOptions): RcmlSection {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-section', options.attrs))
   issues.push(...validateChildren('rc-section', options.children))
   throwIfIssues('rc-section', issues)
@@ -628,7 +660,9 @@ export function createSectionElement(options: SectionElementOptions): RcmlSectio
     tagName: 'rc-section',
     children: [...options.children],
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -658,6 +692,7 @@ export function createSectionElement(options: SectionElementOptions): RcmlSectio
  */
 export function createColumnElement(options: ColumnElementOptions): RcmlColumn {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-column', options.attrs))
   issues.push(...validateChildren('rc-column', options.children))
   throwIfIssues('rc-column', issues)
@@ -667,7 +702,9 @@ export function createColumnElement(options: ColumnElementOptions): RcmlColumn {
     tagName: 'rc-column',
     children: [...options.children],
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -695,7 +732,9 @@ export function createColumnElement(options: ColumnElementOptions): RcmlColumn {
  */
 export function createSwitchElement(options: SwitchElementOptions): RcmlSwitch {
   const issues = validateChildren('rc-switch', options.children)
+
   throwIfIssues('rc-switch', issues)
+
   return {
     tagName: 'rc-switch',
     children: [...options.children],
@@ -726,9 +765,11 @@ export function createSwitchElement(options: SwitchElementOptions): RcmlSwitch {
  */
 export function createCaseElement(options: CaseElementOptions): RcmlCase {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-case', options.attrs))
   issues.push(...validateChildren('rc-case', options.children))
   throwIfIssues('rc-case', issues)
+
   return {
     tagName: 'rc-case',
     attributes: normalizeAttrs(options.attrs) as RcmlCase['attributes'],
@@ -760,9 +801,11 @@ export function createCaseElement(options: CaseElementOptions): RcmlCase {
  */
 export function createLoopElement(options: LoopElementOptions): RcmlLoop {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-loop', options.attrs))
   issues.push(...validateChildren('rc-loop', options.children))
   throwIfIssues('rc-loop', issues)
+
   return {
     tagName: 'rc-loop',
     attributes: normalizeAttrs(options.attrs) as RcmlLoop['attributes'],
@@ -792,7 +835,9 @@ export function createLoopElement(options: LoopElementOptions): RcmlLoop {
  */
 export function createGroupElement(options: GroupElementOptions): RcmlGroup {
   const issues = validateChildren('rc-group', options.children)
+
   throwIfIssues('rc-group', issues)
+
   return {
     tagName: 'rc-group',
     children: [...options.children],
@@ -823,6 +868,7 @@ export function createGroupElement(options: GroupElementOptions): RcmlGroup {
  */
 export function createWrapperElement(options: WrapperElementOptions): RcmlWrapper {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-wrapper', options.attrs))
   issues.push(...validateChildren('rc-wrapper', options.children))
   throwIfIssues('rc-wrapper', issues)
@@ -831,7 +877,9 @@ export function createWrapperElement(options: WrapperElementOptions): RcmlWrappe
     tagName: 'rc-wrapper',
     children: [...options.children],
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -861,7 +909,9 @@ export function createWrapperElement(options: WrapperElementOptions): RcmlWrappe
  */
 export function createHeadElement(options: HeadElementOptions): RcmlHead {
   const issues = validateChildren('rc-head', options.children)
+
   throwIfIssues('rc-head', issues)
+
   return {
     tagName: 'rc-head',
     children: [...options.children],
@@ -891,6 +941,7 @@ export function createHeadElement(options: HeadElementOptions): RcmlHead {
  */
 export function createBodyElement(options: BodyElementOptions): RcmlBody {
   const issues: RcmlElementBuildIssue[] = []
+
   issues.push(...collectAttrIssues('rc-body', options.attrs))
   issues.push(...validateChildren('rc-body', options.children))
   throwIfIssues('rc-body', issues)
@@ -899,7 +950,9 @@ export function createBodyElement(options: BodyElementOptions): RcmlBody {
     tagName: 'rc-body',
     children: [...options.children],
   }
+
   if (attributes) node.attributes = attributes
+
   return node
 }
 
@@ -922,7 +975,9 @@ export function createBodyElement(options: BodyElementOptions): RcmlBody {
  */
 export function createBrandStyleElement(options: BrandStyleElementOptions): RcmlBrandStyle {
   const issues = collectAttrIssues('rc-brand-style', options.attrs)
+
   throwIfIssues('rc-brand-style', issues)
+
   return {
     tagName: 'rc-brand-style',
     attributes: normalizeAttrs(options.attrs) as RcmlBrandStyle['attributes'],
@@ -950,7 +1005,9 @@ export function createBrandStyleElement(options: BrandStyleElementOptions): Rcml
  */
 export function createFontElement(options: FontElementOptions): RcmlFont {
   const issues = collectAttrIssues('rc-font', options.attrs)
+
   throwIfIssues('rc-font', issues)
+
   return {
     tagName: 'rc-font',
     attributes: normalizeAttrs(options.attrs) as RcmlFont['attributes'],
@@ -978,7 +1035,9 @@ export function createFontElement(options: FontElementOptions): RcmlFont {
  */
 export function createAttributesElement(options: AttributesElementOptions): RcmlAttributes {
   const issues = validateChildren('rc-attributes', options.children)
+
   throwIfIssues('rc-attributes', issues)
+
   return {
     tagName: 'rc-attributes',
     children: [...options.children],
@@ -1001,7 +1060,9 @@ export function createAttributesElement(options: AttributesElementOptions): Rcml
  */
 export function createPreviewElement(options: PreviewElementOptions = {}): RcmlPreview {
   const node: RcmlPreview = { tagName: 'rc-preview' }
+
   if (options.content !== undefined) node.content = options.content
+
   return node
 }
 
@@ -1025,7 +1086,9 @@ export function createPreviewElement(options: PreviewElementOptions = {}): RcmlP
  */
 export function createClassElement(options: ClassElementOptions): RcmlClass {
   const issues = collectAttrIssues('rc-class', options.attrs)
+
   throwIfIssues('rc-class', issues)
+
   return {
     tagName: 'rc-class',
     attributes: normalizeAttrs(options.attrs) as RcmlClass['attributes'],
@@ -1070,7 +1133,9 @@ export function createPlainTextElement(options: PlainTextElementOptions): RcmlPl
  */
 export function createRawElement(options: RawElementOptions = {}): RcmlRaw {
   const node: RcmlRaw = { tagName: 'rc-raw' }
+
   if (options.content !== undefined) node.content = options.content
+
   return node
 }
 
@@ -1104,7 +1169,9 @@ export function createRawElement(options: RawElementOptions = {}): RcmlRaw {
  */
 export function createRcmlDocumentElement(options: RcmlDocumentElementOptions): RcmlDocument {
   const issues = validateChildren('rcml', [options.head, options.body])
+
   throwIfIssues('rcml', issues)
+
   return {
     tagName: 'rcml',
     children: [options.head, options.body],
@@ -1137,7 +1204,9 @@ export function createRcmlDocumentElement(options: RcmlDocumentElementOptions): 
  */
 export function createTextNode(text: string, marks?: TextNode['marks']): TextNode {
   const node: TextNode = { type: 'text', text }
+
   if (marks && marks.length > 0) node.marks = marks
+
   return node
 }
 
@@ -1172,6 +1241,7 @@ export function createPlaceholderNode(
   } = {},
 ): PlaceholderNode {
   const type = options.type ?? 'CustomField'
+
   return {
     type: 'placeholder',
     attrs: {
@@ -1252,6 +1322,7 @@ export function createInlineContent(nodes: readonly InlineNode[]): Json {
     type: 'doc',
     content: [{ type: 'paragraph', content: [...nodes] }],
   }
+
   return validateJson(normalizeJson(doc))
 }
 

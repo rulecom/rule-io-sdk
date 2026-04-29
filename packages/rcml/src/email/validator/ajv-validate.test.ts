@@ -17,6 +17,7 @@ describe('validateStructure — happy path', () => {
       tagName: 'rcml',
       children: [EMPTY_HEAD, EMPTY_BODY],
     }
+
     expect(validateStructure(doc)).toEqual([])
   })
 
@@ -29,6 +30,7 @@ describe('validateStructure — happy path', () => {
         { id: 'body-1', tagName: 'rc-body', children: [] },
       ],
     }
+
     expect(validateStructure(doc)).toEqual([])
   })
 })
@@ -37,12 +39,14 @@ describe('validateStructure — tag-level issues', () => {
   it('emits TAG_MISSING when a node lacks `tagName`', () => {
     const doc = { children: [EMPTY_HEAD, EMPTY_BODY] }
     const issues = validateStructure(doc)
+
     expect(issues.some((i) => i.code === 'TAG_MISSING')).toBe(true)
   })
 
   it('emits TAG_UNKNOWN when the root tagName is not `rcml`', () => {
     const doc = { tagName: 'not-rcml', children: [] }
     const issues = validateStructure(doc)
+
     expect(issues.some((i) => i.code === 'TAG_UNKNOWN')).toBe(true)
   })
 })
@@ -63,6 +67,7 @@ describe('validateStructure — child-level issues', () => {
       ],
     }
     const issues = validateStructure(doc)
+
     expect(issues.some((i) => i.code === 'CHILD_INVALID')).toBe(true)
   })
 
@@ -82,6 +87,7 @@ describe('validateStructure — child-level issues', () => {
       ],
     }
     const issues = validateStructure(doc)
+
     expect(issues.some((i) => i.code === 'CHILD_TOO_MANY')).toBe(true)
   })
 })
@@ -97,6 +103,7 @@ describe('validateStructure — attribute-level issues', () => {
     }
     const issues = validateStructure(doc)
     const unknown = issues.find((i) => i.code === 'ATTR_UNKNOWN')
+
     expect(unknown).toBeDefined()
     expect(unknown?.message).toContain('bogus')
   })
@@ -120,6 +127,7 @@ describe('validateStructure — attribute-level issues', () => {
       ],
     }
     const issues = validateStructure(doc)
+
     expect(issues.some((i) => i.code === 'ATTR_INVALID_VALUE')).toBe(true)
   })
 })
@@ -134,6 +142,7 @@ describe('validateStructure — issue shape', () => {
       ],
     }
     const issues = validateStructure(doc)
+
     expect(issues.every((i) => typeof i.path === 'string')).toBe(true)
     expect(issues.some((i) => i.path.includes('/children/1/attributes'))).toBe(true)
   })
@@ -152,6 +161,7 @@ describe('validateStructure — issue shape', () => {
     }
     const issues = validateStructure(doc)
     const unknowns = issues.filter((i) => i.code === 'ATTR_UNKNOWN')
+
     expect(unknowns.length).toBeGreaterThanOrEqual(3)
   })
 })

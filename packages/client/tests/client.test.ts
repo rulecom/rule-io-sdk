@@ -58,6 +58,7 @@ describe('RuleClient', () => {
   describe('constructor', () => {
     it('should accept string API key for backwards compatibility', () => {
       const client = new RuleClient('test-api-key');
+
       expect(client.getApiKey()).toBe('test-api-key');
     });
 
@@ -66,6 +67,7 @@ describe('RuleClient', () => {
         apiKey: 'test-api-key',
         debug: true,
       });
+
       expect(client.getApiKey()).toBe('test-api-key');
     });
 
@@ -82,6 +84,7 @@ describe('RuleClient', () => {
         fetch: mockFetch,
         fieldGroupPrefix: 'Order',
       });
+
       await client.syncSubscriber({
         email: 'test@example.com',
         fields: { Ref: 'ORD-123' },
@@ -89,6 +92,7 @@ describe('RuleClient', () => {
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.subscribers.fields).toContainEqual({
         key: 'Order.Ref',
         value: 'ORD-123',
@@ -115,6 +119,7 @@ describe('RuleClient', () => {
         fetch: mockFetch,
         fieldGroupPrefix: '  Custom  ',
       });
+
       await client.syncSubscriber({
         email: 'test@example.com',
         fields: { Name: 'Test' },
@@ -122,6 +127,7 @@ describe('RuleClient', () => {
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.subscribers.fields).toContainEqual({
         key: 'Custom.Name',
         value: 'Test',
@@ -152,10 +158,12 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v2/subscribers');
       expect(options.method).toBe('POST');
 
       const body = JSON.parse(options.body);
+
       expect(body.update_on_duplicate).toBe(true);
       expect(body.tags).toEqual(['booking-confirmed']);
       expect(body.subscribers.email).toBe('test@example.com');
@@ -169,6 +177,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.syncSubscriber({
         email: 'test@example.com',
         fields: {
@@ -181,6 +190,7 @@ describe('RuleClient', () => {
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
       const fieldKeys = body.subscribers.fields.map((f: { key: string }) => f.key);
+
       expect(fieldKeys).toContain('Booking.FirstName');
       expect(fieldKeys).not.toContain('Booking.LastName');
       expect(fieldKeys).not.toContain('Booking.Phone');
@@ -214,13 +224,16 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.addSubscriberTags('test@example.com', ['booking-confirmed'], 'force');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/subscribers/test%40example.com/tags');
       expect(options.method).toBe('POST');
 
       const body = JSON.parse(options.body);
+
       expect(body.tags).toEqual(['booking-confirmed']);
       expect(body.automation).toBe('force');
     });
@@ -229,9 +242,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.addSubscriberTags('test@example.com', ['vip'], false);
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.tags).toEqual(['vip']);
       expect(body.automation).toBeUndefined();
     });
@@ -356,6 +371,7 @@ describe('RuleClient', () => {
       };
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.createTemplate({
         message_id: 1,
         name: 'Test Template',
@@ -364,6 +380,7 @@ describe('RuleClient', () => {
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.template).toEqual(rcmlDoc);
       expect(Array.isArray(body.template)).toBe(false);
     });
@@ -383,6 +400,7 @@ describe('RuleClient', () => {
       expect(result.data?.id).toBe(123);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
     });
@@ -404,6 +422,7 @@ describe('RuleClient', () => {
       expect(result.data?.id).toBe(456);
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.name).toBe('Triggered Automation');
       expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
       expect(body.sendout_type).toBe(2);
@@ -480,6 +499,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(2);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/editor/automail?');
       expect(url).toContain('page=2');
       expect(url).toContain('per_page=20');
@@ -490,9 +510,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.listAutomations();
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect(url).not.toContain('?');
     });
@@ -501,9 +523,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [{ id: 1, name: 'Welcome' }] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.listAutomations({ query: 'Welcome' });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('query=Welcome');
     });
 
@@ -519,6 +543,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(1);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('id=123');
       expect(url).toContain('dispatcher_type=automail');
     });
@@ -535,6 +560,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(1);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('page=1');
       expect(url).toContain('per_page=50');
     });
@@ -551,6 +577,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(1);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('message_id=456');
     });
 
@@ -570,9 +597,11 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(200);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/dynamic-set/200');
       expect(options.method).toBe('PUT');
       const body = JSON.parse(options.body);
+
       expect(body.message_id).toBe(456);
       expect(body.template_id).toBe(101);
       expect(body.active).toBe(true);
@@ -595,9 +624,11 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Updated');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
       expect(options.method).toBe('PUT');
       const body = JSON.parse(options.body);
+
       expect(body.name).toBe('Updated');
       expect(body.active).toBe(true);
       expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
@@ -616,6 +647,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Renamed');
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ name: 'Renamed' });
       expect(body).not.toHaveProperty('active');
       expect(body).not.toHaveProperty('trigger');
@@ -630,14 +662,17 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.updateAutomation(1, { active: false });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ active: false });
     });
 
     it('should render a template and return HTML', async () => {
       const html = '<html><body><h1>Hello</h1></body></html>';
+
       mockFetch.mockResolvedValueOnce(createMockTextResponse(html));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -645,6 +680,7 @@ describe('RuleClient', () => {
 
       expect(result).toBe(html);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/template/42/render');
     });
 
@@ -654,9 +690,11 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.renderTemplate(42, { subscriber_id: 1001 });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/template/42/render?');
       expect(url).toContain('subscriber_id=1001');
     });
@@ -690,6 +728,7 @@ describe('RuleClient', () => {
           name: ['The name field is required.'],
         },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -700,6 +739,7 @@ describe('RuleClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         expect(apiError.statusCode).toBe(422);
         expect(apiError.isValidationError()).toBe(true);
         expect(apiError.message).toContain('automail_setting:');
@@ -716,6 +756,7 @@ describe('RuleClient', () => {
           email: ['The email field is required.', 'The email must be valid.'],
         },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -726,6 +767,7 @@ describe('RuleClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         expect(apiError.message).toContain('email: The email field is required.');
         expect(apiError.message).toContain('email: The email must be valid.');
         expect(apiError.validationErrors).toEqual(errorBody.errors);
@@ -745,6 +787,7 @@ describe('RuleClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         expect(apiError.message).toBe('Something went wrong');
         expect(apiError.validationErrors).toBeUndefined();
       }
@@ -761,6 +804,7 @@ describe('RuleClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         // Empty errors object produces no field messages, falls back to default
         expect(apiError.message).toBe('Rule.io v3 API error');
         expect(apiError.validationErrors).toEqual({});
@@ -775,6 +819,7 @@ describe('RuleClient', () => {
           field_c: 12345,
         },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(errorBody, 422));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -785,6 +830,7 @@ describe('RuleClient', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         expect(apiError.statusCode).toBe(422);
         // String values should be wrapped in an array
         expect(apiError.validationErrors?.field_a).toEqual(['not-an-array']);
@@ -814,6 +860,7 @@ describe('RuleClient', () => {
         ],
         meta: { page: 1, per_page: 15 },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -823,6 +870,7 @@ describe('RuleClient', () => {
       expect(result.data![0].group_name).toBe('Order');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/custom-field-data/42');
       expect(url).not.toContain('?');
     });
@@ -831,6 +879,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [], meta: { page: 2, per_page: 10 } }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getCustomFieldData(42, {
         page: 2,
         per_page: 10,
@@ -839,6 +888,7 @@ describe('RuleClient', () => {
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('page=2');
       expect(url).toContain('per_page=10');
       expect(url).toContain('groups_id%5B%5D=1');
@@ -858,12 +908,15 @@ describe('RuleClient', () => {
           values: [{ field: 'Ref', create_if_not_exists: true, value: 'ORD-123' }],
         }],
       };
+
       await client.createCustomFieldData(42, request);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/custom-field-data/42');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.groups[0].group).toBe('Order');
       expect(body.groups[0].values[0].value).toBe('ORD-123');
     });
@@ -880,9 +933,11 @@ describe('RuleClient', () => {
 
       expect(result.success).toBe(true);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/custom-field-data/42');
       expect(options.method).toBe('PUT');
       const body = JSON.parse(options.body);
+
       expect(body.identifier.group).toBe('Order');
       expect(body.values[0].field).toBe('Status');
     });
@@ -891,9 +946,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getCustomFieldDataByGroup(42, 'Order');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/custom-field-data/42/group/Order');
     });
 
@@ -901,9 +958,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getCustomFieldDataByGroup(42, 5, { page: 1, fields: ['Ref', 'Status'] });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/custom-field-data/42/group/5');
       expect(url).toContain('page=1');
       expect(url).toContain('fields%5B%5D=Ref');
@@ -914,9 +973,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.deleteCustomFieldDataByGroup(42, 'Order');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/custom-field-data/42/group/Order');
       expect(options.method).toBe('DELETE');
     });
@@ -925,6 +986,7 @@ describe('RuleClient', () => {
       const mockData = {
         data: { id: 1, group_name: 'Order', values: [] },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -938,6 +1000,7 @@ describe('RuleClient', () => {
       expect(result!.data!.group_name).toBe('Order');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/custom-field-data/42/search');
       expect(url).toContain('group=Order');
       expect(url).toContain('field=Ref');
@@ -971,9 +1034,11 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(10);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.message_type).toBe(1);
       expect(body.tags).toEqual([{ id: 42, negative: false }]);
     });
@@ -991,6 +1056,7 @@ describe('RuleClient', () => {
       expect(result?.data?.id).toBe(10);
       expect(result?.data?.name).toBe('Spring Sale');
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
     });
 
@@ -1021,9 +1087,11 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Updated Sale');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
       expect(options.method).toBe('PUT');
       const body = JSON.parse(options.body);
+
       expect(body.name).toBe('Updated Sale');
       expect(body.sendout_type).toBe(1);
       expect(body.tags).toEqual([{ id: 42, negative: false }]);
@@ -1043,6 +1111,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Renamed Campaign');
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ name: 'Renamed Campaign' });
       expect(body).not.toHaveProperty('sendout_type');
       expect(body).not.toHaveProperty('tags');
@@ -1058,9 +1127,11 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.updateCampaign(10, { sendout_type: 2 });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ sendout_type: 2 });
     });
 
@@ -1068,9 +1139,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.deleteCampaign(10);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10');
       expect(options.method).toBe('DELETE');
     });
@@ -1090,6 +1163,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(2);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/editor/campaign?');
       expect(url).toContain('page=2');
       expect(url).toContain('per_page=10');
@@ -1100,9 +1174,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.listCampaigns();
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
       expect(url).not.toContain('?');
     });
@@ -1119,6 +1195,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(11);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/copy');
       expect(options.method).toBe('POST');
     });
@@ -1127,15 +1204,18 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.scheduleCampaign(10, {
         type: 'schedule',
         datetime: '2025-06-15 10:00:00',
       });
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/schedule');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.type).toBe('schedule');
       expect(body.datetime).toBe('2025-06-15 10:00:00');
     });
@@ -1144,12 +1224,15 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.scheduleCampaign(10, { type: null });
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/10/schedule');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.type).toBeNull();
     });
 
@@ -1169,6 +1252,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(20);
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ message_type: 1 });
     });
 
@@ -1180,6 +1264,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.createCampaign({
         message_type: 1,
         sendout_type: 1,
@@ -1192,6 +1277,7 @@ describe('RuleClient', () => {
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.tags).toHaveLength(2);
       expect(body.tags[1].negative).toBe(true);
       expect(body.segments).toEqual([{ id: 10, negative: false }]);
@@ -1213,6 +1299,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(22);
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.message_type).toBe(2);
     });
 
@@ -1229,9 +1316,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.listCampaigns({ page: 1, per_page: 5 });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('page=1');
       expect(url).toContain('per_page=5');
       expect(url).not.toContain('message_type');
@@ -1245,12 +1334,14 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.updateCampaign(10, {
         tags: [{ id: 99, negative: false }],
         subscribers: [101],
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({
         tags: [{ id: 99, negative: false }],
         subscribers: [101],
@@ -1329,11 +1420,13 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
       expect(options.method).toBe('POST');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
 
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(2);
       expect(body.subscribers[0]).toEqual({ email: 'user1@example.com' });
       expect(body.subscribers[1]).toEqual({ email: 'user2@example.com' });
@@ -1343,12 +1436,14 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.createSuppressions({
         subscribers: [{ email: 'user@example.com' }],
         message_types: ['email'],
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.message_types).toEqual(['email']);
     });
 
@@ -1364,11 +1459,13 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
       expect(options.method).toBe('DELETE');
       expect(options.headers['Content-Type']).toBe('application/json;charset=utf-8');
 
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(1);
       expect(body.subscribers[0]).toEqual({ email: 'user@example.com' });
     });
@@ -1377,15 +1474,18 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.deleteSuppressions({
         subscribers: [{ email: 'user@example.com' }],
         callback_url: 'https://example.com/webhook/done',
       });
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
       expect(options.method).toBe('DELETE');
       const body = JSON.parse(options.body);
+
       expect(body.callback_url).toBe('https://example.com/webhook/done');
     });
 
@@ -1393,12 +1493,14 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.createSuppressions({
         subscribers: [{ email: 'test@example.com' }],
         callback_url: 'https://example.com/callback',
       });
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.callback_url).toBe('https://example.com/callback');
     });
 
@@ -1406,15 +1508,18 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.deleteSuppressions({
         subscribers: [{ email: 'test@example.com' }],
         message_types: ['email'],
       });
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/suppressions/');
       expect(options.method).toBe('DELETE');
       const body = JSON.parse(options.body);
+
       expect(body.message_types).toEqual(['email']);
     });
 
@@ -1424,6 +1529,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.deleteSuppressions({ subscribers: [{ email: 'user@example.com' }] }),
       ).rejects.toThrow(RuleApiError);
@@ -1431,6 +1537,7 @@ describe('RuleClient', () => {
 
     it('should reject createSuppressions with empty subscribers array', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createSuppressions({ subscribers: [] }),
       ).rejects.toThrow('subscribers array must not be empty');
@@ -1441,6 +1548,7 @@ describe('RuleClient', () => {
       const subscribers = Array.from({ length: 1001 }, (_, i) => ({
         email: `user${i}@example.com`,
       }));
+
       await expect(
         client.createSuppressions({ subscribers }),
       ).rejects.toThrow('subscribers array must not exceed 1000 items');
@@ -1448,6 +1556,7 @@ describe('RuleClient', () => {
 
     it('should reject deleteSuppressions with empty subscribers array', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.deleteSuppressions({ subscribers: [] }),
       ).rejects.toThrow('subscribers array must not be empty');
@@ -1458,6 +1567,7 @@ describe('RuleClient', () => {
       const subscribers = Array.from({ length: 1001 }, (_, i) => ({
         email: `user${i}@example.com`,
       }));
+
       await expect(
         client.deleteSuppressions({ subscribers }),
       ).rejects.toThrow('subscribers array must not exceed 1000 items');
@@ -1481,9 +1591,11 @@ describe('RuleClient', () => {
       expect(result.email).toBe('new@example.com');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.email).toBe('new@example.com');
       expect(body.status).toBe('ACTIVE');
       expect(body.language).toBe('sv');
@@ -1502,6 +1614,7 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/old%40example.com?identified_by=email');
       expect(options.method).toBe('DELETE');
     });
@@ -1519,6 +1632,7 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/12345?identified_by=id');
     });
 
@@ -1535,6 +1649,7 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/old%40example.com?identified_by=email');
       expect(options.method).toBe('DELETE');
     });
@@ -1555,9 +1670,11 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/block');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(2);
       expect(body.subscribers[0].email).toBe('spam@example.com');
     });
@@ -1578,9 +1695,11 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/unblock');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(2);
     });
 
@@ -1592,12 +1711,14 @@ describe('RuleClient', () => {
       } as Response);
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.blockSubscribers(
         [{ email: 'spam@example.com' }],
         'https://example.com/webhook'
       );
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.callback_url).toBe('https://example.com/webhook');
       expect(body.subscribers).toHaveLength(1);
     });
@@ -1610,12 +1731,14 @@ describe('RuleClient', () => {
       } as Response);
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.unblockSubscribers(
         [{ email: 'restored@example.com' }],
         'https://example.com/webhook'
       );
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body.callback_url).toBe('https://example.com/webhook');
       expect(body.subscribers).toHaveLength(1);
     });
@@ -1636,9 +1759,11 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/tags');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(2);
       expect(body.tags).toEqual(['newsletter', 'promo-2024']);
     });
@@ -1659,9 +1784,11 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/tags');
       expect(options.method).toBe('DELETE');
       const body = JSON.parse(options.body);
+
       expect(body.subscribers).toHaveLength(1);
       expect(body.tags).toEqual(['old-campaign']);
     });
@@ -1683,11 +1810,13 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe(
         'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags?identified_by=email'
       );
       expect(options.method).toBe('PUT');
       const body = JSON.parse(options.body);
+
       expect(body.tags).toEqual(['vip', 'returning']);
       expect(body.automation).toBe('force');
     });
@@ -1709,6 +1838,7 @@ describe('RuleClient', () => {
       expect(result.success).toBe(true);
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe(
         'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags/old-promo?identified_by=email'
       );
@@ -1723,9 +1853,11 @@ describe('RuleClient', () => {
       } as Response);
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe(
         'https://app.rule.io/api/v3/subscribers/user%40example.com/tags?identified_by=email'
       );
@@ -1739,9 +1871,11 @@ describe('RuleClient', () => {
       } as Response);
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.removeSubscriberTagV3('user@example.com', 'old-tag');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe(
         'https://app.rule.io/api/v3/subscribers/user%40example.com/tags/old-tag?identified_by=email'
       );
@@ -1760,6 +1894,7 @@ describe('RuleClient', () => {
           { id: 2, name: 'Account B', created_at: '2024-02-01T00:00:00Z', updated_at: null },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1769,6 +1904,7 @@ describe('RuleClient', () => {
       expect(result.data?.[0].name).toBe('Account A');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts');
       expect(mockFetch.mock.calls[0][1].method).toBe('GET');
     });
@@ -1777,6 +1913,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Unauthorized' }, 401));
 
       const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
       await expect(client.listAccounts()).rejects.toThrow(RuleApiError);
     });
   });
@@ -1786,6 +1923,7 @@ describe('RuleClient', () => {
       const mockData = {
         data: { id: 99, name: 'New Account', created_at: '2024-06-01T00:00:00Z', updated_at: null },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1795,10 +1933,12 @@ describe('RuleClient', () => {
       expect(result.data?.name).toBe('New Account');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts');
       expect(mockFetch.mock.calls[0][1].method).toBe('POST');
 
       const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+
       expect(body).toEqual({ name: 'New Account', language: 'en' });
     });
 
@@ -1806,6 +1946,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(client.createAccount({ name: 'Test', language: 'sv' })).rejects.toThrow(RuleApiError);
     });
   });
@@ -1815,6 +1956,7 @@ describe('RuleClient', () => {
       const mockData = {
         data: { id: 42, name: 'My Account', created_at: '2024-01-01T00:00:00Z', updated_at: null },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1823,17 +1965,21 @@ describe('RuleClient', () => {
       expect(result?.data?.id).toBe(42);
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
     });
 
     it('should accept "show" as accountId', async () => {
       const mockData = { data: { id: 1, name: 'Current', created_at: null, updated_at: null } };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAccount('show');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts/show');
     });
 
@@ -1847,6 +1993,7 @@ describe('RuleClient', () => {
           sitoo_credentials: [{ account_id: 42, api_id: 'abc', password: 'secret', created_at: null, updated_at: null }],
         },
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -1855,6 +2002,7 @@ describe('RuleClient', () => {
       expect(result?.data?.sitoo_credentials).toHaveLength(1);
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts/42?includes%5B%5D=sitoo_credentials');
     });
 
@@ -1871,6 +2019,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Server error' }, 500));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(client.getAccount(42)).rejects.toThrow(RuleApiError);
     });
   });
@@ -1885,6 +2034,7 @@ describe('RuleClient', () => {
       expect(result).toEqual({ success: true });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/accounts/42');
       expect(mockFetch.mock.calls[0][1].method).toBe('DELETE');
     });
@@ -1893,6 +2043,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ error: 'Forbidden' }, 403));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(client.deleteAccount(42)).rejects.toThrow(RuleApiError);
     });
   });
@@ -1918,6 +2069,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data![0].name).toBe('Brand A');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles');
       expect(options.method).toBe('GET');
     });
@@ -1944,6 +2096,7 @@ describe('RuleClient', () => {
       expect(result!.data?.name).toBe('My Brand');
       expect(result!.data?.colours).toHaveLength(1);
       const [url] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
     });
 
@@ -1970,6 +2123,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.domain).toBe('example.com');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles/from-domain');
       expect(options.method).toBe('POST');
       expect(JSON.parse(options.body)).toEqual({ domain: 'example.com' });
@@ -1990,9 +2144,11 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Custom Brand');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles/manually');
       expect(options.method).toBe('POST');
       const body = JSON.parse(options.body);
+
       expect(body.name).toBe('Custom Brand');
       expect(body.colours).toEqual([{ type: 'brand', hex: '#00FF00', brightness: 70 }]);
     });
@@ -2009,6 +2165,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Updated Brand');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
       expect(options.method).toBe('PATCH');
       expect(JSON.parse(options.body)).toEqual({ name: 'Updated Brand' });
@@ -2022,6 +2179,7 @@ describe('RuleClient', () => {
 
       expect(result).toEqual({ success: true });
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/brand-styles/42');
       expect(options.method).toBe('DELETE');
     });
@@ -2032,6 +2190,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(client.deleteBrandStyle(42)).rejects.toThrow(RuleApiError);
     });
 
@@ -2041,6 +2200,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createBrandStyleFromDomain({ domain: 'nonexistent.example' })
       ).rejects.toThrow(RuleApiError);
@@ -2052,6 +2212,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createBrandStyleFromDomain({ domain: 'example.com' })
       ).rejects.toThrow(RuleApiError);
@@ -2079,6 +2240,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data![0].name).toBe('Production');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/api-keys');
       expect(options.method).toBe('GET');
     });
@@ -2096,6 +2258,7 @@ describe('RuleClient', () => {
       expect(result.data?.name).toBe('New Key');
       expect(result.data?.key).toBe('ghi789');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/api-keys');
       expect(options.method).toBe('POST');
       expect(JSON.parse(options.body)).toEqual({ name: 'New Key' });
@@ -2113,6 +2276,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.name).toBe('Renamed Key');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/api-keys/5');
       expect(options.method).toBe('PUT');
       expect(JSON.parse(options.body)).toEqual({ name: 'Renamed Key' });
@@ -2126,6 +2290,7 @@ describe('RuleClient', () => {
 
       expect(result).toEqual({ success: true });
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/api-keys/5');
       expect(options.method).toBe('DELETE');
     });
@@ -2136,6 +2301,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
       await expect(client.listApiKeys()).rejects.toThrow(RuleApiError);
     });
   });
@@ -2157,6 +2323,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data![0].name).toBe('Active Users');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/segments');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2175,6 +2342,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(1);
       expect(result.data![0].has_next_item).toBe(true);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/segments?page=1&per_page=10');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2195,6 +2363,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(1);
       expect(result.data![0].email).toBe('user@example.com');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/subscribers');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2215,6 +2384,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(2);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/subscribers?per_page=2');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2236,6 +2406,7 @@ describe('RuleClient', () => {
       expect(result.data).toHaveLength(2);
       expect(result.data![1].name).toBe('abandoned-cart');
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/tags');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2253,6 +2424,7 @@ describe('RuleClient', () => {
 
       expect(result.data).toHaveLength(1);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/recipients/tags?page=1&per_page=5');
       expect(options.method).toBe('GET');
       expect(options.body).toBeUndefined();
@@ -2272,6 +2444,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2288,6 +2461,7 @@ describe('RuleClient', () => {
       expect(result.data![0].metrics).toHaveLength(2);
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/analytics?');
       expect(url).toContain('date_from=2024-01-01');
       expect(url).toContain('date_to=2024-01-31');
@@ -2301,6 +2475,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2311,6 +2486,7 @@ describe('RuleClient', () => {
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('message_type=email');
     });
 
@@ -2318,6 +2494,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2327,6 +2504,7 @@ describe('RuleClient', () => {
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).not.toContain('message_type');
     });
 
@@ -2334,6 +2512,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2344,6 +2523,7 @@ describe('RuleClient', () => {
 
       const url = mockFetch.mock.calls[0][0] as string;
       const matches = url.match(/object_ids%5B%5D/g) ?? [];
+
       expect(matches).toHaveLength(3);
     });
 
@@ -2351,6 +2531,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2361,6 +2542,7 @@ describe('RuleClient', () => {
 
       const url = mockFetch.mock.calls[0][0] as string;
       const matches = url.match(/metrics%5B%5D/g) ?? [];
+
       expect(matches).toHaveLength(4);
     });
 
@@ -2368,6 +2550,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2377,6 +2560,7 @@ describe('RuleClient', () => {
       });
 
       const options = mockFetch.mock.calls[0][1] as RequestInit;
+
       expect(options.method).toBe('GET');
     });
 
@@ -2386,6 +2570,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.getAnalytics({
           date_from: '2024-01-31',
@@ -2399,6 +2584,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when object_ids is empty', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.getAnalytics({
           date_from: '2024-01-01',
@@ -2412,6 +2598,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when metrics is empty', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.getAnalytics({
           date_from: '2024-01-01',
@@ -2425,6 +2612,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when object_ids/metrics given without object_type', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.getAnalytics({
           date_from: '2024-01-01',
@@ -2437,6 +2625,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when object_type is undefined with object_ids/metrics', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.getAnalytics({
           date_from: '2024-01-01',
@@ -2452,12 +2641,14 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.getAnalytics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('date_from=2024-01-01');
       expect(url).toContain('date_to=2024-01-31');
       expect(url).not.toContain('object_type');
@@ -2471,6 +2662,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.deleteAutomation(1);
+
       expect(result.success).toBe(true);
     });
 
@@ -2478,6 +2670,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.deleteMessage(1);
+
       expect(result.success).toBe(true);
     });
 
@@ -2485,6 +2678,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.deleteTemplate(1);
+
       expect(result.success).toBe(true);
     });
 
@@ -2492,6 +2686,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.deleteDynamicSet(1);
+
       expect(result.success).toBe(true);
     });
 
@@ -2499,6 +2694,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMock204Response());
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.deleteCampaign(1);
+
       expect(result.success).toBe(true);
     });
   });
@@ -2527,6 +2723,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2540,6 +2737,7 @@ describe('RuleClient', () => {
       expect(result.data![0].dispatcher_name).toBe('Welcome Email');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/api/v3/export/dispatcher');
       expect(url).toContain('date_from=2024-01-01');
       expect(url).toContain('date_to=2024-01-02');
@@ -2565,6 +2763,7 @@ describe('RuleClient', () => {
         ],
         next_page_token: 'token-abc',
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2579,6 +2778,7 @@ describe('RuleClient', () => {
       expect(result.next_page_token).toBe('token-abc');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('/api/v3/export/statistics');
       expect(url).toContain('date_from=2024-01-01');
       expect(url).toContain('date_to=2024-01-31');
@@ -2588,6 +2788,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.exportStatistics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2595,6 +2796,7 @@ describe('RuleClient', () => {
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('statistic_types%5B%5D=open');
       expect(url).toContain('statistic_types%5B%5D=link');
     });
@@ -2603,6 +2805,7 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ data: [], next_page_token: null }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.exportStatistics({
         date_from: '2024-01-01',
         date_to: '2024-01-31',
@@ -2610,6 +2813,7 @@ describe('RuleClient', () => {
       });
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('next_page_token=token-abc');
     });
 
@@ -2632,6 +2836,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2662,6 +2867,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2705,6 +2911,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2736,6 +2943,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2767,6 +2975,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2796,6 +3005,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2823,6 +3033,7 @@ describe('RuleClient', () => {
           },
         ],
       };
+
       mockFetch.mockResolvedValueOnce(createMockResponse(mockData));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
@@ -2836,6 +3047,7 @@ describe('RuleClient', () => {
       expect(result.data![0].email).toBe('user@example.com');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toContain('/api/v3/export/subscriber');
       expect(url).toContain('date_from=2024-01-01');
       expect(url).toContain('date_to=2024-01-31');
@@ -2860,6 +3072,7 @@ describe('RuleClient', () => {
       );
 
       const client = new RuleClient({ apiKey: 'bad-key', fetch: mockFetch });
+
       await expect(
         client.exportDispatchers({ date_from: '2024-01-01', date_to: '2024-01-02' })
       ).rejects.toThrow(RuleApiError);
@@ -2869,6 +3082,7 @@ describe('RuleClient', () => {
   describe('createAutomationEmail', () => {
     it('should throw RuleConfigError when neither template nor brandStyleId provided', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createAutomationEmail({
           name: 'Test',
@@ -2881,6 +3095,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when both template and brandStyleId provided', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createAutomationEmail({
           name: 'Test',
@@ -2940,6 +3155,7 @@ describe('RuleClient', () => {
       const templateCall = mockFetch.mock.calls[4];
       const templateBody = JSON.parse(templateCall[1].body);
       const rcml = JSON.stringify(templateBody.template);
+
       expect(rcml).toContain('rc-brand-style');
       expect(rcml).toContain('rcml-h1-style');
       expect(rcml).toContain('rcml-p-style');
@@ -2972,6 +3188,7 @@ describe('RuleClient', () => {
   describe('createCampaignEmail', () => {
     it('should throw RuleConfigError when neither template nor brandStyleId provided', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createCampaignEmail({
           name: 'Test',
@@ -2982,6 +3199,7 @@ describe('RuleClient', () => {
 
     it('should throw RuleConfigError when both template and brandStyleId provided', async () => {
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await expect(
         client.createCampaignEmail({
           name: 'Test',
@@ -3034,6 +3252,7 @@ describe('RuleClient', () => {
       const templateCall = mockFetch.mock.calls[3];
       const templateBody = JSON.parse(templateCall[1].body);
       const rcml = JSON.stringify(templateBody.template);
+
       expect(rcml).toContain('rc-brand-style');
       expect(rcml).toContain('rcml-h1-style');
       expect(rcml).toContain('rcml-p-style');
@@ -3137,6 +3356,7 @@ describe('RuleClient', () => {
       expect(result.tags?.[0].name).toBe('newsletter');
 
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe('https://app.rule.io/api/v2/tags');
       expect(options.method).toBe('GET');
     });
@@ -3204,6 +3424,7 @@ describe('RuleClient', () => {
 
       expect(result.success).toBe(true);
       const [url, options] = mockFetch.mock.calls[0];
+
       expect(url).toBe(
         'https://app.rule.io/api/v2/subscribers/old%40example.com?identified_by=email'
       );
@@ -3214,9 +3435,11 @@ describe('RuleClient', () => {
       mockFetch.mockResolvedValueOnce(createMockResponse({ success: true }));
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
       await client.deleteSubscriber('user+tag@example.com');
 
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toContain('user%2Btag%40example.com');
     });
   });
@@ -3234,6 +3457,7 @@ describe('RuleClient', () => {
 
       expect(result).toEqual(['vip', 'newsletter']);
       const [url] = mockFetch.mock.calls[0];
+
       expect(url).toBe(
         'https://app.rule.io/api/v2/subscribers/test%40example.com/tags?identified_by=email'
       );
@@ -3364,6 +3588,7 @@ describe('RuleClient', () => {
 
       expect(result.data?.id).toBe(1);
       const url = mockFetch.mock.calls[0][0] as string;
+
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
     });
 

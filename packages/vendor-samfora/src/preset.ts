@@ -94,12 +94,15 @@ const REQUIRED_FIELDS: readonly SamforaFieldNames[] = [
 
 function validateSamforaConfig(config: VendorConsumerConfig): void {
   const missingFields: string[] = [];
+
   for (const logicalName of REQUIRED_FIELDS) {
     const fieldName = SAMFORA_FIELDS[logicalName];
+
     if (config.customFields[fieldName] === undefined) {
       missingFields.push(`${logicalName} ("${fieldName}")`);
     }
   }
+
   if (missingFields.length > 0) {
     throw new RuleConfigError(
       `samforaPreset: missing customFields entries for: ${missingFields.join(', ')}`,
@@ -129,11 +132,13 @@ export const samforaPreset: VendorPreset<SamforaFieldSchema, SamforaTagSchema> =
 
   getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
     validateSamforaConfig(config);
+
     return resolveAutomations(config);
   },
 
   getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
     validateSamforaConfig(config);
+
     return resolveAutomations(config).find((a) => a.id === id);
   },
 

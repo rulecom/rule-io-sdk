@@ -79,6 +79,7 @@ describe('shopifyPreset', () => {
           [SHOPIFY_FIELDS.totalPrice]: 3,
         },
       };
+
       expect(() => {
         shopifyPreset.validateConfig(minimalConfig);
         // Ensure automations (and their templates) build with minimal config
@@ -138,12 +139,14 @@ describe('shopifyPreset', () => {
   describe('getAutomations', () => {
     it('returns 5 automations', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
+
       expect(automations).toHaveLength(5);
     });
 
     it('returns automations with unique IDs', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
       const ids = automations.map((a) => a.id);
+
       expect(new Set(ids).size).toBe(ids.length);
     });
 
@@ -165,6 +168,7 @@ describe('shopifyPreset', () => {
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://myshop.example.com',
         });
+
         assertValidRCMLDocument(doc);
       }
     });
@@ -278,9 +282,11 @@ describe('shopifyPreset', () => {
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
+
       assertValidRCMLDocument(doc);
 
       const json = JSON.stringify(doc);
+
       expect(json).toContain('[CustomField:200001]'); // firstName
       expect(json).toContain('[CustomField:200003]'); // orderNumber
     });
@@ -298,9 +304,11 @@ describe('shopifyPreset', () => {
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
+
       assertValidRCMLDocument(doc);
 
       const json = JSON.stringify(doc);
+
       expect(json).toContain('Welcome!');
       expect(json).toContain('[CustomField:200001]'); // Subscriber.FirstName
       expect(json).toContain('https://myshop.example.com');
@@ -322,6 +330,7 @@ describe('shopifyPreset', () => {
       const welcome = shopifyPreset.getAutomations(minimal).find(
         (a) => a.id === 'shopify-welcome'
       )!;
+
       expect(() => welcome.templateBuilder(minimal)).not.toThrow();
     });
 
@@ -345,12 +354,14 @@ describe('shopifyPreset', () => {
         'shopify-order-confirmation',
         TEST_CONFIG
       );
+
       expect(automation).toBeDefined();
       expect(automation!.id).toBe('shopify-order-confirmation');
     });
 
     it('returns undefined for unknown ID', () => {
       const automation = shopifyPreset.getAutomation('nonexistent', TEST_CONFIG);
+
       expect(automation).toBeUndefined();
     });
   });

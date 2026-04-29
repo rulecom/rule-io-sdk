@@ -10,6 +10,7 @@ describe('rcmlToXml output', () => {
         { tagName: 'rc-body', children: [] },
       ],
     })
+
     expect(xml).toContain('\n  <rc-head')
     expect(xml).toContain('\n  <rc-body')
   })
@@ -25,6 +26,7 @@ describe('rcmlToXml output', () => {
       },
       { pretty: false },
     )
+
     expect(xml).not.toContain('\n')
   })
 
@@ -63,6 +65,7 @@ describe('rcmlToXml output', () => {
         },
       ],
     })
+
     expect(xml).toContain('&amp;')
     expect(xml).toContain('&quot;')
     expect(xml).toContain('&lt;')
@@ -83,6 +86,7 @@ describe('rcmlToXml output', () => {
       },
       { pretty: false },
     )
+
     expect(xml).toContain('background-color="#ffffff"')
     expect(xml).toContain('width="600px"')
   })
@@ -95,6 +99,7 @@ describe('rcmlToXml output', () => {
       },
       { indent: '    ' },
     )
+
     expect(xml).toContain('\n    <rc-head')
   })
 })

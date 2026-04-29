@@ -128,12 +128,15 @@ const BYTE_TO_CHAR_CHUNK = 0x8000;
  */
 function tryDecodeBase64Utf8(input: string): string | null {
   if (!input) return null;
+
   try {
     const binary = atob(input);
     const bytes = new Uint8Array(binary.length);
+
     for (let i = 0; i < binary.length; i++) {
       bytes[i] = binary.charCodeAt(i);
     }
+
     return UTF8_DECODER_FATAL.decode(bytes);
   } catch {
     return null;
@@ -144,11 +147,13 @@ function tryDecodeBase64Utf8(input: string): string | null {
 function encodeBase64Utf8(input: string): string {
   const bytes = UTF8_ENCODER.encode(input);
   let binary = '';
+
   for (let i = 0; i < bytes.length; i += BYTE_TO_CHAR_CHUNK) {
     binary += String.fromCharCode(
       ...bytes.subarray(i, i + BYTE_TO_CHAR_CHUNK)
     );
   }
+
   return btoa(binary);
 }
 
@@ -172,8 +177,10 @@ function decodeStatisticMessageName(
   if (record.object.type !== 'message') return record;
   const original = record.object.name;
   const decoded = tryDecodeBase64Utf8(original);
+
   if (decoded === null) return record;
   if (encodeBase64Utf8(decoded) !== original) return record;
+
   return { ...record, object: { ...record.object, name: decoded } };
 }
 
@@ -227,12 +234,15 @@ export class RuleClient {
     }
 
     const prefix = this.config.fieldGroupPrefix.trim();
+
     if (!prefix) {
       throw new RuleConfigError('fieldGroupPrefix must not be empty');
     }
+
     if (prefix.includes('.')) {
       throw new RuleConfigError('fieldGroupPrefix must not contain dots');
     }
+
     this.config.fieldGroupPrefix = prefix;
   }
 
@@ -272,6 +282,7 @@ export class RuleClient {
     options: RequestInit
   ): Promise<T> {
     const url = `${this.config.baseUrlV2}${endpoint}`;
+
     this.log('Request:', options.method, url);
 
     try {
@@ -285,6 +296,7 @@ export class RuleClient {
 
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After') || '60';
+
         this.log('Rate limited. Retry after', retryAfter, 'seconds');
         throw new RuleApiError('Rate limited by Rule.io API', 429);
       }
@@ -295,24 +307,30 @@ export class RuleClient {
 
       if (!response.ok) {
         let message = 'Rule.io API error';
+
         try {
           const errorData = (await response.json()) as { error?: string; message?: string };
+
           if (errorData?.error || errorData?.message) {
             message = errorData.error || errorData.message || message;
           }
         } catch {
           // Response body is not valid JSON
         }
+
         throw new RuleApiError(message, response.status);
       }
 
       const data = (await response.json()) as T;
+
       this.log('Response:', data);
+
       return data;
     } catch (error) {
       if (error instanceof RuleApiError) {
         throw error;
       }
+
       this.log('Rule.io API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
@@ -320,6 +338,7 @@ export class RuleClient {
 
   private async fetchV3(endpoint: string, options: RequestInit): Promise<Response> {
     const url = `${this.config.baseUrlV3}${endpoint}`;
+
     this.log('Request V3:', options.method, url);
 
     try {
@@ -333,6 +352,7 @@ export class RuleClient {
 
       if (response.status === 429) {
         const retryAfter = response.headers.get('Retry-After') || '60';
+
         this.log('Rate limited. Retry after', retryAfter, 'seconds');
         throw new RuleApiError('Rate limited by Rule.io API', 429);
       }
@@ -344,9 +364,12 @@ export class RuleClient {
       if (!response.ok) {
         let message = 'Rule.io v3 API error';
         let validationErrors: RuleValidationErrors | undefined;
+
         try {
           const text = await response.text();
+
           this.log('Error response body:', text);
+
           if (text) {
             const errorData = JSON.parse(text) as {
               error?: string;
@@ -363,6 +386,7 @@ export class RuleClient {
               // Normalize each field value into string[] to satisfy RuleValidationErrors.
               // The API may return a bare string instead of an array for some fields.
               const normalized: RuleValidationErrors = {};
+
               for (const [field, value] of Object.entries(errorData.errors)) {
                 if (Array.isArray(value)) {
                   normalized[field] = value.map((v) => String(v));
@@ -371,6 +395,7 @@ export class RuleClient {
                 }
                 // Skip non-string, non-array values
               }
+
               validationErrors = normalized;
 
               const fieldMessages = Object.entries(normalized)
@@ -378,6 +403,7 @@ export class RuleClient {
                   messages.map((msg) => `${field}: ${msg}`).join('; ')
                 )
                 .join('; ');
+
               if (fieldMessages) {
                 message = fieldMessages;
               }
@@ -388,10 +414,13 @@ export class RuleClient {
         } catch {
           // Response body is not valid JSON
         }
+
         const error = new RuleApiError(message, response.status);
+
         if (validationErrors) {
           error.validationErrors = validationErrors;
         }
+
         throw error;
       }
 
@@ -400,6 +429,7 @@ export class RuleClient {
       if (error instanceof RuleApiError) {
         throw error;
       }
+
       this.log('Rule.io v3 API request failed:', error);
       throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
     }
@@ -410,12 +440,17 @@ export class RuleClient {
     options: RequestInit
   ): Promise<T> {
     const response = await this.fetchV3(endpoint, options);
+
     if (response.status === 204) {
       this.log('Response V3: 204 No Content');
+
       return { success: true } as T;
     }
+
     const data = (await response.json()) as T;
+
     this.log('Response V3:', data);
+
     return data;
   }
 
@@ -425,7 +460,9 @@ export class RuleClient {
   ): Promise<string> {
     const response = await this.fetchV3(endpoint, options);
     const text = await response.text();
+
     this.log('Response V3 (text):', text.slice(0, 200));
+
     return text;
   }
 
@@ -433,8 +470,10 @@ export class RuleClient {
     params: QueryParamValues
   ): string {
     const pairs: string[] = [];
+
     for (const [k, v] of Object.entries(params)) {
       if (v === undefined || v === null) continue;
+
       if (Array.isArray(v)) {
         for (const item of v) {
           if (item !== undefined && item !== null) {
@@ -445,6 +484,7 @@ export class RuleClient {
         pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
       }
     }
+
     return pairs.length === 0 ? '' : `?${pairs.join('&')}`;
   }
 
@@ -478,6 +518,7 @@ export class RuleClient {
 
     if (subscriber.fields) {
       const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
+
       if (dottedKey) {
         throw new RuleConfigError(
           `Field key "${dottedKey}" contains a dot. Pass bare field names (e.g. "${dottedKey.split('.').pop()}") — the SDK adds the group prefix automatically.`
@@ -586,6 +627,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -615,11 +657,13 @@ export class RuleClient {
         `/subscribers/${encodeURIComponent(email)}/tags?identified_by=email`,
         { method: 'GET' }
       );
+
       return response.tags?.map((t) => t.name) || [];
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return [];
       }
+
       throw error;
     }
   }
@@ -641,16 +685,19 @@ export class RuleClient {
 
       // Flatten groups into a simple key-value map
       const fields: Record<string, string | null> = {};
+
       for (const group of response.groups || []) {
         for (const field of group.fields) {
           fields[`${group.name}.${field.name}`] = field.value;
         }
       }
+
       return fields;
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return {};
       }
+
       throw error;
     }
   }
@@ -677,6 +724,7 @@ export class RuleClient {
   async getTagIdByName(name: string): Promise<number | null> {
     const response = await this.getTags();
     const tag = response.tags?.find((t) => t.name === name);
+
     return tag?.id ?? null;
   }
 
@@ -709,6 +757,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -778,6 +827,7 @@ export class RuleClient {
    */
   async listAutomations(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+
     return this.requestV3<RuleAutomationListResponse>(`/editor/automail${qs}`, {
       method: 'GET',
     });
@@ -851,6 +901,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -895,6 +946,7 @@ export class RuleClient {
    */
   async listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
     const qs = RuleClient.buildQueryString({ ...params });
+
     return this.requestV3<RuleMessageListResponse>(`/editor/message${qs}`, {
       method: 'GET',
     });
@@ -928,6 +980,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -967,6 +1020,7 @@ export class RuleClient {
    */
   async listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
     const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+
     return this.requestV3<RuleTemplateListResponse>(`/editor/template${qs}`, {
       method: 'GET',
     });
@@ -995,6 +1049,7 @@ export class RuleClient {
     params?: RuleRenderTemplateParams
   ): Promise<string | null> {
     const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+
     try {
       return await this.requestV3Text(`/editor/template/${id}/render${qs}`, {
         method: 'GET',
@@ -1003,6 +1058,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -1035,6 +1091,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -1063,6 +1120,7 @@ export class RuleClient {
    */
   async listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
     const qs = RuleClient.buildQueryString({ ...params });
+
     return this.requestV3<RuleDynamicSetListResponse>(`/editor/dynamic-set${qs}`, {
       method: 'GET',
     });
@@ -1131,6 +1189,7 @@ export class RuleClient {
           'groups_name[]': params.groups_name,
         })
       : '';
+
     return this.requestV3<RuleCustomFieldDataResponse>(
       `/custom-field-data/${subscriberId}${qs}`,
       { method: 'GET' }
@@ -1190,6 +1249,7 @@ export class RuleClient {
       method: 'PUT',
       body: JSON.stringify(request),
     });
+
     return { success: true };
   }
 
@@ -1224,6 +1284,7 @@ export class RuleClient {
           'fields[]': params.fields,
         })
       : '';
+
     return this.requestV3<RuleCustomFieldDataResponse>(
       `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`,
       { method: 'GET' }
@@ -1284,6 +1345,7 @@ export class RuleClient {
       field: params.field,
       value: params.value,
     });
+
     try {
       return await this.requestV3<RuleCustomFieldDataSingleResponse>(
         `/custom-field-data/${subscriberId}/search${qs}`,
@@ -1293,6 +1355,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -1322,6 +1385,7 @@ export class RuleClient {
    */
   async listCampaigns(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
     const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
+
     return this.requestV3<RuleCampaignListResponse>(`/editor/campaign${qs}`, {
       method: 'GET',
     });
@@ -1373,6 +1437,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -1517,13 +1582,16 @@ export class RuleClient {
     if (!request.subscribers?.length) {
       throw new RuleConfigError('subscribers array must not be empty');
     }
+
     if (request.subscribers.length > 1000) {
       throw new RuleConfigError('subscribers array must not exceed 1000 items');
     }
+
     await this.fetchV3('/suppressions/', {
       method: 'POST',
       body: JSON.stringify(request),
     });
+
     return { success: true };
   }
 
@@ -1555,13 +1623,16 @@ export class RuleClient {
     if (!request.subscribers?.length) {
       throw new RuleConfigError('subscribers array must not be empty');
     }
+
     if (request.subscribers.length > 1000) {
       throw new RuleConfigError('subscribers array must not exceed 1000 items');
     }
+
     await this.fetchV3('/suppressions/', {
       method: 'DELETE',
       body: JSON.stringify(request),
     });
+
     return { success: true };
   }
 
@@ -1652,9 +1723,11 @@ export class RuleClient {
     identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
   ): Promise<RuleApiResponse> {
     const idParam = `?identified_by=${identifiedBy}`;
+
     await this.fetchV3(`/subscribers/${encodeURIComponent(subscriber)}${idParam}`, {
       method: 'DELETE',
     });
+
     return { success: true };
   }
 
@@ -1681,11 +1754,13 @@ export class RuleClient {
     callbackUrl?: string
   ): Promise<RuleApiResponse> {
     const payload: Record<string, unknown> = { subscribers };
+
     if (callbackUrl) payload.callback_url = callbackUrl;
     await this.fetchV3('/subscribers/block', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+
     return { success: true };
   }
 
@@ -1712,11 +1787,13 @@ export class RuleClient {
     callbackUrl?: string
   ): Promise<RuleApiResponse> {
     const payload: Record<string, unknown> = { subscribers };
+
     if (callbackUrl) payload.callback_url = callbackUrl;
     await this.fetchV3('/subscribers/unblock', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+
     return { success: true };
   }
 
@@ -1742,6 +1819,7 @@ export class RuleClient {
       method: 'POST',
       body: JSON.stringify(request),
     });
+
     return { success: true };
   }
 
@@ -1769,6 +1847,7 @@ export class RuleClient {
       method: 'DELETE',
       body: JSON.stringify(request),
     });
+
     return { success: true };
   }
 
@@ -1796,6 +1875,7 @@ export class RuleClient {
     identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
   ): Promise<RuleApiResponse> {
     const idParam = `?identified_by=${identifiedBy}`;
+
     await this.fetchV3(
       `/subscribers/${encodeURIComponent(subscriber)}/tags${idParam}`,
       {
@@ -1803,6 +1883,7 @@ export class RuleClient {
         body: JSON.stringify(request),
       }
     );
+
     return { success: true };
   }
 
@@ -1825,12 +1906,14 @@ export class RuleClient {
     identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
   ): Promise<RuleApiResponse> {
     const idParam = `?identified_by=${identifiedBy}`;
+
     await this.fetchV3(
       `/subscribers/${encodeURIComponent(subscriber)}/tags/${encodeURIComponent(String(tag))}${idParam}`,
       {
         method: 'DELETE',
       }
     );
+
     return { success: true };
   }
 
@@ -1878,6 +1961,7 @@ export class RuleClient {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -1974,6 +2058,7 @@ export class RuleClient {
     await this.fetchV3(`/brand-styles/${brandStyleId}`, {
       method: 'DELETE',
     });
+
     return { success: true };
   }
 
@@ -2054,6 +2139,7 @@ export class RuleClient {
     await this.fetchV3(`/api-keys/${apiKeyId}`, {
       method: 'DELETE',
     });
+
     return { success: true };
   }
 
@@ -2082,6 +2168,7 @@ export class RuleClient {
     params: RuleExportDispatcherParams
   ): Promise<RuleExportDispatcherResponse> {
     const qs = RuleClient.buildQueryString({ ...params });
+
     return this.requestV3<RuleExportDispatcherResponse>(`/export/dispatcher${qs}`, {
       method: 'GET',
     });
@@ -2139,9 +2226,11 @@ export class RuleClient {
       `/export/statistics${qs}`,
       { method: 'GET' }
     );
+
     if (params.decodeNames === false || !response.data) {
       return response;
     }
+
     return { ...response, data: response.data.map(decodeStatisticMessageName) };
   }
 
@@ -2164,6 +2253,7 @@ export class RuleClient {
     params: RuleExportSubscriberParams
   ): Promise<RuleExportSubscriberResponse> {
     const qs = RuleClient.buildQueryString({ ...params });
+
     return this.requestV3<RuleExportSubscriberResponse>(`/export/subscriber${qs}`, {
       method: 'GET',
     });
@@ -2199,8 +2289,10 @@ export class RuleClient {
    */
   async getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
     const hasObjectType = 'object_type' in params && !!params.object_type;
+
     if (!hasObjectType) {
       const p = params as unknown as Record<string, unknown>;
+
       if (p.object_ids != null || p.metrics != null) {
         throw new RuleConfigError(
           'object_ids and metrics require object_type to be provided'
@@ -2218,11 +2310,13 @@ export class RuleClient {
           'object_ids must be a non-empty array when object_type is provided'
         );
       }
+
       if (!Array.isArray(params.metrics) || params.metrics.length === 0) {
         throw new RuleConfigError(
           'metrics must be a non-empty array when object_type is provided'
         );
       }
+
       objectType = params.object_type;
       objectIds = params.object_ids;
       metrics = params.metrics;
@@ -2236,6 +2330,7 @@ export class RuleClient {
       'metrics[]': metrics,
       message_type: params.message_type,
     });
+
     return this.requestV3<RuleAnalyticsResponse>(`/analytics${qs}`, {
       method: 'GET',
     });
@@ -2264,6 +2359,7 @@ export class RuleClient {
       page: params?.page,
       per_page: params?.per_page,
     });
+
     return this.requestV3<RuleSegmentListResponse>(`/editor/recipients/segments${qs}`, {
       method: 'GET',
     });
@@ -2288,6 +2384,7 @@ export class RuleClient {
       page: params?.page,
       per_page: params?.per_page,
     });
+
     return this.requestV3<RuleRecipientSubscriberListResponse>(`/editor/recipients/subscribers${qs}`, {
       method: 'GET',
     });
@@ -2312,6 +2409,7 @@ export class RuleClient {
       page: params?.page,
       per_page: params?.per_page,
     });
+
     return this.requestV3<RuleRecipientTagListResponse>(`/editor/recipients/tags${qs}`, {
       method: 'GET',
     });
@@ -2364,6 +2462,7 @@ export class RuleClient {
         'createAutomationEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
+
     if (config.template && config.brandStyleId) {
       throw new RuleConfigError(
         'createAutomationEmail: provide either "template" or "brandStyleId", not both.'
@@ -2372,15 +2471,18 @@ export class RuleClient {
 
     // If brandStyleId provided, auto-fetch and build RCML
     let resolvedTemplate = config.template;
+
     if (!resolvedTemplate && config.brandStyleId) {
       this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
       const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+
       if (!brandStyleResponse?.data) {
         throw new RuleApiError(
           `Brand style ${config.brandStyleId} not found.`,
           404
         );
       }
+
       const brandStyleConfig = toBrandStyleConfig(brandStyleResponse.data);
 
       // Auto-build sections: logo (if available) + user sections (or default content) + footer
@@ -2413,23 +2515,28 @@ export class RuleClient {
       }
 
       let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
+
       if (config.triggerType === 'tag' && config.triggerValue) {
         const tagId = await this.getTagIdByName(config.triggerValue);
+
         if (!tagId) {
           throw new RuleApiError(
             `Tag "${config.triggerValue}" not found. Create it first or check the tag name.`,
             404
           );
         }
+
         trigger = { type: 'TAG', id: tagId };
       } else if (config.triggerType === 'segment' && config.triggerValue) {
         const segmentId = parseInt(config.triggerValue, 10);
+
         if (isNaN(segmentId)) {
           throw new RuleApiError(
             `Segment trigger value "${config.triggerValue}" must be a numeric ID.`,
             400
           );
         }
+
         trigger = { type: 'SEGMENT', id: segmentId };
       } else if (config.triggerType === 'event') {
         throw new RuleConfigError(
@@ -2448,7 +2555,9 @@ export class RuleClient {
       if (!automationResponse.data?.id) {
         throw new RuleApiError('Failed to create automation - no ID returned', 500);
       }
+
       const automationId = automationResponse.data.id;
+
       createdResources.push({ type: 'automail', id: automationId });
 
       // Step 2: Create message
@@ -2472,7 +2581,9 @@ export class RuleClient {
       if (!messageResponse.data?.id) {
         throw new RuleApiError('Failed to create message - no ID returned', 500);
       }
+
       const messageId = messageResponse.data.id;
+
       createdResources.push({ type: 'message', id: messageId });
 
       // Step 3: Create template (name must be unique, so add timestamp)
@@ -2486,7 +2597,9 @@ export class RuleClient {
       if (!templateResponse.data?.id) {
         throw new RuleApiError('Failed to create template - no ID returned', 500);
       }
+
       const templateId = templateResponse.data.id;
+
       createdResources.push({ type: 'template', id: templateId });
 
       // Step 4: Create dynamic set
@@ -2498,6 +2611,7 @@ export class RuleClient {
       if (!dynamicSetResponse.data?.id) {
         throw new RuleApiError('Failed to create dynamic set - no ID returned', 500);
       }
+
       const dynamicSetId = dynamicSetResponse.data.id;
 
       return {
@@ -2526,6 +2640,7 @@ export class RuleClient {
           this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
         }
       }
+
       throw error;
     }
   }
@@ -2558,6 +2673,7 @@ export class RuleClient {
         'createCampaignEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
+
     if (config.template && config.brandStyleId) {
       throw new RuleConfigError(
         'createCampaignEmail: provide either "template" or "brandStyleId", not both.'
@@ -2565,15 +2681,18 @@ export class RuleClient {
     }
 
     let resolvedTemplate = config.template;
+
     if (!resolvedTemplate && config.brandStyleId) {
       this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
       const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+
       if (!brandStyleResponse?.data) {
         throw new RuleApiError(
           `Brand style ${config.brandStyleId} not found.`,
           404
         );
       }
+
       const brandStyleConfig = toBrandStyleConfig(brandStyleResponse.data);
 
       const userSections = config.sections ?? [];
@@ -2608,7 +2727,9 @@ export class RuleClient {
       if (!campaignResponse.data?.id) {
         throw new RuleApiError('Failed to create campaign - no ID returned', 500);
       }
+
       const campaignId = campaignResponse.data.id;
+
       createdResources.push({ type: 'campaign', id: campaignId });
 
       const messageResponse = await this.createMessage({
@@ -2624,7 +2745,9 @@ export class RuleClient {
       if (!messageResponse.data?.id) {
         throw new RuleApiError('Failed to create message - no ID returned', 500);
       }
+
       const messageId = messageResponse.data.id;
+
       createdResources.push({ type: 'message', id: messageId });
 
       const templateResponse = await this.createTemplate({
@@ -2637,7 +2760,9 @@ export class RuleClient {
       if (!templateResponse.data?.id) {
         throw new RuleApiError('Failed to create template - no ID returned', 500);
       }
+
       const templateId = templateResponse.data.id;
+
       createdResources.push({ type: 'template', id: templateId });
 
       const dynamicSetResponse = await this.createDynamicSet({
@@ -2673,6 +2798,7 @@ export class RuleClient {
           this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
         }
       }
+
       throw error;
     }
   }
@@ -2763,12 +2889,15 @@ export class RuleClient {
         method: 'GET',
       });
       const data = (await response.json()) as RuleAccountResponse;
+
       this.log('getAccount response received (body omitted for security)');
+
       return data;
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
       }
+
       throw error;
     }
   }
@@ -2794,6 +2923,7 @@ export class RuleClient {
     await this.fetchV3(`/accounts/${accountId}`, {
       method: 'DELETE',
     });
+
     return { success: true };
   }
 }

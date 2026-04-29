@@ -30,7 +30,9 @@ type RcmlNodeLike = {
  */
 export function validateContent(doc: unknown): EmailTemplateValidationIssue[] {
   const issues: EmailTemplateValidationIssue[] = []
+
   visit(doc, '', issues)
+
   return issues
 }
 
@@ -51,6 +53,7 @@ function visit(node: unknown, path: string, issues: EmailTemplateValidationIssue
   ) {
     const flavor = tagName === RcmlTagNamesEnum.Button ? inlineRfmConfig : rfmConfig
     const result = safeParseJson(n.content, flavor)
+
     if (!result.success) {
       for (const err of result.errors) {
         issues.push({

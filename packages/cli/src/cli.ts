@@ -19,6 +19,7 @@ import { registerInspect } from './commands/inspect.js';
 loadEnv();
 
 const program = new Command();
+
 program
   .name('rule-io')
   .description('Command-line tools for the Rule.io SDK — deploy vendor presets, validate RCML, inspect automations.')
@@ -34,6 +35,7 @@ try {
   await program.parseAsync(process.argv);
 } catch (error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
+
   console.error(message);
   process.exit(1);
 }

@@ -69,6 +69,7 @@ export class RcmlXmlParseError extends Error {
       .map((e) => `  ${e.path || '(root)'} [${e.code}]: ${e.message}`)
       .join('\n')
     const suffix = errors.length > 5 ? `\n  ...and ${errors.length - 5} more` : ''
+
     super(`RCML XML parse failed:\n${summary}${suffix}`)
     this.name = 'RcmlXmlParseError'
     this.errors = errors
@@ -99,9 +100,11 @@ export type SafeXmlToRcmlResult =
  */
 export function xmlToRcml(xml: string): RcmlDocument {
   const result = safeXmlToRcml(xml)
+
   if (!result.success) {
     throw new RcmlXmlParseError(result.errors)
   }
+
   return result.data
 }
 

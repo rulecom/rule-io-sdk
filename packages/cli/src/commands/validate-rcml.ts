@@ -65,13 +65,16 @@ let onlySections: number[] | undefined;
  */
 function parseBrandStyleEnvOverride(): number | undefined {
   const raw = process.env.RULE_BRAND_STYLE_ID;
+
   if (!raw) return undefined;
   const n = Number(raw);
+
   if (!Number.isInteger(n) || n <= 0) {
     throw new Error(
       `Invalid RULE_BRAND_STYLE_ID "${raw}": expected a positive integer.`,
     );
   }
+
   return n;
 }
 
@@ -249,6 +252,7 @@ function noteText(text: string, opts?: { align?: 'left' | 'center' | 'right'; co
 async function cleanup(): Promise<void> {
   if (!existsSync(IDS_FILE)) {
     console.log('No saved IDs found. Nothing to clean up.');
+
     return;
   }
 
@@ -588,6 +592,7 @@ function buildSectionGroups(
       return [{ ...createSocialChildElement({ attrs: l }), id: id() }];
     } catch {
       console.warn(`  Skipping social link "${l.name}" — invalid URL: ${l.href}`);
+
       return [];
     }
   });
@@ -597,6 +602,7 @@ function buildSectionGroups(
       .map((el: { attributes: { name?: string } }) => el.attributes.name ?? '')
       .filter((n) => n.length > 0)
       .join(', ');
+
     groups.push({
       num: 15, name: 'Social icons (rc-social)',
       sections: [
@@ -661,17 +667,22 @@ async function create(): Promise<void> {
 
   // -- Resolve brand style (preferred / is_default) --
   const override = parseBrandStyleEnvOverride();
+
   if (!override) {
     console.log('No RULE_BRAND_STYLE_ID set, resolving preferred brand style...');
   }
+
   const resolved = await resolvePreferredBrandStyleOrExit(client, override);
+
   if (resolved.source === 'fallback') {
     console.warn(
       '  WARN: no brand style is flagged as default — falling back to first in list',
     );
   }
+
   const brandStyleId = resolved.id;
   const brandStyle = resolved.brandStyle;
+
   console.log(`Using brand style: ${resolved.name ?? 'unnamed'} (ID: ${brandStyleId})`);
 
   console.log('\nBrand style config:');
@@ -689,6 +700,7 @@ async function create(): Promise<void> {
   let repeatableField: { id: number; name: string } | undefined;
 
   console.log('\nLooking up custom fields...');
+
   try {
     const custResp = await fetch(`${RULE_API_V2_BASE_URL}/customizations`, {
       headers: {
@@ -708,14 +720,17 @@ async function create(): Promise<void> {
             : Array.isArray(custObj.data)
               ? custObj.data
               : []);
+
       for (const g of groups) {
         const group = g as Record<string, unknown>;
         const groupName = String(group.name ?? group.group_name ?? 'Unknown');
         const fields = (group.fields ?? group.customizations ?? []) as Array<Record<string, unknown>>;
+
         for (const field of fields) {
           const fieldName = String(field.name ?? field.key ?? '');
           const fieldId = Number(field.id);
           const fieldType = String(field.type ?? '');
+
           if (fieldId && fieldName) {
             const fullName = `${groupName}.${fieldName}`;
 
@@ -723,6 +738,7 @@ async function create(): Promise<void> {
             if (!resolvedField) {
               resolvedField = { id: fieldId, name: fullName };
             }
+
             if (/first.?name/i.test(fieldName)) {
               resolvedField = { id: fieldId, name: fullName };
             }
@@ -740,6 +756,7 @@ async function create(): Promise<void> {
       } else {
         console.log('  No parseable custom fields found — placeholder section will be skipped');
       }
+
       if (repeatableField) {
         console.log(`  Using repeatable field: ${repeatableField.name} (ID: ${repeatableField.id})`);
       } else {
@@ -747,6 +764,7 @@ async function create(): Promise<void> {
       }
     } else {
       const body = await custResp.text();
+
       console.log(`  Customizations API returned ${custResp.status}: ${body.slice(0, 300)}`);
     }
   } catch (err) {
@@ -823,9 +841,11 @@ async function probe(): Promise<void> {
 
   for (const group of groups) {
     const bodySections: RcmlBodyChild[] = [];
+
     if (brandStyle.logoUrl) {
       bodySections.push(createBrandLogo(brandStyle.logoUrl));
     }
+
     bodySections.push(...group.sections);
     bodySections.push(createFooterSection({ backgroundColor: brandStyle.bodyBackgroundColor }));
 
@@ -846,14 +866,18 @@ async function probe(): Promise<void> {
 
       // Clean up immediately
       try { await client.deleteDynamicSet(result.dynamicSetId); } catch { /* ignore */ }
+
       try { await client.deleteTemplate(result.templateId); } catch { /* ignore */ }
+
       try { await client.deleteMessage(result.messageId); } catch { /* ignore */ }
+
       try { await client.deleteCampaign(result.campaignId); } catch { /* ignore */ }
 
       results.push({ num: group.num, name: group.name, ok: true });
       process.stdout.write(`  [PASS] ${group.num}. ${group.name}\n`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+
       results.push({ num: group.num, name: group.name, ok: false, error: msg });
       process.stdout.write(`  [FAIL] ${group.num}. ${group.name} — ${msg}\n`);
     }
@@ -862,9 +886,12 @@ async function probe(): Promise<void> {
   console.log('\n--- Summary ---');
   const passed = results.filter(r => r.ok);
   const failed = results.filter(r => !r.ok);
+
   console.log(`  Passed: ${passed.length}/${results.length}`);
+
   if (failed.length > 0) {
     console.log('  Failed:');
+
     for (const f of failed) {
       console.log(`    ${f.num}. ${f.name}: ${f.error}`);
     }
@@ -892,14 +919,17 @@ export function registerValidateRcml(program: Command): void {
     .option('--sections <csv>', 'Comma-separated section numbers to include (e.g. 1,2,6)')
     .action(async (opts: RunOptions) => {
       API_KEY = opts.apiKey ?? process.env['RULE_API_KEY'];
+
       if (!API_KEY) {
         throw new Error('Missing RULE_API_KEY in environment or .env');
       }
+
       isCleanup = opts.cleanup ?? false;
       isProbe = opts.probe ?? false;
       onlySections = opts.sections?.split(',').map((n) => Number(n.trim()));
 
       const run = isCleanup ? cleanup : isProbe ? probe : create;
+
       await run();
     });
 }

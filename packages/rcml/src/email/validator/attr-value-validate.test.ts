@@ -56,6 +56,7 @@ describe('validateAttrValues — bad attribute values', () => {
       ],
     }
     const issues = validateAttrValues(doc)
+
     expect(issues).toHaveLength(1)
     expect(issues[0]).toMatchObject({
       code: 'ATTR_INVALID_VALUE',
@@ -76,6 +77,7 @@ describe('validateAttrValues — bad attribute values', () => {
       ],
     }
     const issues = validateAttrValues(doc)
+
     expect(issues).toHaveLength(1)
     expect(issues[0]?.code).toBe('ATTR_INVALID_VALUE')
     expect(issues[0]?.path).toBe('/children/1/attributes/background-color')
@@ -97,6 +99,7 @@ describe('validateAttrValues — bad attribute values', () => {
       ],
     }
     const issues = validateAttrValues(doc)
+
     expect(issues.length).toBeGreaterThanOrEqual(2)
   })
 })
@@ -114,6 +117,7 @@ describe('validateAttrValues — shape defence', () => {
         },
       ],
     }
+
     expect(validateAttrValues(doc)).toEqual([])
   })
 
@@ -129,6 +133,7 @@ describe('validateAttrValues — shape defence', () => {
         },
       ],
     }
+
     expect(validateAttrValues(doc)).toEqual([])
   })
 
@@ -163,6 +168,7 @@ describe('validateAttrValues — shape defence', () => {
       ],
     }
     const issues = validateAttrValues(doc)
+
     expect(issues).toHaveLength(1)
     expect(issues[0]?.path).toBe(
       '/children/1/children/0/children/0/children/0/attributes/height',

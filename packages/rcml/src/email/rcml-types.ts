@@ -15,7 +15,7 @@
 
 import type { RCMLDocumentRoot } from '@rule-io/core'
 import type { z } from 'zod'
-import { RCML_SCHEMA_SPEC } from './schema/index.js'
+import { type RCML_SCHEMA_SPEC } from './schema/index.js'
 import type { RcmlTagName } from './schema/tag-names.js'
 import type {
   RCML_ATTR_VALIDATORS,

@@ -86,6 +86,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       expect(json).toContain('Order Summary');
       expect(json).toContain('200001'); // FirstName field ID
       expect(json).toContain('200003'); // Order.Number field ID
@@ -118,6 +119,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       expect(json).toContain('Items');
       expect(json).toContain('Ship to');
       expect(json).toContain('200014'); // Products field ID
@@ -147,6 +149,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       // Should NOT have items/shipping labels
       expect(json).not.toContain('Items');
       expect(json).not.toContain('Ship to');
@@ -329,6 +332,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       // Hero heading wraps orderRef placeholder with prefix/suffix text
       expect(json).toContain('Order ');
       expect(json).toContain(' confirmed');
@@ -358,6 +362,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Order date');
       expect(json).toContain('200004'); // Order.Date field ID
     });
@@ -392,6 +397,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Subtotal: ');
       expect(json).toContain('Tax: ');
       expect(json).toContain('Discount: ');
@@ -427,6 +433,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Shipping to');
       expect(json).toContain('200016'); // address1
       expect(json).toContain('200018'); // city
@@ -456,6 +463,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).not.toContain('Order date');
       expect(json).not.toContain('Subtotal: ');
       expect(json).not.toContain('Shipping to');
@@ -514,6 +522,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       // Total still rendered exactly once (in the details box, not the summary)
       expect(json.match(/Total: /g)).toHaveLength(1);
       expect(json).not.toContain('Subtotal: ');
@@ -545,6 +554,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('SKU: ');
       expect(json).toContain('[LoopValue:sku]');
     });
@@ -643,6 +653,7 @@ describe('E-commerce Templates', () => {
       } catch (error) {
         expect(error).toBeInstanceOf(RuleConfigError);
         const msg = (error as RuleConfigError).message;
+
         expect(msg).toBe(
           'createOrderConfirmationEmail > missing customFields entry for fieldNames.orderRef ("Order.MissingOrderRef")'
         );
@@ -677,6 +688,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       expect(json).toContain('Track Package');
       expect(json).toContain('https://track.example.com');
       expect(json).toContain('200021'); // TrackingNumber field ID
@@ -924,6 +936,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Confirmed');
       expect(json).toContain('Shipped');
       expect(json).toContain('Delivered');
@@ -983,6 +996,7 @@ describe('E-commerce Templates', () => {
       const widths = (section as { children: { attributes: { width: string } }[] }).children.map(
         (col) => parseInt(col.attributes.width, 10)
       );
+
       expect(widths.reduce((a, b) => a + b, 0)).toBe(100);
     });
 
@@ -1009,6 +1023,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).not.toContain('Confirmed');
       expect(json).not.toContain('Delivered');
     });
@@ -1092,6 +1107,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       expect(json).toContain('Return to Cart');
       expect(json).toContain('https://shop.example.com/cart');
       expect(json).toContain('left some items');
@@ -1122,6 +1138,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('rc-loop');
       expect(json).toContain('Your Cart');
       expect(json).toContain('[LoopValue:name]');
@@ -1149,6 +1166,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Total: ');
       expect(json).toContain('200005'); // Order.TotalPrice
     });
@@ -1175,6 +1193,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('rc-social');
       expect(json).toContain('facebook');
       expect(json).toContain('instagram');
@@ -1196,6 +1215,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).not.toContain('rc-loop');
       expect(json).not.toContain('rc-social');
       expect(json).not.toContain('Total: ');
@@ -1225,6 +1245,7 @@ describe('E-commerce Templates', () => {
 
       assertValidRCMLDocument(doc);
       const json = docToString(doc);
+
       expect(json).toContain('Order Cancelled');
       expect(json).toContain('Shop Again');
       expect(json).toContain('200003'); // Order.Number field ID
@@ -1253,6 +1274,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Order date');
       expect(json).toContain('200004'); // Order.Date
     });
@@ -1280,6 +1302,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).toContain('Need help?');
       // Email local parts and @ get percent-encoded by encodeURIComponent,
       // which prevents mailto parameter injection.
@@ -1308,6 +1331,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       expect(json).not.toContain('mailto:help%40shop.example.com');
     });
 
@@ -1335,6 +1359,7 @@ describe('E-commerce Templates', () => {
       });
 
       const json = docToString(doc);
+
       // Raw padded URL must not appear as displayed text
       expect(json).not.toContain('  https://support.example.com  ');
       expect(json).toContain('https://support.example.com');
@@ -1349,6 +1374,7 @@ describe('E-commerce Templates', () => {
         'help:password@shop.example.com',
         'help/path@shop.example.com',
       ];
+
       for (const supportEmail of injectionAttempts) {
         expect(() =>
           createOrderCancellationEmail({
@@ -1453,6 +1479,7 @@ describe('E-commerce Templates', () => {
         expect(error).toBeInstanceOf(RuleConfigError);
         const message = (error as RuleConfigError).message;
         const occurrences = message.split('createOrderCancellationEmail').length - 1;
+
         expect(occurrences).toBe(1);
       }
     });
@@ -1581,6 +1608,7 @@ describe('createWelcomeEmail', () => {
 
     assertValidRCMLDocument(doc);
     const json = docToString(doc);
+
     expect(json).toContain('Welcome!');
     expect(json).toContain('Thanks for subscribing');
     expect(json).toContain('Start Shopping');
@@ -1606,6 +1634,7 @@ describe('createWelcomeEmail', () => {
     });
 
     const json = docToString(doc);
+
     expect(json).toContain('What you get');
     expect(json).toContain('Free shipping over $50');
     expect(json).toContain('Early access to sales');
@@ -1631,6 +1660,7 @@ describe('createWelcomeEmail', () => {
     });
 
     const json = docToString(doc);
+
     expect(json).toContain('Your welcome gift');
     expect(json).toContain('Use code at checkout');
     expect(json).toContain('WELCOME10');
@@ -1658,6 +1688,7 @@ describe('createWelcomeEmail', () => {
     });
 
     const json = docToString(doc);
+
     expect(json).toContain('rc-social');
     expect(json).toContain('facebook');
     expect(json).toContain('instagram');
@@ -1679,6 +1710,7 @@ describe('createWelcomeEmail', () => {
     });
 
     const json = docToString(doc);
+
     expect(json).not.toContain('rc-social');
     expect(json).not.toContain('WELCOME10');
     expect(json).not.toContain('•');

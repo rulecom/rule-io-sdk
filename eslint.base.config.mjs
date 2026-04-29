@@ -65,7 +65,10 @@ export default [
         },
       ],
 
-      // Allow non-null assertions (used sparingly in SDK for known-safe access)
+      // Non-null assertions are used in a handful of post-validation spots
+      // where TS can't prove the narrowing. Keep visible as warnings;
+      // upgrade to error once every site is cleaned up. Tests relax this
+      // to `off` below.
       '@typescript-eslint/no-non-null-assertion': 'warn',
 
       // Downgrade to warn: index signatures (Record<string, T>) return T at type level
@@ -84,6 +87,71 @@ export default [
 
       // Control chars in regexes are intentional (email validation rejects them)
       'no-control-regex': 'off',
+    },
+  },
+
+  // ── Readability / type-strictness (shared across all packages) ──────────
+  {
+    files: ['**/*.ts', '**/*.tsx', '**/*.cts', '**/*.mts'],
+    rules: {
+      // `import type` for type-only imports; auto-fixable.
+      '@typescript-eslint/consistent-type-imports': [
+        'error',
+        { prefer: 'type-imports', fixStyle: 'inline-type-imports' },
+      ],
+
+      // Disallow `any` — use `unknown` or proper types.
+      '@typescript-eslint/no-explicit-any': 'error',
+
+      // Require explicit return types on exported / module-boundary functions.
+      '@typescript-eslint/explicit-module-boundary-types': 'error',
+
+      // Replace core JS rules with their TS-aware variants.
+      'no-use-before-define': 'off',
+      '@typescript-eslint/no-use-before-define': ['error', { functions: false }],
+      'no-shadow': 'off',
+      '@typescript-eslint/no-shadow': 'error',
+
+      // Labels + `with` are disallowed; leave `for…of` / `for…in` alone.
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'LabeledStatement',
+          message: 'Labels are a form of GOTO; using them makes code hard to understand.',
+        },
+        {
+          selector: 'WithStatement',
+          message: '`with` is disallowed in strict mode.',
+        },
+      ],
+      // `continue` is idiomatic in content-parser / block-walker hot paths.
+      'no-continue': 'off',
+
+      // Readability: blank lines around blocks and before return.
+      'padding-line-between-statements': [
+        'error',
+        { blankLine: 'always', prev: '*', next: 'return' },
+        { blankLine: 'always', prev: ['const', 'let', 'var'], next: '*' },
+        { blankLine: 'any',    prev: ['const', 'let', 'var'], next: ['const', 'let', 'var'] },
+        { blankLine: 'always', prev: '*',          next: 'block-like' },
+        { blankLine: 'always', prev: 'block-like', next: '*' },
+      ],
+    },
+  },
+
+  // ── Test files — relax the rules that are noise inside unit tests ───────
+  {
+    files: [
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/tests/**/*.ts',
+      '**/tests/**/*.tsx',
+    ],
+    rules: {
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
 ];

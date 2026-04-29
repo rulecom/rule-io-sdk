@@ -34,6 +34,7 @@ export interface ContentCoerceResult {
  */
 export function coerceContent(input: ContentInput): ContentCoerceResult {
   let doc: Json
+
   try {
     doc = typeof input === 'string' ? rfmToJson(input) : input
   } catch (err) {
@@ -49,6 +50,7 @@ export function coerceContent(input: ContentInput): ContentCoerceResult {
   }
 
   let normalized: Json
+
   try {
     normalized = normalizeJson(doc)
   } catch (err) {
@@ -75,6 +77,7 @@ export function coerceContent(input: ContentInput): ContentCoerceResult {
         })),
       }
     }
+
     return {
       issues: [
         {

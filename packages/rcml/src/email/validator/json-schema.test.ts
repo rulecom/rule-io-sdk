@@ -34,6 +34,7 @@ describe('RCML_JSON_SCHEMA — top-level shape', () => {
 describe('RCML_JSON_SCHEMA — $defs coverage', () => {
   it('contains an entry for every RcmlTagNamesEnum value', () => {
     const $defs = RCML_JSON_SCHEMA['$defs'] as Record<string, unknown>
+
     for (const tagName of Object.values(RcmlTagNamesEnum)) {
       expect($defs[tagName]).toBeDefined()
     }
@@ -46,6 +47,7 @@ describe('RCML_JSON_SCHEMA — rc-section fragment', () => {
     const section = $defs['rc-section'] as Record<string, unknown>
     const properties = section['properties'] as Record<string, Record<string, unknown>>
     const children = properties['children'] as Record<string, unknown>
+
     expect(children['type']).toBe('array')
     expect(children['maxItems']).toBe(20)
   })
@@ -54,6 +56,7 @@ describe('RCML_JSON_SCHEMA — rc-section fragment', () => {
     const $defs = RCML_JSON_SCHEMA['$defs'] as Record<string, Record<string, unknown>>
     const section = $defs['rc-section'] as Record<string, unknown>
     const properties = section['properties'] as Record<string, Record<string, unknown>>
+
     expect(properties['tagName']).toEqual({ const: 'rc-section' })
   })
 
@@ -62,6 +65,7 @@ describe('RCML_JSON_SCHEMA — rc-section fragment', () => {
     const section = $defs['rc-section'] as Record<string, unknown>
     const properties = section['properties'] as Record<string, Record<string, unknown>>
     const attributes = properties['attributes'] as Record<string, unknown>
+
     expect(attributes['additionalProperties']).toBe(false)
   })
 })
@@ -69,6 +73,7 @@ describe('RCML_JSON_SCHEMA — rc-section fragment', () => {
 describe('RCML_JSON_SCHEMA — AJV compile smoke test', () => {
   it('compiles cleanly under strict mode with allErrors + allowUnionTypes', () => {
     const ajv = new Ajv2020({ strict: true, allErrors: true, allowUnionTypes: true })
+
     expect(() => ajv.compile(RCML_JSON_SCHEMA)).not.toThrow()
   })
 
@@ -82,12 +87,14 @@ describe('RCML_JSON_SCHEMA — AJV compile smoke test', () => {
         { tagName: 'rc-body', children: [] },
       ],
     }
+
     expect(validate(doc)).toBe(true)
   })
 
   it('rejects a totally wrong shape', () => {
     const ajv = new Ajv2020({ strict: true, allErrors: true, allowUnionTypes: true })
     const validate = ajv.compile(RCML_JSON_SCHEMA)
+
     expect(validate({ notRcml: true })).toBe(false)
   })
 })

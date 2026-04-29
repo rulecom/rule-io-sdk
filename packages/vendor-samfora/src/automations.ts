@@ -130,11 +130,13 @@ const TAX_SUMMARY_TEXT = {
  */
 function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
   const id = customFields[fieldName];
+
   if (id === undefined) {
     throw new RuleConfigError(
       `samfora: missing customFields entry for "${fieldName}"`,
     );
   }
+
   return createPlaceholder(fieldName, id);
 }
 

@@ -6,6 +6,7 @@ describe('RcmlElementBuildError', () => {
     const err = new RcmlElementBuildError('rc-text', [
       { code: 'ATTR_UNKNOWN', path: 'attrs/x', message: 'unknown' },
     ])
+
     expect(err.tagName).toBe('rc-text')
     expect(err.issues).toHaveLength(1)
     expect(err.name).toBe('RcmlElementBuildError')
@@ -15,6 +16,7 @@ describe('RcmlElementBuildError', () => {
     const err = new RcmlElementBuildError('rc-button', [
       { code: 'ATTR_INVALID_VALUE', path: 'attrs/href', message: 'bad url' },
     ])
+
     expect(err.message).toContain('<rc-button>')
     expect(err.message).toContain('bad url')
   })
@@ -24,6 +26,7 @@ describe('RcmlElementBuildError', () => {
       { code: 'ATTR_UNKNOWN', path: 'attrs/a', message: 'x' },
       { code: 'CHILD_INVALID', path: 'children/0', message: 'y' },
     ])
+
     expect(err.message).toContain('2 issues')
   })
 })

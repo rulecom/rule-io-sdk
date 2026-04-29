@@ -51,6 +51,7 @@ describe('inline-node helpers', () => {
     const node = createTextNode('hi', [
       { type: 'font', attrs: { 'font-weight': 'bold' } as never },
     ])
+
     expect(node.marks).toHaveLength(1)
   })
 
@@ -69,6 +70,7 @@ describe('inline-node helpers', () => {
 
   it('createPlaceholderNode honours overrides', () => {
     const node = createPlaceholderNode('x', 1, { type: 'Date', maxLength: '64' })
+
     expect(node.attrs.type).toBe('Date')
     expect(node.attrs['max-length']).toBe('64')
   })
@@ -85,12 +87,14 @@ describe('inline-node helpers', () => {
       createTextNode('Hi '),
       createPlaceholderNode('Subscriber.FirstName', 169233),
     ])
+
     expect(doc.type).toBe('doc')
     expect(doc.content[0]!.type).toBe('paragraph')
   })
 
   it('createTextContent converts RFM markdown to a validated doc', () => {
     const doc = createTextContent('hello')
+
     expect(doc.type).toBe('doc')
   })
 })
@@ -100,6 +104,7 @@ describe('inline-node helpers', () => {
 describe('createTextElement', () => {
   it('builds from an RFM string', () => {
     const node = createTextElement({ content: 'hello' })
+
     expect(node.tagName).toBe('rc-text')
     expect(node.content.type).toBe('doc')
     expect(node.attributes).toBeUndefined()
@@ -110,12 +115,14 @@ describe('createTextElement', () => {
       attrs: { align: 'center', color: '#333333' },
       content: 'hi',
     })
+
     expect(node.attributes).toEqual({ align: 'center', color: '#333333' })
   })
 
   it('accepts pre-built content Json', () => {
     const content = createInlineContent([createTextNode('hi')])
     const node = createTextElement({ content })
+
     expect(node.content).toEqual(content)
   })
 
@@ -138,6 +145,7 @@ describe('createTextElement', () => {
 describe('createHeadingElement', () => {
   it('builds from an RFM string', () => {
     const node = createHeadingElement({ content: 'Title' })
+
     expect(node.tagName).toBe('rc-heading')
   })
 
@@ -154,6 +162,7 @@ describe('createButtonElement', () => {
       attrs: { href: 'https://example.com' },
       content: 'Click',
     })
+
     expect(node.tagName).toBe('rc-button')
     expect(node.attributes?.href).toBe('https://example.com')
   })
@@ -172,6 +181,7 @@ describe('createButtonElement', () => {
 describe('createImageElement', () => {
   it('builds with required attrs', () => {
     const node = createImageElement({ attrs: { src: 'https://example.com/a.png' } })
+
     expect(node.tagName).toBe('rc-image')
     expect(node.attributes.src).toBe('https://example.com/a.png')
   })
@@ -184,6 +194,7 @@ describe('createLogoElement', () => {
 
   it('builds with attrs', () => {
     const node = createLogoElement({ attrs: { src: 'https://example.com/logo.png' } })
+
     expect(node.attributes?.src).toBe('https://example.com/logo.png')
   })
 })
@@ -191,6 +202,7 @@ describe('createLogoElement', () => {
 describe('createVideoElement', () => {
   it('builds with required attrs', () => {
     const node = createVideoElement({ attrs: { src: 'https://example.com/v.mp4' } })
+
     expect(node.tagName).toBe('rc-video')
   })
 })
@@ -214,6 +226,7 @@ describe('createDividerElement', () => {
 
   it('accepts valid attrs', () => {
     const node = createDividerElement({ attrs: { 'border-color': '#cccccc' } })
+
     expect(node.attributes?.['border-color']).toBe('#cccccc')
   })
 })
@@ -225,6 +238,7 @@ describe('createSocialChildElement', () => {
     const node = createSocialChildElement({
       attrs: { name: 'twitter', href: 'https://twitter.com/x' },
     })
+
     expect(node.tagName).toBe('rc-social-element')
     expect(node.attributes.name).toBe('twitter')
   })
@@ -234,6 +248,7 @@ describe('createSocialChildElement', () => {
       attrs: { name: 'x', href: 'https://x.com' },
       content: 'Follow',
     })
+
     expect(node.content).toBe('Follow')
   })
 })
@@ -244,12 +259,14 @@ describe('createSocialElement', () => {
       attrs: { name: 'x', href: 'https://x.com' },
     })
     const node = createSocialElement({ children: [child] })
+
     expect(node.tagName).toBe('rc-social')
     expect(node.children).toHaveLength(1)
   })
 
   it('rejects non-social-element children', () => {
     const text = createTextElement({ content: 'oops' })
+
     expect(() =>
       createSocialElement({
         children: [text as unknown as ReturnType<typeof createSocialChildElement>],
@@ -264,6 +281,7 @@ describe('createColumnElement', () => {
   it('builds with valid column children', () => {
     const text = createTextElement({ content: 'x' })
     const node = createColumnElement({ children: [text] })
+
     expect(node.tagName).toBe('rc-column')
     expect(node.children).toHaveLength(1)
   })
@@ -272,6 +290,7 @@ describe('createColumnElement', () => {
     const section = createSectionElement({
       children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
     })
+
     expect(() =>
       createColumnElement({
         children: [section as unknown as ReturnType<typeof createTextElement>],
@@ -284,12 +303,14 @@ describe('createSectionElement', () => {
   it('builds from a list of columns', () => {
     const col = createColumnElement({ children: [createTextElement({ content: 'x' })] })
     const node = createSectionElement({ children: [col] })
+
     expect(node.tagName).toBe('rc-section')
   })
 
   it('enforces maxChildCount (20 columns)', () => {
     const col = createColumnElement({ children: [createTextElement({ content: 'x' })] })
     const twentyOne = Array.from({ length: 21 }, () => col)
+
     expect(() => createSectionElement({ children: twentyOne })).toThrowError(
       RcmlElementBuildError,
     )
@@ -305,6 +326,7 @@ describe('createCaseElement / createSwitchElement', () => {
     })
     const caseNode = createCaseElement({ attrs: { 'case-type': 'default' }, children: [section] })
     const switchNode = createSwitchElement({ children: [caseNode] })
+
     expect(switchNode.tagName).toBe('rc-switch')
     expect(switchNode.children).toHaveLength(1)
   })
@@ -313,6 +335,7 @@ describe('createCaseElement / createSwitchElement', () => {
     const section = createSectionElement({
       children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
     })
+
     expect(() =>
       createCaseElement({
         attrs: { 'case-type': 'bogus' as unknown as 'default' },
@@ -331,6 +354,7 @@ describe('createLoopElement', () => {
       attrs: { 'loop-type': 'custom-field', 'loop-value': '123' },
       children: [section],
     })
+
     expect(node.tagName).toBe('rc-loop')
   })
 })
@@ -339,6 +363,7 @@ describe('createGroupElement', () => {
   it('builds a group around columns', () => {
     const col = createColumnElement({ children: [createTextElement({ content: 'x' })] })
     const node = createGroupElement({ children: [col] })
+
     expect(node.tagName).toBe('rc-group')
   })
 })
@@ -349,6 +374,7 @@ describe('createWrapperElement', () => {
       children: [createColumnElement({ children: [createTextElement({ content: 'x' })] })],
     })
     const node = createWrapperElement({ children: [section] })
+
     expect(node.tagName).toBe('rc-wrapper')
   })
 })
@@ -368,12 +394,14 @@ describe('createHeadElement / createBodyElement / createRcmlDocumentElement', ()
       ],
     })
     const doc = createRcmlDocumentElement({ head, body })
+
     expect(doc.tagName).toBe('rcml')
     expect(doc.children).toEqual([head, body])
   })
 
   it('rejects an invalid head child', () => {
     const text = createTextElement({ content: 'oops' })
+
     expect(() =>
       createHeadElement({
         children: [text as unknown as ReturnType<typeof createPreviewElement>],
@@ -385,6 +413,7 @@ describe('createHeadElement / createBodyElement / createRcmlDocumentElement', ()
 describe('createBrandStyleElement / createFontElement / createClassElement', () => {
   it('createBrandStyleElement with numeric id', () => {
     const node = createBrandStyleElement({ attrs: { id: '99999' } })
+
     expect(node.attributes.id).toBe('99999')
   })
 
@@ -392,6 +421,7 @@ describe('createBrandStyleElement / createFontElement / createClassElement', () 
     const node = createFontElement({
       attrs: { name: 'Inter', href: 'https://fonts.example.com/inter.css' },
     })
+
     expect(node.attributes.name).toBe('Inter')
   })
 
@@ -399,6 +429,7 @@ describe('createBrandStyleElement / createFontElement / createClassElement', () 
     const node = createClassElement({
       attrs: { name: 'h1-style', color: '#333333', 'font-size': '28px' },
     })
+
     expect(node.attributes.name).toBe('h1-style')
   })
 
@@ -423,6 +454,7 @@ describe('createAttributesElement / createPreviewElement / createPlainTextElemen
     const node = createAttributesElement({
       children: [styleBody as unknown as AttrsChild],
     })
+
     expect(node.tagName).toBe('rc-attributes')
   })
 

@@ -126,9 +126,11 @@ export type SafeValidateResult =
  */
 export function validateEmailTemplate(input: RcmlDocument | string): RcmlDocument {
   const result = safeValidateEmailTemplate(input)
+
   if (!result.success) {
     throw new EmailTemplateValidationError(result.errors)
   }
+
   return result.data
 }
 
@@ -146,6 +148,7 @@ export function safeValidateEmailTemplate(input: RcmlDocument | string): SafeVal
 
   if (typeof input === 'string') {
     const parsed = safeXmlToRcml(input)
+
     if (!parsed.success) {
       return {
         success: false,
@@ -161,6 +164,7 @@ export function safeValidateEmailTemplate(input: RcmlDocument | string): SafeVal
         })),
       }
     }
+
     json = parsed.data
   } else {
     json = input
@@ -173,5 +177,6 @@ export function safeValidateEmailTemplate(input: RcmlDocument | string): SafeVal
   if (issues.length > 0) {
     return { success: false, errors: issues }
   }
+
   return { success: true, data: json as RcmlDocument }
 }

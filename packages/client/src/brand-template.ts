@@ -89,13 +89,17 @@ export function withTemplateContext<T>(templateName: string, fn: () => T): T {
   } catch (error: unknown) {
     if (error instanceof RuleConfigError) {
       const wrapped = new RuleConfigError(`${templateName} > ${error.message}`, { cause: error });
+
       if (error.stack) {
         const lines = error.stack.split('\n');
+
         lines[0] = `${wrapped.name}: ${wrapped.message}`;
         wrapped.stack = lines.join('\n');
       }
+
       throw wrapped;
     }
+
     throw error;
   }
 }
@@ -124,6 +128,7 @@ export function validateCustomFields(
   for (const [key, fieldName] of Object.entries(fieldNames)) {
     if (fieldName !== undefined && customFields[fieldName] === undefined) {
       const prefix = templateName ? `${templateName}: ` : '';
+
       throw new RuleConfigError(
         `${prefix}missing customFields entry for fieldNames.${key} ("${fieldName}")`
       );
@@ -360,10 +365,13 @@ export async function resolvePreferredBrandStyle(
         `Invalid brand style id ${String(overrideId)}: expected a positive integer.`,
       );
     }
+
     const resp = await client.getBrandStyle(overrideId);
+
     if (!resp?.data) {
       throw new RuleConfigError(`Brand style ${overrideId} not found`);
     }
+
     return {
       id: overrideId,
       name: resp.data.name,
@@ -374,18 +382,22 @@ export async function resolvePreferredBrandStyle(
 
   const listResp = await client.listBrandStyles();
   const styles = listResp.data ?? [];
+
   if (styles.length === 0) {
     throw new RuleConfigError('No brand styles available in the account');
   }
+
   const preferredIdx = styles.findIndex((s) => s.is_default);
   const preferred = preferredIdx === -1 ? styles[0] : styles[preferredIdx];
   const source: 'default' | 'fallback' =
     preferredIdx === -1 ? 'fallback' : 'default';
 
   const resp = await client.getBrandStyle(preferred.id);
+
   if (!resp?.data) {
     throw new RuleConfigError(`Brand style ${preferred.id} not found`);
   }
+
   // Prefer the fetched detail's name over `preferred.name` from the list item
   // — they usually match, but the fetch reflects the authoritative, fresh value
   // if the list was stale or the name changed between calls.
@@ -414,8 +426,10 @@ export function createBrandHead(
 
   // Validate logo URL if provided
   let sanitizedLogoUrl: string | undefined;
+
   if (brandStyle.logoUrl) {
     sanitizedLogoUrl = sanitizeUrl(brandStyle.logoUrl);
+
     if (!sanitizedLogoUrl) {
       throw new RuleConfigError('createBrandHead: invalid or unsafe logoUrl');
     }
@@ -423,15 +437,20 @@ export function createBrandHead(
 
   // Validate font URLs if provided
   let sanitizedHeadingFontUrl: string | undefined;
+
   if (brandStyle.headingFontUrl) {
     sanitizedHeadingFontUrl = sanitizeUrl(brandStyle.headingFontUrl);
+
     if (!sanitizedHeadingFontUrl) {
       throw new RuleConfigError('createBrandHead: invalid or unsafe headingFontUrl');
     }
   }
+
   let sanitizedBodyFontUrl: string | undefined;
+
   if (brandStyle.bodyFontUrl) {
     sanitizedBodyFontUrl = sanitizeUrl(brandStyle.bodyFontUrl);
+
     if (!sanitizedBodyFontUrl) {
       throw new RuleConfigError('createBrandHead: invalid or unsafe bodyFontUrl');
     }
@@ -459,6 +478,7 @@ export function createBrandHead(
     const sanitizedLinks = brandStyle.socialLinks
       .map((link) => ({ name: link.name, href: sanitizeUrl(link.href) }))
       .filter((link): link is { name: string; href: string } => !!link.href);
+
     if (sanitizedLinks.length > 0) {
       attributeChildren.push({
         tagName: 'rc-social', id: generateId(),
@@ -497,6 +517,7 @@ export function createBrandHead(
       attributes: { name: brandStyle.headingFont.split(',')[0].trim(), href: sanitizedHeadingFontUrl },
     } as unknown as RcmlHead['children'][number]);
   }
+
   if (sanitizedBodyFontUrl) {
     headChildren.push({
       tagName: 'rc-font', id: generateId(),
@@ -580,6 +601,7 @@ export function createBrandTemplate(config: SimpleTemplateConfig): RcmlDocument 
  */
 export function createBrandLogo(logoUrl: string): RcmlBodyChild {
   const sanitizedSrc = sanitizeUrl(logoUrl);
+
   if (!sanitizedSrc) {
     throw new RuleConfigError('createBrandLogo: invalid or unsafe logoUrl');
   }
@@ -655,6 +677,7 @@ export function createBrandButton(
   href: string
 ): RcmlButton {
   const sanitizedHref = sanitizeUrl(href);
+
   if (!sanitizedHref) {
     throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
   }
@@ -1079,7 +1102,9 @@ export function createSummaryRowsSection(
   options?: { backgroundColor?: string; padding?: string }
 ): RcmlBodyChild | undefined {
   const filtered = rows.filter((r): r is RcmlText => !!r);
+
   if (filtered.length === 0) return undefined;
+
   return createContentSection(filtered, {
     padding: options?.padding ?? '20px 0',
     ...(options?.backgroundColor && { backgroundColor: options.backgroundColor }),
@@ -1129,14 +1154,17 @@ export function createStatusTrackerSection(
   options: CreateStatusTrackerSectionOptions
 ): RcmlBodyChild {
   const { steps, activeIndex, brandStyle } = options;
+
   if (steps.length === 0) {
     throw new RuleConfigError('createStatusTrackerSection: steps must not be empty');
   }
+
   if (steps.length > 4) {
     throw new RuleConfigError(
       'createStatusTrackerSection: steps must contain at most 4 items (RcmlSection supports up to 4 columns)'
     );
   }
+
   if (activeIndex < 0 || activeIndex >= steps.length) {
     throw new RuleConfigError(
       `createStatusTrackerSection: activeIndex ${activeIndex} is out of range [0, ${steps.length - 1}]`
@@ -1160,6 +1188,7 @@ export function createStatusTrackerSection(
     const isActive = idx <= activeIndex;
     const bg = isActive ? activeBg : inactiveBg;
     const fg = isActive ? activeFg : inactiveFg;
+
     return {
       tagName: 'rc-column',
       id: generateId(),
@@ -1253,6 +1282,7 @@ export function createAddressBlock(
   if (options.lines.length === 0) return undefined;
 
   const children: RcmlColumnChild[] = [];
+
   if (options.heading) {
     children.push(
       createBrandHeading(
@@ -1261,9 +1291,11 @@ export function createAddressBlock(
       )
     );
   }
+
   for (const doc of options.lines) {
     children.push(createBrandText(doc));
   }
+
   return createContentSection(children, {
     padding: options.padding ?? '10px 0',
     ...(options.backgroundColor && { backgroundColor: options.backgroundColor }),

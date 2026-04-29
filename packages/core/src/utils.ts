@@ -30,6 +30,7 @@ export function escapeHtml(text: string): string {
     '"': '&quot;',
     "'": '&#39;',
   };
+
   return text.replace(/[&<>"']/g, (char) => htmlEscapes[char]);
 }
 
@@ -50,11 +51,14 @@ export function escapeHtml(text: string): string {
  */
 export function sanitizeUrl(url: string): string {
   const trimmedUrl = url.trim();
+
   try {
     const parsed = new URL(trimmedUrl);
+
     if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
       return trimmedUrl;
     }
+
     return '';
   } catch {
     return '';

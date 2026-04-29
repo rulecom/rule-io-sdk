@@ -55,6 +55,7 @@ describe('jsonToRfm', () => {
       }),
     )
     const out = jsonToRfm(json)
+
     expect(out).toContain(':font[bold]')
     expect(out).toContain('font-weight="bold"')
   })
@@ -73,6 +74,7 @@ describe('jsonToRfm', () => {
       }),
     )
     const out = jsonToRfm(json)
+
     expect(out).toContain(':link[click]')
     expect(out).toContain('href="https://example.com"')
   })
@@ -95,6 +97,7 @@ describe('jsonToRfm', () => {
       ],
     })
     const out = jsonToRfm(json)
+
     expect(out).toContain('- one')
     expect(out).toContain('- two')
   })
@@ -111,6 +114,7 @@ describe('jsonToRfm', () => {
         },
       ],
     })
+
     expect(jsonToRfm(json)).toContain('1. first')
   })
 
@@ -121,6 +125,7 @@ describe('jsonToRfm', () => {
       content: [paragraph(text('centered'))],
     })
     const out = jsonToRfm(json)
+
     expect(out).toContain(':::align{value="center"}')
     expect(out).toContain('centered')
   })
@@ -142,6 +147,7 @@ describe('jsonToRfm', () => {
       ),
     )
     const out = jsonToRfm(json)
+
     expect(out).toContain('::placeholder')
     expect(out).toContain('type="Subscriber"')
     expect(out).toContain('name="first_name"')
@@ -159,6 +165,7 @@ describe('jsonToInlineRfm', () => {
 
   it('produces the same output as jsonToRfm for inline-RFM-compatible content', () => {
     const json = doc(paragraph(text('Hello')))
+
     expect(jsonToInlineRfm(json)).toBe(jsonToRfm(json))
   })
 })

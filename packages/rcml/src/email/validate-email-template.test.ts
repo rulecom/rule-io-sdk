@@ -45,6 +45,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
 
   it('rejects an unknown root tagName', () => {
     const bad = { tagName: 'not-rcml', children: [] } as unknown as RcmlDocument
+
     expect(() => validateEmailTemplate(bad)).toThrow(EmailTemplateValidationError)
   })
 
@@ -64,6 +65,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
     }
 
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors.some((e) => e.code === EmailTemplateErrorCodes.CHILD_INVALID)).toBe(true)
@@ -88,6 +90,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
       ],
     }
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors.some((e) => e.code === EmailTemplateErrorCodes.ATTR_UNKNOWN)).toBe(true)
@@ -111,9 +114,11 @@ describe('validateEmailTemplate — JSON AST input', () => {
       ],
     }
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     const padIssue = result.errors.find((e) => e.path.endsWith('/attributes/padding'))
+
     expect(padIssue).toBeDefined()
     expect(padIssue?.code).toBe(EmailTemplateErrorCodes.ATTR_INVALID_VALUE)
   })
@@ -127,9 +132,11 @@ describe('validateEmailTemplate — JSON AST input', () => {
       ],
     }
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     const colorIssue = result.errors.find((e) => e.path.endsWith('/attributes/background-color'))
+
     expect(colorIssue?.code).toBe(EmailTemplateErrorCodes.ATTR_INVALID_VALUE)
   })
 
@@ -152,6 +159,7 @@ describe('validateEmailTemplate — JSON AST input', () => {
       ],
     }
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors.some((e) => e.code === EmailTemplateErrorCodes.CHILD_TOO_MANY)).toBe(true)
@@ -188,6 +196,7 @@ describe('validateEmailTemplate — ProseMirror content delegation', () => {
         },
       ],
     }
+
     expect(() => validateEmailTemplate(doc)).not.toThrow()
   })
 
@@ -219,11 +228,13 @@ describe('validateEmailTemplate — ProseMirror content delegation', () => {
       ],
     }
     const result = safeValidateEmailTemplate(doc)
+
     expect(result.success).toBe(false)
     if (result.success) return
     const contentIssue = result.errors.find(
       (e) => e.code === EmailTemplateErrorCodes.CONTENT_INVALID,
     )
+
     expect(contentIssue).toBeDefined()
     expect(contentIssue?.path.startsWith('/children/1/children/0/children/0/children/0/content')).toBe(
       true,
@@ -243,11 +254,13 @@ describe('validateEmailTemplate — XML string input', () => {
         </rc-section>
       </rc-body>
     </rcml>`
+
     expect(() => validateEmailTemplate(xml)).not.toThrow()
   })
 
   it('returns an XML_PARSE_ERROR for malformed XML', () => {
     const result = safeValidateEmailTemplate('<rcml><rc-body></rc-head></rcml>')
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors[0]?.code).toBe(EmailTemplateErrorCodes.XML_PARSE_ERROR)
@@ -258,11 +271,13 @@ describe('EmailTemplateValidationError shape', () => {
   it('matches the expected error format', () => {
     const bad = { tagName: 'rcml' } as unknown as RcmlDocument
     let captured: EmailTemplateValidationError | null = null
+
     try {
       validateEmailTemplate(bad)
     } catch (err) {
       captured = err as EmailTemplateValidationError
     }
+
     expect(captured).toBeInstanceOf(EmailTemplateValidationError)
     expect(captured?.name).toBe('EmailTemplateValidationError')
     expect(Array.isArray(captured?.errors)).toBe(true)
@@ -296,10 +311,12 @@ describe('EmailTemplateValidationError shape', () => {
       ],
     }
     const result = safeValidateEmailTemplate(bad)
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors.length).toBeGreaterThan(5)
     const err = new EmailTemplateValidationError(result.errors)
+
     expect(err.message).toContain('...and')
     expect(err.message).toContain('more')
   })

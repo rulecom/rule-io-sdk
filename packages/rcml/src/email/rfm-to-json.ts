@@ -34,6 +34,7 @@ import type { Json } from './validate-rcml-json.js'
 export function rfmToJson(input: string): Json {
   const { ast } = parseRfm(input)
   const ir = transform(ast)
+
   return convert(ir).toJSON() as Json
 }
 
@@ -57,5 +58,6 @@ export function rfmToJson(input: string): Json {
 export function inlineRfmToJson(input: string): Json {
   const { ast } = parseInlineRfm(input)
   const ir = transform(ast)
+
   return convert(ir).toJSON() as Json
 }

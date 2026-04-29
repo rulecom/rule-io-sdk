@@ -405,7 +405,7 @@ export const rcmlContentJsonSchema = {
  *
  * @internal — not part of the public API; use {@link validateJson} or {@link safeParseJson} instead.
  */
-export function buildJsonSchema(config: FlavorConfig) {
+export function buildJsonSchema(config: FlavorConfig): Record<string, unknown> {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema' as const,
     $id: `rcml-content-json-${config.name}`,

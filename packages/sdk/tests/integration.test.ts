@@ -73,6 +73,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should reject invalid API key with 401', async () => {
       const badClient = new RuleClient('invalid-key-12345');
+
       try {
         await badClient.getTags();
         expect.unreachable('Should have thrown');
@@ -91,12 +92,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   describe('v2 Tags API', () => {
     it('should list tags', async () => {
       const result = await client.getTags();
+
       expect(result).toBeDefined();
       expect(result.tags).toBeDefined();
       expect(Array.isArray(result.tags)).toBe(true);
 
       if (result.tags && result.tags.length > 0) {
         const tag = result.tags[0];
+
         expect(tag).toHaveProperty('id');
         expect(tag).toHaveProperty('name');
         expect(typeof tag.id).toBe('number');
@@ -106,6 +109,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should return null for non-existent tag name', async () => {
       const id = await client.getTagIdByName('nonexistent-tag-xyz-999');
+
       expect(id).toBeNull();
     });
   });
@@ -127,6 +131,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         },
         tags: [`${RUN_ID}`],
       });
+
       expect(result).toBeDefined();
 
       // Register cleanup so the subscriber is removed even if later tests fail
@@ -138,12 +143,15 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     it('should retrieve subscriber fields', async () => {
       // Poll until the subscriber is propagated (max 5s)
       let fields = null;
+
       for (let i = 0; i < 10; i++) {
         fields = await client.getSubscriberFields(testEmail);
         if (fields) break;
         await new Promise((r) => setTimeout(r, 500));
       }
+
       expect(fields).not.toBeNull();
+
       if (fields) {
         expect(typeof fields).toBe('object');
       }
@@ -151,7 +159,9 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should retrieve subscriber tags', async () => {
       const tags = await client.getSubscriberTags(testEmail);
+
       expect(tags).not.toBeNull();
+
       if (tags) {
         expect(Array.isArray(tags)).toBe(true);
       }
@@ -159,6 +169,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should add tags to subscriber', async () => {
       const result = await client.addSubscriberTags(testEmail, [`extra-${RUN_ID}`]);
+
       expect(result).toBeDefined();
     });
 
@@ -168,6 +179,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should return null for non-existent subscriber', async () => {
       const result = await client.getSubscriber('definitely-not-real-email@fake.example.com');
+
       expect(result).toBeNull();
     });
 
@@ -189,6 +201,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.createSubscriberV3({
         email: testEmail,
       });
+
       expect(result).toBeDefined();
 
       cleanup.push(async () => {
@@ -227,11 +240,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should list automations', async () => {
       const result = await client.listAutomations();
+
       expect(result).toBeDefined();
     });
 
     it('should have at least one tag for trigger tests', async () => {
       const tags = await client.getTags();
+
       tagId = tags.tags?.[0]?.id;
       expect(tagId).toBeDefined();
     });
@@ -244,6 +259,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         trigger: { type: 'TAG' as const, id: tagId! },
         sendout_type: 2 as const, // transactional
       });
+
       expect(result).toBeDefined();
       // Response wraps data in .data
       expect(result.data).toBeDefined();
@@ -252,6 +268,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       // Verify trigger was set correctly on creation (no separate update needed)
       const fetched = await client.getAutomation(automationId);
+
       expect(fetched).not.toBeNull();
       expect(fetched!.data?.trigger).toBeDefined();
       expect(fetched!.data!.trigger!.type).toBe('TAG');
@@ -265,6 +282,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     it('should get an automation by id', async () => {
       expect(automationId).toBeDefined();
       const result = await client.getAutomation(automationId);
+
       expect(result).toBeDefined();
       expect(result.data?.id).toBe(automationId);
     });
@@ -279,6 +297,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         trigger: { type: 'TAG', id: tagId! },
         sendout_type: 2,
       });
+
       expect(result).toBeDefined();
     });
 
@@ -300,6 +319,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           delay_in_seconds: '0',
         },
       });
+
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(result.data!.id).toBeDefined();
@@ -316,12 +336,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         id: automationId,
         dispatcher_type: 'automail',
       });
+
       expect(result).toBeDefined();
     });
 
     it('should get a message by id', async () => {
       expect(messageId).toBeDefined();
       const result = await client.getMessage(messageId);
+
       expect(result).toBeDefined();
       expect(result.data?.id).toBe(messageId);
     });
@@ -331,6 +353,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.updateMessage(messageId, {
         subject: 'Updated Subject',
       });
+
       expect(result).toBeDefined();
     });
 
@@ -344,6 +367,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         message_type: 'email',
         template: minimalRCML(),
       });
+
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(result.data!.id).toBeDefined();
@@ -356,12 +380,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should list templates', async () => {
       const result = await client.listTemplates();
+
       expect(result).toBeDefined();
     });
 
     it('should get a template by id', async () => {
       expect(templateId).toBeDefined();
       const result = await client.getTemplate(templateId);
+
       expect(result).toBeDefined();
       expect(result.data?.id).toBe(templateId);
     });
@@ -375,6 +401,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         message_type: 'email',
         template: minimalRCML(),
       });
+
       expect(result).toBeDefined();
     });
 
@@ -387,6 +414,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         message_id: messageId,
         template_id: templateId,
       });
+
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(result.data!.id).toBeDefined();
@@ -402,12 +430,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       const result = await client.listDynamicSets({
         message_id: messageId,
       });
+
       expect(result).toBeDefined();
     });
 
     it('should get a dynamic set by id', async () => {
       expect(dynamicSetId).toBeDefined();
       const result = await client.getDynamicSet(dynamicSetId);
+
       expect(result).toBeDefined();
     });
 
@@ -421,22 +451,26 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should delete template', async () => {
       if (!templateId) return;
+
       try {
         await client.deleteTemplate(templateId);
       } catch (error) {
         // May already be cascade-deleted when dynamic set was removed
         if (!(error instanceof RuleApiError && error.isNotFound())) throw error;
       }
+
       templateId = 0;
     });
 
     it('should delete message', async () => {
       if (!messageId) return;
+
       try {
         await client.deleteMessage(messageId);
       } catch (error) {
         if (!(error instanceof RuleApiError && error.isNotFound())) throw error;
       }
+
       messageId = 0;
     });
 
@@ -465,18 +499,21 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
     it('should list campaigns', async () => {
       const result = await client.listCampaigns();
+
       expect(result).toBeDefined();
       expect(Array.isArray(result.data)).toBe(true);
     });
 
     it('should list campaigns with pagination', async () => {
       const result = await client.listCampaigns({ page: 1, per_page: 5 });
+
       expect(result).toBeDefined();
       expect(Array.isArray(result.data)).toBe(true);
     });
 
     it('should list campaigns filtered by message_type', async () => {
       const result = await client.listCampaigns({ message_type: 1 });
+
       expect(result).toBeDefined();
       expect(Array.isArray(result.data)).toBe(true);
     });
@@ -491,12 +528,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         segments: [],
         subscribers: [],
       });
+
       expect(created.data).toBeDefined();
       expect(created.data!.id).toBeGreaterThan(0);
       campaignId = created.data!.id;
 
       // Get
       const fetched = await client.getCampaign(campaignId);
+
       expect(fetched).not.toBeNull();
       expect(fetched!.data!.id).toBe(campaignId);
 
@@ -509,11 +548,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         segments: [],
         subscribers: [],
       });
+
       expect(updated.data).toBeDefined();
       expect(updated.data!.name).toBe(updatedName);
 
       // Delete (afterEach handles cleanup, but test the return value)
       const deleted = await client.deleteCampaign(campaignId);
+
       expect(deleted.success).toBe(true);
       campaignId = 0; // prevent afterEach double-delete
     });
@@ -528,11 +569,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
         segments: [],
         subscribers: [],
       });
+
       campaignId = created.data!.id;
       await client.deleteCampaign(campaignId);
       campaignId = 0;
 
       const result = await client.getCampaign(created.data!.id);
+
       expect(result).toBeNull();
     });
 
@@ -550,6 +593,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
       try {
         const copy = await client.copyCampaign(sourceId);
+
         campaignId = copy.data?.id ?? 0;
         expect(copy.data).toBeDefined();
         expect(copy.data!.id).not.toBe(sourceId);
@@ -570,6 +614,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   describe('v3 Brand Styles API', () => {
     it('should list brand styles', async () => {
       const result = await client.listBrandStyles();
+
       expect(result).toBeDefined();
     });
   });
@@ -581,11 +626,13 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   describe('v3 Recipients API', () => {
     it('should list segments', async () => {
       const result = await client.listSegments();
+
       expect(result).toBeDefined();
     });
 
     it('should list recipient tags', async () => {
       const result = await client.listRecipientTags();
+
       expect(result).toBeDefined();
     });
   });
@@ -601,12 +648,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           date_from: '2024-01-01',
           date_to: '2024-01-31',
         });
+
         expect(result).toBeDefined();
       } catch (error) {
         // Analytics may return 400/422 if no dispatchers or missing params — that's fine
         if (error instanceof RuleApiError && [400, 422].includes(error.statusCode)) {
           return;
         }
+
         throw error;
       }
     });
@@ -623,12 +672,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           date_from: '2024-01-01',
           date_to: '2024-01-02',
         });
+
         expect(result).toBeDefined();
       } catch (error) {
         // May return 400/404 on empty accounts or invalid ranges
         if (error instanceof RuleApiError && [400, 404, 422].includes(error.statusCode)) {
           return;
         }
+
         throw error;
       }
     });
@@ -641,6 +692,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
   describe('v3 API Keys API', () => {
     it('should list API keys', async () => {
       const result = await client.listApiKeys();
+
       expect(result).toBeDefined();
     });
   });
@@ -653,6 +705,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
     it('should create and clean up a full automation email', async () => {
       // First ensure we have a tag to trigger on
       const tagsResult = await client.getTags();
+
       if (!tagsResult.tags || tagsResult.tags.length === 0) {
         return;
       }
@@ -679,29 +732,36 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
 
         // Verify we can read each created resource
         const automation = await client.getAutomation(result.automationId);
+
         expect(automation).toBeDefined();
         expect(automation.data?.id).toBe(result.automationId);
 
         const message = await client.getMessage(result.messageId);
+
         expect(message).toBeDefined();
         expect(message.data?.id).toBe(result.messageId);
 
         const template = await client.getTemplate(result.templateId);
+
         expect(template).toBeDefined();
         expect(template.data?.id).toBe(result.templateId);
       } finally {
         // Clean up all created resources (reverse dependency order)
         if (result) {
           const ids = result;
+
           if (ids.dynamicSetId) {
             await client.deleteDynamicSet(ids.dynamicSetId).catch(() => {});
           }
+
           if (ids.templateId) {
             await client.deleteTemplate(ids.templateId).catch(() => {});
           }
+
           if (ids.messageId) {
             await client.deleteMessage(ids.messageId).catch(() => {});
           }
+
           if (ids.automationId) {
             await client.deleteAutomation(ids.automationId).catch(() => {});
           }
@@ -727,12 +787,14 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
       } catch (error) {
         expect(error).toBeInstanceOf(RuleApiError);
         const apiError = error as RuleApiError;
+
         expect(apiError.statusCode).toBeGreaterThanOrEqual(400);
       }
     });
 
     it('should return null for non-existent subscriber (getSubscriber)', async () => {
       const result = await client.getSubscriber('nonexistent-email-xyz@fake.example.com');
+
       expect(result).toBeNull();
     });
   });

@@ -53,6 +53,7 @@ export function convertXmlToRcml(
   | { success: true; data: RcmlDocument }
   | { success: false; errors: RcmlXmlParseIssue[] } {
   const validationResult = XMLValidator.validate(xml)
+
   if (validationResult !== true) {
     return {
       success: false,
@@ -67,6 +68,7 @@ export function convertXmlToRcml(
   }
 
   let raw: unknown
+
   try {
     raw = parser.parse(xml)
   } catch (err) {
@@ -84,6 +86,7 @@ export function convertXmlToRcml(
 
   const roots = Array.isArray(raw) ? (raw as PreservedNode[]) : []
   const rootNode = roots.find((n) => !('#text' in n))
+
   if (!rootNode) {
     return {
       success: false,
@@ -99,18 +102,21 @@ export function convertXmlToRcml(
 
   const issues: RcmlXmlParseIssue[] = []
   const converted = convertNode(rootNode, '', issues)
+
   if (converted === null) {
     issues.push({
       path: '',
       code: 'ROOT_INVALID',
       message: 'Could not convert the XML root to an RCML document.',
     })
+
     return { success: false, errors: issues }
   }
 
   if (issues.length > 0) {
     return { success: false, errors: issues }
   }
+
   return { success: true, data: converted as unknown as RcmlDocument }
 }
 
@@ -134,6 +140,7 @@ function convertNode(
   const rawAttributes = entry[':@'] as Record<string, unknown> | undefined
 
   const tagKeys = Object.keys(entry).filter((k) => k !== ':@')
+
   if (tagKeys.length !== 1) return null
   const tagName = tagKeys[0] as string
   const rawChildren = entry[tagName]
@@ -144,9 +151,11 @@ function convertNode(
   // Lift it out of the XML attribute bag so round-trips stay symmetric.
   if (rawAttributes) {
     const { id, ...rest } = rawAttributes
+
     if (typeof id === 'string') {
       node['id'] = id
     }
+
     if (Object.keys(rest).length > 0) {
       node['attributes'] = rest
     }
@@ -158,16 +167,20 @@ function convertNode(
     tagName === RcmlTagNamesEnum.Button
   ) {
     const rfmBody = extractText(rawChildren)
+
     // Empty text body ⇒ skip the RFM parser entirely (it throws on empty input).
     // The canonical empty ProseMirror doc mirrors what `json-to-rfm.ts` emits
     // for an empty document, so round-trip is preserved.
     if (rfmBody === '') {
       node['content'] = { type: 'doc', content: [] }
+
       return node
     }
+
     try {
       const pmDoc =
         tagName === RcmlTagNamesEnum.Button ? inlineRfmToJson(rfmBody) : rfmToJson(rfmBody)
+
       node['content'] = pmDoc
     } catch (err) {
       issues.push({
@@ -177,6 +190,7 @@ function convertNode(
       })
       node['content'] = { type: 'doc', content: [] }
     }
+
     return node
   }
 
@@ -185,17 +199,20 @@ function convertNode(
   if (!isLeaf && Array.isArray(rawChildren)) {
     const children: unknown[] = []
     let childIdx = 0
+
     for (const raw of rawChildren as PreservedNode[]) {
       if (typeof raw !== 'object') continue
       // Skip stray text between structural children (whitespace from pretty-printed XML).
       if ('#text' in raw && Object.keys(raw).length === 1) continue
 
       const converted = convertNode(raw, `${path}/children/${childIdx}`, issues)
+
       if (converted !== null) {
         children.push(converted)
         childIdx++
       }
     }
+
     node['children'] = children
   }
 
@@ -210,12 +227,15 @@ function convertNode(
 function extractText(raw: unknown): string {
   if (!Array.isArray(raw)) return ''
   let out = ''
+
   for (const entry of raw as PreservedNode[]) {
     if (typeof entry === 'object' && '#text' in entry) {
       const t = entry['#text']
+
       if (typeof t === 'string') out += t
       else if (typeof t === 'number' || typeof t === 'boolean') out += String(t)
     }
   }
+
   return out
 }

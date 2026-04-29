@@ -21,27 +21,32 @@ const MIN_DOC: RcmlDocument = {
 describe('serializeRcmlToXml — options handling', () => {
   it('pretty-prints when `pretty` is omitted (default true)', () => {
     const out = serializeRcmlToXml(MIN_DOC, {})
+
     expect(out).toContain('\n  <rc-head')
     expect(out).toContain('\n  <rc-body')
   })
 
   it('pretty-prints when `pretty: true`', () => {
     const out = serializeRcmlToXml(MIN_DOC, { pretty: true })
+
     expect(out).toContain('\n')
   })
 
   it('produces a single line when `pretty: false`', () => {
     const out = serializeRcmlToXml(MIN_DOC, { pretty: false })
+
     expect(out).not.toContain('\n')
   })
 
   it('honours a custom `indent` value', () => {
     const out = serializeRcmlToXml(MIN_DOC, { indent: '\t' })
+
     expect(out).toContain('\n\t<rc-head')
   })
 
   it('trims the leading/trailing newlines fast-xml-parser adds in pretty mode', () => {
     const out = serializeRcmlToXml(MIN_DOC, { pretty: true })
+
     expect(out.startsWith('\n')).toBe(false)
     expect(out.endsWith('\n')).toBe(false)
   })
@@ -63,6 +68,7 @@ describe('serializeRcmlToXml — attribute handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('background-color="#ffffff"')
     expect(out).toContain('width="600px"')
   })
@@ -83,6 +89,7 @@ describe('serializeRcmlToXml — attribute handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('width="600"')
   })
 
@@ -102,6 +109,7 @@ describe('serializeRcmlToXml — attribute handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('full-width="true"')
   })
 
@@ -117,6 +125,7 @@ describe('serializeRcmlToXml — attribute handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('<rcml id="root">')
     expect(out).toContain('<rc-head id="h">')
   })
@@ -160,6 +169,7 @@ describe('serializeRcmlToXml — content handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('<rc-text>Hello</rc-text>')
   })
 
@@ -200,6 +210,7 @@ describe('serializeRcmlToXml — content handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('&amp;')
     expect(out).toContain('&lt;')
   })
@@ -231,6 +242,7 @@ describe('serializeRcmlToXml — content handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('<rc-text></rc-text>')
   })
 
@@ -271,6 +283,7 @@ describe('serializeRcmlToXml — content handling', () => {
       },
       { pretty: false },
     )
+
     expect(out).toContain('<rc-button>Click me</rc-button>')
   })
 })

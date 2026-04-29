@@ -50,6 +50,7 @@ export class RcmlElementBuildError extends Error {
 
   constructor(tagName: RcmlTagName, issues: readonly RcmlElementBuildIssue[]) {
     const summary = issues.length === 1 ? issues[0]!.message : `${issues.length} issues`
+
     super(`Cannot build <${tagName}>: ${summary}`)
     this.name = 'RcmlElementBuildError'
     this.tagName = tagName

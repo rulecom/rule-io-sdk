@@ -82,12 +82,15 @@ const REQUIRED_FIELDS: readonly ShopifyFieldNames[] = [
 
 function validateShopifyConfig(config: VendorConsumerConfig): void {
   const missingFields: string[] = [];
+
   for (const logicalName of REQUIRED_FIELDS) {
     const fieldName = SHOPIFY_FIELDS[logicalName];
+
     if (config.customFields[fieldName] === undefined) {
       missingFields.push(`${logicalName} ("${fieldName}")`);
     }
   }
+
   if (missingFields.length > 0) {
     throw new RuleConfigError(
       `shopifyPreset: missing customFields entries for: ${missingFields.join(', ')}`
@@ -115,11 +118,13 @@ export const shopifyPreset: VendorPreset<ShopifyFieldSchema, ShopifyTagSchema> =
 
   getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
     validateShopifyConfig(config);
+
     return resolveAutomations(config);
   },
 
   getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
     validateShopifyConfig(config);
+
     return resolveAutomations(config).find((a) => a.id === id);
   },
 

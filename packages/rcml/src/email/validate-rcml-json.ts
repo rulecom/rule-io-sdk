@@ -160,6 +160,7 @@ export function validateJson(input: unknown, config?: FlavorConfig): Json {
 
   if (!valid) {
     const errors = toValidationErrors(validate.errors)
+
     throw new JsonParseError(errors)
   }
 
@@ -214,9 +215,11 @@ export function safeParseJson(input: unknown, config?: FlavorConfig): SafeParseR
  */
 export function validateJsonSemantics(json: Json): SemanticValidationResult {
   const issues: SemanticIssue[] = []
+
   visitBlocks(json.content, '/content', issues)
 
   if (issues.length === 0) return { success: true }
+
   return { success: false, issues }
 }
 
@@ -233,9 +236,11 @@ export function validateJsonSemantics(json: Json): SemanticValidationResult {
  */
 export function assertJsonSemantics(json: Json): void {
   const result = validateJsonSemantics(json)
+
   if (result.success) return
 
   const errors = result.issues.filter((i) => i.severity === 'error')
+
   if (errors.length === 0) return
 
   const summary = errors
@@ -243,6 +248,7 @@ export function assertJsonSemantics(json: Json): void {
     .map((e) => `  ${e.path || '(root)'} [${e.code}]: ${e.message}`)
     .join('\n')
   const suffix = errors.length > 5 ? `\n  ...and ${errors.length - 5} more` : ''
+
   throw new Error(`RCML JSON semantic validation failed:\n${summary}${suffix}`)
 }
 

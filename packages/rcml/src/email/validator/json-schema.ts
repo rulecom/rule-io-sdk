@@ -160,6 +160,7 @@ export const RCML_JSON_SCHEMA: JsonSchema = (() => {
 
   for (const tagName of Object.values(RcmlTagNamesEnum)) {
     const spec = RCML_SCHEMA_SPEC[tagName]
+
     $defs[tagName] = buildTagSchema(tagName, spec)
   }
 

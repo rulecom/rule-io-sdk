@@ -13,6 +13,7 @@ describe('validateAttrs', () => {
 
   it('flags an unknown attribute', () => {
     const issues = validateAttrs('rc-text', { 'not-an-attr': 'value' })
+
     expect(issues).toHaveLength(1)
     expect(issues[0]).toMatchObject({
       code: 'ATTR_UNKNOWN',
@@ -22,6 +23,7 @@ describe('validateAttrs', () => {
 
   it('flags an invalid attribute value', () => {
     const issues = validateAttrs('rc-text', { color: 'not-a-color' })
+
     expect(issues).toHaveLength(1)
     expect(issues[0]).toMatchObject({
       code: 'ATTR_INVALID_VALUE',
@@ -36,6 +38,7 @@ describe('validateAttrs', () => {
   it('collects issues across multiple attrs', () => {
     // Note: `#bad` is a valid 3-digit hex color — use an unambiguously bad value.
     const issues = validateAttrs('rc-text', { color: 'rainbow', align: 'nope' })
+
     expect(issues).toHaveLength(2)
     expect(issues.map((i) => i.code).sort()).toEqual(['ATTR_INVALID_VALUE', 'ATTR_INVALID_VALUE'])
   })

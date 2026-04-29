@@ -32,7 +32,9 @@ function getValidator(): ValidateFunction {
     allErrors: true,
     allowUnionTypes: true,
   })
+
   cachedValidator = ajv.compile(RCML_JSON_SCHEMA)
+
   return cachedValidator
 }
 
@@ -45,7 +47,9 @@ function getValidator(): ValidateFunction {
  */
 export function validateStructure(input: unknown): EmailTemplateValidationIssue[] {
   const validate = getValidator()
+
   if (validate(input)) return []
+
   return (validate.errors ?? []).map(toIssue)
 }
 
@@ -59,6 +63,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
   switch (err.keyword) {
     case 'additionalProperties': {
       const extra = (err.params as { additionalProperty?: string }).additionalProperty
+
       if (path.endsWith('/attributes') || path.endsWith('/attributes/')) {
         return {
           path: `${path}/${extra ?? ''}`,
@@ -66,14 +71,17 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
           message: `Unknown attribute "${extra ?? ''}".`,
         }
       }
+
       return {
         path,
         code: EmailTemplateErrorCodes.SCHEMA_VIOLATION,
         message: `Unexpected property "${extra ?? ''}".`,
       }
     }
+
     case 'required': {
       const missing = (err.params as { missingProperty?: string }).missingProperty
+
       if (missing === 'tagName') {
         return {
           path,
@@ -81,6 +89,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
           message: 'Node is missing required "tagName" property.',
         }
       }
+
       if (missing === 'children') {
         return {
           path,
@@ -88,14 +97,17 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
           message: 'Node is missing required "children" property.',
         }
       }
+
       return {
         path: `${path}/${missing ?? ''}`,
         code: EmailTemplateErrorCodes.ATTR_REQUIRED_MISSING,
         message: `Missing required property "${missing ?? ''}".`,
       }
     }
+
     case 'const': {
       const expected = (err.params as { allowedValue?: unknown }).allowedValue
+
       if (path.endsWith('/tagName')) {
         return {
           path,
@@ -103,8 +115,10 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
           message: `Expected tagName "${String(expected)}".`,
         }
       }
+
       return { path, code: EmailTemplateErrorCodes.SCHEMA_VIOLATION, message: err.message ?? 'Invalid value.' }
     }
+
     case 'enum': {
       if (path.endsWith('/tagName')) {
         return {
@@ -113,12 +127,14 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
           message: err.message ?? 'Unknown tagName.',
         }
       }
+
       return {
         path,
         code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,
         message: err.message ?? 'Value is not in the allowed set.',
       }
     }
+
     case 'oneOf': {
       return {
         path,
@@ -126,6 +142,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
         message: 'Child does not match any allowed tag for this parent.',
       }
     }
+
     case 'maxItems': {
       return {
         path,
@@ -133,6 +150,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
         message: err.message ?? 'Too many children.',
       }
     }
+
     case 'minItems': {
       return {
         path,
@@ -140,6 +158,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
         message: err.message ?? 'Too few children.',
       }
     }
+
     case 'type': {
       return {
         path,
@@ -147,6 +166,7 @@ function toIssue(err: ErrorObject): EmailTemplateValidationIssue {
         message: err.message ?? 'Value has the wrong type.',
       }
     }
+
     default:
       return {
         path,

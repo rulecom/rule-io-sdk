@@ -13,18 +13,23 @@ import { join } from 'node:path';
 
 export function loadEnv(cwd: string = process.cwd()): void {
   const envPath = join(cwd, '.env');
+
   if (!existsSync(envPath)) return;
   const content = readFileSync(envPath, 'utf-8');
+
   for (const line of content.split('\n')) {
     const trimmed = line.trim();
+
     if (!trimmed || trimmed.startsWith('#')) continue;
     const eqIndex = trimmed.indexOf('=');
+
     if (eqIndex === -1) continue;
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed
       .slice(eqIndex + 1)
       .trim()
       .replace(/^['"]|['"]$/g, '');
+
     if (!process.env[key]) process.env[key] = value;
   }
 }
@@ -38,10 +43,12 @@ export function loadEnv(cwd: string = process.cwd()): void {
  */
 export function requireEnv(name: string): string {
   const value = process.env[name];
+
   if (!value) {
     throw new Error(
       `Missing ${name} in environment or .env. Set it in your shell or add it to a .env file in the current directory.`,
     );
   }
+
   return value;
 }

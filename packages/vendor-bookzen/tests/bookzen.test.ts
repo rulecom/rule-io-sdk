@@ -106,18 +106,21 @@ describe('bookzenPreset', () => {
   describe('getAutomations', () => {
     it('returns 5 automations', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
+
       expect(automations).toHaveLength(5);
     });
 
     it('returns automations with unique IDs', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
       const ids = automations.map((a) => a.id);
+
       expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('returns automations with unique trigger tags', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
       const triggerTags = automations.map((a) => a.triggerTag);
+
       expect(new Set(triggerTags).size).toBe(triggerTags.length);
     });
 
@@ -139,6 +142,7 @@ describe('bookzenPreset', () => {
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://myhotel.example.com',
         });
+
         assertValidRCMLDocument(doc);
       }
     });
@@ -217,12 +221,14 @@ describe('bookzenPreset', () => {
         'bookzen-reservation-confirmation',
         TEST_CONFIG
       );
+
       expect(automation).toBeDefined();
       expect(automation!.id).toBe('bookzen-reservation-confirmation');
     });
 
     it('returns undefined for unknown ID', () => {
       const automation = bookzenPreset.getAutomation('nonexistent', TEST_CONFIG);
+
       expect(automation).toBeUndefined();
     });
   });
@@ -255,6 +261,7 @@ describe('BOOKZEN_FIELDS', () => {
       BOOKZEN_FIELDS.totalPrice,
       BOOKZEN_FIELDS.roomName,
     ];
+
     for (const value of bookingFields) {
       expect(value.startsWith('Booking.')).toBe(true);
     }

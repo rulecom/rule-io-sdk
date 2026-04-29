@@ -47,8 +47,10 @@ export function validateChildren(
 
   children.forEach((child, index) => {
     const childTag = child?.tagName
+
     if (typeof childTag !== 'string' || !allowed.includes(childTag as RcmlTagName)) {
       const received = typeof childTag === 'string' ? `<${childTag}>` : typeof childTag
+
       issues.push({
         code: RcmlElementBuildErrorCodes.CHILD_INVALID,
         path: `children/${String(index)}`,

@@ -22,6 +22,7 @@ describe('convertXmlToRcml — discriminated result', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data).toEqual({
@@ -35,6 +36,7 @@ describe('convertXmlToRcml — discriminated result', () => {
 
   it('returns success: false with an XML_PARSE_ERROR on malformed input', () => {
     const result = convertXmlToRcml('<rcml><rc-body></rc-head></rcml>')
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(result.errors[0]?.code).toBe('XML_PARSE_ERROR')
@@ -43,6 +45,7 @@ describe('convertXmlToRcml — discriminated result', () => {
 
   it('returns ROOT_INVALID when the input has no element', () => {
     const result = convertXmlToRcml('   ')
+
     expect(result.success).toBe(false)
     if (result.success) return
     expect(['XML_PARSE_ERROR', 'ROOT_INVALID']).toContain(result.errors[0]?.code)
@@ -54,6 +57,7 @@ describe('convertXmlToRcml — attribute handling', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body background-color="#fff" width="600px"></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.children[1]).toMatchObject({
@@ -64,6 +68,7 @@ describe('convertXmlToRcml — attribute handling', () => {
 
   it('omits the `attributes` field when an element has none', () => {
     const result = convertXmlToRcml('<rcml><rc-head></rc-head><rc-body></rc-body></rcml>')
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.children[0]).not.toHaveProperty('attributes')
@@ -73,6 +78,7 @@ describe('convertXmlToRcml — attribute handling', () => {
     const result = convertXmlToRcml(
       '<rcml id="root"><rc-head id="h"></rc-head><rc-body id="b" width="600px"></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.id).toBe('root')
@@ -80,6 +86,7 @@ describe('convertXmlToRcml — attribute handling', () => {
     expect(result.data.children[1].id).toBe('b')
     // Other attributes stay on `attributes`; `id` is NOT duplicated there.
     const body = result.data.children[1]
+
     expect(body).toMatchObject({ attributes: { width: '600px' } })
     expect(body.attributes).not.toHaveProperty('id')
   })
@@ -90,15 +97,18 @@ describe('convertXmlToRcml — leaf vs container handling', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body><rc-section><rc-column><rc-spacer height="10px"></rc-spacer></rc-column></rc-section></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     const spacer = firstColumnChild<RcmlSpacer>(result.data.children[1])
+
     expect(spacer.tagName).toBe('rc-spacer')
     expect(spacer).not.toHaveProperty('children')
   })
 
   it('preserves `children: []` on empty non-leaf tags', () => {
     const result = convertXmlToRcml('<rcml><rc-head></rc-head><rc-body></rc-body></rcml>')
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.children[0]).toEqual({ tagName: 'rc-head', children: [] })
@@ -115,6 +125,7 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
       '</rcml>',
     ].join('\n')
     const result = convertXmlToRcml(xml)
+
     expect(result.success).toBe(true)
     if (!result.success) return
     expect(result.data.children).toHaveLength(2)
@@ -124,9 +135,11 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body><rc-section><rc-column><rc-text>Hello</rc-text></rc-column></rc-section></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     const textNode = firstColumnChild<RcmlText>(result.data.children[1])
+
     expect(textNode.tagName).toBe('rc-text')
     expect(textNode.content).toMatchObject({ type: 'doc' })
     expect(textNode).not.toHaveProperty('children')
@@ -136,9 +149,11 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body><rc-section><rc-column><rc-text></rc-text></rc-column></rc-section></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     const textNode = firstColumnChild<RcmlText>(result.data.children[1])
+
     expect(textNode.content).toEqual({ type: 'doc', content: [] })
   })
 
@@ -147,6 +162,7 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     const xml =
       '<rcml><rc-head></rc-head><rc-body><rc-section><rc-column><rc-text>:font[hi</rc-text></rc-column></rc-section></rc-body></rcml>'
     const result = convertXmlToRcml(xml)
+
     if (!result.success) {
       expect(result.errors.some((e) => e.code === 'RFM_PARSE_ERROR')).toBe(true)
       // Path should point at the rc-text node's content
@@ -158,9 +174,11 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
     const result = convertXmlToRcml(
       '<rcml><rc-head></rc-head><rc-body><rc-section><rc-column><rc-button>Click</rc-button></rc-column></rc-section></rc-body></rcml>',
     )
+
     expect(result.success).toBe(true)
     if (!result.success) return
     const btn = firstColumnChild<RcmlButton>(result.data.children[1])
+
     expect(btn.tagName).toBe('rc-button')
     expect(btn.content.type).toBe('doc')
   })
@@ -176,5 +194,6 @@ describe('convertXmlToRcml — whitespace + text handling', () => {
 function firstColumnChild<T extends { tagName: string }>(body: RcmlBody): T {
   const section = body.children[0] as RcmlSection
   const column = section.children[0] as RcmlColumn
+
   return column.children[0] as T
 }

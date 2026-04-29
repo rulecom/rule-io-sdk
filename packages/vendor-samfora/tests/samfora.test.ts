@@ -79,11 +79,13 @@ describe('samforaPreset', () => {
           [SAMFORA_FIELDS.donorFirstName]: 200001,
         },
       };
+
       expect(() => samforaPreset.validateConfig(incomplete)).toThrow(RuleConfigError);
     });
 
     it('error message lists the missing fields', () => {
       const empty: VendorConsumerConfig = { ...TEST_CONFIG, customFields: {} };
+
       expect(() => samforaPreset.validateConfig(empty)).toThrow(
         /samforaPreset.*donorFirstName/,
       );
@@ -100,6 +102,7 @@ describe('samforaPreset', () => {
           [SAMFORA_FIELDS.causeName]: 200005,
         },
       };
+
       expect(() => samforaPreset.validateConfig(withoutTaxFields)).toThrow(
         /taxYear|totalLifetimeAmount|taxDeductibleAmount/,
       );
@@ -118,7 +121,9 @@ describe('samforaPreset', () => {
   describe('getRequiredFields', () => {
     it('returns the core required fields with descriptions', () => {
       const fields = samforaPreset.getRequiredFields();
+
       expect(fields.length).toBeGreaterThan(0);
+
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
         expect(field.fieldName).toBeTruthy();
@@ -131,6 +136,7 @@ describe('samforaPreset', () => {
 
     it('includes every field each automation needs to build', () => {
       const logicalNames = samforaPreset.getRequiredFields().map((f) => f.logicalName);
+
       // Core fields referenced by the confirmation / monthly flows.
       expect(logicalNames).toContain('donorFirstName');
       expect(logicalNames).toContain('donationAmount');
@@ -146,6 +152,7 @@ describe('samforaPreset', () => {
 
     it('excludes the optional donation and subscriber-extension fields', () => {
       const logicalNames = samforaPreset.getRequiredFields().map((f) => f.logicalName);
+
       // Donation fields the preset's templates don't reference.
       expect(logicalNames).not.toContain('donationCurrency');
       expect(logicalNames).not.toContain('donationType');
@@ -169,18 +176,21 @@ describe('samforaPreset', () => {
   describe('getAutomations', () => {
     it('returns 6 automations', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
+
       expect(automations).toHaveLength(6);
     });
 
     it('returns automations with unique IDs', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const ids = automations.map((a) => a.id);
+
       expect(new Set(ids).size).toBe(ids.length);
     });
 
     it('all automations have trigger tags from SAMFORA_TAGS', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
       const validTags = new Set(Object.values(SAMFORA_TAGS));
+
       for (const automation of automations) {
         expect(validTags.has(automation.triggerTag)).toBe(true);
       }
@@ -191,14 +201,17 @@ describe('samforaPreset', () => {
       const confirmations = automations.filter(
         (a) => a.triggerTag === SAMFORA_TAGS.donationReceived,
       );
+
       expect(confirmations).toHaveLength(3);
 
       const conditionSignatures = confirmations.map((a) =>
         JSON.stringify(a.conditions ?? {}),
       );
+
       expect(new Set(conditionSignatures).size).toBe(3);
 
       const ids = confirmations.map((a) => a.id);
+
       expect(ids).toContain('samfora-donation-confirmation-first');
       expect(ids).toContain('samfora-donation-confirmation-second');
       expect(ids).toContain('samfora-donation-confirmation-returning');
@@ -223,24 +236,28 @@ describe('samforaPreset', () => {
 
     it('all automations produce valid RCML documents with required fields only', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
+
       for (const automation of automations) {
         const doc = automation.templateBuilder({
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
         });
+
         assertValidRCMLDocument(doc);
       }
     });
 
     it('all automations also render with the optional currency / type fields', () => {
       const automations = samforaPreset.getAutomations(TEST_CONFIG_WITH_OPTIONAL);
+
       for (const automation of automations) {
         const doc = automation.templateBuilder({
           brandStyle: TEST_BRAND_STYLE,
           customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
           websiteUrl: 'https://samfora.org',
         });
+
         assertValidRCMLDocument(doc);
       }
     });
@@ -295,6 +312,7 @@ describe('samforaPreset', () => {
       // when the brand style has a logoUrl. Earlier versions silently
       // omitted it, so rendered emails had no header image.
       const automations = samforaPreset.getAutomations(TEST_CONFIG);
+
       for (const automation of automations) {
         const doc = automation.templateBuilder({
           brandStyle: TEST_BRAND_STYLE,
@@ -303,11 +321,14 @@ describe('samforaPreset', () => {
         });
         // The RCML body is the second top-level child (after rc-head).
         const body = doc.children[1];
+
         expect(body.tagName).toBe('rc-body');
         const firstBodyChild = body.children[0];
+
         // rc-logo nests inside rc-section > rc-column > rc-logo.
         expect(firstBodyChild.tagName).toBe('rc-section');
         const firstColumn = (firstBodyChild as { children: { tagName: string; children?: { tagName: string }[] }[] }).children[0];
+
         expect(firstColumn.tagName).toBe('rc-column');
         expect(firstColumn.children?.[0].tagName).toBe('rc-logo');
       }
@@ -328,6 +349,7 @@ describe('samforaPreset', () => {
         websiteUrl: 'https://samfora.org',
       });
       const json = docToString(doc);
+
       expect(json).not.toContain('"tagName":"rc-logo"');
     });
 
@@ -344,6 +366,7 @@ describe('samforaPreset', () => {
         websiteUrl: 'https://samfora.org',
       });
       const json = docToString(doc);
+
       expect(json).toContain('Tack för din första gåva');
       expect(json).toContain('Ändamål');
     });
@@ -413,12 +436,14 @@ describe('samforaPreset', () => {
         'samfora-welcome',
         TEST_CONFIG,
       );
+
       expect(automation).toBeDefined();
       expect(automation!.id).toBe('samfora-welcome');
     });
 
     it('returns undefined for an unknown ID', () => {
       const automation = samforaPreset.getAutomation('nonexistent', TEST_CONFIG);
+
       expect(automation).toBeUndefined();
     });
   });
@@ -451,6 +476,7 @@ describe('SAMFORA_FIELDS', () => {
       SAMFORA_FIELDS.donorPhone,
       SAMFORA_FIELDS.donorSource,
     ];
+
     for (const value of subscriberFields) {
       expect(value.startsWith('Subscriber.')).toBe(true);
     }
@@ -466,6 +492,7 @@ describe('SAMFORA_FIELDS', () => {
       SAMFORA_FIELDS.taxYear,
       SAMFORA_FIELDS.taxDeductibleAmount,
     ];
+
     for (const value of donationFields) {
       expect(value.startsWith('Donation.')).toBe(true);
     }
@@ -502,6 +529,7 @@ describe('SAMFORA_TAGS', () => {
 
   it('all values are unique', () => {
     const values = Object.values(SAMFORA_TAGS);
+
     expect(new Set(values).size).toBe(values.length);
   });
 });

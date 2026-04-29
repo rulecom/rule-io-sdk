@@ -63,6 +63,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).toContain('Reservation Details')
       expect(json).toContain('100001') // FirstName field ID
       expect(json).toContain('100002') // BookingRef field ID
@@ -95,6 +96,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).not.toContain('Room')
       expect(json).not.toContain('Check-out')
     })
@@ -123,6 +125,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).toContain('Reservation Cancelled')
       expect(json).toContain('Make a New Reservation')
     })
@@ -155,6 +158,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).toContain('Practical Information')
       expect(json).toContain('Check-in from 3:00 PM')
     })
@@ -180,6 +184,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).not.toContain('Practical Information')
     })
 
@@ -225,6 +230,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).toContain('Leave Feedback')
       expect(json).toContain('https://example.com/feedback')
     })
@@ -255,6 +261,7 @@ describe('Hospitality Templates', () => {
 
       assertValidRCMLDocument(doc)
       const json = docToString(doc)
+
       expect(json).toContain('Your Request')
       expect(json).toContain('100006') // TotalGuests field ID
     })
@@ -316,6 +323,7 @@ describe('Template Footer Localization (hospitality)', () => {
     })
 
     const json = docToString(doc)
+
     expect(json).toContain('Voir dans le navigateur')
     expect(json).toContain('Se désabonner')
     expect(json).not.toContain('View in browser')
@@ -386,6 +394,7 @@ describe('template error context (hospitality)', () => {
       expect(error).toBeInstanceOf(RuleConfigError)
       const message = (error as RuleConfigError).message
       const occurrences = message.split('createReservationConfirmationEmail').length - 1
+
       expect(occurrences).toBe(1)
       expect(message).toContain('missing customFields entry for fieldNames.')
     }

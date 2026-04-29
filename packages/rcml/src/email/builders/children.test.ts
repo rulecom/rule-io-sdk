@@ -10,6 +10,7 @@ describe('validateChildren', () => {
 
   it('flags a child with a disallowed tag', () => {
     const issues = validateChildren('rc-section', [{ tagName: 'rc-text' }])
+
     expect(issues).toHaveLength(1)
     expect(issues[0]).toMatchObject({ code: 'CHILD_INVALID', path: 'children/0' })
     expect(issues[0]!.message).toContain('<rc-text>')
@@ -17,6 +18,7 @@ describe('validateChildren', () => {
 
   it('flags a child without a valid tagName', () => {
     const issues = validateChildren('rc-section', [{ tagName: undefined }])
+
     expect(issues).toHaveLength(1)
     expect(issues[0]!.code).toBe('CHILD_INVALID')
   })
@@ -24,6 +26,7 @@ describe('validateChildren', () => {
   it('flags when children exceed maxChildCount', () => {
     const twenty = Array.from({ length: 21 }, () => ({ tagName: 'rc-column' as const }))
     const issues = validateChildren('rc-section', twenty)
+
     expect(issues.some((i) => i.code === 'CHILD_TOO_MANY')).toBe(true)
   })
 
@@ -32,6 +35,7 @@ describe('validateChildren', () => {
       { tagName: 'rc-column' },
       { tagName: 'rc-text' },
     ])
+
     expect(issues[0]!.path).toBe('children/1')
   })
 

@@ -106,6 +106,7 @@ describe('rcmlToXml → xmlToRcml round-trip', () => {
     it(name, () => {
       const xml = rcmlToXml(doc)
       const restored = xmlToRcml(xml)
+
       expect(restored).toEqual(doc)
     })
   }
@@ -127,6 +128,7 @@ describe('xmlToRcml → rcmlToXml (string → JSON → string) idempotence', () 
     ].join('\n')
     const json = xmlToRcml(xml)
     const xml2 = rcmlToXml(json)
+
     expect(xml2).toBe(xml)
   })
 })

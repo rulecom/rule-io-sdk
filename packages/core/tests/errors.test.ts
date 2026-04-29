@@ -4,6 +4,7 @@ import { RuleApiError, RuleConfigError } from '../src/errors.js';
 describe('@rule-io/core errors', () => {
   it('RuleApiError is an Error subclass carrying statusCode', () => {
     const err = new RuleApiError('boom', 400);
+
     expect(err).toBeInstanceOf(Error);
     expect(err).toBeInstanceOf(RuleApiError);
     expect(err.name).toBe('RuleApiError');
@@ -22,6 +23,7 @@ describe('@rule-io/core errors', () => {
   it('RuleConfigError preserves cause when provided', () => {
     const cause = new Error('underlying');
     const err = new RuleConfigError('bad config', { cause });
+
     expect(err).toBeInstanceOf(RuleConfigError);
     expect(err.name).toBe('RuleConfigError');
     expect(err.cause).toBe(cause);

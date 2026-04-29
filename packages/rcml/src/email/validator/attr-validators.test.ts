@@ -18,6 +18,7 @@ function expectRejects(key: RcmlAttributeValidatorsEnum, value: unknown): void {
 describe('RCML_ATTR_VALIDATORS — coverage', () => {
   it('has an entry for every RcmlAttributeValidatorsEnum member', () => {
     const enumKeys = Object.values(RcmlAttributeValidatorsEnum)
+
     for (const k of enumKeys) {
       expect(RCML_ATTR_VALIDATORS[k]).toBeDefined()
     }
