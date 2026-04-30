@@ -4,7 +4,7 @@
  */
 
 import type { Command } from 'commander';
-import { RuleClient } from '@rule-io/client';
+import { type RuleClient } from '@rule-io/client';
 import type { RuleAutomation } from '@rule-io/client';
 import { createClient } from '../shared/client.js';
 
@@ -39,13 +39,16 @@ async function printUrls(client: RuleClient, ids: number[]): Promise<void> {
   for (const id of ids) {
     const msgs = await client.listMessages({ id, dispatcher_type: 'automail' });
     const messages = msgs.data ?? [];
+
     if (!messages.length) {
       console.log(`${id}: no message found`);
       continue;
     }
+
     if (messages.length > 1) {
       console.log(`${id}: ${messages.length} messages — printing URL for each`);
     }
+
     for (const m of messages) {
       if (!m.id) continue;
       console.log(
@@ -64,6 +67,7 @@ export function registerListAutomations(program: Command): void {
     .option('--limit <n>', 'Maximum rows to display', (v) => Number(v), 20)
     .action(async (opts: { apiKey?: string; limit: number }) => {
       const client = createClient({ apiKey: opts.apiKey });
+
       await listRecent(client, opts.limit);
     });
 
@@ -79,8 +83,10 @@ export function registerListAutomations(program: Command): void {
         const ids = idArgs
           .map((a) => Number(a))
           .filter((n) => Number.isInteger(n) && n > 0);
+
         if (!ids.length) throw new Error('Pass at least one automation id');
         const client = createClient({ apiKey: opts.apiKey });
+
         await printUrls(client, ids);
       },
     );

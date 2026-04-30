@@ -10,16 +10,16 @@
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
-import { SHOPIFY_FIELDS } from './fields.js';
-import { SHOPIFY_TAGS } from './tags.js';
+import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
 import {
   createOrderConfirmationEmail,
   createShippingUpdateEmail,
   createAbandonedCartEmail,
   createOrderCancellationEmail,
-  createWelcomeEmail,
-} from '@rule-io/rcml';
+} from './ecommerce-templates.js';
+import { SHOPIFY_FIELDS } from './fields.js';
+import { createWelcomeEmail } from './generic-templates.js';
+import { SHOPIFY_TAGS } from './tags.js';
 
 /** Default English text for Shopify order confirmation emails. */
 const ORDER_CONFIRMATION_TEXT = {

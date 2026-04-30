@@ -6,8 +6,8 @@
  */
 
 import { expect } from 'vitest';
-import type { RCMLDocument } from '@rule-io/rcml';
-import type { BrandStyleConfig } from '@rule-io/rcml';
+import type { RcmlDocument } from '@rule-io/rcml';
+import type { BrandStyleConfig } from '@rule-io/core';
 
 // ============================================================================
 // Shared brand-style fixture
@@ -35,17 +35,19 @@ export const TEST_BRAND_STYLE: BrandStyleConfig = {
  * Assert that a value is a structurally valid RCML document (rcml root with
  * rc-head + rc-body, and at least one child in the body).
  */
-export function assertValidRCMLDocument(doc: RCMLDocument): void {
-  expect(doc.tagName).toBe('rcml');
-  expect(doc.children).toHaveLength(2);
-  expect(doc.children[0].tagName).toBe('rc-head');
-  expect(doc.children[1].tagName).toBe('rc-body');
-  expect(doc.children[1].children.length).toBeGreaterThan(0);
+export function assertValidRCMLDocument(doc: unknown): asserts doc is RcmlDocument {
+  const d = doc as RcmlDocument;
+
+  expect(d.tagName).toBe('rcml');
+  expect(d.children).toHaveLength(2);
+  expect(d.children[0].tagName).toBe('rc-head');
+  expect(d.children[1].tagName).toBe('rc-body');
+  expect(d.children[1].children.length).toBeGreaterThan(0);
 }
 
 /**
  * Serialise an RCML document to a JSON string (useful for substring assertions).
  */
-export function docToString(doc: RCMLDocument): string {
+export function docToString(doc: RcmlDocument): string {
   return JSON.stringify(doc);
 }

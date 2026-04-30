@@ -8,7 +8,7 @@
  * returning donors) without triggering a new flow on their own.
  */
 
-import type { VendorTagSchema } from '@rule-io/rcml';
+import type { VendorTagSchema } from '@rule-io/core';
 
 /**
  * Samfora tags for Rule.io automations.

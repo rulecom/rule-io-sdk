@@ -16,9 +16,10 @@
  */
 
 import type { Command } from 'commander';
-import { RuleClient } from '@rule-io/client';
-import { resolvePreferredBrandStyle } from '@rule-io/rcml';
-import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/rcml';
+import { type RuleClient } from '@rule-io/client';
+import { type RcmlDocument } from '@rule-io/rcml';
+import { resolvePreferredBrandStyle } from '@rule-io/client';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
 import { createClient } from '../shared/client.js';
 
@@ -28,11 +29,13 @@ const WEBSITE_URL = 'https://shop.rule.se';
 function parseBrandOverride(raw: string | undefined): number | undefined {
   if (raw === undefined) return undefined;
   const n = Number(raw);
+
   if (!Number.isInteger(n) || n <= 0) {
     throw new Error(
       `Invalid --brand value "${raw}": expected a positive integer brand style id.`,
     );
   }
+
   return n;
 }
 
@@ -98,6 +101,7 @@ async function seedSubscriber(apiKey: string, baseUrl: string): Promise<void> {
     },
     body: JSON.stringify(payload),
   });
+
   if (!res.ok) {
     throw new Error(`seed subscribers POST failed: ${res.status} ${await res.text()}`);
   }
@@ -125,13 +129,17 @@ async function seedOrderGroup(client: RuleClient, subscriberId: number): Promise
 async function resolveFieldIds(client: RuleClient, subscriberId: number): Promise<CustomFieldMap> {
   const data = await client.getCustomFieldData(subscriberId);
   const map: CustomFieldMap = {};
+
   for (const record of data.data ?? []) {
     const groupName = record.group_name ?? '';
+
     for (const v of record.values) {
       const key = `${groupName}.${v.field_name}`;
+
       map[key] = v.field_id;
     }
   }
+
   return map;
 }
 
@@ -143,6 +151,7 @@ interface Options {
 
 async function run(opts: Options): Promise<void> {
   const apiKey = opts.apiKey ?? process.env['RULE_API_KEY'];
+
   if (!apiKey) throw new Error('Missing RULE_API_KEY in environment or .env');
   const brandOverride = parseBrandOverride(opts.brand);
   const activate = opts.activate ?? false;
@@ -157,8 +166,10 @@ async function run(opts: Options): Promise<void> {
   console.log('→ Looking up subscriber id...');
   const sub = await client.getSubscriber(SEED_EMAIL);
   const rawId = sub?.subscriber?.id;
+
   if (!rawId) throw new Error('Seed subscriber not found after sync');
   const subscriberId = Number(rawId);
+
   console.log(`  id: ${subscriberId}`);
 
   console.log(
@@ -168,17 +179,21 @@ async function run(opts: Options): Promise<void> {
 
   console.log('→ Resolving custom field ids via custom-field-data...');
   const resolved = await resolveFieldIds(client, subscriberId);
+
   console.log(`  ${Object.keys(resolved).length} raw field(s) resolved`);
 
   const customFields: CustomFieldMap = { ...resolved };
   const lower: Record<string, number> = {};
+
   for (const [k, v] of Object.entries(resolved)) lower[k.toLowerCase()] = v;
   const expected = Object.values(SHOPIFY_FIELDS).filter((n) => n.includes('.'));
   const aliased: string[] = [];
   const stillMissing: string[] = [];
+
   for (const name of expected) {
     if (customFields[name] !== undefined) continue;
     const hit = lower[name.toLowerCase()];
+
     if (hit !== undefined) {
       customFields[name] = hit;
       aliased.push(name);
@@ -186,7 +201,9 @@ async function run(opts: Options): Promise<void> {
       stillMissing.push(name);
     }
   }
+
   if (aliased.length) console.log(`  aliased (case-insensitive): ${aliased.join(', ')}`);
+
   if (stillMissing.length) {
     console.warn(
       `  WARN: ${stillMissing.length} expected fields not present in account:`,
@@ -201,9 +218,11 @@ async function run(opts: Options): Promise<void> {
   );
   const { id: brandStyleId, name: brandName, brandStyle, source } =
     await resolvePreferredBrandStyle(client, brandOverride);
+
   if (source === 'fallback') {
     console.warn('  WARN: no brand style is flagged as default — falling back to first in list');
   }
+
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
   const config: VendorConsumerConfig = { brandStyle, customFields, websiteUrl: WEBSITE_URL };
@@ -212,12 +231,14 @@ async function run(opts: Options): Promise<void> {
   shopifyPreset.validateConfig(config);
 
   const automations = shopifyPreset.getAutomations(config);
+
   console.log(`→ Deploying ${automations.length} automation(s)...`);
 
   const results: Array<{ name: string; automationId: number; messageId: number; templateId: number }> = [];
+
   for (const a of automations) {
     console.log(`\n  — ${a.name}`);
-    const template = a.templateBuilder(config);
+    const template = a.templateBuilder(config) as RcmlDocument;
     const res = await client.createAutomationEmail({
       name: `${a.name} (SDK standard)`,
       description: a.description,
@@ -229,14 +250,17 @@ async function run(opts: Options): Promise<void> {
       delayInSeconds: a.delayInSeconds,
       template,
     });
+
     console.log(`    automail: ${res.automationId}  message: ${res.messageId}  template: ${res.templateId}`);
     console.log(
       `    edit: https://app.rule.io/v5/#/app/automations/automail/${res.automationId}/v6/email/${res.messageId}/edit`,
     );
+
     if (activate) {
       await client.updateAutomation(res.automationId, { active: true });
       console.log(`    activated ✓`);
     }
+
     results.push({
       name: a.name,
       automationId: res.automationId,
@@ -246,6 +270,7 @@ async function run(opts: Options): Promise<void> {
   }
 
   console.log('\n✓ Deployed');
+
   for (const r of results) {
     console.log(`  ${r.automationId}  ${r.name}`);
   }

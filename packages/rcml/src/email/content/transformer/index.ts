@@ -1,0 +1,20 @@
+export { transform } from './transform.js'
+export type {
+  IrDoc,
+  IrBlock,
+  IrInline,
+  IrParagraph,
+  IrBulletList,
+  IrOrderedList,
+  IrListItem,
+  IrAlign,
+  IrPlaceholder,
+  IrLoopValue,
+  IrPlaceholderValueFragment,
+  IrText,
+  IrFont,
+  IrLink,
+  IrHardBreak,
+  FontAttrs,
+  PlaceholderAttrs,
+} from './types.js'

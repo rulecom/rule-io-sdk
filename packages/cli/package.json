@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@rule-io/client": "0.3.0",
+    "@rule-io/core": "0.3.0",
     "@rule-io/rcml": "0.3.0",
     "@rule-io/vendor-shopify": "0.3.0",
     "@rule-io/vendor-bookzen": "0.3.0",

@@ -22,9 +22,9 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/rcml';
-import { resolveVendorAutomations } from '@rule-io/rcml';
-import type { AutomationConfigV2 } from '@rule-io/rcml';
+import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
+import { resolveVendorAutomations } from '@rule-io/core';
+import type { AutomationConfigV2 } from '@rule-io/core';
 import type { BookzenFieldSchema, BookzenFieldNames } from './fields.js';
 import type { BookzenTagSchema } from './tags.js';
 import { BOOKZEN_FIELDS } from './fields.js';
@@ -45,11 +45,13 @@ const FIELD_DESCRIPTIONS: Record<BookzenFieldNames, string> = {
 
 function validateBookzenConfig(config: VendorConsumerConfig): void {
   const missingFields: string[] = [];
+
   for (const [logicalName, fieldName] of Object.entries(BOOKZEN_FIELDS)) {
     if (config.customFields[fieldName] === undefined) {
       missingFields.push(`${logicalName} ("${fieldName}")`);
     }
   }
+
   if (missingFields.length > 0) {
     throw new RuleConfigError(
       `bookzenPreset: missing customFields entries for: ${missingFields.join(', ')}`
@@ -77,11 +79,13 @@ export const bookzenPreset: VendorPreset<BookzenFieldSchema, BookzenTagSchema> =
 
   getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
     validateBookzenConfig(config);
+
     return resolveAutomations(config);
   },
 
   getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
     validateBookzenConfig(config);
+
     return resolveAutomations(config).find((a) => a.id === id);
   },
 

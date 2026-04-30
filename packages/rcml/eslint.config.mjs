@@ -13,7 +13,11 @@ export default [
             '{projectRoot}/vite.config.{js,ts,mjs,mts}',
             '{projectRoot}/vitest.config.{js,ts,mjs,mts,cjs,cts}',
             '{projectRoot}/tests/**/*',
+            '{projectRoot}/src/**/*.test.{ts,tsx,js,jsx}',
+            '{projectRoot}/src/**/*.spec.{ts,tsx,js,jsx}',
           ],
+          // Runtime-only imports that don't appear in published .d.ts output.
+          ignoredDependencies: ['fast-xml-parser'],
         },
       ],
     },

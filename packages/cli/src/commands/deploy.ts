@@ -15,6 +15,7 @@ export function registerDeploy(program: Command): void {
   const deploy = program
     .command('deploy')
     .description('Deploy vendor preset automations into a Rule.io account.');
+
   registerDeployShopify(deploy);
   registerDeployBookzen(deploy);
   registerDeploySamfora(deploy);

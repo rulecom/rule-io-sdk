@@ -24,7 +24,18 @@
     "directory": "packages/rcml"
   },
   "dependencies": {
-    "@rule-io/core": "0.3.0"
+    "@rule-io/core": "0.3.0",
+    "@types/mdast": "^4.0.4",
+    "@types/unist": "^3.0.3",
+    "ajv": "^8.17.1",
+    "fast-xml-parser": "^4.5.0",
+    "mdast-util-directive": "^3.0.0",
+    "prosemirror-model": "^1.24.1",
+    "remark-directive": "^3.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "vfile": "^6.0.3",
+    "zod": "^3.23.8"
   },
   "engines": {
     "node": ">=20"

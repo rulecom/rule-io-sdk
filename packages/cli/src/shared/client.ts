@@ -14,5 +14,6 @@ export interface ClientOptions {
 
 export function createClient(opts: ClientOptions = {}): RuleClient {
   const apiKey = opts.apiKey ?? requireEnv('RULE_API_KEY');
+
   return new RuleClient({ apiKey });
 }

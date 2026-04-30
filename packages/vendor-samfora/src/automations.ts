@@ -10,24 +10,12 @@
  * still override any field value via the merged `TemplateConfigV2`.
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/rcml';
-import type { RCMLDocument, RCMLBodyChild } from '@rule-io/rcml';
-import type { CustomFieldMap, FooterConfig } from '@rule-io/rcml';
+import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
+import type { RcmlDocument, RcmlBodyChild } from '@rule-io/rcml';
+import type { CustomFieldMap, FooterConfig } from '@rule-io/core';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
-import {
-  createBrandTemplate,
-  createBrandLogo,
-  createContentSection,
-  createBrandHeading,
-  createBrandText,
-  createBrandButton,
-  createDocWithPlaceholders,
-  createPlaceholder,
-  createTextNode,
-  createFooterSection,
-  validateCustomFields,
-} from '@rule-io/rcml';
+import { createBrandTemplate, createBrandLogo, createContentSection, createBrandHeading, createBrandText, createBrandButton, createDocWithPlaceholders, createPlaceholder, createTextNode, createFooterSection, validateCustomFields } from '@rule-io/client';
 import { RuleConfigError } from '@rule-io/core';
 
 // ============================================================================
@@ -142,11 +130,13 @@ const TAX_SUMMARY_TEXT = {
  */
 function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
   const id = customFields[fieldName];
+
   if (id === undefined) {
     throw new RuleConfigError(
       `samfora: missing customFields entry for "${fieldName}"`,
     );
   }
+
   return createPlaceholder(fieldName, id);
 }
 
@@ -168,7 +158,7 @@ const SAMFORA_FOOTER_DEFAULTS: FooterConfig = {
   unsubscribeText: 'Avregistrera',
 };
 
-function samforaFooterSection(override: FooterConfig | undefined): RCMLBodyChild {
+function samforaFooterSection(override: FooterConfig | undefined): RcmlBodyChild {
   return createFooterSection({ ...SAMFORA_FOOTER_DEFAULTS, ...override });
 }
 
@@ -179,7 +169,7 @@ function samforaFooterSection(override: FooterConfig | undefined): RCMLBodyChild
  * barrel — sibling presets (shopify, bookzen) only import via the barrel
  * and mixing paths risks duplicate module instances under ESM.
  */
-function samforaLogoSection(logoUrl: string | undefined): RCMLBodyChild[] {
+function samforaLogoSection(logoUrl: string | undefined): RcmlBodyChild[] {
   return logoUrl ? [createBrandLogo(logoUrl)] : [];
 }
 
@@ -200,7 +190,7 @@ const SAMFORA_PLAIN_TEXT =
  * Build a labelled summary row (label on one line, value placeholder below).
  * Kept simple for readability — one row renders as two short paragraphs.
  */
-function summaryRow(label: string, valueContent: ReturnType<typeof createDocWithPlaceholders>): RCMLBodyChild {
+function summaryRow(label: string, valueContent: ReturnType<typeof createDocWithPlaceholders>): RcmlBodyChild {
   return createContentSection([
     createBrandText(
       createDocWithPlaceholders([createTextNode(label)]),
@@ -213,7 +203,7 @@ function summaryRow(label: string, valueContent: ReturnType<typeof createDocWith
 function greetingSection(
   greeting: string,
   firstNameId: number,
-): RCMLBodyChild {
+): RcmlBodyChild {
   return createContentSection([
     createBrandHeading(
       createDocWithPlaceholders([
@@ -225,13 +215,13 @@ function greetingSection(
   ]);
 }
 
-function paragraphSection(text: string): RCMLBodyChild {
+function paragraphSection(text: string): RcmlBodyChild {
   return createContentSection([
     createBrandText(createDocWithPlaceholders([createTextNode(text)])),
   ]);
 }
 
-function ctaSection(label: string, href: string): RCMLBodyChild {
+function ctaSection(label: string, href: string): RcmlBodyChild {
   return createContentSection([
     createBrandButton(
       createDocWithPlaceholders([createTextNode(label)]),
@@ -247,7 +237,7 @@ function ctaSection(label: string, href: string): RCMLBodyChild {
 function buildDonationConfirmationTemplate(
   config: VendorConsumerConfig,
   text: DonationConfirmationText,
-): RCMLDocument {
+): RcmlDocument {
   validateCustomFields(
     config.customFields,
     {
@@ -263,7 +253,7 @@ function buildDonationConfirmationTemplate(
   const cf = config.customFields;
   const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
 
-  const sections: RCMLBodyChild[] = [
+  const sections: RcmlBodyChild[] = [
     ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(text.heading, firstNameId),
     paragraphSection(text.intro),
@@ -310,7 +300,7 @@ function buildDonationConfirmationTemplate(
   });
 }
 
-function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocument {
+function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RcmlDocument {
   validateCustomFields(
     config.customFields,
     {
@@ -327,7 +317,7 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocumen
   const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
   const t = MONTHLY_DONATION_TEXT;
 
-  const sections: RCMLBodyChild[] = [
+  const sections: RcmlBodyChild[] = [
     ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
@@ -374,7 +364,7 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RCMLDocumen
   });
 }
 
-function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
+function buildWelcomeTemplate(config: VendorConsumerConfig): RcmlDocument {
   validateCustomFields(
     config.customFields,
     { donorFirstName: SAMFORA_FIELDS.donorFirstName },
@@ -384,7 +374,7 @@ function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
   const firstNameId = config.customFields[SAMFORA_FIELDS.donorFirstName];
   const t = WELCOME_TEXT;
 
-  const sections: RCMLBodyChild[] = [
+  const sections: RcmlBodyChild[] = [
     ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
@@ -410,7 +400,7 @@ function buildWelcomeTemplate(config: VendorConsumerConfig): RCMLDocument {
   });
 }
 
-function buildTaxSummaryTemplate(config: VendorConsumerConfig): RCMLDocument {
+function buildTaxSummaryTemplate(config: VendorConsumerConfig): RcmlDocument {
   validateCustomFields(
     config.customFields,
     {
@@ -426,7 +416,7 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RCMLDocument {
   const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
   const t = TAX_SUMMARY_TEXT;
 
-  const sections: RCMLBodyChild[] = [
+  const sections: RcmlBodyChild[] = [
     ...samforaLogoSection(config.brandStyle.logoUrl),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
