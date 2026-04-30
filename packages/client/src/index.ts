@@ -12,3 +12,4 @@ export { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL, RuleTags } from './constant
 export type { RuleTag } from './constants.js';
 export type * from './types.js';
 export * from './brand-template.js';
+export * from './brand-style-to-theme.js';

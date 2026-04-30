@@ -1,0 +1,190 @@
+/**
+ * Default values used by {@link EmailTheme} when a slot is not explicitly set.
+ * `createEmailTheme()` returns a theme seeded with these values so callers
+ * get a renderable starting point without having to populate every slot.
+ *
+ * @public
+ */
+
+import type {
+  EmailThemeColor,
+  EmailThemeFontStyle,
+  EmailThemeSocialLink,
+  EmailThemeSocialLinkType,
+} from './theme-types.js'
+import {
+  EmailThemeColorType,
+  EmailThemeFontStyleType,
+} from './theme-types.js'
+
+/**
+ * Default hex values for the four colour slots a theme controls. Seeded
+ * into `theme.colors` by {@link createEmailTheme} when the caller does
+ * not override a slot.
+ *
+ * @public
+ */
+export const DEFAULT_COLORS_MAP: Record<EmailThemeColorType, EmailThemeColor> = {
+  [EmailThemeColorType.Body]: { type: EmailThemeColorType.Body, hex: '#FFFFFF' },
+  [EmailThemeColorType.Primary]: { type: EmailThemeColorType.Primary, hex: '#05CC87' },
+  [EmailThemeColorType.Secondary]: { type: EmailThemeColorType.Secondary, hex: '#F6F8F9' },
+  [EmailThemeColorType.Background]: { type: EmailThemeColorType.Background, hex: '#F3F3F3' },
+}
+
+/**
+ * Placeholder URLs for each social-link slot. A default-seeded theme
+ * always round-trips to well-formed rcml because every slot has a
+ * valid URL. Callers overlay real links through the `links` bucket of
+ * {@link createEmailTheme} or {@link applyTheme}.
+ *
+ * @public
+ */
+export const DEFAULT_LINKS_MAP: Record<EmailThemeSocialLinkType, EmailThemeSocialLink> = {
+  facebook: { type: 'facebook', url: 'https://www.facebook.com/' },
+  instagram: { type: 'instagram', url: 'https://www.instagram.com/' },
+  linkedin: { type: 'linkedin', url: 'https://www.linkedin.com/' },
+  tiktok: { type: 'tiktok', url: 'https://www.tiktok.com/' },
+  x: { type: 'x', url: 'https://x.com/' },
+  website: { type: 'website', url: 'https://www.example.com/' },
+}
+
+/** Named system-font families available out of the box. @public */
+export enum DefaultFontFamily {
+  Arial = 'Arial',
+  Verdana = 'Verdana',
+  Helvetica = 'Helvetica',
+  Tahoma = 'Tahoma',
+  TrebuchetMS = 'TrebuchetMS',
+  TimesNewRoman = 'TimesNewRoman',
+  Georgia = 'Georgia',
+  Garamond = 'Garamond',
+  CourierNew = 'CourierNew',
+  BrushScriptMT = 'BrushScriptMT',
+}
+
+/**
+ * Display-name mapping for {@link DefaultFontFamily} values — the exact
+ * string the renderer expects in CSS `font-family`, e.g.
+ * `TrebuchetMS` → `'Trebuchet MS'`.
+ *
+ * @public
+ */
+export const DEFAULT_MAIN_FONT_FAMILIES_MAP: Record<DefaultFontFamily, string> = {
+  [DefaultFontFamily.Arial]: 'Arial',
+  [DefaultFontFamily.Verdana]: 'Verdana',
+  [DefaultFontFamily.Helvetica]: 'Helvetica',
+  [DefaultFontFamily.Tahoma]: 'Tahoma',
+  [DefaultFontFamily.TrebuchetMS]: 'Trebuchet MS',
+  [DefaultFontFamily.TimesNewRoman]: 'Times New Roman',
+  [DefaultFontFamily.Georgia]: 'Georgia',
+  [DefaultFontFamily.Garamond]: 'Garamond',
+  [DefaultFontFamily.CourierNew]: 'Courier New',
+  [DefaultFontFamily.BrushScriptMT]: 'Brush Script MT',
+}
+
+/**
+ * CSS generic-family fallback for each {@link DefaultFontFamily} — the
+ * token after the comma in a `font-family` stack, e.g. `sans-serif`,
+ * `serif`, `monospace`, or `cursive`.
+ *
+ * @public
+ */
+export const DEFAULT_FALLBACK_FONT_FAMILIES_MAP: Record<DefaultFontFamily, string> = {
+  [DefaultFontFamily.Arial]: 'sans-serif',
+  [DefaultFontFamily.Verdana]: 'sans-serif',
+  [DefaultFontFamily.Helvetica]: 'sans-serif',
+  [DefaultFontFamily.Tahoma]: 'sans-serif',
+  [DefaultFontFamily.TrebuchetMS]: 'sans-serif',
+  [DefaultFontFamily.TimesNewRoman]: 'serif',
+  [DefaultFontFamily.Georgia]: 'serif',
+  [DefaultFontFamily.Garamond]: 'serif',
+  [DefaultFontFamily.CourierNew]: 'monospace',
+  [DefaultFontFamily.BrushScriptMT]: 'cursive',
+}
+
+/**
+ * Return the CSS generic-family fallback for a main family name.
+ * The lookup is keyed by {@link DefaultFontFamily} enum keys — e.g.
+ * `'TimesNewRoman'`, `'CourierNew'`. Anything the map does not know
+ * about falls back to the Helvetica default (`'sans-serif'`), so the
+ * function never returns `undefined` and never throws.
+ *
+ * @param fontFamily - A {@link DefaultFontFamily} key, or any other
+ *                     string (unknown strings get the Helvetica
+ *                     fallback).
+ * @returns          A CSS generic family: `'sans-serif'`, `'serif'`,
+ *                   `'monospace'`, or `'cursive'`.
+ *
+ * @public
+ */
+export function getFallbackFontFamily(fontFamily: string): string {
+  return (
+    DEFAULT_FALLBACK_FONT_FAMILIES_MAP[fontFamily as DefaultFontFamily] ??
+    DEFAULT_FALLBACK_FONT_FAMILIES_MAP[DefaultFontFamily.Helvetica]
+  )
+}
+
+/**
+ * Base values shared by every default font-style. Per-type defaults override
+ * `fontSize`, `fontWeight`, and `color`.
+ *
+ * @public
+ */
+export const DEFAULT_FONT_STYLE_BASE: Omit<EmailThemeFontStyle, 'type'> = {
+  fontFamily: DEFAULT_MAIN_FONT_FAMILIES_MAP[DefaultFontFamily.Helvetica],
+  fallbackFontFamily: DEFAULT_FALLBACK_FONT_FAMILIES_MAP[DefaultFontFamily.Helvetica],
+  fontSize: '16px',
+  color: '#0F0F1F',
+  lineHeight: '120%',
+  letterSpacing: '0em',
+  fontStyle: 'normal',
+  fontWeight: '400',
+  textDecoration: 'none',
+}
+
+/**
+ * Default fully-populated font-style for each of the six slots. Each
+ * entry spreads {@link DEFAULT_FONT_STYLE_BASE} and overrides only the
+ * fields that actually differ per slot (size + weight for headings,
+ * size + colour for the button label). Seeded into `theme.fontStyles`
+ * by {@link createEmailTheme}.
+ *
+ * @public
+ */
+export const DEFAULT_FONT_STYLES_MAP: Record<EmailThemeFontStyleType, EmailThemeFontStyle> = {
+  [EmailThemeFontStyleType.Paragraph]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.Paragraph,
+    fontSize: '16px',
+  },
+  [EmailThemeFontStyleType.H1]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.H1,
+    fontSize: '36px',
+    fontWeight: '700',
+  },
+  [EmailThemeFontStyleType.H2]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.H2,
+    fontSize: '28px',
+    fontWeight: '700',
+  },
+  [EmailThemeFontStyleType.H3]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.H3,
+    fontSize: '24px',
+    fontWeight: '700',
+  },
+  [EmailThemeFontStyleType.H4]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.H4,
+    fontSize: '18px',
+    fontWeight: '700',
+  },
+  [EmailThemeFontStyleType.ButtonLabel]: {
+    ...DEFAULT_FONT_STYLE_BASE,
+    type: EmailThemeFontStyleType.ButtonLabel,
+    fontSize: '14px',
+    color: '#FFFFFF',
+  },
+}
