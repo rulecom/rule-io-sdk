@@ -1,5 +1,16 @@
 /**
- * Brand-Based Template Builder
+ * Brand-Based Template Builder (LEGACY — pending migration)
+ *
+ * @deprecated The symbols in this module are slated for retirement once the
+ * downstream consumers (vendor-shopify, vendor-samfora, vendor-bookzen, cli,
+ * and `VendorConsumerConfig.brandStyle` in `@rule-io/core`) migrate to the
+ * theme-based path: `emailThemeFromBrandStyle` (from
+ * `./brand-style-to-theme.js`) + `applyTheme` (from `@rule-io/rcml`) + bare
+ * RCML factories from `@rule-io/rcml`'s `createRcmlElement` surface.
+ *
+ * `RuleClient.createAutomationEmail` / `createCampaignEmail` already use
+ * the new path internally. The helpers below stay exported only to keep
+ * the downstream packages compiling until their own migration lands.
  *
  * Creates RCML templates that use Rule.io brand styles.
  * This approach uses the brand style attributes from your Rule.io account
