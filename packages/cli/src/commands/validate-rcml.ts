@@ -27,8 +27,22 @@ import { join } from 'node:path';
 import type { Command } from 'commander';
 import { RuleClient, RULE_API_V2_BASE_URL } from '@rule-io/client';
 import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement } from '@rule-io/rcml';
-import { resolvePreferredBrandStyle, createBrandTemplate, createDefaultContentSection, createFooterSection, createBrandLogo, createBrandHeading, createBrandText, createBrandButton, createContentSection, createDocWithPlaceholders, createTextNode, createPlaceholder, createBrandLoop, createLoopFieldPlaceholder } from '@rule-io/client';
-import type { BrandStyleConfig } from '@rule-io/core';
+import { resolveBrandTheme } from '@rule-io/client';
+import {
+  brandButton,
+  brandHeading,
+  brandLoop,
+  brandText,
+  buildThemedDocument,
+  contentSection,
+  docWithNodes,
+  footerSection,
+  loopFieldPlaceholder,
+  logoSection,
+  placeholder,
+  textNode,
+} from '@rule-io/rcml';
+import { EmailThemeColorType, type EmailTheme } from '@rule-io/core';
 import type {
   Json,
   RcmlBodyChild,
@@ -79,16 +93,16 @@ function parseBrandStyleEnvOverride(): number | undefined {
 }
 
 /**
- * Thin wrapper that turns `resolvePreferredBrandStyle` errors into a
+ * Thin wrapper that turns `resolveBrandTheme` errors into a
  * `process.exit(1)` with a readable message — consistent with the rest of
  * this script's fail-fast style.
  */
-async function resolvePreferredBrandStyleOrExit(
+async function resolveBrandThemeOrExit(
   client: RuleClient,
   overrideId: number | undefined,
-): Promise<Awaited<ReturnType<typeof resolvePreferredBrandStyle>>> {
+): Promise<Awaited<ReturnType<typeof resolveBrandTheme>>> {
   try {
-    return await resolvePreferredBrandStyle(client, overrideId);
+    return await resolveBrandTheme(client, overrideId);
   } catch (err) {
     console.error(err instanceof Error ? err.message : String(err));
     process.exit(1);
@@ -299,7 +313,7 @@ interface SectionGroup {
 }
 
 function buildSectionGroups(
-  brandStyle: BrandStyleConfig,
+  theme: EmailTheme,
   resolvedField?: { id: number; name: string },
   repeatableField?: { id: number; name: string },
 ): SectionGroup[] {
@@ -309,7 +323,20 @@ function buildSectionGroups(
     num: 1, name: 'Default content section',
     sections: [
       label('1. Default content section'),
-      createDefaultContentSection({ buttonUrl: 'https://example.com' }),
+      contentSection(
+        [
+          brandHeading(docWithNodes([textNode('Replace this title')]), 1),
+          brandText(
+            docWithNodes([
+              textNode(
+                'Click into this box to change the font settings. Edit this text to include additional information.',
+              ),
+            ]),
+          ),
+          brandButton(docWithNodes([textNode('Click me!')]), 'https://example.com'),
+        ],
+        { padding: '20px 0' },
+      ),
     ],
   });
 
@@ -317,11 +344,11 @@ function buildSectionGroups(
     num: 2, name: 'Headings h1–h4',
     sections: [
       label('2. rc-heading (h1–h4)'),
-      createContentSection([
-        createBrandHeading(doc('Heading H1 (36px)'), 1),
-        createBrandHeading(doc('Heading H2 (28px)'), 2),
-        createBrandHeading(doc('Heading H3 (24px)'), 3),
-        createBrandHeading(doc('Heading H4 (18px)'), 4),
+      contentSection([
+        brandHeading(doc('Heading H1 (36px)'), 1),
+        brandHeading(doc('Heading H2 (28px)'), 2),
+        brandHeading(doc('Heading H3 (24px)'), 3),
+        brandHeading(doc('Heading H4 (18px)'), 4),
       ]),
     ],
   });
@@ -330,10 +357,10 @@ function buildSectionGroups(
     num: 3, name: 'Text alignment',
     sections: [
       label('3. rc-text'),
-      createContentSection([
-        createBrandText(doc('Default brand text (rc-class: rcml-p-style)')),
-        createBrandText(doc('Center-aligned text'), { align: 'center' }),
-        createBrandText(doc('Right-aligned text'), { align: 'right' }),
+      contentSection([
+        brandText(doc('Default brand text (rc-class: rcml-p-style)')),
+        brandText(doc('Center-aligned text'), { align: 'center' }),
+        brandText(doc('Right-aligned text'), { align: 'right' }),
       ]),
     ],
   });
@@ -342,8 +369,8 @@ function buildSectionGroups(
     num: 4, name: 'Rich text marks',
     sections: [
       label('4. Rich text (bold, italic, underline, link)'),
-      createContentSection([
-        createBrandText(richDoc([
+      contentSection([
+        brandText(richDoc([
           { type: 'text', text: 'This has ' },
           { type: 'text', text: 'bold', marks: [{ type: 'font', attrs: { 'font-weight': 'bold' } }] },
           { type: 'text', text: ', ' },
@@ -354,7 +381,7 @@ function buildSectionGroups(
           { type: 'text', text: 'a link', marks: [{ type: 'link', attrs: { href: 'https://example.com', target: '_blank' } }] },
           { type: 'text', text: '.' },
         ])),
-        createBrandText(richDoc([
+        brandText(richDoc([
           { type: 'text', text: 'Combined: ' },
           { type: 'text', text: 'bold italic', marks: [{ type: 'font', attrs: { 'font-weight': 'bold', 'font-style': 'italic' } }] },
           { type: 'text', text: ' and ' },
@@ -371,11 +398,11 @@ function buildSectionGroups(
       num: 5, name: 'Placeholder (merge field)',
       sections: [
         label('5. Placeholder (merge field)'),
-        createContentSection([
-          createBrandText(createDocWithPlaceholders([
-            createTextNode('Hello, '),
-            createPlaceholder(resolvedField.name, resolvedField.id),
-            createTextNode('! This is a merge field placeholder.'),
+        contentSection([
+          brandText(docWithNodes([
+            textNode('Hello, '),
+            placeholder(resolvedField.name, resolvedField.id),
+            textNode('! This is a merge field placeholder.'),
           ])),
           noteText(`(Using field "${resolvedField.name}" — ID ${resolvedField.id})`),
         ]),
@@ -387,9 +414,9 @@ function buildSectionGroups(
     num: 6, name: 'Button',
     sections: [
       label('6. rc-button'),
-      createContentSection([
-        createBrandButton(doc('Brand Button with URL'), 'https://example.com'),
-        noteText('Button above uses createBrandButton with rc-class: rcml-label-style'),
+      contentSection([
+        brandButton(doc('Brand Button with URL'), 'https://example.com'),
+        noteText('Button above uses brandButton with rc-class: rcml-label-style'),
       ]),
     ],
   });
@@ -398,7 +425,7 @@ function buildSectionGroups(
     num: 7, name: 'Images',
     sections: [
       label('7. rc-image'),
-      createContentSection([
+      contentSection([
         image('https://placehold.co/560x200/333333/FFFFFF?text=Column+Width+Image', { alt: 'Column width' }),
         image('https://placehold.co/300x150/0066CC/FFFFFF?text=300x150', { alt: 'Fixed width', width: '300px' }),
         image('https://placehold.co/400x200/CC3300/FFFFFF?text=Clickable', { alt: 'Clickable', href: 'https://example.com' }),
@@ -412,13 +439,13 @@ function buildSectionGroups(
     sections: [
       label('8. rc-spacer'),
       section([
-        createBrandText(doc('Text above 20px spacer')),
+        brandText(doc('Text above 20px spacer')),
         spacer('20px'),
-        createBrandText(doc('Between 20px and 40px spacer')),
+        brandText(doc('Between 20px and 40px spacer')),
         spacer('40px'),
-        createBrandText(doc('Between 40px and 80px spacer')),
+        brandText(doc('Between 40px and 80px spacer')),
         spacer('80px'),
-        createBrandText(doc('Below 80px spacer')),
+        brandText(doc('Below 80px spacer')),
       ]),
     ],
   });
@@ -448,14 +475,14 @@ function buildSectionGroups(
       label('10. Two-column (50/50)'),
       twoColSection(
         [
-          createBrandHeading(doc('Left Column'), 3),
-          createBrandText(doc('This is the left column at 50% width.')),
-          createBrandButton(doc('Left CTA'), 'https://example.com'),
+          brandHeading(doc('Left Column'), 3),
+          brandText(doc('This is the left column at 50% width.')),
+          brandButton(doc('Left CTA'), 'https://example.com'),
         ],
         [
-          createBrandHeading(doc('Right Column'), 3),
-          createBrandText(doc('This is the right column at 50% width.')),
-          createBrandButton(doc('Right CTA'), 'https://example.com'),
+          brandHeading(doc('Right Column'), 3),
+          brandText(doc('This is the right column at 50% width.')),
+          brandButton(doc('Right CTA'), 'https://example.com'),
         ],
       ),
     ],
@@ -470,8 +497,8 @@ function buildSectionGroups(
           image('https://placehold.co/180x180/0066CC/FFFFFF?text=33%25', { alt: 'Narrow' }),
         ],
         [
-          createBrandHeading(doc('67% Column'), 3),
-          createBrandText(doc('Asymmetric layout — image column is 33%, text column is 67%.')),
+          brandHeading(doc('67% Column'), 3),
+          brandText(doc('Asymmetric layout — image column is 33%, text column is 67%.')),
         ],
         '33%',
         '67%',
@@ -485,7 +512,7 @@ function buildSectionGroups(
       num: 12, name: 'Loop (rc-loop)',
       sections: [
         label('12. rc-loop (repeatable custom field)'),
-        createBrandLoop(
+        brandLoop(
           repeatableField.id,
           [
             {
@@ -497,13 +524,13 @@ function buildSectionGroups(
                 id: id(),
                 attributes: { padding: '0 20px' },
                 children: [
-                  createBrandText(createDocWithPlaceholders([
-                    createTextNode('Loop item: '),
-                    createLoopFieldPlaceholder('title'),
+                  brandText(docWithNodes([
+                    textNode('Loop item: '),
+                    loopFieldPlaceholder('title'),
                   ])),
-                  createBrandText(createDocWithPlaceholders([
-                    createTextNode('Value: '),
-                    createLoopFieldPlaceholder('value'),
+                  brandText(docWithNodes([
+                    textNode('Value: '),
+                    loopFieldPlaceholder('value'),
                   ]), { align: 'left' }),
                 ],
               }],
@@ -550,9 +577,9 @@ function buildSectionGroups(
             {
               ...createCaseElement({
                 attrs: { 'case-type': 'tag', 'case-condition': 'eq', 'case-value': 1 },
-                children: [createContentSection([
-                  createBrandText(createDocWithPlaceholders([
-                    createTextNode('This shows when tag ID 1 matches'),
+                children: [contentSection([
+                  brandText(docWithNodes([
+                    textNode('This shows when tag ID 1 matches'),
                   ])),
                 ])] as unknown as Parameters<typeof createCaseElement>[0]['children'],
               }),
@@ -561,9 +588,9 @@ function buildSectionGroups(
             {
               ...createCaseElement({
                 attrs: { 'case-type': 'default' },
-                children: [createContentSection([
-                  createBrandText(createDocWithPlaceholders([
-                    createTextNode('This is the default / fallback content'),
+                children: [contentSection([
+                  brandText(docWithNodes([
+                    textNode('This is the default / fallback content'),
                   ])),
                 ])] as unknown as Parameters<typeof createCaseElement>[0]['children'],
               }),
@@ -577,14 +604,18 @@ function buildSectionGroups(
   });
 
   // == 15. Social (rc-social + rc-social-element) — last before footer
-  const rawSocialLinks = brandStyle.socialLinks && brandStyle.socialLinks.length > 0
-    ? brandStyle.socialLinks
-    : [
-        { name: 'facebook', href: 'https://facebook.com' },
-        { name: 'instagram', href: 'https://instagram.com' },
-        { name: 'x', href: 'https://x.com' },
-        { name: 'web', href: 'https://example.com' },
-      ];
+  const themeSocialLinks = Object.values(theme.links).filter(
+    (l): l is NonNullable<typeof l> => l !== undefined,
+  );
+  const rawSocialLinks: { name: string; href: string }[] =
+    themeSocialLinks.length > 0
+      ? themeSocialLinks.map((l) => ({ name: l.type, href: l.url }))
+      : [
+          { name: 'facebook', href: 'https://facebook.com' },
+          { name: 'instagram', href: 'https://instagram.com' },
+          { name: 'x', href: 'https://x.com' },
+          { name: 'web', href: 'https://example.com' },
+        ];
 
   // Filter out links with invalid/unsafe URLs (createSocialChildElement throws on bad hrefs)
   const socialElements = rawSocialLinks.flatMap((l: { name: string; href: string }) => {
@@ -625,11 +656,11 @@ function buildSectionGroups(
 }
 
 function buildShowcase(
-  brandStyle: BrandStyleConfig,
+  theme: EmailTheme,
   resolvedField?: { id: number; name: string },
   repeatableField?: { id: number; name: string },
 ): RcmlBodyChild[] {
-  const allGroups = buildSectionGroups(brandStyle, resolvedField, repeatableField);
+  const allGroups = buildSectionGroups(theme, resolvedField, repeatableField);
   const sectionFilter = onlySections;
   const groups = sectionFilter
     ? allGroups.filter(g => sectionFilter.includes(g.num))
@@ -638,8 +669,8 @@ function buildShowcase(
   const result: RcmlBodyChild[] = [];
 
   // == Logo ==
-  if (brandStyle.logoUrl) {
-    result.push(createBrandLogo(brandStyle.logoUrl));
+  if (theme.images.logo?.url !== undefined) {
+    result.push(logoSection(theme.images.logo.url));
   }
 
   for (const g of groups) {
@@ -647,7 +678,7 @@ function buildShowcase(
   }
 
   // == Footer ==
-  result.push(createFooterSection({ backgroundColor: brandStyle.bodyBackgroundColor }));
+  result.push(footerSection());
 
   return result;
 }
@@ -672,7 +703,7 @@ async function create(): Promise<void> {
     console.log('No RULE_BRAND_STYLE_ID set, resolving preferred brand style...');
   }
 
-  const resolved = await resolvePreferredBrandStyleOrExit(client, override);
+  const resolved = await resolveBrandThemeOrExit(client, override);
 
   if (resolved.source === 'fallback') {
     console.warn(
@@ -681,18 +712,24 @@ async function create(): Promise<void> {
   }
 
   const brandStyleId = resolved.id;
-  const brandStyle = resolved.brandStyle;
+  const theme = resolved.theme;
 
   console.log(`Using brand style: ${resolved.name ?? 'unnamed'} (ID: ${brandStyleId})`);
 
   console.log('\nBrand style config:');
-  console.log(`  ID:         ${brandStyle.brandStyleId}`);
-  console.log(`  Logo:       ${brandStyle.logoUrl ?? '(none)'}`);
-  console.log(`  Button:     ${brandStyle.buttonColor}`);
-  console.log(`  Body BG:    ${brandStyle.bodyBackgroundColor}`);
-  console.log(`  Section BG: ${brandStyle.sectionBackgroundColor}`);
-  console.log(`  Text:       ${brandStyle.textColor}`);
-  console.log(`  Social:     ${brandStyle.socialLinks?.length ?? 0} link(s)${brandStyle.socialLinks?.length ? ' — ' + brandStyle.socialLinks.map(l => l.name).join(', ') : ''}`);
+  console.log(`  ID:         ${theme.brandStyleId}`);
+  console.log(`  Logo:       ${theme.images.logo?.url ?? '(none)'}`);
+  console.log(`  Button:     ${theme.colors[EmailThemeColorType.Primary]?.hex}`);
+  console.log(`  Body BG:    ${theme.colors[EmailThemeColorType.Background]?.hex}`);
+  console.log(`  Section BG: ${theme.colors[EmailThemeColorType.Body]?.hex}`);
+  console.log(`  Text:       ${theme.colors[EmailThemeColorType.Secondary]?.hex}`);
+  const themeLinkEntries = Object.values(theme.links).filter(
+    (l): l is NonNullable<typeof l> => l !== undefined,
+  );
+
+  console.log(
+    `  Social:     ${themeLinkEntries.length} link(s)${themeLinkEntries.length ? ' — ' + themeLinkEntries.map((l) => l.type).join(', ') : ''}`,
+  );
 
   // -- Resolve a custom field for placeholder testing --
   // Fetch /api/v2/customizations to find an existing field ID on the account.
@@ -772,13 +809,9 @@ async function create(): Promise<void> {
   }
 
   // -- Build showcase template --
-  const sections = buildShowcase(brandStyle, resolvedField, repeatableField);
+  const sections = buildShowcase(theme, resolvedField, repeatableField);
 
-  const template = createBrandTemplate({
-    brandStyle,
-    preheader: 'RCML Element Validation — Full Showcase',
-    sections,
-  });
+  const template = buildThemedDocument(theme, sections, 'RCML Element Validation — Full Showcase');
 
   console.log(`\nTemplate built: ${template.children[1].children.length} body sections`);
 
@@ -827,14 +860,14 @@ async function probe(): Promise<void> {
   const client = new RuleClient({ apiKey: API_KEY!, debug: false });
 
   // -- Resolve brand style (preferred / is_default; same rules as create) --
-  const resolved = await resolvePreferredBrandStyleOrExit(
+  const resolved = await resolveBrandThemeOrExit(
     client,
     parseBrandStyleEnvOverride(),
   );
-  const brandStyle = resolved.brandStyle;
+  const theme = resolved.theme;
 
   // Probe doesn't auto-detect fields — test structural validity only
-  const groups = buildSectionGroups(brandStyle);
+  const groups = buildSectionGroups(theme);
   const results: { num: number; name: string; ok: boolean; error?: string }[] = [];
 
   console.log(`\nProbing ${groups.length} section groups individually...\n`);
@@ -842,18 +875,14 @@ async function probe(): Promise<void> {
   for (const group of groups) {
     const bodySections: RcmlBodyChild[] = [];
 
-    if (brandStyle.logoUrl) {
-      bodySections.push(createBrandLogo(brandStyle.logoUrl));
+    if (theme.images.logo?.url !== undefined) {
+      bodySections.push(logoSection(theme.images.logo.url));
     }
 
     bodySections.push(...group.sections);
-    bodySections.push(createFooterSection({ backgroundColor: brandStyle.bodyBackgroundColor }));
+    bodySections.push(footerSection());
 
-    const template = createBrandTemplate({
-      brandStyle,
-      preheader: `Probe: section ${group.num}`,
-      sections: bodySections,
-    });
+    const template = buildThemedDocument(theme, bodySections, `Probe: section ${group.num}`);
 
     try {
       const result = await client.createCampaignEmail({

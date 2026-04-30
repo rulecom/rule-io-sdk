@@ -1,30 +1,66 @@
 /**
  * Shared test fixtures and assertion helpers.
  *
- * Centralises duplicated constants (TEST_BRAND_STYLE, assertValidRCMLDocument,
+ * Centralises duplicated constants (TEST_THEME, assertValidRCMLDocument,
  * docToString) so every test file that needs them imports from one place.
  */
 
 import { expect } from 'vitest';
+import type { EmailTheme } from '@rule-io/core';
+import { EmailThemeColorType, EmailThemeImageType } from '@rule-io/core';
 import type { RcmlDocument } from '@rule-io/rcml';
-import type { BrandStyleConfig } from '@rule-io/core';
+import { createEmailTheme } from '@rule-io/rcml';
 
 // ============================================================================
-// Shared brand-style fixture
+// Shared theme fixture
 // ============================================================================
 
-export const TEST_BRAND_STYLE: BrandStyleConfig = {
-  brandStyleId: '99999',
-  logoUrl: 'https://example.com/logo.png',
-  buttonColor: '#0066CC',
-  bodyBackgroundColor: '#f3f3f3',
-  sectionBackgroundColor: '#ffffff',
-  brandColor: '#f6f8f9',
-  headingFont: "'Helvetica Neue', sans-serif",
-  headingFontUrl: 'https://app.rule.io/brand-style/99999/font/1/css',
-  bodyFont: "'Arial', sans-serif",
-  bodyFontUrl: 'https://app.rule.io/brand-style/99999/font/2/css',
-  textColor: '#1A1A1A',
+/**
+ * Default test theme used across shopify tests. Mirrors the brand-style
+ * fixture older tests used, but materialised as an {@link EmailTheme} so
+ * it can be passed directly into `VendorConsumerConfig.theme`.
+ */
+/**
+ * Default test theme. Built from `createEmailTheme` then has its `links`
+ * map explicitly cleared — the factory's `resetLinksTo([])` keeps the
+ * default six social-link URLs, which would otherwise flip on the
+ * `rc-social` block even for templates built without socials on
+ * purpose. The shopify tests that assert `not.toContain('rc-social')`
+ * depend on the clean-slate default.
+ */
+export const TEST_THEME: EmailTheme = {
+  ...createEmailTheme({
+    brandStyleId: 99999,
+    colors: [
+      { type: EmailThemeColorType.Primary, hex: '#0066CC' },
+      { type: EmailThemeColorType.Secondary, hex: '#F6F8F9' },
+      { type: EmailThemeColorType.Body, hex: '#FFFFFF' },
+      { type: EmailThemeColorType.Background, hex: '#F3F3F3' },
+    ],
+    images: [
+      { type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' },
+    ],
+    fonts: [
+      {
+        fontFamily: 'Helvetica Neue',
+        url: 'https://app.rule.io/brand-style/99999/font/1/css',
+      },
+      {
+        fontFamily: 'Arial',
+        url: 'https://app.rule.io/brand-style/99999/font/2/css',
+      },
+    ],
+  }),
+  links: {},
+};
+
+/** A test theme with two social links populated for welcome / abandoned-cart tests. */
+export const TEST_THEME_WITH_SOCIALS: EmailTheme = {
+  ...TEST_THEME,
+  links: {
+    facebook: { type: 'facebook', url: 'https://facebook.com/example' },
+    instagram: { type: 'instagram', url: 'https://instagram.com/example' },
+  },
 };
 
 // ============================================================================

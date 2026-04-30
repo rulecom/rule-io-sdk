@@ -10,15 +10,22 @@
  * @module automation-configs-v2
  */
 
-import type { BrandStyleConfig, CustomFieldMap } from './brand-types.js'
+import type { CustomFieldMap } from './brand-types.js'
 import type { RCMLDocumentRoot } from './rcml-document-root.js'
+import type { EmailTheme } from './theme-types.js'
 
 /**
  * Configuration for building templates.
+ *
+ * The `theme` field is an {@link EmailTheme} — the typed theme
+ * abstraction applied to rcml documents via `applyTheme`. Consumers
+ * convert their brand-style source (Rule.io API response, hand-rolled
+ * config) to an `EmailTheme` before passing it in. `@rule-io/client`
+ * ships `emailThemeFromBrandStyle` for the API-response case.
  */
 export interface TemplateConfigV2 {
-  /** Brand style configuration */
-  brandStyle: BrandStyleConfig
+  /** Typed email theme applied to the built RCML document. */
+  theme: EmailTheme
   /** Custom field ID mapping */
   customFields: CustomFieldMap
   /** Website base URL */
@@ -45,7 +52,7 @@ export interface TemplateConfigV2 {
  *   triggerTag: RuleTags.CART_IN_PROGRESS,
  *   subject: 'You left something behind!',
  *   templateBuilder: (config) => createAbandonedCartEmail({
- *     brandStyle: config.brandStyle,
+ *     theme: config.theme,
  *     customFields: config.customFields,
  *     websiteUrl: config.websiteUrl,
  *     text: { ... },

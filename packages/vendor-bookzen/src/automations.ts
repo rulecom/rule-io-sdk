@@ -90,7 +90,7 @@ export function createBookzenAutomations(): VendorAutomation[] {
       preheader: RESERVATION_CONFIRMATION_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createReservationConfirmationEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -116,7 +116,7 @@ export function createBookzenAutomations(): VendorAutomation[] {
       preheader: RESERVATION_CANCELLATION_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createReservationCancellationEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -137,7 +137,7 @@ export function createBookzenAutomations(): VendorAutomation[] {
       preheader: RESERVATION_REMINDER_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createReservationReminderEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -160,7 +160,7 @@ export function createBookzenAutomations(): VendorAutomation[] {
       preheader: FEEDBACK_REQUEST_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createFeedbackRequestEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           feedbackUrl: config.websiteUrl,
           footer: config.footer,
@@ -179,7 +179,7 @@ export function createBookzenAutomations(): VendorAutomation[] {
       preheader: RESERVATION_REQUEST_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createReservationRequestEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           footer: config.footer,
           text: RESERVATION_REQUEST_TEXT,

@@ -13,12 +13,34 @@
  * to override with your own locale.
  */
 
-import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createDividerElement, createSocialElement, createSocialChildElement, type RcmlBodyChild, type RcmlColumnChild, type RcmlDocument, type RcmlText } from '@rule-io/rcml';
-import { createBrandTemplate, createBrandHeading, createBrandText, createContentSection, createFooterSection, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext } from '@rule-io/client';
+import type { CustomFieldMap, EmailTheme, FooterConfig } from '@rule-io/core';
+import {
+  createDividerElement,
+  createSocialElement,
+  createSocialChildElement,
+  type RcmlBodyChild,
+  type RcmlColumnChild,
+  type RcmlDocument,
+  type RcmlText,
+} from '@rule-io/rcml';
+import {
+  accentBackground,
+  brandHeading,
+  brandText,
+  buildThemedDocument,
+  contentSection,
+  ctaSection,
+  docWithNodes,
+  footerSection,
+  greetingSection,
+  maybeLogoSection,
+  textNode,
+  validateRequiredFields,
+  withTemplateContext,
+} from '@rule-io/rcml';
 
 function dividerSection(): RcmlBodyChild {
-  return createContentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
+  return contentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
 }
 
 // ============================================================================
@@ -26,7 +48,7 @@ function dividerSection(): RcmlBodyChild {
 // ============================================================================
 
 export interface WelcomeEmailConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   websiteUrl: string;
   footer?: FooterConfig;
@@ -67,7 +89,7 @@ export interface WelcomeEmailConfig {
  * Typical trigger: a subscriber opts into the newsletter or signs up for
  * an account. Renders a hero banner, a personalized greeting, optional
  * benefits list, optional welcome discount callout, a CTA button, and
- * social icons when `brandStyle.socialLinks` is configured.
+ * social icons when `theme.links` is populated.
  *
  * Vertical-agnostic — pair with any trigger tag (newsletter signup,
  * account creation, form submission, etc.).
@@ -75,7 +97,7 @@ export interface WelcomeEmailConfig {
  * @example
  * ```typescript
  * const email = createWelcomeEmail({
- *   brandStyle: myBrandStyle,
+ *   theme: myEmailTheme,
  *   customFields: { 'Subscriber.FirstName': 169233 },
  *   websiteUrl: 'https://example.com',
  *   text: {
@@ -90,43 +112,41 @@ export interface WelcomeEmailConfig {
  * ```
  */
 export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
-  const templateName = 'createWelcomeEmail';
+  return withTemplateContext('createWelcomeEmail', () => {
+    const { theme, customFields, fieldNames, text } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { brandStyle, customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, { firstName: fieldNames.firstName });
 
-    validateCustomFields(customFields, {
-      firstName: fieldNames.firstName,
-    });
-
-    const socialLinks = brandStyle.socialLinks ?? [];
-    const socialElements = socialLinks
+    const socialElements = Object.values(theme.links)
+      .filter((link): link is NonNullable<typeof link> => link !== undefined)
       .map((link) => {
         try {
-          return createSocialChildElement({ attrs: { name: link.name, href: link.href } });
+          return createSocialChildElement({
+            attrs: { name: link.type, href: link.url },
+          });
         } catch {
           return undefined;
         }
       })
-      .filter((el): el is NonNullable<typeof el> => !!el);
+      .filter((el): el is NonNullable<typeof el> => el !== undefined);
     const hasSocial = socialElements.length > 0;
 
     const sections: RcmlBodyChild[] = [
-      ...createLogoSection(brandStyle.logoUrl),
+      ...maybeLogoSection(theme),
 
-      // Hero banner — brand background
-      createContentSection(
-        [createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)]), 1)],
-        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+      // Hero banner — brand-accent background
+      contentSection(
+        [brandHeading(docWithNodes([textNode(text.heading)]), 1)],
+        { padding: '20px 0', backgroundColor: accentBackground(theme) },
       ),
 
       dividerSection(),
 
-      createGreetingSection(
+      greetingSection(
         text.greeting,
         text.intro,
         fieldNames.firstName,
-        customFields[fieldNames.firstName]
+        customFields[fieldNames.firstName]!,
       ),
     ];
 
@@ -136,93 +156,66 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
       sections.push(dividerSection());
       const benefitRows: RcmlText[] = [];
 
-      if (text.benefitsHeading) {
+      if (text.benefitsHeading !== undefined) {
         benefitRows.push(
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.benefitsHeading)]),
-            { align: 'center' }
-          )
+          brandText(docWithNodes([textNode(text.benefitsHeading)]), { align: 'center' }),
         );
       }
 
       for (const benefit of benefits) {
         benefitRows.push(
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(`• ${benefit}`)]),
-            { align: 'center' }
-          )
+          brandText(docWithNodes([textNode(`• ${benefit}`)]), { align: 'center' }),
         );
       }
 
-      sections.push(createContentSection(benefitRows, { padding: '20px 0' }));
+      sections.push(contentSection(benefitRows, { padding: '20px 0' }));
     }
 
-    if (text.discountCode) {
+    if (text.discountCode !== undefined) {
       sections.push(dividerSection());
       const discountRows: RcmlColumnChild[] = [];
 
-      if (text.discountHeading) {
+      if (text.discountHeading !== undefined) {
+        discountRows.push(brandHeading(docWithNodes([textNode(text.discountHeading)]), 2));
+      }
+
+      if (text.discountMessage !== undefined) {
         discountRows.push(
-          createBrandHeading(
-            createDocWithPlaceholders([createTextNode(text.discountHeading)]),
-            2
-          )
+          brandText(docWithNodes([textNode(text.discountMessage)]), { align: 'center' }),
         );
       }
 
-      if (text.discountMessage) {
-        discountRows.push(
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.discountMessage)]),
-            { align: 'center' }
-          )
-        );
-      }
-
-      discountRows.push(
-        createBrandHeading(
-          createDocWithPlaceholders([createTextNode(text.discountCode)]),
-          2
-        )
-      );
+      discountRows.push(brandHeading(docWithNodes([textNode(text.discountCode)]), 2));
       sections.push(
-        createContentSection(discountRows, {
+        contentSection(discountRows, {
           padding: '20px 0',
-          backgroundColor: brandStyle.brandColor,
-        })
+          backgroundColor: accentBackground(theme),
+        }),
       );
     }
 
-    sections.push(createCtaSection(text.ctaButton, config.websiteUrl));
+    sections.push(ctaSection(text.ctaButton, config.websiteUrl));
 
-    if (text.closing) {
+    if (text.closing !== undefined) {
       sections.push(
-        createContentSection(
-          [
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.closing)]),
-              { align: 'center' }
-            ),
-          ],
-          { padding: '10px 0' }
-        )
+        contentSection(
+          [brandText(docWithNodes([textNode(text.closing)]), { align: 'center' })],
+          { padding: '10px 0' },
+        ),
       );
     }
 
     if (hasSocial) {
       sections.push(
-        createContentSection([createSocialElement({ attrs: { align: 'center' }, children: socialElements })], {
-          padding: '10px 0',
-        })
+        contentSection(
+          [createSocialElement({ attrs: { align: 'center' }, children: socialElements })],
+          { padding: '10px 0' },
+        ),
       );
     }
 
-    sections.push(createFooterSection(config.footer));
+    sections.push(footerSection(config.footer));
 
-    return createBrandTemplate({
-      brandStyle: brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }

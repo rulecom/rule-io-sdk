@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { CustomFieldMap } from '@rule-io/core';
-import { createStatusTrackerSection } from '@rule-io/client';
+import { statusTrackerSection as createStatusTrackerSection } from '@rule-io/rcml';
 import { RuleConfigError } from '@rule-io/core'
 import {
   createAbandonedCartEmail,
@@ -18,7 +18,7 @@ import {
   createShippingUpdateEmail,
 } from '../src/ecommerce-templates.js'
 import { createWelcomeEmail } from '../src/generic-templates.js'
-import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers.js'
+import { TEST_THEME, TEST_THEME_WITH_SOCIALS, assertValidRCMLDocument, docToString } from './helpers.js'
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   // Subscriber fields
@@ -65,7 +65,7 @@ describe('E-commerce Templates', () => {
   describe('createOrderConfirmationEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com/orders',
         text: {
@@ -94,7 +94,7 @@ describe('E-commerce Templates', () => {
 
     it('should include optional items and shipping fields', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -128,7 +128,7 @@ describe('E-commerce Templates', () => {
 
     it('should work without optional fields', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -157,7 +157,7 @@ describe('E-commerce Templates', () => {
 
     it('should render rc-loop when item sub-fields are provided', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -198,7 +198,7 @@ describe('E-commerce Templates', () => {
 
     it('should use custom label values when provided', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -241,7 +241,7 @@ describe('E-commerce Templates', () => {
 
     it('should use default English labels when custom labels not provided', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -277,7 +277,7 @@ describe('E-commerce Templates', () => {
 
     it('should fall back to single-field items when no sub-fields', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -310,7 +310,7 @@ describe('E-commerce Templates', () => {
 
     it('renders the hero heading when prefix/suffix text supplied', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -340,7 +340,7 @@ describe('E-commerce Templates', () => {
 
     it('renders a two-column meta row when orderDate label+field supplied', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -369,7 +369,7 @@ describe('E-commerce Templates', () => {
 
     it('renders financial summary when any financial field is mapped', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -408,7 +408,7 @@ describe('E-commerce Templates', () => {
 
     it('renders address block when extended shipping fields are mapped', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -443,7 +443,7 @@ describe('E-commerce Templates', () => {
 
     it('omits hero heading, meta row, financial summary and address block when not configured', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -472,7 +472,7 @@ describe('E-commerce Templates', () => {
     it('throws when an extended shipping field is mapped without shippingAddress', () => {
       expect(() =>
         createOrderConfirmationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -500,7 +500,7 @@ describe('E-commerce Templates', () => {
       // a mapped field with no label cannot relocate the total row into a
       // near-empty summary box.
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -530,7 +530,7 @@ describe('E-commerce Templates', () => {
 
     it('renders SKU loop row when itemSku sub-field is provided', () => {
       const doc = createOrderConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -566,7 +566,7 @@ describe('E-commerce Templates', () => {
       // render — validateCustomFields must not demand a customFields entry.
       expect(() =>
         createOrderConfirmationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -601,7 +601,7 @@ describe('E-commerce Templates', () => {
       // are set, the row WILL render, so validation must catch missing fields.
       expect(() =>
         createOrderConfirmationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -631,7 +631,7 @@ describe('E-commerce Templates', () => {
       // The prefix must appear exactly once.
       try {
         createOrderConfirmationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -655,7 +655,7 @@ describe('E-commerce Templates', () => {
         const msg = (error as RuleConfigError).message;
 
         expect(msg).toBe(
-          'createOrderConfirmationEmail > missing customFields entry for fieldNames.orderRef ("Order.MissingOrderRef")'
+          'createOrderConfirmationEmail > missing customFields entries: orderRef (mapped to "Order.MissingOrderRef")'
         );
         expect(msg.split('createOrderConfirmationEmail').length - 1).toBe(1);
       }
@@ -665,7 +665,7 @@ describe('E-commerce Templates', () => {
   describe('createShippingUpdateEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -696,7 +696,7 @@ describe('E-commerce Templates', () => {
 
     it('should work without optional tracking fields', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -718,7 +718,7 @@ describe('E-commerce Templates', () => {
 
     it('should render receipt sections when receipt fields provided', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -804,7 +804,7 @@ describe('E-commerce Templates', () => {
 
     it('should use default English labels for ShippingUpdate line items', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -841,7 +841,7 @@ describe('E-commerce Templates', () => {
 
     it('should use custom labels for ShippingUpdate line items when provided', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -887,7 +887,7 @@ describe('E-commerce Templates', () => {
 
     it('should render identically to base when no receipt fields provided', () => {
       const baseDoc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -915,7 +915,7 @@ describe('E-commerce Templates', () => {
 
     it('renders a 3-step status tracker when all three labels supplied', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -955,7 +955,7 @@ describe('E-commerce Templates', () => {
             { label: 'e' },
           ],
           activeIndex: 0,
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
         })
       ).toThrow(RuleConfigError);
     });
@@ -965,14 +965,14 @@ describe('E-commerce Templates', () => {
         createStatusTrackerSection({
           steps: [{ label: 'a' }, { label: 'b' }],
           activeIndex: 5,
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
         })
       ).toThrow(RuleConfigError);
       expect(() =>
         createStatusTrackerSection({
           steps: [{ label: 'a' }, { label: 'b' }],
           activeIndex: -1,
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
         })
       ).toThrow(RuleConfigError);
     });
@@ -982,7 +982,7 @@ describe('E-commerce Templates', () => {
         createStatusTrackerSection({
           steps: [],
           activeIndex: 0,
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
         })
       ).toThrow(RuleConfigError);
     });
@@ -991,7 +991,7 @@ describe('E-commerce Templates', () => {
       const section = createStatusTrackerSection({
         steps: [{ label: 'a' }, { label: 'b' }, { label: 'c' }],
         activeIndex: 0,
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
       });
       const widths = (section as { children: { attributes: { width: string } }[] }).children.map(
         (col) => parseInt(col.attributes.width, 10)
@@ -1002,7 +1002,7 @@ describe('E-commerce Templates', () => {
 
     it('omits the status tracker when any step label is missing', () => {
       const doc = createShippingUpdateEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         trackingUrl: 'https://track.example.com',
         text: {
@@ -1033,7 +1033,7 @@ describe('E-commerce Templates', () => {
       // either the label or fieldName is missing. Validation must match.
       expect(() =>
         createShippingUpdateEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           trackingUrl: 'https://track.example.com',
           text: {
@@ -1065,7 +1065,7 @@ describe('E-commerce Templates', () => {
     it('still throws when a field whose label is set is missing from customFields', () => {
       expect(() =>
         createShippingUpdateEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           trackingUrl: 'https://track.example.com',
           text: {
@@ -1090,7 +1090,7 @@ describe('E-commerce Templates', () => {
   describe('createAbandonedCartEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createAbandonedCartEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         cartUrl: 'https://shop.example.com/cart',
         text: {
@@ -1115,7 +1115,7 @@ describe('E-commerce Templates', () => {
 
     it('renders cart line items loop when items + itemName are mapped', () => {
       const doc = createAbandonedCartEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         cartUrl: 'https://shop.example.com/cart',
         text: {
@@ -1148,7 +1148,7 @@ describe('E-commerce Templates', () => {
 
     it('renders cart total when totalLabel + totalPrice supplied', () => {
       const doc = createAbandonedCartEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         cartUrl: 'https://shop.example.com/cart',
         text: {
@@ -1171,15 +1171,9 @@ describe('E-commerce Templates', () => {
       expect(json).toContain('200005'); // Order.TotalPrice
     });
 
-    it('renders social icons when brandStyle.socialLinks is provided', () => {
+    it('renders social icons when theme.links is populated', () => {
       const doc = createAbandonedCartEmail({
-        brandStyle: {
-          ...TEST_BRAND_STYLE,
-          socialLinks: [
-            { name: 'facebook', href: 'https://facebook.com/shop' },
-            { name: 'instagram', href: 'https://instagram.com/shop' },
-          ],
-        },
+        theme: TEST_THEME_WITH_SOCIALS,
         customFields: TEST_CUSTOM_FIELDS,
         cartUrl: 'https://shop.example.com/cart',
         text: {
@@ -1201,7 +1195,7 @@ describe('E-commerce Templates', () => {
 
     it('omits line items, total row and social section when not configured', () => {
       const doc = createAbandonedCartEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         cartUrl: 'https://shop.example.com/cart',
         text: {
@@ -1225,7 +1219,7 @@ describe('E-commerce Templates', () => {
   describe('createOrderCancellationEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createOrderCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1253,7 +1247,7 @@ describe('E-commerce Templates', () => {
 
     it('renders order date when orderDate field + label supplied', () => {
       const doc = createOrderCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1281,7 +1275,7 @@ describe('E-commerce Templates', () => {
 
     it('renders support callout with email link when supportEmail supplied', () => {
       const doc = createOrderCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1311,7 +1305,7 @@ describe('E-commerce Templates', () => {
 
     it('omits the support callout when supportText is not supplied', () => {
       const doc = createOrderCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1338,7 +1332,7 @@ describe('E-commerce Templates', () => {
     it('uses the sanitized URL as link text so displayed text and href stay in sync', () => {
       // sanitizeUrl trims whitespace; displayed link text must reflect that.
       const doc = createOrderCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1378,7 +1372,7 @@ describe('E-commerce Templates', () => {
       for (const supportEmail of injectionAttempts) {
         expect(() =>
           createOrderCancellationEmail({
-            brandStyle: TEST_BRAND_STYLE,
+            theme: TEST_THEME,
             customFields: TEST_CUSTOM_FIELDS,
             websiteUrl: 'https://shop.example.com',
             text: {
@@ -1404,7 +1398,7 @@ describe('E-commerce Templates', () => {
     it('rejects support emails containing whitespace or control characters', () => {
       expect(() =>
         createOrderCancellationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -1427,7 +1421,7 @@ describe('E-commerce Templates', () => {
 
       expect(() =>
         createOrderCancellationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -1455,7 +1449,7 @@ describe('E-commerce Templates', () => {
       // "createOrderCancellationEmail > createOrderCancellationEmail: ...".
       try {
         createOrderCancellationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -1489,7 +1483,7 @@ describe('E-commerce Templates', () => {
       // when either side is missing. Validation must match the render gate.
       expect(() =>
         createOrderCancellationEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://shop.example.com',
           text: {
@@ -1517,7 +1511,7 @@ describe('E-commerce Templates', () => {
       // should not trigger a missing-field validation error.
       expect(() =>
         createAbandonedCartEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           cartUrl: 'https://shop.example.com/cart',
           text: {
@@ -1541,7 +1535,7 @@ describe('E-commerce Templates', () => {
       // total row never renders, so an unmapped totalPrice must not throw.
       expect(() =>
         createAbandonedCartEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           cartUrl: 'https://shop.example.com/cart',
           text: {
@@ -1565,7 +1559,7 @@ describe('E-commerce Templates', () => {
       // so validation must surface the missing customFields entry.
       expect(() =>
         createAbandonedCartEmail({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           cartUrl: 'https://shop.example.com/cart',
           text: {
@@ -1593,7 +1587,7 @@ describe('E-commerce Templates', () => {
 describe('createWelcomeEmail', () => {
   it('produces valid RCML with hero + greeting + CTA', () => {
     const doc = createWelcomeEmail({
-      brandStyle: TEST_BRAND_STYLE,
+      theme: TEST_THEME,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://shop.example.com',
       text: {
@@ -1618,7 +1612,7 @@ describe('createWelcomeEmail', () => {
 
   it('renders benefits list when benefits array is provided', () => {
     const doc = createWelcomeEmail({
-      brandStyle: TEST_BRAND_STYLE,
+      theme: TEST_THEME,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://shop.example.com',
       text: {
@@ -1643,7 +1637,7 @@ describe('createWelcomeEmail', () => {
 
   it('renders discount callout when discountCode is supplied', () => {
     const doc = createWelcomeEmail({
-      brandStyle: TEST_BRAND_STYLE,
+      theme: TEST_THEME,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://shop.example.com',
       text: {
@@ -1666,15 +1660,9 @@ describe('createWelcomeEmail', () => {
     expect(json).toContain('WELCOME10');
   });
 
-  it('renders social icons when brandStyle.socialLinks is provided', () => {
+  it('renders social icons when theme.links is populated', () => {
     const doc = createWelcomeEmail({
-      brandStyle: {
-        ...TEST_BRAND_STYLE,
-        socialLinks: [
-          { name: 'facebook', href: 'https://facebook.com/shop' },
-          { name: 'instagram', href: 'https://instagram.com/shop' },
-        ],
-      },
+      theme: TEST_THEME_WITH_SOCIALS,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://shop.example.com',
       text: {
@@ -1696,7 +1684,7 @@ describe('createWelcomeEmail', () => {
 
   it('omits optional sections when not configured', () => {
     const doc = createWelcomeEmail({
-      brandStyle: TEST_BRAND_STYLE,
+      theme: TEST_THEME,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://shop.example.com',
       text: {
@@ -1719,7 +1707,7 @@ describe('createWelcomeEmail', () => {
   it('throws RuleConfigError when firstName field is not in customFields', () => {
     expect(() =>
       createWelcomeEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1737,7 +1725,7 @@ describe('createWelcomeEmail', () => {
   it('wraps config errors with template context', () => {
     try {
       createWelcomeEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://shop.example.com',
         text: {
@@ -1764,12 +1752,16 @@ describe('createWelcomeEmail', () => {
 
 describe('template error context (e-commerce)', () => {
   it('should include template name when createBrandLogo throws inside e-commerce template', () => {
+    const badTheme: typeof TEST_THEME = {
+      ...TEST_THEME,
+      images: {
+        logo: { type: 'logo' as const, url: 'javascript:void(0)' },
+      },
+    };
+
     expect(() =>
       createOrderConfirmationEmail({
-        brandStyle: {
-          ...TEST_BRAND_STYLE,
-          logoUrl: 'javascript:void(0)',
-        },
+        theme: badTheme,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {

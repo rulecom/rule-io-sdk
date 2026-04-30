@@ -15,13 +15,45 @@
  */
 
 import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
-import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { createColumnElement, createDividerElement, createSectionElement, createSocialElement, createSocialChildElement, type Json, type RcmlBodyChild, type RcmlDocument, type RcmlSection, type RcmlText } from '@rule-io/rcml';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandLoop, createContentSection, createFooterSection, createPlaceholder, createLoopFieldPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, createSummaryRowsSection, createStatusTrackerSection, createAddressBlock, validateCustomFields, withTemplateContext } from '@rule-io/client';
+import type { CustomFieldMap, EmailTheme, FooterConfig } from '@rule-io/core';
+import {
+  createColumnElement,
+  createDividerElement,
+  createSectionElement,
+  createSocialChildElement,
+  createSocialElement,
+  type Json,
+  type RcmlBodyChild,
+  type RcmlDocument,
+  type RcmlSection,
+  type RcmlText,
+} from '@rule-io/rcml';
+import {
+  accentBackground,
+  addressBlock,
+  brandHeading,
+  brandLoop,
+  brandText,
+  buildThemedDocument,
+  contentSection,
+  ctaSection,
+  docWithNodes,
+  footerSection,
+  greetingSection,
+  loopFieldPlaceholder,
+  maybeLogoSection,
+  placeholder,
+  statusTrackerSection,
+  summaryRowsSection,
+  textNode,
+  validateRequiredFields,
+  withTemplateContext,
+  type BrandInlineNode as InlineNode,
+} from '@rule-io/rcml';
 
 /** Wrap a divider in a single-column section so it can sit at body level. */
 function dividerSection(): RcmlBodyChild {
-  return createContentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
+  return contentSection([createDividerElement({ attrs: { padding: '10px 0' } })], { padding: '0' });
 }
 
 /** Build a "label: value" RcmlText row, or undefined when either input is missing. */
@@ -32,10 +64,10 @@ function labeledRow(
 ): RcmlText | undefined {
   if (!label || !fieldName) return undefined;
 
-  return createBrandText(
-    createDocWithPlaceholders([
-      createTextNode(`${label}: `),
-      createPlaceholder(fieldName, customFields[fieldName]),
+  return brandText(
+    docWithNodes([
+      textNode(`${label}: `),
+      placeholder(fieldName, customFields[fieldName]),
     ])
   );
 }
@@ -45,7 +77,7 @@ function labeledRow(
 // ============================================================================
 
 export interface OrderConfirmationConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   websiteUrl: string;
   footer?: FooterConfig;
@@ -133,7 +165,7 @@ export interface OrderConfirmationConfig {
  * @example
  * ```typescript
  * const email = createOrderConfirmationEmail({
- *   brandStyle: myBrandStyle,
+ *   theme: myEmailTheme,
  *   customFields: myFields,
  *   websiteUrl: 'https://myshop.com',
  *   text: {
@@ -157,7 +189,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
   const templateName = 'createOrderConfirmationEmail';
 
   return withTemplateContext(templateName, () => {
-    const { brandStyle, customFields, fieldNames, text } = config;
+    const { theme, customFields, fieldNames, text } = config;
 
     const hasExtendedAddress = !!(
       fieldNames.shippingAddress2 ||
@@ -219,23 +251,23 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     if (fieldNames.taxAmount && text.taxLabel) fieldsToValidate.taxAmount = fieldNames.taxAmount;
     if (fieldNames.shippingCost && text.shippingCostLabel) fieldsToValidate.shippingCost = fieldNames.shippingCost;
     // templateName omitted — withTemplateContext wraps the error with the prefix.
-    validateCustomFields(customFields, fieldsToValidate);
+    validateRequiredFields(customFields, fieldsToValidate);
 
     const sections: RcmlBodyChild[] = [
-      ...createLogoSection(brandStyle.logoUrl),
-      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
+      ...maybeLogoSection(theme),
+      greetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
     ];
 
     // Hero heading: "{prefix} {orderRef} {suffix}"
     if (text.heroHeadingPrefix || text.heroHeadingSuffix) {
-      const heroNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+      const heroNodes: InlineNode[] = [];
 
-      if (text.heroHeadingPrefix) heroNodes.push(createTextNode(`${text.heroHeadingPrefix} `));
-      heroNodes.push(createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]));
-      if (text.heroHeadingSuffix) heroNodes.push(createTextNode(` ${text.heroHeadingSuffix}`));
+      if (text.heroHeadingPrefix) heroNodes.push(textNode(`${text.heroHeadingPrefix} `));
+      heroNodes.push(placeholder(fieldNames.orderRef, customFields[fieldNames.orderRef]));
+      if (text.heroHeadingSuffix) heroNodes.push(textNode(` ${text.heroHeadingSuffix}`));
       sections.push(
-        createContentSection(
-          [createBrandHeading(createDocWithPlaceholders(heroNodes), 1)],
+        contentSection(
+          [brandHeading(docWithNodes(heroNodes), 1)],
           { padding: '10px 0' }
         )
       );
@@ -250,10 +282,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
             createColumnElement({
               attrs: { width: '50%' },
               children: [
-                createBrandText(
-                  createDocWithPlaceholders([
-                    createTextNode(`${text.orderRefLabel}: `),
-                    createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+                brandText(
+                  docWithNodes([
+                    textNode(`${text.orderRefLabel}: `),
+                    placeholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
                   ])
                 ),
               ],
@@ -261,10 +293,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
             createColumnElement({
               attrs: { width: '50%' },
               children: [
-                createBrandText(
-                  createDocWithPlaceholders([
-                    createTextNode(`${text.orderDateLabel}: `),
-                    createPlaceholder(fieldNames.orderDate!, customFields[fieldNames.orderDate!]),
+                brandText(
+                  docWithNodes([
+                    textNode(`${text.orderDateLabel}: `),
+                    placeholder(fieldNames.orderDate!, customFields[fieldNames.orderDate!]),
                   ])
                 ),
               ],
@@ -279,10 +311,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 
     if (!hasOrderMetaRow) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.orderRefLabel}: `),
-            createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+        brandText(
+          docWithNodes([
+            textNode(`${text.orderRefLabel}: `),
+            placeholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
           ])
         )
       );
@@ -295,10 +327,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Backward-compat single-placeholder items row (when items mapped but no loop sub-fields)
     if (fieldNames.items && !fieldNames.itemName && text.itemsLabel) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.itemsLabel}: `),
-            createPlaceholder(fieldNames.items, customFields[fieldNames.items]),
+        brandText(
+          docWithNodes([
+            textNode(`${text.itemsLabel}: `),
+            placeholder(fieldNames.items, customFields[fieldNames.items]),
           ])
         )
       );
@@ -307,10 +339,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Total row stays here when no separate financial summary is rendered
     if (!hasFinancialSummary) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.totalLabel}: `),
-            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+        brandText(
+          docWithNodes([
+            textNode(`${text.totalLabel}: `),
+            placeholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
           ])
         )
       );
@@ -319,22 +351,22 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Inline shipping row stays when no extended address fields mapped (backward compat)
     if (!hasExtendedAddress && text.shippingLabel && fieldNames.shippingAddress) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.shippingLabel}: `),
-            createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
+        brandText(
+          docWithNodes([
+            textNode(`${text.shippingLabel}: `),
+            placeholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
           ])
         )
       );
     }
 
     sections.push(
-      createContentSection(
+      contentSection(
         [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+          brandHeading(docWithNodes([textNode(text.detailsHeading)]), 2),
           ...detailRows,
         ],
-        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+        { padding: '20px 0', backgroundColor: accentBackground(theme) }
       )
     );
 
@@ -345,23 +377,23 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     if (hasLineItemLoop && fieldNames.items && fieldNames.itemName) {
       if (text.lineItemsHeading) {
         sections.push(
-          createContentSection(
-            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+          contentSection(
+            [brandHeading(docWithNodes([textNode(text.lineItemsHeading)]), 2)],
             { padding: '10px 0' }
           )
         );
       }
 
       const loopChildren: RcmlText[] = [
-        createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
+        brandText(docWithNodes([loopFieldPlaceholder(fieldNames.itemName)])),
       ];
 
       if (fieldNames.itemSku) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemSkuLabel ?? 'SKU: '),
-              createLoopFieldPlaceholder(fieldNames.itemSku),
+          brandText(
+            docWithNodes([
+              textNode(text.itemSkuLabel ?? 'SKU: '),
+              loopFieldPlaceholder(fieldNames.itemSku),
             ])
           )
         );
@@ -369,10 +401,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 
       if (fieldNames.itemQuantity) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemQtyLabel ?? 'Qty: '),
-              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+          brandText(
+            docWithNodes([
+              textNode(text.itemQtyLabel ?? 'Qty: '),
+              loopFieldPlaceholder(fieldNames.itemQuantity),
             ])
           )
         );
@@ -380,10 +412,10 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemUnitPriceLabel ?? 'Price: '),
-              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+          brandText(
+            docWithNodes([
+              textNode(text.itemUnitPriceLabel ?? 'Price: '),
+              loopFieldPlaceholder(fieldNames.itemUnitPrice),
             ])
           )
         );
@@ -391,19 +423,19 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 
       if (fieldNames.itemTotal) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemSubtotalLabel ?? 'Subtotal: '),
-              createLoopFieldPlaceholder(fieldNames.itemTotal),
+          brandText(
+            docWithNodes([
+              textNode(text.itemSubtotalLabel ?? 'Subtotal: '),
+              loopFieldPlaceholder(fieldNames.itemTotal),
             ])
           )
         );
       }
 
       sections.push(
-        createBrandLoop(
+        brandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
+          [contentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -412,20 +444,20 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
     // Financial summary box
     if (hasFinancialSummary) {
       sections.push(dividerSection());
-      const summary = createSummaryRowsSection(
+      const summary = summaryRowsSection(
         [
           labeledRow(text.subtotalLabel, fieldNames.subtotal, customFields),
           labeledRow(text.discountLabel, fieldNames.discountAmount, customFields),
           labeledRow(text.taxLabel, fieldNames.taxAmount, customFields),
           labeledRow(text.shippingCostLabel, fieldNames.shippingCost, customFields),
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.totalLabel}: `),
-              createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+          brandText(
+            docWithNodes([
+              textNode(`${text.totalLabel}: `),
+              placeholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
             ])
           ),
         ],
-        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+        { padding: '20px 0', backgroundColor: accentBackground(theme) }
       );
 
       if (summary) sections.push(summary);
@@ -437,63 +469,59 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
       const addressLines: Json[] = [];
 
       addressLines.push(
-        createDocWithPlaceholders([
-          createPlaceholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
+        docWithNodes([
+          placeholder(fieldNames.shippingAddress, customFields[fieldNames.shippingAddress]),
         ])
       );
 
       if (fieldNames.shippingAddress2) {
         addressLines.push(
-          createDocWithPlaceholders([
-            createPlaceholder(fieldNames.shippingAddress2, customFields[fieldNames.shippingAddress2]),
+          docWithNodes([
+            placeholder(fieldNames.shippingAddress2, customFields[fieldNames.shippingAddress2]),
           ])
         );
       }
 
       if (fieldNames.shippingCity || fieldNames.shippingZip) {
-        const cityZipNodes: Parameters<typeof createDocWithPlaceholders>[0] = [];
+        const cityZipNodes: InlineNode[] = [];
 
         if (fieldNames.shippingZip) {
-          cityZipNodes.push(createPlaceholder(fieldNames.shippingZip, customFields[fieldNames.shippingZip]));
+          cityZipNodes.push(placeholder(fieldNames.shippingZip, customFields[fieldNames.shippingZip]));
         }
 
         if (fieldNames.shippingZip && fieldNames.shippingCity) {
-          cityZipNodes.push(createTextNode(' '));
+          cityZipNodes.push(textNode(' '));
         }
 
         if (fieldNames.shippingCity) {
-          cityZipNodes.push(createPlaceholder(fieldNames.shippingCity, customFields[fieldNames.shippingCity]));
+          cityZipNodes.push(placeholder(fieldNames.shippingCity, customFields[fieldNames.shippingCity]));
         }
 
-        addressLines.push(createDocWithPlaceholders(cityZipNodes));
+        addressLines.push(docWithNodes(cityZipNodes));
       }
 
       if (fieldNames.shippingCountryCode) {
         addressLines.push(
-          createDocWithPlaceholders([
-            createPlaceholder(fieldNames.shippingCountryCode, customFields[fieldNames.shippingCountryCode]),
+          docWithNodes([
+            placeholder(fieldNames.shippingCountryCode, customFields[fieldNames.shippingCountryCode]),
           ])
         );
       }
 
-      const addressBlock = createAddressBlock({
+      const addressBlockSection = addressBlock({
         heading: text.shippingAddressHeading ?? text.shippingLabel,
         lines: addressLines,
       });
 
-      if (addressBlock) sections.push(addressBlock);
+      if (addressBlockSection) sections.push(addressBlockSection);
     }
 
     sections.push(
-      createCtaSection(text.ctaButton, config.websiteUrl),
-      createFooterSection(config.footer),
+      ctaSection(text.ctaButton, config.websiteUrl),
+      footerSection(config.footer),
     );
 
-    return createBrandTemplate({
-      brandStyle: brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -502,7 +530,7 @@ export function createOrderConfirmationEmail(config: OrderConfirmationConfig): R
 // ============================================================================
 
 export interface ShippingUpdateConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   trackingUrl: string;
   footer?: FooterConfig;
@@ -667,33 +695,33 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     // Line items loop renders when both items + itemName are mapped.
     if (fieldNames.items && fieldNames.itemName) fieldsToValidate.items = fieldNames.items;
     // templateName omitted — withTemplateContext wraps the error with the prefix.
-    validateCustomFields(customFields, fieldsToValidate);
+    validateRequiredFields(customFields, fieldsToValidate);
 
     /** Helper to create a detail row from an optional field + label pair. */
     const detailRow = (label: string | undefined, fieldName: string | undefined) => {
       if (!label || !fieldName) return undefined;
 
-      return createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${label}: `),
-          createPlaceholder(fieldName, customFields[fieldName]),
+      return brandText(
+        docWithNodes([
+          textNode(`${label}: `),
+          placeholder(fieldName, customFields[fieldName]),
         ])
       );
     };
 
     const sections: RcmlBodyChild[] = [
-      ...createLogoSection(config.brandStyle.logoUrl),
+      ...maybeLogoSection(config.theme),
 
       // Heading + greeting
-      createContentSection(
+      contentSection(
         [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode(', '),
-              createTextNode(text.message),
+          brandHeading(docWithNodes([textNode(text.heading)])),
+          brandText(
+            docWithNodes([
+              textNode(`${text.greeting} `),
+              placeholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              textNode(', '),
+              textNode(text.message),
             ])
           ),
         ],
@@ -705,14 +733,14 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     // Rendered only when all three labels are supplied; otherwise omitted entirely.
     if (text.statusConfirmedLabel && text.statusShippedLabel && text.statusDeliveredLabel) {
       sections.push(
-        createStatusTrackerSection({
+        statusTrackerSection({
           steps: [
             { label: text.statusConfirmedLabel },
             { label: text.statusShippedLabel },
             { label: text.statusDeliveredLabel },
           ],
           activeIndex: 1,
-          brandStyle: config.brandStyle,
+          theme: config.theme,
         })
       );
       sections.push(dividerSection());
@@ -722,10 +750,10 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     const sellerRows = [
       detailRow(text.companyLabel, fieldNames.companyName),
       detailRow(text.vatLabel, fieldNames.vatNumber),
-    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+    ].filter(Boolean) as ReturnType<typeof brandText>[];
 
     if (sellerRows.length > 0) {
-      sections.push(createContentSection(sellerRows, { padding: '10px 0' }));
+      sections.push(contentSection(sellerRows, { padding: '10px 0' }));
     }
 
     // Order details section
@@ -734,13 +762,13 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
       detailRow(text.orderDateLabel, fieldNames.orderDate),
       detailRow(text.paymentMethodLabel, fieldNames.paymentMethod),
       detailRow(text.customerEmailLabel, fieldNames.customerEmail),
-    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+    ].filter(Boolean) as ReturnType<typeof brandText>[];
 
     if (orderDetailRows.length > 0) {
       sections.push(
-        createContentSection(orderDetailRows, {
+        contentSection(orderDetailRows, {
           padding: '20px 0',
-          backgroundColor: config.brandStyle.brandColor,
+          backgroundColor: accentBackground(config.theme),
         })
       );
     }
@@ -751,31 +779,31 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
       detailRow(text.carrierLabel, fieldNames.shippingCarrier),
       detailRow(text.trackingLabel, fieldNames.trackingNumber),
       detailRow(text.estimatedDeliveryLabel, fieldNames.estimatedDelivery),
-    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+    ].filter(Boolean) as ReturnType<typeof brandText>[];
 
     if (shippingRows.length > 0) {
-      sections.push(createContentSection(shippingRows, { padding: '20px 0' }));
+      sections.push(contentSection(shippingRows, { padding: '20px 0' }));
     }
 
     // Track shipment button
-    sections.push(createCtaSection(text.ctaButton, config.trackingUrl));
+    sections.push(ctaSection(text.ctaButton, config.trackingUrl));
 
     // Line items loop
     if (fieldNames.items && fieldNames.itemName) {
-      const loopChildren: ReturnType<typeof createBrandText>[] = [
-        createBrandText(
-          createDocWithPlaceholders([
-            createLoopFieldPlaceholder(fieldNames.itemName),
+      const loopChildren: ReturnType<typeof brandText>[] = [
+        brandText(
+          docWithNodes([
+            loopFieldPlaceholder(fieldNames.itemName),
           ])
         ),
       ];
 
       if (fieldNames.itemSku) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemSkuLabel ?? 'SKU: '),
-              createLoopFieldPlaceholder(fieldNames.itemSku),
+          brandText(
+            docWithNodes([
+              textNode(text.itemSkuLabel ?? 'SKU: '),
+              loopFieldPlaceholder(fieldNames.itemSku),
             ])
           )
         );
@@ -783,10 +811,10 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (fieldNames.itemQuantity) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemQtyLabel ?? 'Qty: '),
-              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+          brandText(
+            docWithNodes([
+              textNode(text.itemQtyLabel ?? 'Qty: '),
+              loopFieldPlaceholder(fieldNames.itemQuantity),
             ])
           )
         );
@@ -794,10 +822,10 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemUnitPriceLabel ?? 'Unit price: '),
-              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+          brandText(
+            docWithNodes([
+              textNode(text.itemUnitPriceLabel ?? 'Unit price: '),
+              loopFieldPlaceholder(fieldNames.itemUnitPrice),
             ])
           )
         );
@@ -805,10 +833,10 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (fieldNames.itemTotal) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemLineTotalLabel ?? 'Line total: '),
-              createLoopFieldPlaceholder(fieldNames.itemTotal),
+          brandText(
+            docWithNodes([
+              textNode(text.itemLineTotalLabel ?? 'Line total: '),
+              loopFieldPlaceholder(fieldNames.itemTotal),
             ])
           )
         );
@@ -816,17 +844,17 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (text.lineItemsHeading) {
         sections.push(
-          createContentSection(
-            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+          contentSection(
+            [brandHeading(docWithNodes([textNode(text.lineItemsHeading)]), 2)],
             { padding: '10px 0' }
           )
         );
       }
 
       sections.push(
-        createBrandLoop(
+        brandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
+          [contentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -839,13 +867,13 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
       detailRow(text.taxLabel, fieldNames.taxAmount),
       detailRow(text.shippingCostLabel, fieldNames.shippingCost),
       detailRow(text.totalLabel, fieldNames.totalPrice),
-    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+    ].filter(Boolean) as ReturnType<typeof brandText>[];
 
     if (financialRows.length > 0) {
       sections.push(
-        createContentSection(financialRows, {
+        contentSection(financialRows, {
           padding: '20px 0',
-          backgroundColor: config.brandStyle.brandColor,
+          backgroundColor: accentBackground(config.theme),
         })
       );
     }
@@ -853,29 +881,29 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     // Buyer details section
     const buyerRows = [
       detailRow(text.billingAddressLabel, fieldNames.billingAddress),
-    ].filter(Boolean) as ReturnType<typeof createBrandText>[];
+    ].filter(Boolean) as ReturnType<typeof brandText>[];
 
     if (fieldNames.customerFullName) {
       buyerRows.unshift(
-        createBrandText(
-          createDocWithPlaceholders([
-            createPlaceholder(fieldNames.customerFullName, customFields[fieldNames.customerFullName]),
+        brandText(
+          docWithNodes([
+            placeholder(fieldNames.customerFullName, customFields[fieldNames.customerFullName]),
           ])
         )
       );
     }
 
     if (buyerRows.length > 0) {
-      sections.push(createContentSection(buyerRows, { padding: '10px 0' }));
+      sections.push(contentSection(buyerRows, { padding: '10px 0' }));
     }
 
     // Legal section
-    const legalChildren: ReturnType<typeof createBrandText>[] = [];
+    const legalChildren: ReturnType<typeof brandText>[] = [];
 
     if (text.legalText) {
       legalChildren.push(
-        createBrandText(
-          createDocWithPlaceholders([createTextNode(text.legalText)]),
+        brandText(
+          docWithNodes([textNode(text.legalText)]),
           { align: 'center' }
         )
       );
@@ -886,7 +914,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (safeReturnPolicyUrl) {
         legalChildren.push(
-          createBrandText({
+          brandText({
             type: 'doc',
             content: [{
               type: 'paragraph',
@@ -909,7 +937,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 
       if (safeTermsUrl) {
         legalChildren.push(
-          createBrandText({
+          brandText({
             type: 'doc',
             content: [{
               type: 'paragraph',
@@ -928,17 +956,13 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
     }
 
     if (legalChildren.length > 0) {
-      sections.push(createContentSection(legalChildren, { padding: '10px 0' }));
+      sections.push(contentSection(legalChildren, { padding: '10px 0' }));
     }
 
     // Footer
-    sections.push(createFooterSection(config.footer));
+    sections.push(footerSection(config.footer));
 
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(config.theme, sections, text.preheader);
   });
 }
 
@@ -947,7 +971,7 @@ export function createShippingUpdateEmail(config: ShippingUpdateConfig): RcmlDoc
 // ============================================================================
 
 export interface AbandonedCartConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   cartUrl: string;
   footer?: FooterConfig;
@@ -992,7 +1016,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
   const templateName = 'createAbandonedCartEmail';
 
   return withTemplateContext(templateName, () => {
-    const { brandStyle, customFields, fieldNames, text } = config;
+    const { theme, customFields, fieldNames, text } = config;
 
     const hasLineItemLoop = !!(fieldNames.items && fieldNames.itemName);
     const hasTotalRow = !!(text.totalLabel && fieldNames.totalPrice);
@@ -1010,37 +1034,37 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
     if (hasLineItemLoop && fieldNames.items) fieldsToValidate.items = fieldNames.items;
     if (hasTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
     // templateName omitted — withTemplateContext wraps the error with the prefix.
-    validateCustomFields(customFields, fieldsToValidate);
-    const socialLinks = brandStyle.socialLinks ?? [];
-    const socialElements = socialLinks
+    validateRequiredFields(customFields, fieldsToValidate);
+    const socialElements = Object.values(theme.links)
+      .filter((link): link is NonNullable<typeof link> => link !== undefined)
       .map((link) => {
         try {
-          return createSocialChildElement({ attrs: { name: link.name, href: link.href } });
+          return createSocialChildElement({ attrs: { name: link.type, href: link.url } });
         } catch {
           return undefined;
         }
       })
-      .filter((el): el is NonNullable<typeof el> => !!el);
+      .filter((el): el is NonNullable<typeof el> => el !== undefined);
     const hasSocial = socialElements.length > 0;
 
     const sections: RcmlBodyChild[] = [
-      ...createLogoSection(brandStyle.logoUrl),
+      ...maybeLogoSection(theme),
 
-      createContentSection(
+      contentSection(
         [
-          createBrandHeading(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode('!'),
+          brandHeading(
+            docWithNodes([
+              textNode(`${text.greeting} `),
+              placeholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              textNode('!'),
             ])
           ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.message)]),
+          brandText(
+            docWithNodes([textNode(text.message)]),
             { align: 'center' }
           ),
-          createBrandText(
-            createDocWithPlaceholders([createTextNode(text.reminder)]),
+          brandText(
+            docWithNodes([textNode(text.reminder)]),
             { align: 'center' }
           ),
         ],
@@ -1054,23 +1078,23 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
 
       if (text.lineItemsHeading) {
         sections.push(
-          createContentSection(
-            [createBrandHeading(createDocWithPlaceholders([createTextNode(text.lineItemsHeading)]), 2)],
+          contentSection(
+            [brandHeading(docWithNodes([textNode(text.lineItemsHeading)]), 2)],
             { padding: '10px 0' }
           )
         );
       }
 
       const loopChildren: RcmlText[] = [
-        createBrandText(createDocWithPlaceholders([createLoopFieldPlaceholder(fieldNames.itemName)])),
+        brandText(docWithNodes([loopFieldPlaceholder(fieldNames.itemName)])),
       ];
 
       if (fieldNames.itemSku) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemSkuLabel ?? 'SKU: '),
-              createLoopFieldPlaceholder(fieldNames.itemSku),
+          brandText(
+            docWithNodes([
+              textNode(text.itemSkuLabel ?? 'SKU: '),
+              loopFieldPlaceholder(fieldNames.itemSku),
             ])
           )
         );
@@ -1078,10 +1102,10 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
 
       if (fieldNames.itemQuantity) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemQtyLabel ?? 'Qty: '),
-              createLoopFieldPlaceholder(fieldNames.itemQuantity),
+          brandText(
+            docWithNodes([
+              textNode(text.itemQtyLabel ?? 'Qty: '),
+              loopFieldPlaceholder(fieldNames.itemQuantity),
             ])
           )
         );
@@ -1089,19 +1113,19 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
 
       if (fieldNames.itemUnitPrice) {
         loopChildren.push(
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(text.itemUnitPriceLabel ?? 'Price: '),
-              createLoopFieldPlaceholder(fieldNames.itemUnitPrice),
+          brandText(
+            docWithNodes([
+              textNode(text.itemUnitPriceLabel ?? 'Price: '),
+              loopFieldPlaceholder(fieldNames.itemUnitPrice),
             ])
           )
         );
       }
 
       sections.push(
-        createBrandLoop(
+        brandLoop(
           customFields[fieldNames.items],
-          [createContentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
+          [contentSection(loopChildren, { padding: '10px 0' }) as RcmlSection],
           { maxIterations: 20 }
         )
       );
@@ -1110,40 +1134,36 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
     // Cart total row
     if (hasTotalRow && fieldNames.totalPrice && text.totalLabel) {
       sections.push(dividerSection());
-      const totalSection = createSummaryRowsSection(
+      const totalSection = summaryRowsSection(
         [
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.totalLabel}: `),
-              createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
+          brandText(
+            docWithNodes([
+              textNode(`${text.totalLabel}: `),
+              placeholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
             ])
           ),
         ],
-        { padding: '10px 0', backgroundColor: brandStyle.brandColor }
+        { padding: '10px 0', backgroundColor: accentBackground(theme) }
       );
 
       if (totalSection) sections.push(totalSection);
     }
 
-    sections.push(createCtaSection(text.ctaButton, config.cartUrl));
+    sections.push(ctaSection(text.ctaButton, config.cartUrl));
 
     // Social icons when brand has any social link configured
     if (hasSocial) {
       sections.push(
-        createContentSection(
+        contentSection(
           [createSocialElement({ attrs: { align: 'center' }, children: socialElements })],
           { padding: '10px 0' }
         )
       );
     }
 
-    sections.push(createFooterSection(config.footer));
+    sections.push(footerSection(config.footer));
 
-    return createBrandTemplate({
-      brandStyle: brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -1152,7 +1172,7 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
 // ============================================================================
 
 export interface OrderCancellationConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   websiteUrl: string;
   footer?: FooterConfig;
@@ -1188,7 +1208,7 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
   const templateName = 'createOrderCancellationEmail';
 
   return withTemplateContext(templateName, () => {
-    const { brandStyle, customFields, fieldNames, text } = config;
+    const { theme, customFields, fieldNames, text } = config;
 
     // Only validate fields that will actually be rendered. `orderDate` is
     // rendered via `labeledRow(text.orderDateLabel, ...)` which skips when
@@ -1203,30 +1223,30 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
     }
 
     // templateName omitted — withTemplateContext wraps the error with the prefix.
-    validateCustomFields(customFields, fieldsToValidate);
+    validateRequiredFields(customFields, fieldsToValidate);
 
     const sections: RcmlBodyChild[] = [
-      ...createLogoSection(brandStyle.logoUrl),
+      ...maybeLogoSection(theme),
 
       // Hero banner — brand background so the cancellation status reads as a banner
-      createContentSection(
-        [createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)]), 1)],
-        { padding: '20px 0', backgroundColor: brandStyle.brandColor }
+      contentSection(
+        [brandHeading(docWithNodes([textNode(text.heading)]), 1)],
+        { padding: '20px 0', backgroundColor: accentBackground(theme) }
       ),
 
       dividerSection(),
 
       // Body message
-      createContentSection(
+      contentSection(
         [
-          createBrandText(
-            createDocWithPlaceholders([
-              createTextNode(`${text.greeting} `),
-              createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-              createTextNode(','),
+          brandText(
+            docWithNodes([
+              textNode(`${text.greeting} `),
+              placeholder(fieldNames.firstName, customFields[fieldNames.firstName]),
+              textNode(','),
             ])
           ),
-          createBrandText(createDocWithPlaceholders([createTextNode(text.message)])),
+          brandText(docWithNodes([textNode(text.message)])),
         ],
         { padding: '20px 0' }
       ),
@@ -1234,25 +1254,25 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
 
     // Order details box
     const detailRows: (RcmlText | undefined)[] = [
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.orderRefLabel}: `),
-          createPlaceholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
+      brandText(
+        docWithNodes([
+          textNode(`${text.orderRefLabel}: `),
+          placeholder(fieldNames.orderRef, customFields[fieldNames.orderRef]),
         ])
       ),
       labeledRow(text.orderDateLabel, fieldNames.orderDate, customFields),
     ];
-    const detailsSection = createSummaryRowsSection(detailRows, {
+    const detailsSection = summaryRowsSection(detailRows, {
       padding: '20px 0',
-      backgroundColor: brandStyle.brandColor,
+      backgroundColor: accentBackground(theme),
     });
 
     if (detailsSection) sections.push(detailsSection);
 
     // Optional support callout (centered text + optional link)
     if (text.supportText) {
-      const supportNodes: Parameters<typeof createDocWithPlaceholders>[0] = [
-        createTextNode(text.supportText),
+      const supportNodes: InlineNode[] = [
+        textNode(text.supportText),
       ];
       // When both supportUrl and supportEmail are supplied, prefer the URL so
       // the displayed link text and href stay in sync.
@@ -1278,12 +1298,12 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       }
 
       const supportChildren: RcmlText[] = [
-        createBrandText(createDocWithPlaceholders(supportNodes), { align: 'center' }),
+        brandText(docWithNodes(supportNodes), { align: 'center' }),
       ];
 
       if (supportLinkHref && supportLinkText) {
         supportChildren.push(
-          createBrandText(
+          brandText(
             {
               type: 'doc',
               content: [{
@@ -1304,26 +1324,22 @@ export function createOrderCancellationEmail(config: OrderCancellationConfig): R
       }
 
       sections.push(dividerSection());
-      sections.push(createContentSection(supportChildren, { padding: '10px 0' }));
+      sections.push(contentSection(supportChildren, { padding: '10px 0' }));
     }
 
     sections.push(dividerSection());
 
     // Follow-up copy
     sections.push(
-      createContentSection(
-        [createBrandText(createDocWithPlaceholders([createTextNode(text.followUp)]))],
+      contentSection(
+        [brandText(docWithNodes([textNode(text.followUp)]))],
         { padding: '10px 0' }
       )
     );
 
-    sections.push(createCtaSection(text.ctaButton, config.websiteUrl));
-    sections.push(createFooterSection(config.footer));
+    sections.push(ctaSection(text.ctaButton, config.websiteUrl));
+    sections.push(footerSection(config.footer));
 
-    return createBrandTemplate({
-      brandStyle: brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }

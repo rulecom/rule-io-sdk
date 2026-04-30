@@ -5,8 +5,26 @@ export type { RuleValidationErrors } from './errors.js';
 // Opaque RCML document-root type — `@rule-io/rcml`'s RcmlDocument extends this.
 export type { RCMLDocumentRoot } from './rcml-document-root.js';
 
-// Brand-style / custom-field / footer POJOs shared across the SDK.
-export type { BrandStyleConfig, CustomFieldMap, FooterConfig } from './brand-types.js';
+// Custom-field / footer POJOs shared across the SDK.
+export type { CustomFieldMap, FooterConfig } from './brand-types.js';
+
+// Typed email-theme abstraction carried by rcml documents.
+export type {
+  EmailTheme,
+  EmailThemeBrandStyleId,
+  EmailThemeColor,
+  EmailThemeFont,
+  EmailThemeFontStyle,
+  EmailThemeImage,
+  EmailThemePatch,
+  EmailThemeSocialLink,
+  EmailThemeSocialLinkType,
+} from './theme-types.js';
+export {
+  EmailThemeColorType,
+  EmailThemeFontStyleType,
+  EmailThemeImageType,
+} from './theme-types.js';
 
 // Automation configuration contract used by vendor presets.
 export { getAutomationByIdV2, getAutomationByTriggerV2 } from './automation-configs-v2.js';

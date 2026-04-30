@@ -12,7 +12,7 @@
 import type { Command } from 'commander';
 import { type RuleClient } from '@rule-io/client';
 import { type RcmlDocument } from '@rule-io/rcml';
-import { resolvePreferredBrandStyle } from '@rule-io/client';
+import { resolveBrandTheme } from '@rule-io/client';
 import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
 import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '@rule-io/vendor-bookzen';
 import { createClient } from '../shared/client.js';
@@ -180,8 +180,8 @@ async function run(opts: Options): Promise<void> {
       ? `\n→ Fetching brand style ${brandOverride} (override)...`
       : '\n→ Resolving preferred brand style (is_default)...',
   );
-  const { id: brandStyleId, name: brandName, brandStyle, source } =
-    await resolvePreferredBrandStyle(client, brandOverride);
+  const { id: brandStyleId, name: brandName, theme, source } =
+    await resolveBrandTheme(client, brandOverride);
 
   if (source === 'fallback') {
     console.warn('  WARN: no brand style is flagged as default — falling back to first in list');
@@ -189,7 +189,7 @@ async function run(opts: Options): Promise<void> {
 
   console.log(`  using "${brandName ?? '-'}" (id ${brandStyleId})`);
 
-  const config: VendorConsumerConfig = { brandStyle, customFields, websiteUrl: WEBSITE_URL };
+  const config: VendorConsumerConfig = { theme, customFields, websiteUrl: WEBSITE_URL };
 
   console.log('→ Validating config against bookzen preset...');
   bookzenPreset.validateConfig(config);

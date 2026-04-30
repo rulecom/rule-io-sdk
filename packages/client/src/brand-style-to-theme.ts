@@ -30,6 +30,7 @@ import type {
   EmailThemeSocialLinkType,
 } from '@rule-io/rcml';
 
+import { RuleConfigError } from '@rule-io/core';
 import type {
   RuleBrandStyle,
   RuleBrandStyleColour,
@@ -38,6 +39,9 @@ import type {
   RuleBrandStyleImage,
   RuleBrandStyleLink,
   RuleBrandStyleLinkType,
+  RuleBrandStyleListItem,
+  RuleBrandStyleListResponse,
+  RuleBrandStyleResponse,
 } from './types.js';
 
 /**
@@ -214,4 +218,106 @@ function fontFamilyFrom(font: RuleBrandStyleFont): string | undefined {
   if (typeof name !== 'string' || name === '') return undefined;
 
   return name;
+}
+
+// ============================================================================
+// Theme resolver — thin wrapper around the brand-style HTTP endpoints that
+// returns an EmailTheme ready to drive `applyTheme`.
+// ============================================================================
+
+/**
+ * Minimal structural shape {@link resolveBrandTheme} needs from a client.
+ * `RuleClient` satisfies it, and test doubles can too without importing
+ * the whole client module.
+ *
+ * @public
+ */
+export interface BrandThemeResolverClient {
+  listBrandStyles(): Promise<RuleBrandStyleListResponse>
+  getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null>
+}
+
+/**
+ * Result of {@link resolveBrandTheme}.
+ *
+ * @public
+ */
+export interface ResolvedBrandTheme {
+  /** Resolved brand-style id. */
+  id: number
+  /** Brand style name if the API returned one. */
+  name?: string
+  /** The resolved theme, ready for `applyTheme`. */
+  theme: EmailTheme
+  /**
+   * Discovery source: `'override'` when the caller supplied `overrideId`,
+   * `'default'` when an `is_default` entry matched, `'fallback'` when the
+   * first entry was used because no default was flagged.
+   */
+  source: 'override' | 'default' | 'fallback'
+}
+
+/**
+ * Resolve the account's preferred brand style and convert it to a
+ * ready-to-apply {@link EmailTheme}.
+ *
+ * Discovery rules:
+ * 1. If `overrideId` is provided, fetch that brand style directly.
+ * 2. Otherwise, list all brand styles and pick the one flagged
+ *    `is_default`.
+ * 3. If no style is flagged default, fall back to the first entry
+ *    (`source` is set to `'fallback'` so callers can warn).
+ *
+ * Use this in provisioning / deploy scripts instead of hardcoding brand
+ * style IDs — a customer's preferred style can change and list order is
+ * not guaranteed.
+ *
+ * @public
+ */
+export async function resolveBrandTheme(
+  client: BrandThemeResolverClient,
+  overrideId?: number,
+): Promise<ResolvedBrandTheme> {
+  if (overrideId !== undefined) {
+    if (!Number.isInteger(overrideId) || overrideId <= 0) {
+      throw new RuleConfigError(
+        `Invalid brand style id ${String(overrideId)}: expected a positive integer.`,
+      );
+    }
+
+    const resp = await client.getBrandStyle(overrideId);
+
+    if (!resp?.data) {
+      throw new RuleConfigError(`Brand style ${String(overrideId)} not found`);
+    }
+
+    return {
+      id: overrideId,
+      name: resp.data.name,
+      theme: emailThemeFromBrandStyle(resp.data),
+      source: 'override',
+    };
+  }
+
+  const listResp = await client.listBrandStyles();
+  const styles: RuleBrandStyleListItem[] = listResp.data ?? [];
+
+  if (styles.length === 0) {
+    throw new RuleConfigError('No brand styles available in the account');
+  }
+
+  const preferred = styles.find((s) => s.is_default) ?? styles[0]!;
+  const source: 'default' | 'fallback' = preferred.is_default ? 'default' : 'fallback';
+  const resp = await client.getBrandStyle(preferred.id);
+
+  if (!resp?.data) {
+    throw new RuleConfigError(`Brand style ${String(preferred.id)} not found`);
+  }
+
+  return {
+    id: preferred.id,
+    name: resp.data.name,
+    theme: emailThemeFromBrandStyle(resp.data),
+    source,
+  };
 }
