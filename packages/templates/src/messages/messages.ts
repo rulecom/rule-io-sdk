@@ -1,14 +1,16 @@
 /**
- * Message-tree lookup and `{paramName}` substitution.
+ * Message-tree lookup and `{{paramName}}` substitution.
  *
  * The message tree is a nested plain-object whose leaves are strings
  * (or numbers / booleans, which are coerced). Leaf strings may
- * contain single-brace `{paramName}` placeholders that get replaced
- * with pre-evaluated param values.
+ * contain double-brace `{{paramName}}` placeholders that get
+ * replaced with pre-evaluated param values at call time. (The outer
+ * template syntax uses `<?copy?>` PIs — `{{…}}` only appears inside
+ * message strings, never in template XML.)
  *
- * RFM atoms (§14) live inside message text and carry their `"`
- * delimiters verbatim — because we only substitute `{paramName}`
- * tokens, not escape or reformat the surrounding text.
+ * RFM atoms live inside message text and carry their `"` delimiters
+ * verbatim — because we only substitute `{{paramName}}` tokens, not
+ * escape or reformat the surrounding text.
  *
  * @internal
  */
@@ -24,14 +26,14 @@ import type { SourceLoc } from '../source/loc.js'
  * leaf is not a string/number/boolean. Numbers and booleans are
  * permissively coerced to their string form.
  *
- * @param tree - Resolved messages tree for the caller's locale.
+ * @param tree - Resolved messages tree.
  * @param key - Dot-path to the leaf, split into segments (e.g.
  *   `['welcome', 'title']` for `welcome.title`).
  * @param loc - Source location of the interpolation referencing this
  *   key; used to decorate thrown errors.
  * @param source - Full template source for error frames.
  * @param sourcePath - Optional file path for error prefixes.
- * @returns The leaf string (with `{paramName}` placeholders still in
+ * @returns The leaf string (with `{{paramName}}` placeholders still in
  *   place; substitution happens in {@link substituteMessageParams}).
  */
 export function lookupMessage(
@@ -80,22 +82,22 @@ export function lookupMessage(
 }
 
 /**
- * Replace `{paramName}` placeholders in `template` with values from
- * `params`.
+ * Replace `{{{paramName}}}` placeholders in `template` with values
+ * from `params`.
  *
- * Placeholder rules (spec §6.3): single braces wrapping a plain
- * identifier (`[A-Za-z_][A-Za-z0-9_]*`). No nesting, no expressions.
- * Non-placeholder braces (e.g. the `{` inside an RFM
- * `::placeholder{name="foo"}` atom) pass through literally while the
- * scanner continues — so `{paramName}` tokens nested inside such
- * literal brace runs still get substituted.
+ * Placeholder rules: double-brace wrapping a plain identifier
+ * (`[A-Za-z_][A-Za-z0-9_]*`). No nesting, no expressions. Single
+ * `{` / `}` pass through literally — so RFM atoms like
+ * `::placeholder{name="{{name}}"}` keep their single-brace
+ * attribute delimiters intact while only the inner `{{name}}`
+ * gets substituted.
  *
  * Unknown placeholders throw `TemplateCompileError`. Extra entries
  * in `params` that aren't referenced are silently ignored (warnings
- * about unused params are out of scope for v1.1).
+ * about unused params are out of scope for v1.4).
  *
  * @param template - Raw message string containing optional
- *   `{paramName}` placeholders.
+ *   `{{{paramName}}}` placeholders.
  * @param params - Pre-evaluated string values keyed by placeholder
  *   name.
  * @param loc - Source location of the interpolation referencing this
@@ -121,12 +123,12 @@ export function substituteMessageParams(
     const ch = template[i]!
 
     if (ch === '{') {
-      // Only match when the bytes between `{` and `}` form a plain
-      // identifier. Anything else — `{name="x"` etc. — is literal
-      // brace content and we emit just the `{` here, re-entering
-      // the main loop from `i+1` so nested `{placeholder}` tokens
-      // inside the literal chunk still get substituted.
-      const match = /^\{([A-Za-z_][A-Za-z0-9_]*)\}/.exec(template.slice(i))
+      // Only match when we see `{{ident}}` exactly. A single `{`
+      // (e.g. the start of an RFM atom `{name="x"`) is literal
+      // brace content — we emit just the one `{` and re-enter the
+      // main loop from `i+1` so any nested `{{placeholder}}` tokens
+      // further inside still get substituted.
+      const match = /^\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/.exec(template.slice(i))
 
       if (match !== null) {
         const name = match[1]!

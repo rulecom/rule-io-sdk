@@ -4,11 +4,14 @@
  * parser.
  *
  * The source is a mix of:
- * - XML elements (with attributes that may themselves contain `{{…}}`)
- * - text nodes
- * - `{{…}}` interpolation expressions
- * - `@if (…) { … }` / `@else if (…) { … }` / `@else { … }` /
- *   `@for (item of expr) { … }` block directives
+ * - XML elements (with attributes that may contain `@{…}` bindings)
+ * - plain text nodes (no expression syntax — spec §5.1 forbids
+ *   `@{…}` in text content; use `<?copy?>` instead)
+ * - Block directives encoded as XML Processing Instructions —
+ *   `<?if expr?>` / `<?elseif expr?>` / `<?else?>` / `<?endif?>` /
+ *   `<?for let? name of expr?>` / `<?endfor?>` /
+ *   `<?copy key p1=expr p2=expr …?>`.
+ * - XML comments (stripped from the stream)
  *
  * The tokeniser is a single-pass state machine; each token carries a
  * 1-based (line, column) location into the original source.
@@ -27,15 +30,17 @@ import type { SourceLoc } from '../source/loc.js'
  * (`>`), `tag-self-close` (`/>`), `tag-close` (`</tagname>`),
  * `attr-name`, `attr-equals` (`=`), `attr-quote-open` and
  * `attr-quote-close` (`"` or `'`), `attr-text` (literal run inside
- * an attribute value), `attr-interp` (a `{{…}}` inside an
- * attribute value).
+ * an attribute value), `attr-binding` (an `@{expression}` binding
+ * inside an attribute value).
  *
- * Inline content: `text` (literal character data) and `interp`
- * (`{{…}}` at text position).
+ * Inline content: `text` (literal character data — no expression
+ * syntax is recognised at text position per spec §5.1).
  *
- * Directives: `if`, `else-if`, `else`, `for`, plus the punctuation
- * (`lparen`, `rparen`, `lbrace`, `rbrace`) used by their
- * condition/iterator headers and block bodies.
+ * Directive Processing Instructions: `if-open` / `elseif-open`
+ * (value = condition expression), `else-open` (empty value),
+ * `if-close` (closes `<?endif?>`); `for-open` (value = `let? name
+ * of expr` header), `for-close` (closes `<?endfor?>`);
+ * `copy-open` (value = `key p1=expr p2=expr …` data).
  *
  * `eof` is the terminating sentinel emitted when the source is
  * fully consumed.
@@ -50,17 +55,15 @@ export type TemplateTokenType =
   | 'attr-quote-open'
   | 'attr-quote-close'
   | 'attr-text'
-  | 'attr-interp'
+  | 'attr-binding'
   | 'text'
-  | 'interp'
-  | 'if'
-  | 'else-if'
-  | 'else'
-  | 'for'
-  | 'lparen'
-  | 'rparen'
-  | 'lbrace'
-  | 'rbrace'
+  | 'if-open'
+  | 'elseif-open'
+  | 'else-open'
+  | 'if-close'
+  | 'for-open'
+  | 'for-close'
+  | 'copy-open'
   | 'eof'
 
 /**
@@ -74,11 +77,24 @@ export interface TemplateToken {
   readonly type: TemplateTokenType
   /**
    * The raw text of the token (tag name, attribute name, text run
-   * content, interpolation body, literal punctuation). Empty string
-   * for `eof`.
+   * content, binding body, PI data). Empty string for closing
+   * PIs (`if-close`, `for-close`), `else-open`, and `eof`.
    */
   readonly value: string
-  /** Location of the token's first character in the outer source. */
+  /**
+   * Location of the token's first significant character.
+   *
+   * - For tag / attribute tokens: the first character of the name.
+   * - For `text`: the first character of the text run.
+   * - For `attr-binding`: the first character of the binding body
+   *   (inside the `@{`).
+   * - For directive-PI tokens carrying data (`if-open`,
+   *   `elseif-open`, `for-open`, `copy-open`): the first character
+   *   of the data section, so the expression parser's `baseLoc`
+   *   points at the expression body.
+   * - For data-free directive PIs (`else-open`, `if-close`,
+   *   `for-close`): the first character after `<?`.
+   */
   readonly loc: SourceLoc
 }
 
@@ -97,10 +113,11 @@ export interface TokeniseTemplateOptions {
  * {@link TemplateToken} stream terminated with an `eof` token.
  *
  * The tokeniser is a single-pass state machine handling XML
- * elements, attribute values (with embedded `{{…}}`), text runs,
- * `{{…}}` interpolations, block directives (`@if` / `@else if` /
- * `@else` / `@for`), and XML comments (stripped). Diagnostics use
- * the supplied `sourcePath` in their prefix when present.
+ * elements, attribute values (with embedded `@{…}` bindings), text
+ * runs, XML comments (stripped), and directive Processing
+ * Instructions (`<?if?>` / `<?elseif?>` / `<?else?>` / `<?endif?>` /
+ * `<?for?>` / `<?endfor?>` / `<?copy?>`). Diagnostics use the
+ * supplied `sourcePath` in their prefix when present.
  *
  * @param opts - Source to tokenise and optional file path.
  * @returns The token stream, always terminating with an `eof` token.
@@ -128,20 +145,20 @@ class TemplateLexer {
     return this.tokens
   }
 
-  // ── Content-level scanner (body + block children share this) ───
+  // ── Content-level scanner (body + element children share this) ──
 
   /**
    * Walk the source in "content" position — between tags, at the
-   * top level, or inside a directive block. Emits text tokens,
-   * interpolation tokens, directive tokens, and dispatches into
-   * `lexElement` when an XML tag begins.
+   * top level, or inside an element body. Emits text tokens,
+   * directive PI tokens, and dispatches into `lexElement` when an
+   * XML tag begins. Per spec §5.1, `@{…}` is forbidden in text
+   * position; encountering it is a compile error.
    *
    * `mode` controls what terminates the loop:
    * - `'body'`: read until EOF
-   * - `'block'`: read until matching `}` (which is consumed by the caller)
    * - `'element-children'`: read until `</tag>` is encountered
    */
-  private lexContent(mode: 'body' | 'block' | 'element-children'): void {
+  private lexContent(mode: 'body' | 'element-children'): void {
     let buf = ''
     let bufStart = this.here()
 
@@ -155,13 +172,6 @@ class TemplateLexer {
     while (this.i < this.source.length) {
       const ch = this.source[this.i]!
 
-      // Block close: `}` ends the current block
-      if (mode === 'block' && ch === '}') {
-        flushText()
-
-        return
-      }
-
       // Element-children mode ends when we see `</`
       if (mode === 'element-children' && ch === '<' && this.source[this.i + 1] === '/') {
         flushText()
@@ -169,34 +179,22 @@ class TemplateLexer {
         return
       }
 
-      // XML tag open: `<tagname` starts an element. A raw `<` that
-      // isn't followed by a tag name is an error.
+      // `<` may open an element, a comment, or a Processing Instruction.
       if (ch === '<') {
         flushText()
         this.lexElement()
         continue
       }
 
-      // Interpolation `{{ … }}`
-      if (ch === '{' && this.source[this.i + 1] === '{') {
-        flushText()
-        const loc = this.here()
-
-        this.advance(2)
-        const body = this.readInterpolationBody(loc)
-
-        this.emit('interp', body, loc)
-        continue
-      }
-
-      // Directive: `@if` / `@else` / `@else if` / `@for`. Allowed at
-       // any child position — inside elements, inside directive blocks,
-       // and at body level. Attribute values run through a separate
-       // lexer that never reaches here.
-      if (ch === '@' && this.matchesDirectiveKeyword()) {
-        flushText()
-        this.lexDirective()
-        continue
+      // `@{…}` bindings are not allowed in text position (spec §5.1).
+      // Surface it loudly so the author migrates to `<?copy?>`.
+      if (ch === '@' && this.source[this.i + 1] === '{') {
+        throw new TemplateCompileError(
+          `'@{…}' binding is not valid in text content — use '<?copy key?>' (spec §4 / §5.1)`,
+          this.here(),
+          this.source,
+          this.sourcePath,
+        )
       }
 
       // Default: accumulate into text buffer
@@ -206,15 +204,6 @@ class TemplateLexer {
     }
 
     flushText()
-
-    if (mode === 'block') {
-      throw new TemplateCompileError(
-        `Unterminated block — expected '}'`,
-        this.here(),
-        this.source,
-        this.sourcePath,
-      )
-    }
 
     if (mode === 'element-children') {
       throw new TemplateCompileError(
@@ -226,16 +215,23 @@ class TemplateLexer {
     }
   }
 
-  // ── XML element ─────────────────────────────────────────────────
+  // ── XML element / comment / PI dispatch ────────────────────────
 
   private lexElement(): void {
-    // Consume `<`
     const tagStart = this.here()
 
     this.advance() // '<'
 
+    // XML comment: `<!-- … -->`
     if (this.source[this.i] === '!' && this.source.slice(this.i + 1, this.i + 3) === '--') {
       this.lexComment()
+
+      return
+    }
+
+    // Processing Instruction: `<?target data?>`
+    if (this.source[this.i] === '?') {
+      this.lexPI(tagStart)
 
       return
     }
@@ -414,15 +410,15 @@ class TemplateLexer {
     while (this.i < this.source.length && this.source[this.i] !== quote) {
       const ch = this.source[this.i]!
 
-      // Interpolation inside attribute value
-      if (ch === '{' && this.source[this.i + 1] === '{') {
+      // Binding `@{…}` inside attribute value (spec §5).
+      if (ch === '@' && this.source[this.i + 1] === '{') {
         flush()
         const loc = this.here()
 
-        this.advance(2)
-        const body = this.readInterpolationBody(loc)
+        this.advance(2) // '@{'
+        const body = this.readBindingBody(loc)
 
-        this.emit('attr-interp', body, loc)
+        this.emit('attr-binding', body, loc)
         continue
       }
 
@@ -448,178 +444,148 @@ class TemplateLexer {
     this.emit('attr-quote-close', quote, quoteCloseLoc)
   }
 
-  // ── Directives ──────────────────────────────────────────────────
+  // ── Directive Processing Instructions ──────────────────────────
 
   /**
-   * Detect whether the next token starting at `@` is a valid
-   * directive keyword (`@if`, `@else`, `@else if`, `@for`). This
-   * is needed to distinguish directive use from a literal `@` in
-   * text content (e.g. an email address).
+   * Lex a directive Processing Instruction.
+   *
+   * The caller has consumed `<` but not `?`. On entry, `this.i`
+   * points at the `?` of `<?`. `piStart` marks the location of the
+   * opening `<`, used in error messages for unknown targets.
+   *
+   * Grammar (abbreviated from XML 1.0 §2.6):
+   *
+   *   PI      ::= '<?' PITarget (S PIData)? '?>'
+   *   PITarget ::= ident-like run (letters, digits, `_` / `-`)
+   *   PIData  ::= any chars up to the first `?>`
+   *
+   * Recognised targets: `if` / `elseif` / `else` / `endif` / `for`
+   * / `endfor` / `copy`. Anything else raises a compile error — this
+   * surfaces typos rather than silently dropping them.
    */
-  private matchesDirectiveKeyword(): boolean {
-    const rest = this.source.slice(this.i + 1)
+  private lexPI(piStart: SourceLoc): void {
+    this.advance() // '?'
 
-    if (/^if\b/.test(rest)) return true
-    if (/^else\b/.test(rest)) return true
-    if (/^for\b/.test(rest)) return true
+    // Read the target (contiguous identifier chars).
+    const targetStart = this.i
 
-    return false
-  }
-
-  private lexDirective(): void {
-    const loc = this.here()
-
-    this.advance() // '@'
-
-    if (this.peekIdent('if')) {
-      this.consumeIdent('if')
-      this.emit('if', '@if', loc)
-      this.lexDirectiveParenBlock()
-
-      return
+    while (this.i < this.source.length && isPITargetPart(this.source[this.i]!)) {
+      this.advance()
     }
 
-    if (this.peekIdent('for')) {
-      this.consumeIdent('for')
-      this.emit('for', '@for', loc)
-      this.lexDirectiveParenBlock()
+    const target = this.source.slice(targetStart, this.i)
 
-      return
+    if (target.length === 0) {
+      throw new TemplateCompileError(
+        `Expected PI target after '<?'`,
+        piStart,
+        this.source,
+        this.sourcePath,
+      )
     }
 
-    if (this.peekIdent('else')) {
-      this.consumeIdent('else')
-      this.skipWhitespace()
+    // Skip whitespace between target and data.
+    this.skipWhitespace()
 
-      if (this.peekIdent('if')) {
-        this.consumeIdent('if')
-        this.emit('else-if', '@else if', loc)
-        this.lexDirectiveParenBlock()
+    // Capture data start location — this is what the expression /
+    // header parser uses as its baseLoc.
+    const dataLoc = this.here()
+
+    // Read data up to `?>`.
+    let data = ''
+
+    while (this.i < this.source.length) {
+      if (this.source[this.i] === '?' && this.source[this.i + 1] === '>') {
+        this.advance(2)
+        this.emitPIToken(target, data, piStart, dataLoc)
 
         return
       }
 
-      this.emit('else', '@else', loc)
-      this.lexDirectiveBlock()
-
-      return
+      data += this.source[this.i]
+      this.advance()
     }
 
     throw new TemplateCompileError(
-      `Unknown directive after '@'`,
-      loc,
+      `Unterminated Processing Instruction — expected '?>'`,
+      piStart,
       this.source,
       this.sourcePath,
     )
   }
 
-  /** Lex `(expr) { children }` — used by `@if`, `@else if`, `@for`. */
-  private lexDirectiveParenBlock(): void {
-    this.skipWhitespace()
+  /**
+   * Dispatch a PI target to its corresponding token type. Targets
+   * that don't carry data still emit the token; the parser ignores
+   * the data value on those.
+   */
+  private emitPIToken(
+    target: string,
+    data: string,
+    piStart: SourceLoc,
+    dataLoc: SourceLoc,
+  ): void {
+    switch (target) {
+      case 'if':
+        this.emit('if-open', data, dataLoc)
 
-    if (this.source[this.i] !== '(') {
-      throw new TemplateCompileError(
-        `Expected '(' after directive keyword`,
-        this.here(),
-        this.source,
-        this.sourcePath,
-      )
+        return
+
+      case 'elseif':
+        this.emit('elseif-open', data, dataLoc)
+
+        return
+
+      case 'else':
+        this.emit('else-open', '', dataLoc)
+
+        return
+
+      case 'endif':
+        this.emit('if-close', '', dataLoc)
+
+        return
+
+      case 'for':
+        this.emit('for-open', data, dataLoc)
+
+        return
+
+      case 'endfor':
+        this.emit('for-close', '', dataLoc)
+
+        return
+
+      case 'copy':
+        this.emit('copy-open', data, dataLoc)
+
+        return
+
+      default:
+        throw new TemplateCompileError(
+          `Unknown PI target '${target}'`,
+          piStart,
+          this.source,
+          this.sourcePath,
+        )
     }
-
-    const lpLoc = this.here()
-
-    this.advance()
-    this.emit('lparen', '(', lpLoc)
-
-    // Read the paren body verbatim, balancing nested parens, as
-    // a single text chunk that the expression parser will
-    // re-tokenise.
-    const exprStart = this.here()
-    let depth = 1
-    let buf = ''
-
-    while (this.i < this.source.length && depth > 0) {
-      const ch = this.source[this.i]!
-
-      if (ch === '(') depth++
-      else if (ch === ')') {
-        depth--
-
-        if (depth === 0) break
-      }
-
-      buf += ch
-      this.advance()
-    }
-
-    if (depth !== 0) {
-      throw new TemplateCompileError(
-        `Unterminated directive expression`,
-        this.here(),
-        this.source,
-        this.sourcePath,
-      )
-    }
-
-    // Emit expression body as a synthetic `text` token — parser will
-    // re-lex via the expression lexer.
-    this.emit('text', buf, exprStart)
-
-    const rpLoc = this.here()
-
-    this.advance()
-    this.emit('rparen', ')', rpLoc)
-
-    this.lexDirectiveBlock()
   }
 
-  /** Lex `{ children }` — used by `@else` and after paren of if/for. */
-  private lexDirectiveBlock(): void {
-    this.skipWhitespace()
+  // ── Attribute binding body ──────────────────────────────────────
 
-    if (this.source[this.i] !== '{') {
-      throw new TemplateCompileError(
-        `Expected '{' to open directive block`,
-        this.here(),
-        this.source,
-        this.sourcePath,
-      )
-    }
-
-    const lbLoc = this.here()
-
-    this.advance()
-    this.emit('lbrace', '{', lbLoc)
-
-    this.lexContent('block')
-
-    if (this.source[this.i] !== '}') {
-      throw new TemplateCompileError(
-        `Expected '}' to close directive block`,
-        this.here(),
-        this.source,
-        this.sourcePath,
-      )
-    }
-
-    const rbLoc = this.here()
-
-    this.advance()
-    this.emit('rbrace', '}', rbLoc)
-  }
-
-  // ── Interpolation body ──────────────────────────────────────────
-
-  /** Read chars between `{{` and `}}`, preserving strings that contain `}`. */
-  private readInterpolationBody(openLoc: SourceLoc): string {
+  /**
+   * Read chars between `@{` and the matching `}`, preserving string
+   * literals so they may contain an embedded `}`. The opening `@{`
+   * has already been consumed.
+   */
+  private readBindingBody(openLoc: SourceLoc): string {
     let buf = ''
 
     while (this.i < this.source.length) {
       const ch = this.source[this.i]!
 
-      // `}}` closes the interpolation (unless inside a string literal)
-      if (ch === '}' && this.source[this.i + 1] === '}') {
-        this.advance(2)
+      if (ch === '}') {
+        this.advance()
 
         return buf
       }
@@ -646,7 +612,7 @@ class TemplateLexer {
 
         if (this.source[this.i] !== quote) {
           throw new TemplateCompileError(
-            `Unterminated string inside interpolation`,
+            `Unterminated string inside '@{…}' binding`,
             openLoc,
             this.source,
             this.sourcePath,
@@ -663,7 +629,7 @@ class TemplateLexer {
     }
 
     throw new TemplateCompileError(
-      `Unterminated interpolation — expected '}}'`,
+      `Unterminated '@{…}' binding — expected '}'`,
       openLoc,
       this.source,
       this.sourcePath,
@@ -704,18 +670,6 @@ class TemplateLexer {
       this.advance()
     }
   }
-
-  private peekIdent(word: string): boolean {
-    if (this.source.slice(this.i, this.i + word.length) !== word) return false
-    const after = this.source[this.i + word.length] ?? ''
-
-    return !isIdentPart(after)
-  }
-
-  private consumeIdent(word: string): void {
-    // Caller has already verified peekIdent(word).
-    this.advance(word.length)
-  }
 }
 
 function isTagNameStart(ch: string): boolean {
@@ -734,6 +688,18 @@ function isAttrNamePart(ch: string): boolean {
   return isAttrNameStart(ch) || (ch >= '0' && ch <= '9') || ch === '-' || ch === '.'
 }
 
-function isIdentPart(ch: string): boolean {
-  return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9') || ch === '_'
+/**
+ * Chars allowed in a PI target name. Matches the character class
+ * XML 1.0 uses for Name (simplified: letters, digits, `_`, `-`).
+ * Kept liberal so typos like `<?end-if?>` can still surface as
+ * "unknown target" rather than "expected PI target".
+ */
+function isPITargetPart(ch: string): boolean {
+  return (
+    (ch >= 'a' && ch <= 'z') ||
+    (ch >= 'A' && ch <= 'Z') ||
+    (ch >= '0' && ch <= '9') ||
+    ch === '_' ||
+    ch === '-'
+  )
 }

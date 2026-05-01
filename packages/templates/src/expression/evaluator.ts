@@ -2,8 +2,8 @@
  * Expression evaluator — walks an {@link ExpressionNode} AST against
  * a scope stack, returning the raw JS value.
  *
- * Scope stack semantics (spec §11.3): lookup order is
- *   1. innermost local scope (e.g. most recent `@for`)
+ * Scope stack semantics (spec §7): lookup order is
+ *   1. innermost local scope (e.g. most recent `<?for?>`)
  *   2. outer local scopes
  *   3. global `data`
  *
@@ -21,8 +21,8 @@ import type { ExpressionNode } from './ast.js'
  * One scope frame on the evaluator's scope stack.
  *
  * The outermost scope is always `{ data: <caller's data> }`; each
- * `@for` block pushes an additional frame binding the loop variable
- * and the six loop-meta entries.
+ * `<?for?>` block pushes an additional frame binding the loop
+ * variable.
  */
 export interface EvalScope {
   readonly [name: string]: unknown
@@ -55,7 +55,7 @@ export interface EvalContext {
  * @param node - The AST to evaluate.
  * @param ctx - Scope stack plus outer-source metadata.
  * @returns The raw JS value the expression resolved to. The caller
- *   is responsible for coercing to boolean (for `@if` / `@for` gating)
+ *   is responsible for coercing to boolean (for `<?if?>` / `<?for?>` gating)
  *   or to string (for interpolation output) as appropriate.
  */
 export function evaluateExpression(node: ExpressionNode, ctx: EvalContext): unknown {
@@ -91,9 +91,9 @@ export function evaluateExpression(node: ExpressionNode, ctx: EvalContext): unkn
       const r = evaluateExpression(node.right, ctx)
 
       switch (node.op) {
-         
+
         case '==': return l == r
-         
+
         case '!=': return l != r
         case '<': return (l as number) < (r as number)
         case '<=': return (l as number) <= (r as number)
@@ -103,42 +103,25 @@ export function evaluateExpression(node: ExpressionNode, ctx: EvalContext): unkn
     }
 
     // falls through (TS can't see above switch is exhaustive for BinaryOp)
-    case 'dataPath':
-      return resolveDataPath(node.path, ctx)
-
     case 'localPath':
       return resolveLocalPath(node.path, ctx)
-
-    case 'loopMeta':
-      return resolveLocalPath([node.name], ctx, node.name)
   }
 }
 
-function resolveDataPath(
-  path: readonly string[],
-  ctx: EvalContext,
-): unknown {
-  // `data:…` always bottoms out at the root `data` object, which is
-  // stored in the outermost scope as `data`.
-  const root = ctx.scopes[0]?.['data']
-
-  return walkPath(root, path)
-}
-
 /**
- * Resolve a local-path reference by walking the scope stack from
+ * Resolve a path reference by walking the scope stack from
  * innermost → outermost. The first scope whose top-level key matches
  * `path[0]` owns the lookup; subsequent path segments dot-navigate
  * into that scope's value.
  *
- * `fallbackName` (used for loop-meta) causes the lookup to return
- * `undefined` silently when the scope chain has no match — caller
- * decides whether that's an error.
+ * The outermost scope frame is the caller's `data` object itself
+ * (flattened by {@link compileTemplate}), so bare path references
+ * like `user.premium` resolve into `data.user.premium` when no
+ * enclosing `<?for?>` shadows the head segment.
  */
 function resolveLocalPath(
   path: readonly string[],
   ctx: EvalContext,
-  _fallbackName?: string,
 ): unknown {
   if (path.length === 0) return undefined
   const [head, ...tail] = path
@@ -166,33 +149,6 @@ function walkPath(root: unknown, path: readonly string[]): unknown {
   }
 
   return cur
-}
-
-/**
- * Helper used by the top-level compiler when a missing `data:` path
- * is a hard error. Walks the same path; returns a
- * `{ found, value }` result so the caller can distinguish an
- * intentional `null` leaf from a missing segment.
- */
-export function probeDataPath(
-  path: readonly string[],
-  ctx: EvalContext,
-): { found: boolean; value: unknown } {
-  let cur: unknown = ctx.scopes[0]?.['data']
-
-  for (const seg of path) {
-    if (cur === null || cur === undefined || typeof cur !== 'object') {
-      return { found: false, value: undefined }
-    }
-
-    if (!Object.prototype.hasOwnProperty.call(cur, seg)) {
-      return { found: false, value: undefined }
-    }
-
-    cur = (cur as Record<string, unknown>)[seg]
-  }
-
-  return { found: true, value: cur }
 }
 
 /** Non-throwing probe for local-path presence. */

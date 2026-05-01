@@ -1,5 +1,5 @@
 /**
- * Expression parser behavior — asserts that the v1.1 grammar rejects
+ * Expression parser behavior — asserts that the v3 grammar rejects
  * all the syntactic features it deliberately doesn't support:
  * function calls, arithmetic, ternary, optional chaining, nullish
  * coalescing, bracket indexing, and strict equality.
@@ -16,10 +16,9 @@ describe('expression language — unsupported syntax raises', () => {
   const mustReject = (expr: string): void => {
     expect(() =>
       compileTemplate({
-        templateSrc: `@if (${expr}) {x}`,
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: `<?if ${expr}?><x/><?endif?>`,
+        copy: {},
+        context: {},
       }),
     ).toThrow(TemplateCompileError)
   }
@@ -37,30 +36,29 @@ describe('expression language — unsupported syntax raises', () => {
   })
 
   it('rejects optional chaining', () => {
-    mustReject('data:a?.b')
+    mustReject('a?.b')
   })
 
   it('rejects nullish coalescing', () => {
-    mustReject('data:a ?? data:b')
+    mustReject('a ?? b')
   })
 
   it('rejects bracket index access', () => {
-    mustReject('data:a[0]')
+    mustReject('a[0]')
   })
 
   it('rejects strict equality ===', () => {
     mustReject("'a' === 'a'")
   })
 
-  it('rejects an unknown loop-meta name used as an expression term', () => {
+  it('rejects $-prefixed identifiers (loop-meta removed in v3)', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '@if ($nope) {x}',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<?if $nope?><x/><?endif?>',
+        copy: {},
+        context: {},
       }),
-    ).toThrow(/Unknown loop-meta variable '\$nope'/)
+    ).toThrow(TemplateCompileError)
   })
 
   it('rejects an unclosed grouping paren', () => {
@@ -68,10 +66,9 @@ describe('expression language — unsupported syntax raises', () => {
     // expression parser's primary rule.
     expect(() =>
       compileTemplate({
-        templateSrc: '@if ((true) {x}',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<?if (true?><x/><?endif?>',
+        copy: {},
+        context: {},
       }),
     ).toThrow(TemplateCompileError)
   })

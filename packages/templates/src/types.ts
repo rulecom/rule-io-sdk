@@ -1,8 +1,12 @@
 /**
- * Public type surface for `@rule-io/templates` v1.1.
+ * Public type surface for `@rule-io/templates` v3.
+ *
+ * See `docs/template-syntax.md` for the full syntax specification.
  *
  * @public
  */
+
+import type { TemplateRefSerializer } from './refs/types.js'
 
 /**
  * Options accepted by {@link compileTemplate}.
@@ -14,44 +18,44 @@
  * @public
  */
 export interface CompileTemplateOptions<
-  TMessages = Record<string, unknown>,
-  TData = Record<string, unknown>,
+  TCopy = Record<string, unknown>,
+  TContext = Record<string, unknown>,
 > {
   /**
-   * Raw template source — XML with embedded `{{…}}` interpolations and
-   * `@if` / `@for` control-flow blocks. No root element required; the
-   * source may contain a sequence of sibling elements and directives.
+   * Raw template source — XML with `<?copy?>` PIs for localized text,
+   * `@{expr}` bindings inside attribute values, and `<?if?>` / `<?for?>`
+   * Processing-Instruction control-flow blocks (v3). No root element
+   * required; the source may contain a sequence of sibling elements
+   * and directives.
    */
-  readonly templateSrc: string
+  readonly template: string
 
   /**
-   * Selected locale. Informational — the compiler expects `messages`
-   * to already be the resolved tree for this locale. Surfaces in
-   * error messages and is available for future extensions that may
-   * key off it.
+   * Resolved message tree. Nested objects whose leaves are strings.
+   * Leaf strings may contain `{{paramName}}` placeholders that get
+   * substituted by the params supplied to a particular
+   * `<?copy key p1=expr …?>` PI.
    */
-  readonly locale: string
+  readonly copy: TCopy
 
   /**
-   * Resolved message tree for `locale`. Nested objects whose leaves
-   * are strings. Leaf strings may contain `{paramName}` placeholders
-   * that get substituted by the params supplied to a particular
-   * `{{t:key.path(param=expr, …)}}` interpolation.
+   * Context referenced by `@{…}` attribute bindings, by condition
+   * expressions (`<?if user.premium?>`), and by `<?copy?>` param
+   * values. Top-level keys of this object become the outermost scope
+   * frame — no prefix needed to reference them. `<?for?>` loop
+   * variables shadow same-named keys (standard lexical scoping).
+   * Plain serialisable object — no functions, classes, promises,
+   * getters or proxies.
    */
-  readonly messages: TMessages
+  readonly context: TContext
 
   /**
-   * Data context referenced by `{{data:…}}` interpolations and by
-   * condition expressions (`@if (data:… == …)`). Plain serialisable
-   * object — no functions, classes, promises, getters or proxies.
+   * Optional custom serializer for `TemplateRef` values encountered
+   * at a renderable position (`<?copy?>` param, `@{…}` binding). If
+   * omitted, the default serializer emits Rule.io RFM placeholder
+   * strings (`defaultTemplateRefSerializer`).
    */
-  readonly data: TData
-
-  /**
-   * Optional source file path, reported in error messages so
-   * callers get a clickable location.
-   */
-  readonly sourcePath?: string
+  readonly serializer?: TemplateRefSerializer
 }
 
 /**
@@ -63,16 +67,3 @@ export interface CompileTemplateResult {
   /** The compiled XML string. */
   readonly xml: string
 }
-
-/**
- * Loop metadata variable names accessible inside a `@for` block.
- *
- * @public
- */
-export type LoopMetaName =
-  | '$index'
-  | '$count'
-  | '$first'
-  | '$last'
-  | '$even'
-  | '$odd'

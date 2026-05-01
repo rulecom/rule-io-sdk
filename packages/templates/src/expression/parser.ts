@@ -13,33 +13,22 @@
  * Relational  := Unary (('<' | '<=' | '>' | '>=') Unary)*
  * Unary       := '!' Unary | Primary
  * Primary     := Literal | Path | Group
- * Path        := 'data' ':' Identifier ('.' Identifier)*
- *              | '$'Identifier                           // $index, $count, ...
- *              | Identifier ('.' Identifier)*            // local scope lookup
+ * Path        := Identifier ('.' Identifier)*             // scope-stack lookup
  * Group       := '(' Expression ')'
  * Literal     := String | Number | 'true' | 'false' | 'null'
  * ```
  *
  * No arithmetic, no ternary, no function calls, no `===`/`!==`, no
- * `?.`, no `??`, no `[]`. Spec §9.
+ * `?.`, no `??`, no `[]`. Spec §6.5.
  *
  * @internal
  */
 
 import { TemplateCompileError } from '../errors.js'
-import type { LoopMetaName } from '../types.js'
+import type { SourceLoc } from '../source/loc.js'
 import type { ExprToken, ExprTokenType } from './lexer.js'
 import { tokeniseExpression } from './lexer.js'
 import type { BinaryOp, ExpressionNode } from './ast.js'
-
-const LOOP_META_NAMES: ReadonlySet<string> = new Set([
-  '$index',
-  '$count',
-  '$first',
-  '$last',
-  '$even',
-  '$odd',
-])
 
 /**
  * Inputs for {@link parseExpression}. The parser tokenises `input`
@@ -59,10 +48,11 @@ export interface ParseExpressionOptions {
  * Parse an expression source string into an {@link ExpressionNode}
  * AST.
  *
- * Used by the template parser for `@if` / `@else if` conditions,
- * `@for` iterables, and message-parameter values. The grammar is
- * the minimal v1.1 expression language (spec §9): no function
- * calls, no arithmetic, no ternary, no optional chaining.
+ * Used by the template parser for `<?if?>` / `<?elseif?>` conditions,
+ * `<?for?>` iterables, `<?copy?>` param values, and `@{…}`
+ * attribute-binding bodies. The grammar is the minimal v3 expression
+ * language (spec §6): no function calls, no arithmetic, no ternary,
+ * no optional chaining.
  *
  * @param input - Raw expression source.
  * @param opts - Outer-source context for error locations.
@@ -85,44 +75,71 @@ export function parseExpression(
 }
 
 /**
- * Read a comma-separated list of `name=value` message params from
- * the given token stream, starting at the `(` and ending at the
- * matching `)`.
+ * Result of parsing a `<?copy key p1=expr p2=expr …?>` PI body.
+ * `key` is the dotted message path split on `.`; `params` is the
+ * ordered list of `name=expression` bindings (may be empty).
+ */
+export interface ParsedCopy {
+  readonly key: readonly string[]
+  readonly params: readonly { readonly name: string; readonly value: ExpressionNode }[]
+}
+
+/**
+ * Parse the full body of a `<?copy key p1=expr p2=expr …?>` PI.
  *
- * Used by the interpolation parser when a `{{t:key(…)}}` form has
- * a param list. Each param binds an identifier (the placeholder
- * name inside the message string) to an {@link ExpressionNode}
- * value.
+ * The PI data (`key …` — target `copy` and the leading whitespace
+ * already stripped by the template lexer) is tokenised via the
+ * expression lexer, so param values are arbitrary expressions from
+ * the v3 grammar (paths, literals, logical / comparison ops).
  *
- * @param tokens - The token stream, positioned so `tokens[0]` is
- *   the opening `(`.
+ * Param rules:
+ * - Each param is `identifier = expression`, whitespace-separated.
+ * - Expressions consume greedily up to the next `ident equals` or
+ *   end-of-input — the expression grammar has no `=` token of its
+ *   own, so the parser naturally stops there.
+ *
+ * @param piData - PI data portion (starts with the key identifier).
+ * @param baseLoc - Source location of the first character of `piData`.
  * @param source - Full outer template source for error frames.
  * @param sourcePath - Optional file path for error prefixes.
- * @returns An ordered list of `{ name, value }` pairs — zero or
- *   more.
+ * @returns The parsed key path + ordered param list.
  */
-export function parseMessageParams(
-  tokens: ExprToken[],
+export function parseCopyPI(
+  piData: string,
+  baseLoc: SourceLoc,
   source: string,
   sourcePath: string | undefined,
-): { name: string; value: ExpressionNode }[] {
+): ParsedCopy {
+  const tokens = tokeniseExpression(piData, { source, sourcePath, baseLoc })
   // eslint-disable-next-line @typescript-eslint/no-use-before-define
   const parser = new Parser(tokens, source, sourcePath)
 
-  parser.consume('lparen', `Expected '('`)
-  const params: { name: string; value: ExpressionNode }[] = []
+  // Key: dotted identifier path.
+  const first = parser.consume('ident', 'Expected message key in <?copy?>')
+  const key: string[] = [first.value]
 
-  if (!parser.check('rparen')) {
-    params.push(parser.parseMessageParam())
+  while (parser.match('dot')) {
+    const seg = parser.consume('ident', "Expected identifier after '.' in <?copy?> key")
 
-    while (parser.match('comma')) {
-      params.push(parser.parseMessageParam())
-    }
+    key.push(seg.value)
   }
 
-  parser.consume('rparen', `Expected ')' to close message params`)
+  // Params: zero or more `ident = <expression>`.
+  const params: { name: string; value: ExpressionNode }[] = []
 
-  return params
+  while (!parser.check('eof')) {
+    const nameTok = parser.consume(
+      'ident',
+      'Expected parameter name or end of <?copy?>',
+    )
+
+    parser.consume('equals', `Expected '=' after parameter name '${nameTok.value}'`)
+    const value = parser.parseTopLevel()
+
+    params.push({ name: nameTok.value, value })
+  }
+
+  return { key, params }
 }
 
 class Parser {
@@ -144,15 +161,6 @@ class Parser {
     if (t.type !== 'eof') {
       throw this.error(`Unexpected token '${t.value}'`, t.loc)
     }
-  }
-
-  parseMessageParam(): { name: string; value: ExpressionNode } {
-    const nameTok = this.consume('ident', 'Expected parameter name')
-
-    this.consume('equals', `Expected '=' after parameter name`)
-    const value = this.parseOr()
-
-    return { name: nameTok.value, value }
   }
 
   // ── Precedence ladder ───────────────────────────────────────────
@@ -255,18 +263,7 @@ class Parser {
       return { kind: 'group', expr: inner, loc: t.loc }
     }
 
-    // Loop metadata ($index, $first, ...)
-    if (t.type === 'dollarIdent') {
-      this.advance()
-
-      if (!LOOP_META_NAMES.has(t.value)) {
-        throw this.error(`Unknown loop-meta variable '${t.value}'`, t.loc)
-      }
-
-      return { kind: 'loopMeta', name: t.value as LoopMetaName, loc: t.loc }
-    }
-
-    // Identifier-led: keyword literal OR data:… OR local path
+    // Identifier-led: keyword literal OR local path
     if (t.type === 'ident') {
       // true / false / null are keyword literals
       if (t.value === 'true' || t.value === 'false' || t.value === 'null') {
@@ -277,15 +274,6 @@ class Parser {
           value: t.value === 'true' ? true : t.value === 'false' ? false : null,
           loc: t.loc,
         }
-      }
-
-      // data:a.b.c
-      if (t.value === 'data' && this.tokens[this.pos + 1]?.type === 'colon') {
-        this.advance() // 'data'
-        this.advance() // ':'
-        const path = this.parseDottedPath()
-
-        return { kind: 'dataPath', path, loc: t.loc }
       }
 
       // Local path: identifier(.identifier)*
@@ -303,20 +291,6 @@ class Parser {
     }
 
     throw this.error(`Unexpected token '${t.value}'`, t.loc)
-  }
-
-  private parseDottedPath(): string[] {
-    const first = this.consume('ident', `Expected identifier after 'data:'`)
-    const path = [first.value]
-
-    while (this.check('dot')) {
-      this.advance()
-      const seg = this.consume('ident', 'Expected identifier after \'.\'')
-
-      path.push(seg.value)
-    }
-
-    return path
   }
 
   // ── Token helpers ────────────────────────────────────────────────

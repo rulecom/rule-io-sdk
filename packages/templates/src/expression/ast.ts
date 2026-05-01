@@ -2,20 +2,19 @@
  * Expression AST — shape produced by {@link parseExpression} and
  * consumed by {@link evaluateExpression}.
  *
- * The AST covers condition expressions inside `@if` / `@else if`,
- * the iterable in `@for (item of <expr>)`, and the value expressions
- * for message-interpolation params (`{{t:key(name=<expr>)}}`). It is
- * deliberately minimal: no function calls, no arithmetic, no
- * ternary.
+ * The AST covers condition expressions inside `<?if?>` / `<?elseif?>`,
+ * the iterable in `<?for item of <expr>?>`, the value expressions
+ * for `<?copy?>` PI params, and the bodies of `@{…}` attribute
+ * bindings. It is deliberately minimal: no function calls, no
+ * arithmetic, no ternary (spec §6.5).
  *
  * @internal
  */
 
 import type { SourceLoc } from '../source/loc.js'
-import type { LoopMetaName } from '../types.js'
 
 /**
- * The binary operators recognised by the v1.1 expression grammar.
+ * The binary operators recognised by the v3 expression grammar.
  *
  * Equality (`==`/`!=`) uses JS's loose-equality semantics per the
  * evaluator; strict equality is not supported. Relational operators
@@ -38,13 +37,11 @@ export type BinaryOp =
  *
  * - `literal` — a string, number, boolean, or `null` constant written
  *   verbatim in the source.
- * - `dataPath` — a `data:a.b.c` reference that resolves against the
- *   compiler's `data` input.
- * - `localPath` — an unqualified identifier path (e.g. `item.name`)
- *   that resolves against the scope stack starting at the innermost
- *   `@for` binding.
- * - `loopMeta` — one of the reserved loop-meta names (`$index`,
- *   `$count`, `$first`, `$last`, `$even`, `$odd`).
+ * - `localPath` — an identifier path (e.g. `item.name` or
+ *   `user.premium`). Resolves against the scope stack
+ *   innermost-to-outermost; the outermost frame is the caller's
+ *   `data` object itself, so plain `foo.bar` references into `data`
+ *   without any prefix.
  * - `unary` — a logical-not applied to another expression.
  * - `binary` — two sub-expressions joined by a {@link BinaryOp}.
  * - `group` — an explicit `( … )` grouping; preserved in the AST
@@ -53,9 +50,7 @@ export type BinaryOp =
  */
 export type ExpressionNode =
   | { kind: 'literal'; value: string | number | boolean | null; loc: SourceLoc }
-  | { kind: 'dataPath'; path: readonly string[]; loc: SourceLoc }
   | { kind: 'localPath'; path: readonly string[]; loc: SourceLoc }
-  | { kind: 'loopMeta'; name: LoopMetaName; loc: SourceLoc }
   | { kind: 'unary'; op: '!'; operand: ExpressionNode; loc: SourceLoc }
   | { kind: 'binary'; op: BinaryOp; left: ExpressionNode; right: ExpressionNode; loc: SourceLoc }
   | { kind: 'group'; expr: ExpressionNode; loc: SourceLoc }

@@ -5,10 +5,9 @@ import { compileTemplate } from '../index.js'
 describe('messages — basic lookup', () => {
   it('resolves a single-segment key', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:hello}}</a>',
-      locale: 'en',
-      messages: { hello: 'Hello' },
-      data: {},
+      template: '<a><?copy hello?></a>',
+      copy: { hello: 'Hello' },
+      context: {},
     })
 
     expect(xml).toBe('<a>Hello</a>')
@@ -16,10 +15,9 @@ describe('messages — basic lookup', () => {
 
   it('resolves a nested path', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:a.b.c}}</a>',
-      locale: 'en',
-      messages: { a: { b: { c: 'found' } } },
-      data: {},
+      template: '<a><?copy a.b.c?></a>',
+      copy: { a: { b: { c: 'found' } } },
+      context: {},
     })
 
     expect(xml).toBe('<a>found</a>')
@@ -28,33 +26,28 @@ describe('messages — basic lookup', () => {
   it('throws on missing key', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '<a>{{t:missing.key}}</a>',
-        locale: 'en',
-        messages: { a: { b: { c: 'x' } } },
-        data: {},
+        template: '<a><?copy missing.key?></a>',
+        copy: { a: { b: { c: 'x' } } },
+        context: {},
       }),
     ).toThrow(/Message key not found: missing\.key/)
   })
 
   it('throws when traversing through a non-object mid-path', () => {
-    // The lookup finds `a = "leaf"` at the first step, then tries to
-    // descend into `.b` — a non-object is not walkable.
     expect(() =>
       compileTemplate({
-        templateSrc: '<a>{{t:a.b}}</a>',
-        locale: 'en',
-        messages: { a: 'leaf' },
-        data: {},
+        template: '<a><?copy a.b?></a>',
+        copy: { a: 'leaf' },
+        context: {},
       }),
     ).toThrow(/Message key not found: a\.b/)
   })
 
   it('coerces a numeric leaf to its string form', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:count}}</a>',
-      locale: 'en',
-      messages: { count: 42 },
-      data: {},
+      template: '<a><?copy count?></a>',
+      copy: { count: 42 },
+      context: {},
     })
 
     expect(xml).toBe('<a>42</a>')
@@ -62,10 +55,9 @@ describe('messages — basic lookup', () => {
 
   it('coerces a boolean leaf to its string form', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:flag}}</a>',
-      locale: 'en',
-      messages: { flag: true },
-      data: {},
+      template: '<a><?copy flag?></a>',
+      copy: { flag: true },
+      context: {},
     })
 
     expect(xml).toBe('<a>true</a>')
@@ -74,10 +66,9 @@ describe('messages — basic lookup', () => {
   it('throws when the leaf is not a string/number/boolean', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '<a>{{t:a}}</a>',
-        locale: 'en',
-        messages: { a: [1, 2, 3] },
-        data: {},
+        template: '<a><?copy a?></a>',
+        copy: { a: [1, 2, 3] },
+        context: {},
       }),
     ).toThrow(/Message leaf must be a string: a/)
   })
@@ -86,10 +77,9 @@ describe('messages — basic lookup', () => {
 describe('messages — parameterized', () => {
   it('substitutes a single param', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:greeting(name=data:user)}}</a>',
-      locale: 'en',
-      messages: { greeting: 'Hello, {name}' },
-      data: { user: 'Ada' },
+      template: '<a><?copy greeting name=user?></a>',
+      copy: { greeting: 'Hello, {{name}}' },
+      context: { user: 'Ada' },
     })
 
     expect(xml).toBe('<a>Hello, Ada</a>')
@@ -97,10 +87,9 @@ describe('messages — parameterized', () => {
 
   it('substitutes multiple params', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:welcome(first=data:first, last=data:last)}}</a>',
-      locale: 'en',
-      messages: { welcome: '{first} {last}' },
-      data: { first: 'Grace', last: 'Hopper' },
+      template: '<a><?copy welcome first=first last=last?></a>',
+      copy: { welcome: '{{first}} {{last}}' },
+      context: { first: 'Grace', last: 'Hopper' },
     })
 
     expect(xml).toBe('<a>Grace Hopper</a>')
@@ -109,47 +98,43 @@ describe('messages — parameterized', () => {
   it('throws when a required param is missing', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '<a>{{t:greet()}}</a>',
-        locale: 'en',
-        messages: { greet: 'Hello, {name}!' },
-        data: {},
+        template: '<a><?copy greet?></a>',
+        copy: { greet: 'Hello, {{name}}!' },
+        context: {},
       }),
     ).toThrow(/Message parameter missing: name/)
   })
 
-  it('interpolates data paths as param values', () => {
+  it('resolves data paths as param values', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{t:hello(who=data:user.profile.name)}}</a>',
-      locale: 'en',
-      messages: { hello: 'Hi {who}' },
-      data: { user: { profile: { name: 'Turing' } } },
+      template: '<a><?copy hello who=user.profile.name?></a>',
+      copy: { hello: 'Hi {{who}}' },
+      context: { user: { profile: { name: 'Turing' } } },
     })
 
     expect(xml).toBe('<a>Hi Turing</a>')
   })
 
-  it('params accept literal string values', () => {
+  it('accepts literal string values', () => {
     const { xml } = compileTemplate({
-      templateSrc: `<a>{{t:hello(who='World')}}</a>`,
-      locale: 'en',
-      messages: { hello: 'Hi {who}' },
-      data: {},
+      template: `<a><?copy hello who='World'?></a>`,
+      copy: { hello: 'Hi {{who}}' },
+      context: {},
     })
 
     expect(xml).toBe('<a>Hi World</a>')
   })
 })
 
-describe('messages — RFM atom preservation (§14)', () => {
-  it('carries double-quoted RFM syntax through interpolation', () => {
+describe('messages — RFM atom preservation', () => {
+  it('carries double-quoted RFM syntax through a <?copy?> substitution', () => {
     const { xml } = compileTemplate({
-      templateSrc:
-        '<rc-text>{{t:welcome(name=data:fieldNames.firstName, value=data:customFieldsById.firstName)}}</rc-text>',
-      locale: 'en',
-      messages: {
-        welcome: 'Hi ::placeholder{name="{name}" value="{value}"}',
+      template:
+        '<rc-text><?copy welcome name=fieldNames.firstName value=customFieldsById.firstName?></rc-text>',
+      copy: {
+        welcome: 'Hi ::placeholder{name="{{name}}" value="{{value}}"}',
       },
-      data: {
+      context: {
         fieldNames: { firstName: 'Subscriber.FirstName' },
         customFieldsById: { firstName: 200001 },
       },

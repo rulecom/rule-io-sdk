@@ -11,15 +11,13 @@
  */
 
 import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
-import {
-  createOrderConfirmationEmail,
-  createShippingUpdateEmail,
-  createAbandonedCartEmail,
-  createOrderCancellationEmail,
-} from './ecommerce-templates.js';
 import { SHOPIFY_FIELDS } from './fields.js';
 import { createWelcomeEmail } from './generic-templates.js';
 import { SHOPIFY_TAGS } from './tags.js';
+import { createAbandonedCartEmail } from './templates/abandoned-cart/abandoned-cart.js';
+import { createOrderCancellationEmail } from './templates/order-cancellation/order-cancellation.js';
+import { createOrderConfirmationEmail } from './templates/order-confirmation/order-confirmation.js';
+import { createShippingUpdateEmail } from './templates/shipping-update/shipping-update.js';
 
 /** Default English text for Shopify order confirmation emails. */
 const ORDER_CONFIRMATION_TEXT = {
@@ -97,7 +95,6 @@ const ABANDONED_CART_TEXT = {
   message: 'It looks like you left some items in your cart.',
   reminder: 'Complete your purchase before they sell out!',
   ctaButton: 'Return to Cart',
-  lineItemsHeading: 'Your Cart',
   itemQtyLabel: 'Qty: ',
   itemUnitPriceLabel: 'Price: ',
   itemSkuLabel: 'SKU: ',

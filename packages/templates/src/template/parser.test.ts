@@ -11,10 +11,9 @@ import { compileTemplate } from '../index.js'
 describe('template parser — element shapes', () => {
   it('handles deeply nested elements', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a><b><c><d/></c></b></a>',
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: '<a><b><c><d/></c></b></a>',
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe('<a><b><c><d/></c></b></a>')
@@ -22,10 +21,9 @@ describe('template parser — element shapes', () => {
 
   it('handles multiple root-level siblings', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a/><b/><c/>',
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: '<a/><b/><c/>',
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe('<a/><b/><c/>')
@@ -33,10 +31,9 @@ describe('template parser — element shapes', () => {
 
   it('handles attributes with colons and dashes', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a rc-class="x" xml:lang="en"/>',
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: '<a rc-class="x" xml:lang="en"/>',
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe('<a rc-class="x" xml:lang="en"/>')
@@ -44,10 +41,9 @@ describe('template parser — element shapes', () => {
 
   it('handles tag names with colons and dashes', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<rc-text tpl:id="x"/>',
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: '<rc-text tpl:id="x"/>',
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe('<rc-text tpl:id="x"/>')
@@ -55,10 +51,9 @@ describe('template parser — element shapes', () => {
 
   it('accepts single-quoted attribute values', () => {
     const { xml } = compileTemplate({
-      templateSrc: `<a title='x'/>`,
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: `<a title='x'/>`,
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe(`<a title='x'/>`)
@@ -67,10 +62,9 @@ describe('template parser — element shapes', () => {
   it('throws on mismatched closing tag', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '<a></b>',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<a></b>',
+        copy: {},
+        context: {},
       }),
     ).toThrow(/Mismatched closing tag/)
   })
@@ -78,22 +72,20 @@ describe('template parser — element shapes', () => {
   it('throws on stray closing tag', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '</a>',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '</a>',
+        copy: {},
+        context: {},
       }),
     ).toThrow()
   })
 })
 
-describe('template parser — interpolation in attributes', () => {
-  it('supports multiple interpolations in one attribute', () => {
+describe('template parser — @{…} bindings in attributes', () => {
+  it('supports multiple bindings in one attribute', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a href="{{data:proto}}://{{data:host}}/{{data:path}}"/>',
-      locale: 'en',
-      messages: {},
-      data: { proto: 'https', host: 'x.com', path: 'a/b' },
+      template: '<a href="@{proto}://@{host}/@{path}"/>',
+      copy: {},
+      context: { proto: 'https', host: 'x.com', path: 'a/b' },
     })
 
     expect(xml).toBe('<a href="https://x.com/a/b"/>')
@@ -101,47 +93,83 @@ describe('template parser — interpolation in attributes', () => {
 
   it('handles empty attribute value', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a x=""/>',
-      locale: 'en',
-      messages: {},
-      data: {},
+      template: '<a x=""/>',
+      copy: {},
+      context: {},
     })
 
     expect(xml).toBe('<a x=""/>')
   })
+
+  it('rejects an unterminated @{…} binding', () => {
+    expect(() =>
+      compileTemplate({
+        template: '<a href="@{x"/>',
+        copy: {},
+        context: { x: 'v' },
+      }),
+    ).toThrow(/Unterminated|Unexpected/)
+  })
 })
 
-describe('template parser — interpolation edge cases', () => {
-  it('allows spaces inside `{{ expr }}`', () => {
+describe('template parser — <?copy?> directive', () => {
+  it('emits a zero-param copy into text', () => {
     const { xml } = compileTemplate({
-      templateSrc: '<a>{{ data:x }}</a>',
-      locale: 'en',
-      messages: {},
-      data: { x: 'ok' },
+      template: '<a><?copy greet?></a>',
+      copy: { greet: 'hi' },
+      context: {},
     })
 
-    expect(xml).toBe('<a>ok</a>')
+    expect(xml).toBe('<a>hi</a>')
   })
 
-  it('rejects an empty `{{ }}` interpolation', () => {
-    expect(() =>
-      compileTemplate({
-        templateSrc: '<a>{{}}</a>',
-        locale: 'en',
-        messages: {},
-        data: {},
-      }),
-    ).toThrow(/Empty interpolation/)
+  it('accepts a dotted key', () => {
+    const { xml } = compileTemplate({
+      template: '<a><?copy hero.title?></a>',
+      copy: { hero: { title: 'Welcome' } },
+      context: {},
+    })
+
+    expect(xml).toBe('<a>Welcome</a>')
   })
 
-  it('rejects an unterminated interpolation', () => {
+  it('passes multiple params through', () => {
+    const { xml } = compileTemplate({
+      template: '<a><?copy greeting first=user.first last=user.last?></a>',
+      copy: { greeting: 'Hi {{first}} {{last}}' },
+      context: { user: { first: 'Ada', last: 'L' } },
+    })
+
+    expect(xml).toBe('<a>Hi Ada L</a>')
+  })
+
+  it('supports literal and expression param values', () => {
+    const { xml } = compileTemplate({
+      template: `<a><?copy who truthy=!maybe count=3 label='ada'?></a>`,
+      copy: { who: '{{label}}/{{count}}/{{truthy}}' },
+      context: { maybe: false },
+    })
+
+    expect(xml).toBe('<a>ada/3/true</a>')
+  })
+
+  it('rejects a <?copy?> missing its key', () => {
     expect(() =>
       compileTemplate({
-        templateSrc: '<a>{{ data:x </a>',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<a><?copy?></a>',
+        copy: {},
+        context: {},
       }),
-    ).toThrow(/Unterminated interpolation|Unexpected/)
+    ).toThrow(/Expected message key/)
+  })
+
+  it('rejects a <?copy?> param without `=`', () => {
+    expect(() =>
+      compileTemplate({
+        template: '<a><?copy key x y?></a>',
+        copy: { key: '' },
+        context: {},
+      }),
+    ).toThrow(/Expected '='/)
   })
 })

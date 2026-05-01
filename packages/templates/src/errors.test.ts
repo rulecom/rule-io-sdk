@@ -6,10 +6,9 @@ describe('errors — surface', () => {
   it('exposes line / column / frame on TemplateCompileError', () => {
     try {
       compileTemplate({
-        templateSrc: '<a>{{data:nope}}</a>',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<a href="@{nope}"/>',
+        copy: {},
+        context: {},
       })
       expect.fail('should have thrown')
     } catch (err) {
@@ -22,50 +21,30 @@ describe('errors — surface', () => {
     }
   })
 
-  it('surfaces sourcePath in the error message', () => {
-    try {
-      compileTemplate({
-        templateSrc: '<a>{{data:x}}</a>',
-        locale: 'en',
-        messages: {},
-        data: {},
-        sourcePath: '/tmp/foo.xml',
-      })
-      expect.fail('should have thrown')
-    } catch (err) {
-      const e = err as TemplateCompileError
-
-      expect(e.sourcePath).toBe('/tmp/foo.xml')
-      expect(e.message).toContain('/tmp/foo.xml')
-    }
-  })
-
   it('points line:column at the offending construct', () => {
     try {
       compileTemplate({
-        // Error on line 2, column where `data:missing` starts
-        templateSrc: '<a>\n  {{data:missing}}\n</a>',
-        locale: 'en',
-        messages: {},
-        data: {},
+        // Error on line 2, inside the @{…} binding
+        template: '<a\n  href="@{missing}"/>',
+        copy: {},
+        context: {},
       })
       expect.fail('should have thrown')
     } catch (err) {
       const e = err as TemplateCompileError
 
       expect(e.line).toBe(2)
-      // Column is the location of `{{` — "  {{" → column 3
+      // Column points at the `@{` inside the quoted value.
       expect(e.column).toBeGreaterThanOrEqual(3)
     }
   })
 
-  it('reports "Message key not found" for missing messages', () => {
+  it('reports "Message key not found" for missing <?copy?> keys', () => {
     try {
       compileTemplate({
-        templateSrc: '<a>{{t:hero.subtitle}}</a>',
-        locale: 'en',
-        messages: { hero: { title: 'x' } },
-        data: {},
+        template: '<a><?copy hero.subtitle?></a>',
+        copy: { hero: { title: 'x' } },
+        context: {},
       })
       expect.fail('should have thrown')
     } catch (err) {
@@ -73,31 +52,39 @@ describe('errors — surface', () => {
     }
   })
 
-  it('reports "@else without preceding @if"', () => {
+  it('reports "<?else?> without preceding <?if?>"', () => {
     try {
       compileTemplate({
-        templateSrc: '@else { <x/> }',
-        locale: 'en',
-        messages: {},
-        data: {},
+        template: '<?else?><x/><?endif?>',
+        copy: {},
+        context: {},
       })
       expect.fail('should have thrown')
     } catch (err) {
-      expect((err as Error).message).toContain(`without preceding '@if'`)
+      expect((err as Error).message).toContain(`without preceding '<?if?>'`)
     }
   })
 
-  it('reports "@for iterable must evaluate to array"', () => {
+  it('reports "<?for?> iterable must evaluate to array"', () => {
     try {
       compileTemplate({
-        templateSrc: '@for (let x of data:y) {<x/>}',
-        locale: 'en',
-        messages: {},
-        data: { y: 'nope' },
+        template: '<?for let x of y?><x/><?endfor?>',
+        copy: {},
+        context: { y: 'nope' },
       })
       expect.fail('should have thrown')
     } catch (err) {
-      expect((err as Error).message).toContain('@for iterable must evaluate to array')
+      expect((err as Error).message).toContain('<?for?> iterable must evaluate to array')
     }
+  })
+
+  it('reports "Unknown identifier" for missing @{…} binding target', () => {
+    expect(() =>
+      compileTemplate({
+        template: '<a href="@{nope}"/>',
+        copy: {},
+        context: {},
+      }),
+    ).toThrow(/Unknown identifier: nope/)
   })
 })

@@ -1,11 +1,12 @@
 /**
  * Unit tests for the expression tokeniser.
  *
- * The expression lexer runs on the body of a `{{…}}` interpolation
- * and on the condition text between the parentheses of an `@if` or
- * `@for` header. These tests assert the full token set (operators,
- * identifiers, literals, punctuation) and that each token carries a
- * location relative to the supplied `baseLoc`.
+ * The expression lexer runs on the body of an `@{…}` attribute
+ * binding, on the condition text of an `<?if?>` / `<?elseif?>` PI,
+ * on a `<?for?>` header's iterable portion, and on a `<?copy?>` PI
+ * data (key + `name=expr` params). These tests assert the full
+ * token set (operators, identifiers, literals, punctuation) and that
+ * each token carries a location relative to the supplied `baseLoc`.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -31,12 +32,7 @@ describe('tokeniseExpression — identifiers + literals', () => {
     expect(values('foo')).toEqual(['foo', ''])
   })
 
-  it('emits a `dollarIdent` for `$name`', () => {
-    expect(types('$index')).toEqual(['dollarIdent', 'eof'])
-    expect(values('$index')).toEqual(['$index', ''])
-  })
-
-  it('rejects a bare `$` without an identifier after', () => {
+  it('rejects a bare `$` character (no loop-meta in v3)', () => {
     expect(() =>
       tokeniseExpression('$', { source: '$', sourcePath: 'test.xml', baseLoc }),
     ).toThrow(TemplateCompileError)
@@ -89,13 +85,14 @@ describe('tokeniseExpression — operators + punctuation', () => {
   })
 
   it('emits punctuation tokens for dotted paths and groupings', () => {
-    expect(types('data:a.b')).toEqual(['ident', 'colon', 'ident', 'dot', 'ident', 'eof'])
+    expect(types('a.b')).toEqual(['ident', 'dot', 'ident', 'eof'])
     expect(types('(a)')).toEqual(['lparen', 'ident', 'rparen', 'eof'])
   })
 
-  it('emits `comma` and `equals` tokens for message-param bindings', () => {
-    expect(types('a=1, b=2')).toEqual([
-      'ident', 'equals', 'number', 'comma', 'ident', 'equals', 'number', 'eof',
+  it('emits `equals` tokens for <?copy?> param shape', () => {
+    // Used by `<?copy key name=expr?>` PIs.
+    expect(types('a=1 b=2')).toEqual([
+      'ident', 'equals', 'number', 'ident', 'equals', 'number', 'eof',
     ])
   })
 })

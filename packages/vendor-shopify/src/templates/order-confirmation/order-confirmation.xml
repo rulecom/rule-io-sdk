@@ -1,0 +1,171 @@
+<rcml>
+  <rc-head>
+    <rc-preview><?copy preheader preheader=text.preheader?></rc-preview>
+  </rc-head>
+  <rc-body>
+    <!-- Logo -->
+    <?if hasLogo?>
+      <rc-section>
+        <rc-column padding="0 20px">
+          <rc-logo rc-class="rcml-logo-style rc-initial-logo" src="@{logoUrl}" width="96px" padding="20px 0"/>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Greeting + intro -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-heading rc-class="rcml-h1-style"><?copy greetingHeading greeting=text.greeting firstNameLabel=fieldNames.firstName firstNameId=customFieldsById.firstName?></rc-heading>
+        <rc-text rc-class="rcml-p-style"><?copy intro intro=text.intro?></rc-text>
+      </rc-column>
+    </rc-section>
+
+    <!-- Hero heading: "{prefix} {orderRef} {suffix}" when either side supplied -->
+    <?if hasHeroHeading?>
+      <rc-section padding="10px 0">
+        <rc-column padding="0 20px">
+          <rc-heading rc-class="rcml-h1-style"><?copy heroHeading prefix=heroHeadingPrefixPadded suffix=heroHeadingSuffixPadded orderRefName=fieldNames.orderRef orderRefId=customFieldsById.orderRef?></rc-heading>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Two-column order meta row (orderRef + orderDate) when orderDate mapped -->
+    <?if hasOrderMetaRow?>
+      <rc-section padding="10px 0">
+        <rc-column width="50%">
+          <rc-text rc-class="rcml-p-style"><?copy orderRefRow orderRefLabel=text.orderRefLabel orderRefName=fieldNames.orderRef orderRefId=customFieldsById.orderRef?></rc-text>
+        </rc-column>
+        <rc-column width="50%">
+          <rc-text rc-class="rcml-p-style"><?copy orderDateRow orderDateLabel=text.orderDateLabel orderDateName=fieldNames.orderDate orderDateId=customFieldsById.orderDate?></rc-text>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Details box (always present — holds heading + optional rows + conditional total) -->
+    <rc-section padding="20px 0" background-color="@{secondaryBg}">
+      <rc-column padding="0 20px">
+        <rc-heading rc-class="rcml-h2-style"><?copy detailsHeading detailsHeading=text.detailsHeading?></rc-heading>
+        <?if !hasOrderMetaRow?>
+          <rc-text rc-class="rcml-p-style"><?copy orderRefRow orderRefLabel=text.orderRefLabel orderRefName=fieldNames.orderRef orderRefId=customFieldsById.orderRef?></rc-text>
+        <?endif?>
+        <?if hasPaymentRow?>
+          <rc-text rc-class="rcml-p-style"><?copy paymentRow paymentLabel=text.paymentMethodLabel paymentName=fieldNames.paymentMethod paymentId=customFieldsById.paymentMethod?></rc-text>
+        <?endif?>
+        <?if hasInlineItemsRow?>
+          <rc-text rc-class="rcml-p-style"><?copy inlineItemsRow itemsLabel=text.itemsLabel itemsName=fieldNames.items itemsId=customFieldsById.items?></rc-text>
+        <?endif?>
+        <?if !hasFinancialSummary?>
+          <rc-text rc-class="rcml-p-style"><?copy totalRow totalLabel=text.totalLabel totalName=fieldNames.totalPrice totalId=customFieldsById.totalPrice?></rc-text>
+        <?endif?>
+        <?if hasInlineShippingRow?>
+          <rc-text rc-class="rcml-p-style"><?copy inlineShippingRow shippingLabel=text.shippingLabel shippingName=fieldNames.shippingAddress shippingId=customFieldsById.shippingAddress?></rc-text>
+        <?endif?>
+      </rc-column>
+    </rc-section>
+
+    <!-- Line items loop -->
+    <?if hasLineItemLoop?>
+      <rc-section padding="0">
+        <rc-column padding="0 20px">
+          <rc-divider padding="10px 0"/>
+        </rc-column>
+      </rc-section>
+      <?if hasLineItemsHeading?>
+        <rc-section padding="10px 0">
+          <rc-column padding="0 20px">
+            <rc-heading rc-class="rcml-h2-style"><?copy lineItemsHeading lineItemsHeading=text.lineItemsHeading?></rc-heading>
+          </rc-column>
+        </rc-section>
+      <?endif?>
+      <rc-loop loop-type="custom-field" loop-value="@{itemsCustomFieldId}" loop-max-iterations="20">
+        <rc-section padding="10px 0">
+          <rc-column padding="0 20px">
+            <rc-text rc-class="rcml-p-style"><?copy itemNameLine nameKey=fieldNames.itemName?></rc-text>
+            <?if hasItemSku?>
+              <rc-text rc-class="rcml-p-style"><?copy itemSkuLine skuLabel=text.itemSkuLabel skuKey=fieldNames.itemSku?></rc-text>
+            <?endif?>
+            <?if hasItemQuantity?>
+              <rc-text rc-class="rcml-p-style"><?copy itemQtyLine qtyLabel=text.itemQtyLabel qtyKey=fieldNames.itemQuantity?></rc-text>
+            <?endif?>
+            <?if hasItemUnitPrice?>
+              <rc-text rc-class="rcml-p-style"><?copy itemUnitPriceLine unitPriceLabel=text.itemUnitPriceLabel unitPriceKey=fieldNames.itemUnitPrice?></rc-text>
+            <?endif?>
+            <?if hasItemTotal?>
+              <rc-text rc-class="rcml-p-style"><?copy itemSubtotalLine subtotalLabel=text.itemSubtotalLabel subtotalKey=fieldNames.itemTotal?></rc-text>
+            <?endif?>
+          </rc-column>
+        </rc-section>
+      </rc-loop>
+    <?endif?>
+
+    <!-- Financial summary (shown when any financial field+label is mapped) -->
+    <?if hasFinancialSummary?>
+      <rc-section padding="0">
+        <rc-column padding="0 20px">
+          <rc-divider padding="10px 0"/>
+        </rc-column>
+      </rc-section>
+      <rc-section padding="20px 0" background-color="@{secondaryBg}">
+        <rc-column padding="0 20px">
+          <?if hasSubtotalRow?>
+            <rc-text rc-class="rcml-p-style"><?copy subtotalRow subtotalLabel=text.subtotalLabel subtotalName=fieldNames.subtotal subtotalId=customFieldsById.subtotal?></rc-text>
+          <?endif?>
+          <?if hasDiscountRow?>
+            <rc-text rc-class="rcml-p-style"><?copy discountRow discountLabel=text.discountLabel discountName=fieldNames.discountAmount discountId=customFieldsById.discountAmount?></rc-text>
+          <?endif?>
+          <?if hasTaxRow?>
+            <rc-text rc-class="rcml-p-style"><?copy taxRow taxLabel=text.taxLabel taxName=fieldNames.taxAmount taxId=customFieldsById.taxAmount?></rc-text>
+          <?endif?>
+          <?if hasShippingCostRow?>
+            <rc-text rc-class="rcml-p-style"><?copy shippingCostRow shippingCostLabel=text.shippingCostLabel shippingCostName=fieldNames.shippingCost shippingCostId=customFieldsById.shippingCost?></rc-text>
+          <?endif?>
+          <rc-text rc-class="rcml-p-style"><?copy totalRow totalLabel=text.totalLabel totalName=fieldNames.totalPrice totalId=customFieldsById.totalPrice?></rc-text>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Shipping address block (extended address fields mapped) -->
+    <?if hasExtendedAddress?>
+      <rc-section padding="0">
+        <rc-column padding="0 20px">
+          <rc-divider padding="10px 0"/>
+        </rc-column>
+      </rc-section>
+      <rc-section padding="10px 0">
+        <rc-column padding="0 20px">
+          <?if hasShippingAddressHeading?>
+            <rc-heading rc-class="rcml-h4-style"><?copy shippingAddressHeading heading=shippingAddressHeading?></rc-heading>
+          <?endif?>
+          <rc-text rc-class="rcml-p-style"><?copy shippingAddressLine addressName=fieldNames.shippingAddress addressId=customFieldsById.shippingAddress?></rc-text>
+          <?if hasShippingAddress2?>
+            <rc-text rc-class="rcml-p-style"><?copy shippingAddress2Line address2Name=fieldNames.shippingAddress2 address2Id=customFieldsById.shippingAddress2?></rc-text>
+          <?endif?>
+          <?if hasShippingZip?>
+            <rc-text rc-class="rcml-p-style"><?copy shippingZipLine zipName=fieldNames.shippingZip zipId=customFieldsById.shippingZip?></rc-text>
+          <?endif?>
+          <?if hasShippingCity?>
+            <rc-text rc-class="rcml-p-style"><?copy shippingCityLine cityName=fieldNames.shippingCity cityId=customFieldsById.shippingCity?></rc-text>
+          <?endif?>
+          <?if hasShippingCountryCode?>
+            <rc-text rc-class="rcml-p-style"><?copy shippingCountryCodeLine countryName=fieldNames.shippingCountryCode countryId=customFieldsById.shippingCountryCode?></rc-text>
+          <?endif?>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- CTA -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-button href="@{websiteUrl}" align="center" border="none" border-radius="8px" inner-padding="10px 16px" padding="0 0 20px 0" text-align="center" vertical-align="middle" rc-class="rcml-label-style"><?copy ctaButton ctaButton=text.ctaButton?></rc-button>
+      </rc-column>
+    </rc-section>
+
+    <!-- Footer -->
+    <rc-section padding="20px 0px 20px 0px">
+      <rc-column padding="0 20px">
+        <rc-text align="center" padding="0px 0px 10px 0px" rc-class="rcml-p-style"><?copy footerLinks viewInBrowserText=footer.viewInBrowserText unsubscribeText=footer.unsubscribeText fontSize=footer.fontSize textColor=footer.textColor?></rc-text>
+        <rc-text align="center" padding="10px 0px 0px 0px" font-family="'Helvetica', sans-serif" font-style="normal" line-height="120%" letter-spacing="0em" color="@{footer.textColor}" font-weight="400" text-decoration="none" font-size="@{footer.fontSize}"><?copy certifiedByRule?></rc-text>
+      </rc-column>
+    </rc-section>
+  </rc-body>
+</rcml>

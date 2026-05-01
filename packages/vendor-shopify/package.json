@@ -32,7 +32,7 @@
   "dependencies": {
     "@rule-io/core": "0.3.0",
     "@rule-io/rcml": "0.3.0",
-    "@rule-io/templates": "0.3.0"
+    "@rule-io/templates": "0.6.0"
   },
   "engines": {
     "node": ">=20"

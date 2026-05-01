@@ -1,6 +1,7 @@
 /**
- * Expression tokeniser. Runs on the body of a `{{…}}` interpolation's
- * condition/argument portion, or on an `@if` / `@for` expression.
+ * Expression tokeniser. Runs on the body of an `@{…}` attribute
+ * binding, an `<?if?>` / `<?elseif?>` condition, a `<?for?>`
+ * header's iterable, or a `<?copy?>` PI's param value.
  *
  * Produces a flat token stream; each token carries a 1-based line+col
  * relative to the outer template source so error messages can point
@@ -18,12 +19,11 @@ import type { SourceLoc } from '../source/loc.js'
  * {@link parseExpression}.
  *
  * - `ident` — identifier or keyword (`true`, `false`, `null`).
- * - `dollarIdent` — `$index`, `$count`, etc. (loop-meta variables).
  * - `number` — numeric literal; value is the raw digit string.
  * - `string` — string literal; value has the quotes stripped and
  *   escape sequences decoded.
- * - `dot` / `colon` / `lparen` / `rparen` / `comma` / `equals` —
- *   punctuation.
+ * - `dot` / `lparen` / `rparen` / `equals` — punctuation used by the
+ *   expression and `<?copy?>` grammars.
  * - `bang` / `and` / `or` / `eq` / `neq` / `lt` / `lte` / `gt` /
  *   `gte` — operators.
  * - `eof` — terminating sentinel emitted by the tokeniser so the
@@ -31,11 +31,9 @@ import type { SourceLoc } from '../source/loc.js'
  */
 export type ExprTokenType =
   | 'ident'
-  | 'dollarIdent'
   | 'number'
   | 'string'
   | 'dot'
-  | 'colon'
   | 'lparen'
   | 'rparen'
   | 'bang'
@@ -47,7 +45,6 @@ export type ExprTokenType =
   | 'lte'
   | 'gt'
   | 'gte'
-  | 'comma'
   | 'equals'
   | 'eof'
 
@@ -143,27 +140,6 @@ export function tokeniseExpression(input: string, opts: TokeniseOptions): ExprTo
       continue
     }
 
-    // $-prefixed identifiers (loop-meta: $index, $count, ...)
-    if (ch === '$') {
-      const start = i
-
-      advance()
-
-      if (!isIdentStart(input[i] ?? '')) {
-        throw new TemplateCompileError(
-          `Expected identifier after '$'`,
-          startLoc,
-          opts.source,
-          opts.sourcePath,
-        )
-      }
-
-      while (i < input.length && isIdentPart(input[i]!)) advance()
-
-      tokens.push({ type: 'dollarIdent', value: input.slice(start, i), loc: startLoc })
-      continue
-    }
-
     // Numeric literal
     if (ch >= '0' && ch <= '9') {
       const start = i
@@ -241,13 +217,11 @@ export function tokeniseExpression(input: string, opts: TokeniseOptions): ExprTo
     // Single-char punctuation
     const single = ({
       '.': 'dot',
-      ':': 'colon',
       '(': 'lparen',
       ')': 'rparen',
       '!': 'bang',
       '<': 'lt',
       '>': 'gt',
-      ',': 'comma',
       '=': 'equals',
     } as const)[ch]
 

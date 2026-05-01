@@ -7,16 +7,16 @@
  */
 
 import { TemplateCompileError } from '../errors.js'
-import { parseExpression } from '../expression/parser.js'
-import { parseInterpolation } from './interpolation.js'
+import { parseCopyPI, parseExpression } from '../expression/parser.js'
 import type { SourceLoc } from '../source/loc.js'
 import type {
+  AttrBindingPart,
   AttrNode,
   AttrPart,
+  CopyNode,
   ElementNode,
   ForBlockNode,
   IfBlockNode,
-  InterpolationNode,
   TemplateNode,
 } from './ast.js'
 import type { TemplateToken, TemplateTokenType } from './lexer.js'
@@ -50,6 +50,20 @@ export function parseTemplate(
   return new TemplateParser(tokens, opts.source, opts.sourcePath).parseTop()
 }
 
+/** Token types that can terminate a directive branch body. */
+const IF_BRANCH_TERMINATORS: ReadonlySet<TemplateTokenType> = new Set([
+  'elseif-open',
+  'else-open',
+  'if-close',
+  'eof',
+])
+
+/** Token types that can terminate a `<?for?>` body. */
+const FOR_BODY_TERMINATORS: ReadonlySet<TemplateTokenType> = new Set([
+  'for-close',
+  'eof',
+])
+
 class TemplateParser {
   private pos = 0
 
@@ -60,7 +74,7 @@ class TemplateParser {
   ) {}
 
   parseTop(): TemplateNode[] {
-    const out = this.parseNodesUntil('eof')
+    const out = this.parseChildren(new Set(['eof']))
 
     this.expectType('eof')
 
@@ -69,49 +83,60 @@ class TemplateParser {
 
   // ── Child sequences ─────────────────────────────────────────────
 
-  private parseNodesUntil(end: TemplateTokenType): TemplateNode[] {
+  /**
+   * Read children until the next token is in `terminators`. The
+   * terminator itself is not consumed — the caller decides what to
+   * do with it.
+   */
+  private parseChildren(terminators: ReadonlySet<TemplateTokenType>): TemplateNode[] {
     const out: TemplateNode[] = []
 
-    while (this.peek().type !== end) {
+    while (!terminators.has(this.peek().type)) {
       const t = this.peek()
 
-      if (t.type === 'tag-close') {
-        // Handled by parseElement; should not bubble up.
-        throw this.error(`Unexpected closing tag '</${t.value}>'`, t.loc)
-      }
+      switch (t.type) {
+        case 'tag-open-start':
+          out.push(this.parseElement())
+          continue
 
-      if (t.type === 'tag-open-start') {
-        out.push(this.parseElement())
-        continue
-      }
+        case 'text':
+          this.advance()
+          out.push({ kind: 'text', text: t.value, loc: t.loc })
+          continue
 
-      if (t.type === 'text') {
-        this.advance()
-        out.push({ kind: 'text', text: t.value, loc: t.loc })
-        continue
-      }
+        case 'if-open':
+          out.push(this.parseIf())
+          continue
 
-      if (t.type === 'interp') {
-        this.advance()
-        out.push(this.makeInterpolationNode(t.value, t.loc))
-        continue
-      }
+        case 'for-open':
+          out.push(this.parseFor())
+          continue
 
-      if (t.type === 'if') {
-        out.push(this.parseIf())
-        continue
-      }
+        case 'copy-open':
+          out.push(this.parseCopy())
+          continue
 
-      if (t.type === 'for') {
-        out.push(this.parseFor())
-        continue
-      }
+        // Orphan directive tokens — should have been consumed by an
+        // enclosing `parseIf` / `parseFor`.
+        case 'elseif-open':
+          throw this.error(`'<?elseif?>' without preceding '<?if?>'`, t.loc)
 
-      if (t.type === 'else-if' || t.type === 'else') {
-        throw this.error(`'${t.value}' without preceding '@if'`, t.loc)
-      }
+        case 'else-open':
+          throw this.error(`'<?else?>' without preceding '<?if?>'`, t.loc)
 
-      throw this.error(`Unexpected token '${t.value}'`, t.loc)
+        case 'if-close':
+          throw this.error(`'<?endif?>' without preceding '<?if?>'`, t.loc)
+
+        case 'for-close':
+          throw this.error(`'<?endfor?>' without preceding '<?for?>'`, t.loc)
+
+        case 'tag-close':
+          // Handled by parseElement; should not bubble up.
+          throw this.error(`Unexpected closing tag '</${t.value}>'`, t.loc)
+
+        default:
+          throw this.error(`Unexpected token '${t.value}'`, t.loc)
+      }
     }
 
     return out
@@ -142,7 +167,7 @@ class TemplateParser {
       throw this.error(`Expected '>' or '/>' to close opening tag`, term.loc)
     }
 
-    const children = this.parseNodesUntil('tag-close')
+    const children = this.parseChildren(new Set(['tag-close']))
     const close = this.consume('tag-close', `Expected closing tag`)
 
     if (close.value !== open.value) {
@@ -200,9 +225,9 @@ class TemplateParser {
         continue
       }
 
-      if (t.type === 'attr-interp') {
+      if (t.type === 'attr-binding') {
         this.advance()
-        parts.push(this.makeInterpolationNode(t.value, t.loc))
+        parts.push(this.makeAttrBinding(t.value, t.loc))
         continue
       }
 
@@ -212,125 +237,122 @@ class TemplateParser {
     return { name: name.value, value: parts, quote, loc: name.loc }
   }
 
-  // ── Interpolation node ──────────────────────────────────────────
+  // ── @{…} attribute binding ──────────────────────────────────────
 
-  private makeInterpolationNode(body: string, loc: SourceLoc): InterpolationNode {
-    const expr = parseInterpolation({
-      body,
-      baseLoc: loc,
+  private makeAttrBinding(body: string, loc: SourceLoc): AttrBindingPart {
+    const expr = parseExpression(body, {
       source: this.source,
       sourcePath: this.sourcePath,
+      baseLoc: loc,
     })
 
-    return { kind: 'interpolation', expr, loc }
+    return { kind: 'binding', expr, loc }
   }
 
-  // ── @if / @else if / @else ──────────────────────────────────────
+  // ── <?copy?> directive ──────────────────────────────────────────
+
+  private parseCopy(): CopyNode {
+    const open = this.consume('copy-open', `Expected '<?copy?>'`)
+    const { key, params } = parseCopyPI(
+      open.value,
+      open.loc,
+      this.source,
+      this.sourcePath,
+    )
+
+    return { kind: 'copy', key, params, loc: open.loc }
+  }
+
+  // ── <?if?> / <?elseif?> / <?else?> / <?endif?> ────────────────
 
   private parseIf(): IfBlockNode {
-    const keyword = this.consume('if', `Expected '@if'`)
-    const branches: { condition: ReturnType<typeof parseExpression>; children: TemplateNode[] }[] = [
-      this.readBranchBody(),
+    const open = this.consume('if-open', `Expected '<?if?>'`)
+    const firstCondition = parseExpression(open.value, {
+      source: this.source,
+      sourcePath: this.sourcePath,
+      baseLoc: open.loc,
+    })
+    const branches: {
+      condition: ReturnType<typeof parseExpression>
+      children: TemplateNode[]
+    }[] = [
+      {
+        condition: firstCondition,
+        children: this.parseChildren(IF_BRANCH_TERMINATORS),
+      },
     ]
     let elseBranch: readonly TemplateNode[] | undefined
 
-    // Spec §12: whitespace between `}` and the next `@else if` /
-    // `@else` is structural formatting, not text content — consume
-    // it when it precedes a continuation branch.
     while (true) {
-      const savedPos = this.pos
-
-      this.skipStructuralWhitespace()
       const t = this.peek()
 
-      if (t.type === 'else-if') {
+      if (t.type === 'elseif-open') {
         if (elseBranch !== undefined) {
-          throw this.error(`'@else if' after '@else'`, t.loc)
+          throw this.error(`'<?elseif?>' after '<?else?>'`, t.loc)
         }
 
         this.advance()
-        branches.push(this.readBranchBody())
+        const condition = parseExpression(t.value, {
+          source: this.source,
+          sourcePath: this.sourcePath,
+          baseLoc: t.loc,
+        })
+
+        branches.push({
+          condition,
+          children: this.parseChildren(IF_BRANCH_TERMINATORS),
+        })
         continue
       }
 
-      if (t.type === 'else') {
+      if (t.type === 'else-open') {
         if (elseBranch !== undefined) {
-          throw this.error(`Only one '@else' block allowed`, t.loc)
+          throw this.error(`Only one '<?else?>' block allowed`, t.loc)
         }
 
         this.advance()
-        this.consume('lbrace', `Expected '{' after '@else'`)
-        elseBranch = this.parseNodesUntil('rbrace')
-        this.consume('rbrace', `Expected '}' to close '@else'`)
+        elseBranch = this.parseChildren(IF_BRANCH_TERMINATORS)
         continue
       }
 
-      // Not a continuation — rewind past the structural whitespace
-      // so the parent parser gets to keep it if it wants to.
-      this.pos = savedPos
-      break
+      if (t.type === 'if-close') {
+        this.advance()
+        break
+      }
+
+      // Must be eof — ran off the end without closing.
+      throw this.error(
+        `Expected '<?endif?>' to close '<?if?>' block`,
+        open.loc,
+      )
     }
 
     return elseBranch !== undefined
-      ? { kind: 'if', branches, elseBranch, loc: keyword.loc }
-      : { kind: 'if', branches, loc: keyword.loc }
+      ? { kind: 'if', branches, elseBranch, loc: open.loc }
+      : { kind: 'if', branches, loc: open.loc }
   }
 
-  /**
-   * Consume any immediately-following `text` tokens whose content is
-   * purely whitespace. Used around `@else if` / `@else` detection
-   * (spec §12).
-   */
-  private skipStructuralWhitespace(): void {
-    while (true) {
-      const t = this.peek()
-
-      if (t.type === 'text' && /^\s*$/.test(t.value)) {
-        this.advance()
-        continue
-      }
-
-      break
-    }
-  }
-
-  private readBranchBody(): { condition: ReturnType<typeof parseExpression>; children: TemplateNode[] } {
-    this.consume('lparen', `Expected '(' for directive condition`)
-    const exprTok = this.consume('text', `Expected condition expression`)
-    const condition = parseExpression(exprTok.value, {
-      source: this.source,
-      sourcePath: this.sourcePath,
-      baseLoc: exprTok.loc,
-    })
-
-    this.consume('rparen', `Expected ')' to close condition`)
-    this.consume('lbrace', `Expected '{' to open branch body`)
-    const children = this.parseNodesUntil('rbrace')
-
-    this.consume('rbrace', `Expected '}' to close branch body`)
-
-    return { condition, children }
-  }
-
-  // ── @for ────────────────────────────────────────────────────────
+  // ── <?for?> / <?endfor?> ──────────────────────────────────────
 
   private parseFor(): ForBlockNode {
-    const keyword = this.consume('for', `Expected '@for'`)
+    const open = this.consume('for-open', `Expected '<?for?>'`)
+    const { itemName, iterable } = this.parseForHeader(open.value, open.loc)
+    const children = this.parseChildren(FOR_BODY_TERMINATORS)
+    const next = this.peek()
 
-    this.consume('lparen', `Expected '('`)
-    const header = this.consume('text', `Expected '@for' header`)
-    const { itemName, iterable } = this.parseForHeader(header.value, header.loc)
+    if (next.type !== 'for-close') {
+      throw this.error(
+        `Expected '<?endfor?>' to close '<?for?>' block`,
+        open.loc,
+      )
+    }
 
-    this.consume('rparen', `Expected ')' to close '@for' header`)
-    this.consume('lbrace', `Expected '{' to open '@for' body`)
-    const children = this.parseNodesUntil('rbrace')
+    this.advance()
 
-    this.consume('rbrace', `Expected '}' to close '@for' body`)
-
-    return { kind: 'for', itemName, iterable, children, loc: keyword.loc }
+    return { kind: 'for', itemName, iterable, children, loc: open.loc }
   }
 
-  /** Parse `let? item of expr` from the header text between `(` and `)`. */
+  /** Parse `let? item of expr` from the header text between `<?for` and `?>`. */
   private parseForHeader(
     raw: string,
     baseLoc: SourceLoc,
@@ -382,7 +404,7 @@ class TemplateParser {
 
     if (itemName.length === 0) {
       throw new TemplateCompileError(
-        `Expected loop variable name in '@for'`,
+        `Expected loop variable name in '<?for?>'`,
         { offset: baseLoc.offset + nameStart, line, column },
         this.source,
         this.sourcePath,
@@ -401,9 +423,14 @@ class TemplateParser {
       offset++
     }
 
-    if (!raw.slice(offset).startsWith('of ') && !raw.slice(offset).startsWith('of\t') && raw.slice(offset, offset + 3) !== 'of\n') {
+    if (
+      !raw.slice(offset).startsWith('of ') &&
+      !raw.slice(offset).startsWith('of\t') &&
+      raw.slice(offset, offset + 3) !== 'of\n' &&
+      raw.slice(offset) !== 'of'
+    ) {
       throw new TemplateCompileError(
-        `Expected 'of' in '@for' header`,
+        `Expected 'of' in '<?for?>' header`,
         { offset: baseLoc.offset + offset, line, column },
         this.source,
         this.sourcePath,

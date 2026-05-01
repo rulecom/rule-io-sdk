@@ -7,7 +7,7 @@ import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
-import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
+import { TEST_THEME, assertValidRCMLDocument } from '../src/test-fixtures.js';
 
 // ============================================================================
 // Shared fixtures
