@@ -1,7 +1,7 @@
 {
-  "name": "@rule-io/vendor-shopify",
+  "name": "@rule-io/templates",
   "version": "0.3.0",
-  "description": "Shopify preset for the Rule.io SDK \u2014 e-commerce automation flows (order confirmation, shipping, abandoned cart, cancellation, welcome).",
+  "description": "Angular-like XML template engine used by Rule.io vendor email-template packages.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -16,23 +16,15 @@
     "README.md",
     "CHANGELOG.md"
   ],
-  "keywords": [
-    "rule.io",
-    "shopify",
-    "e-commerce",
-    "preset",
-    "sdk"
-  ],
+  "keywords": ["rule.io", "sdk", "templates", "xml", "angular"],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/rulecom/rule-io-sdk.git",
-    "directory": "packages/vendor-shopify"
+    "directory": "packages/templates"
   },
   "dependencies": {
-    "@rule-io/core": "0.3.0",
-    "@rule-io/rcml": "0.3.0",
-    "@rule-io/templates": "0.3.0"
+    "fast-xml-parser": "^4.5.0"
   },
   "engines": {
     "node": ">=20"

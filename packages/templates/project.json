@@ -1,7 +1,7 @@
 {
-  "name": "vendor-shopify",
+  "name": "templates",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/vendor-shopify/src",
+  "sourceRoot": "packages/templates/src",
   "projectType": "library",
   "release": {
     "version": {
@@ -20,19 +20,14 @@
         "{options.outputPath}"
       ],
       "options": {
-        "outputPath": "dist/packages/vendor-shopify",
-        "main": "packages/vendor-shopify/src/index.ts",
-        "tsConfig": "packages/vendor-shopify/tsconfig.lib.json",
+        "outputPath": "dist/packages/templates",
+        "main": "packages/templates/src/index.ts",
+        "tsConfig": "packages/templates/tsconfig.lib.json",
         "assets": [
           {
-            "input": "./packages/vendor-shopify",
+            "input": "./packages/templates",
             "glob": "*.md",
             "output": "./"
-          },
-          {
-            "input": "./packages/vendor-shopify/src/templates",
-            "glob": "*.xml",
-            "output": "./src/templates"
           }
         ]
       }
