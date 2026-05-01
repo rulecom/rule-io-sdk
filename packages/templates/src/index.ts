@@ -1,12 +1,20 @@
 /**
- * @rule-io/templates — Angular-like XML template engine.
+ * `@rule-io/templates` — minimal XML template compiler.
  *
- * Public entry point: {@link renderTemplate}. Supports `{{ expression }}`
- * interpolation, `*ngIf` / `*ngFor` structural directives, and `[attr]`
- * property binding on XML elements. Expressions are evaluated against a
- * caller-supplied {@link TemplateContext}.
+ * See `docs/template-framework.md` for the v1.1 specification.
+ *
+ * Primary export: {@link compileTemplate}, a pure synchronous compiler
+ * that accepts `{ templateSrc, locale, messages, data }` and returns
+ * `{ xml }`. All compilation happens in-process; no filesystem or
+ * network access.
+ *
+ * @public
  */
 
-export { renderTemplate } from './render.js'
-export { TemplateRenderError } from './types.js'
-export type { TemplateContext } from './types.js'
+export { compileTemplate } from './compile.js'
+export { TemplateCompileError } from './errors.js'
+export type {
+  CompileTemplateOptions,
+  CompileTemplateResult,
+  LoopMetaName,
+} from './types.js'
