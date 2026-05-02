@@ -1,177 +1,149 @@
 /**
- * Abandoned-cart email template builder.
+ * Abandoned-cart template factory.
  *
- * Consumes the v3 XML template at `./abandoned-cart.xml` and the JSON
- * copy tree at `./abandoned-cart-copy.json`, then hands both to
- * {@link compileTemplate} along with a typed context containing
- * `TemplateRef` values. The compiler serializes refs into RFM
- * placeholder strings at render time. The rendered XML is parsed into
- * an {@link RcmlDocument} and themed via `applyTheme`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * The caller owns context assembly (building the typed
+ * {@link AbandonedCartTemplateContext} with `customField` / `loopValue`
+ * from `@rule-io/templates`); the reusable factory handles loading
+ * the XML + JSON copy, merging copy overrides, projecting
+ * `theme.images.logo` / `theme.links` into context, compiling,
+ * parsing to RCML, and applying the theme.
  *
- * Context is fully structural — the XML's `<?if?>` guards probe for
- * the presence of ref descriptors / optional sub-objects directly
- * (`<?if cart.products?>`, `<?if cart.products.itemSku?>`) rather than
- * carrying parallel `has*` flags.
+ * Context is fully structural: optional sections are controlled by
+ * the presence of their backing fields (e.g. omit `cart.products` to
+ * skip the line-items block), never by parallel boolean flags.
+ *
+ * No config→context translation, no field validation, no error-context
+ * wrapping. If the caller wants validation, they do it at their call site
+ * before constructing the context object.
  */
 
-import type { CustomFieldMap, EmailTheme, FooterConfig } from '@rule-io/core'
 import {
-  applyTheme,
-  validateRequiredFields,
-  withTemplateContext,
-  xmlToRcml,
-  type RcmlDocument,
+  createEmailTemplate,
+  type EmailTemplate,
+  type EmailTemplateRenderArgs,
 } from '@rule-io/rcml'
-import {
-  compileTemplate,
-  customField,
-  loadCopy,
-  loadTemplate,
-  loopValue,
-} from '@rule-io/templates'
-
-import type { AbandonedCartTemplateCopy } from './create-abandoned-cart-template.js'
-
-const TEMPLATE_XML = loadTemplate(import.meta.url, './abandoned-cart.xml')
-const copy = loadCopy<AbandonedCartTemplateCopy>(
-  import.meta.url,
-  './abandoned-cart-copy.json',
-)
-
-/** Split a dotted logical field name into its group/leaf parts. */
-function splitDottedName(fullName: string): { group: string; name: string } {
-  const dot = fullName.indexOf('.')
-
-  return dot === -1
-    ? { group: '', name: fullName }
-    : { group: fullName.slice(0, dot), name: fullName.slice(dot + 1) }
-}
+import type { CustomFieldRef, LoopValueRef } from '@rule-io/templates'
 
 /**
- * Configuration accepted by {@link createAbandonedCartEmail}.
- */
-export interface AbandonedCartConfig {
-  theme: EmailTheme
-  customFields: CustomFieldMap
-  cartUrl: string
-  footer?: FooterConfig
-  text: {
-    preheader: string
-    greeting: string
-    message: string
-    reminder: string
-    ctaButton: string
-    /** Label for quantity in line items (default: 'Qty: ') */
-    itemQtyLabel?: string
-    /** Label for unit price in line items (default: 'Price: ') */
-    itemUnitPriceLabel?: string
-    /** Label for SKU in line items (default: 'SKU: ') */
-    itemSkuLabel?: string
-    /** Label for the cart total row */
-    totalLabel?: string
-  }
-  fieldNames: {
-    firstName: string
-    /** Repeatable items field (enables rc-loop rendering) */
-    items?: string
-    /** Line item sub-field: product name */
-    itemName?: string
-    /** Line item sub-field: quantity */
-    itemQuantity?: string
-    /** Line item sub-field: unit price */
-    itemUnitPrice?: string
-    /** Line item sub-field: SKU */
-    itemSku?: string
-    /** Cart total */
-    totalPrice?: string
-  }
-}
-
-/**
- * Create an abandoned-cart recovery email template.
+ * Typed data context consumed by `abandoned-cart.xml`.
  *
- * @param config - Caller configuration (theme, custom field map,
- *   text labels, field-name overrides, footer overrides, cart URL).
- * @returns A themed {@link RcmlDocument}.
+ * Presence is the contract: the XML's `<?if?>` guards probe for
+ * optional sub-objects and ref descriptors directly, so optional
+ * sections turn on/off by supplying (or omitting) the backing field.
+ *
+ * - `cart.products` absent → no line-items loop, no heading.
+ * - `cart.totalPrice` absent → no total row.
+ *
+ * Per-line-item rows (`itemSku` / `itemQuantity` / `itemPrice`) toggle
+ * on their presence as `LoopValueRef`s inside `cart.products`.
+ *
+ * The logo section and the social-links section are driven by the
+ * theme — the factory pulls `theme.images.logo?.url` and
+ * `theme.links` into the compile context so the XML's `<?if?>` gates
+ * and `<?for?>` loop can see them. The logo image URL is also
+ * rendered on the `<rc-logo>` element via `applyTheme`'s
+ * `rcml-logo-style` class binding. The secondary-color background on
+ * the total-row section comes from `theme.colors.secondary` via
+ * `applyTheme`'s `rcml-brand-color` class binding. Callers filter by
+ * curating their theme.
+ *
+ * Footer-link labels and RFM structure live inline in the
+ * `footerLinks` copy entry — callers override that entry to change
+ * labels, separator, or styling.
  */
-export function createAbandonedCartEmail(
-  config: AbandonedCartConfig,
-): RcmlDocument {
-  return withTemplateContext('createAbandonedCartEmail', () => {
-    const { theme, customFields, fieldNames, text } = config
-
-    const wantsLineItemLoop = !!(fieldNames.items && fieldNames.itemName)
-    const wantsTotalRow = !!(text.totalLabel && fieldNames.totalPrice)
-
-    const fieldsToValidate: Record<string, string> = {
-      firstName: fieldNames.firstName,
+export interface AbandonedCartTemplateContext {
+  recipient: {
+    firstName: CustomFieldRef
+  }
+  cart: {
+    url: string
+    totalPrice?: CustomFieldRef
+    products?: {
+      /** Items custom field; `.id` is used as `rc-loop` loop-value. */
+      source: CustomFieldRef
+      itemName: LoopValueRef
+      itemSku?: LoopValueRef
+      itemQuantity?: LoopValueRef
+      itemPrice?: LoopValueRef
     }
+  }
+  footer: {
+    fontSize: string
+    textColor: string
+  }
+}
 
-    if (wantsLineItemLoop && fieldNames.items) fieldsToValidate.items = fieldNames.items
-    if (wantsTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice
-    validateRequiredFields(customFields, fieldsToValidate)
+/**
+ * Default copy tree for `abandoned-cart.xml`.
+ *
+ * Each entry maps to a single `<?copy key …?>` PI in the XML. Bodies
+ * carry the full English text as literal strings, plus `{{slot}}`
+ * substitutions for custom-field and loop-value refs supplied at
+ * render time (built via `customField` / `loopValue` from
+ * `@rule-io/templates`; the compiler serializes them to RFM
+ * placeholder strings automatically).
+ *
+ * Footer-link labels and styling live inline in the `footerLinks`
+ * entry alongside the RFM atom structure — override that entry to
+ * tweak labels, layout, or the separator.
+ *
+ * To customize wording, supply a partial override to `render`'s
+ * `copy?: Partial<AbandonedCartTemplateCopy>`.
+ */
+export interface AbandonedCartTemplateCopy {
+  /** `<rc-preview>` body. */
+  readonly preheader: string
+  /** Hero heading. Slot: `{{firstNameCustomField}}` — CustomField placeholder. */
+  readonly greetingHeading: string
+  /** Body message paragraph. */
+  readonly message: string
+  /** Reminder paragraph. */
+  readonly reminder: string
+  /** Heading above the line-items loop. */
+  readonly lineItemsHeading: string
+  /** Loop row: item name. Slot: `{{itemNameLoopValue}}` — loop-value atom. */
+  readonly itemNameLine: string
+  /** Loop row: SKU label + loop value. Slot: `{{itemSkuLoopValue}}`. */
+  readonly itemSkuLine: string
+  /** Loop row: quantity label + loop value. Slot: `{{itemQtyLoopValue}}`. */
+  readonly itemQtyLine: string
+  /** Loop row: price label + loop value. Slot: `{{itemUnitPriceLoopValue}}`. */
+  readonly itemUnitPriceLine: string
+  /** Cart total row. Slot: `{{totalPriceCustomField}}` — CustomField placeholder. */
+  readonly totalRow: string
+  /** Primary CTA button label. */
+  readonly ctaButton: string
+  /**
+   * Footer link row. Labels are inline literals; font-size and color
+   * come from `rc-text` attributes on the host element;
+   * `text-decoration="underline"` lives on the inner `:font` atom.
+   * Override this entry to change labels, separator, or styling.
+   */
+  readonly footerLinks: string
+  /** Fixed "Certified by Rule" footer attribution. */
+  readonly certifiedByRule: string
+}
 
-    // Typed refs for custom fields + loop values. The compiler serializes
-    // them into RFM placeholder strings at render time via the default
-    // TemplateRefSerializer — no pre-rendering here.
-    const firstName = (() => {
-      const { group, name } = splitDottedName(fieldNames.firstName)
+/** Arguments to `render` — {@link EmailTemplateRenderArgs} bound to abandoned-cart. */
+export type AbandonedCartRenderOptions =
+  EmailTemplateRenderArgs<AbandonedCartTemplateCopy, AbandonedCartTemplateContext>
 
-      return customField(group, name, customFields[fieldNames.firstName])
-    })()
+/** Factory output — {@link EmailTemplate} bound to abandoned-cart. */
+export type AbandonedCartTemplate =
+  EmailTemplate<AbandonedCartTemplateCopy, AbandonedCartTemplateContext>
 
-    const totalPrice = wantsTotalRow && fieldNames.totalPrice
-      ? (() => {
-        const { group, name } = splitDottedName(fieldNames.totalPrice)
-
-        return customField(group, name, customFields[fieldNames.totalPrice])
-      })()
-      : undefined
-
-    const products = wantsLineItemLoop && fieldNames.items && fieldNames.itemName
-      ? {
-        source: (() => {
-          const { group, name } = splitDottedName(fieldNames.items)
-
-          return customField(group, name, customFields[fieldNames.items])
-        })(),
-        itemName: loopValue(fieldNames.itemName),
-        itemSku: fieldNames.itemSku ? loopValue(fieldNames.itemSku) : undefined,
-        itemQuantity: fieldNames.itemQuantity ? loopValue(fieldNames.itemQuantity) : undefined,
-        itemPrice: fieldNames.itemUnitPrice ? loopValue(fieldNames.itemUnitPrice) : undefined,
-      }
-      : undefined
-
-    // Omit-if-empty fields — empty string / empty array are truthy per
-    // the engine's `<?if?>` rules, so guards only work when the field
-    // is absent or explicitly undefined.
-    const logoUrl = theme.images.logo?.url
-    const socialEntries = Object.values(theme.links)
-    const socialLinkEntries = socialEntries.length > 0 ? socialEntries : undefined
-
-    const data = {
-      recipient: { firstName },
-      cart: {
-        url: config.cartUrl,
-        totalPrice,
-        products,
-      },
-      logoUrl,
-      socialLinkEntries,
-      footer: {
-        fontSize: config.footer?.fontSize ?? '10px',
-        textColor: config.footer?.textColor ?? '#666666',
-      },
-    }
-
-    const { xml: interpolatedXml } = compileTemplate({
-      template: TEMPLATE_XML,
-      copy,
-      context: data,
-    })
-
-    const baseDoc = xmlToRcml(interpolatedXml)
-
-    return applyTheme(baseDoc, theme)
+/**
+ * Return a renderer bound to the abandoned-cart XML. Call
+ * `render({ context, theme, copy? })` to produce the themed
+ * {@link import('@rule-io/rcml').RcmlDocument}. Copy overrides apply
+ * per-render, not per-factory — the same template instance can render
+ * multiple locales/brand voices.
+ */
+export function createAbandonedCartTemplate(): AbandonedCartTemplate {
+  return createEmailTemplate<AbandonedCartTemplateCopy, AbandonedCartTemplateContext>({
+    baseUrl: import.meta.url,
+    templatePath: './abandoned-cart.xml',
+    copyPath: './abandoned-cart-copy.json',
   })
 }

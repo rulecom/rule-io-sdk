@@ -137,10 +137,10 @@ describe('shopifyPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 5 automations', () => {
+    it('returns 4 automations', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
 
-      expect(automations).toHaveLength(5);
+      expect(automations).toHaveLength(4);
     });
 
     it('returns automations with unique IDs', () => {
@@ -332,15 +332,6 @@ describe('shopifyPreset', () => {
       )!;
 
       expect(() => welcome.templateBuilder(minimal)).not.toThrow();
-    });
-
-    it('abandoned cart has delay and conditions', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const abandonedCart = automations.find((a) => a.id === 'shopify-abandoned-cart')!;
-
-      expect(abandonedCart.delayInSeconds).toBe('3600');
-      expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCompleted);
-      expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCancelled);
     });
   });
 

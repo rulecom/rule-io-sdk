@@ -42,16 +42,16 @@ export interface TemplateConfigV2 {
  *
  * @example
  * ```typescript
- * import { RuleTags, createAbandonedCartEmail } from '@rule-io/sdk';
+ * import { RuleTags, createOrderConfirmationEmail } from '@rule-io/sdk';
  * import type { AutomationConfigV2 } from '@rule-io/sdk';
  *
- * const abandonedCartAutomation: AutomationConfigV2 = {
- *   id: 'abandoned-cart',
- *   name: 'Abandoned Cart',
- *   description: 'Sent when a cart is abandoned',
- *   triggerTag: RuleTags.CART_IN_PROGRESS,
- *   subject: 'You left something behind!',
- *   templateBuilder: (config) => createAbandonedCartEmail({
+ * const orderConfirmationAutomation: AutomationConfigV2 = {
+ *   id: 'order-confirmation',
+ *   name: 'Order Confirmation',
+ *   description: 'Sent when an order is completed',
+ *   triggerTag: RuleTags.ORDER_COMPLETED,
+ *   subject: 'Order confirmed!',
+ *   templateBuilder: (config) => createOrderConfirmationEmail({
  *     theme: config.theme,
  *     customFields: config.customFields,
  *     websiteUrl: config.websiteUrl,

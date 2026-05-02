@@ -163,7 +163,7 @@ Ready-to-use templates for common use cases. All require consumer-provided confi
 
 **Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
 
-**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`
+**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createOrderCancellationEmail`, `createAbandonedCartTemplate` (factory)
 
 ```typescript
 import { createOrderConfirmationEmail } from '@rule-io/sdk';

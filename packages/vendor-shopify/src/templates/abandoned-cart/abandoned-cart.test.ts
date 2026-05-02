@@ -1,14 +1,18 @@
 /**
- * Unit tests for {@link createAbandonedCartEmail}.
+ * Unit tests for {@link createAbandonedCartTemplate}.
  *
- * Exercises line-item loop, total row, social icons, and the
- * validation/render-gate parity on optional fields.
+ * Drives the factory end-to-end: caller-assembled typed refs + link
+ * strings → bound copy → compiled XML → themed RCML document. The
+ * compiler serializes `CustomFieldRef` / `LoopValueRef` values into
+ * RFM placeholder strings automatically.
+ *
+ * Context is structural: optional sections toggle on/off based on the
+ * presence of their backing fields, not parallel `has*` flags.
  */
 
 import { describe, expect, it } from 'vitest'
 
-import type { CustomFieldMap } from '@rule-io/core'
-import { RuleConfigError } from '@rule-io/core'
+import { customField, loopValue } from '@rule-io/templates'
 
 import {
   TEST_THEME,
@@ -16,112 +20,145 @@ import {
   assertValidRCMLDocument,
   docToString,
 } from '../../test-fixtures.js'
-import { createAbandonedCartEmail } from './abandoned-cart.js'
+import {
+  createAbandonedCartTemplate,
+  type AbandonedCartTemplateContext,
+} from './abandoned-cart.js'
 
-const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  'Subscriber.FirstName': 200001,
-  'Order.TotalPrice': 200005,
-  'Order.Products': 200014,
+/** A fully-populated data shape exercising every optional section. */
+function fullContext(overrides: Partial<AbandonedCartTemplateContext> = {}): AbandonedCartTemplateContext {
+  return {
+    recipient: {
+      firstName: customField('Subscriber', 'FirstName', 200001),
+    },
+    cart: {
+      url: 'https://shop.example.com/cart',
+      totalPrice: customField('Order', 'TotalPrice', 200005),
+      products: {
+        source: customField('Order', 'Products', 200014),
+        itemName: loopValue('name'),
+        itemSku: loopValue('sku'),
+        itemQuantity: loopValue('quantity'),
+        itemPrice: loopValue('unitPrice'),
+      },
+    },
+    footer: { fontSize: '10px', textColor: '#666666' },
+    ...overrides,
+  }
 }
 
-describe('createAbandonedCartEmail', () => {
-  it('should produce valid RCML', () => {
-    const doc = createAbandonedCartEmail({
+describe('createAbandonedCartTemplate', () => {
+  it('renders a valid RCML document with default copy', () => {
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      cartUrl: 'https://shop.example.com/cart',
-      text: {
-        preheader: 'Did you forget something?',
-        greeting: 'Hey',
-        message: 'You left some items in your cart.',
-        reminder: 'Complete your purchase before they sell out!',
-        ctaButton: 'Return to Cart',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-      },
     })
 
     assertValidRCMLDocument(doc)
     const json = docToString(doc)
 
+    expect(json).toContain('Hi ')
     expect(json).toContain('Return to Cart')
-    expect(json).toContain('https://shop.example.com/cart')
-    expect(json).toContain('left some items')
-  })
-
-  it('renders cart line items loop when items + itemName are mapped', () => {
-    const doc = createAbandonedCartEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      cartUrl: 'https://shop.example.com/cart',
-      text: {
-        preheader: 'Cart waiting',
-        greeting: 'Hi',
-        message: 'Your cart is waiting.',
-        reminder: 'Hurry!',
-        ctaButton: 'Checkout',
-        itemQtyLabel: 'Qty: ',
-        itemSkuLabel: 'SKU: ',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemSku: 'sku',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).toContain('rc-loop')
     expect(json).toContain('Your Cart')
+    expect(json).toContain('Total: ')
+    expect(json).toContain('[CustomField:200001]')
+    expect(json).toContain('[CustomField:200005]')
     expect(json).toContain('[LoopValue:name]')
-    expect(json).toContain('[LoopValue:quantity]')
     expect(json).toContain('[LoopValue:sku]')
+    expect(json).toContain('[LoopValue:quantity]')
+    expect(json).toContain('[LoopValue:unitPrice]')
+    expect(json).toContain('[Link:WebBrowser]')
+    expect(json).toContain('[Link:Unsubscribe]')
+    expect(json).toContain('https://shop.example.com/cart')
   })
 
-  it('renders cart total when totalLabel + totalPrice supplied', () => {
-    const doc = createAbandonedCartEmail({
+  it('applies a partial copy override without touching other entries', () => {
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      cartUrl: 'https://shop.example.com/cart',
-      text: {
-        preheader: 'Cart',
-        greeting: 'Hi',
-        message: 'You left items.',
-        reminder: 'Back soon!',
-        ctaButton: 'Cart',
-        totalLabel: 'Total',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        totalPrice: 'Order.TotalPrice',
-      },
+      copy: { ctaButton: 'Checkout Now' },
     })
-
     const json = docToString(doc)
 
-    expect(json).toContain('Total: ')
-    expect(json).toContain('200005') // Order.TotalPrice
+    expect(json).toContain('Checkout Now')
+    expect(json).not.toContain('Return to Cart')
+    expect(json).toContain('Your Cart')
   })
 
-  it('renders social icons when theme.links is populated', () => {
-    const doc = createAbandonedCartEmail({
-      theme: TEST_THEME_WITH_SOCIALS,
-      customFields: TEST_CUSTOM_FIELDS,
-      cartUrl: 'https://shop.example.com/cart',
-      text: {
-        preheader: 'Cart',
-        greeting: 'Hi',
-        message: 'You left items.',
-        reminder: 'Back soon!',
-        ctaButton: 'Cart',
-      },
-      fieldNames: { firstName: 'Subscriber.FirstName' },
+  it('reuses the same template instance across renders with different copy overrides', () => {
+    const template = createAbandonedCartTemplate()
+
+    const defaultDoc = template.render({
+      context: fullContext(),
+      theme: TEST_THEME,
+    })
+    const overriddenDoc = template.render({
+      context: fullContext(),
+      theme: TEST_THEME,
+      copy: { ctaButton: 'Checkout Now' },
     })
 
+    expect(docToString(defaultDoc)).toContain('Return to Cart')
+    expect(docToString(overriddenDoc)).toContain('Checkout Now')
+    expect(docToString(overriddenDoc)).not.toContain('Return to Cart')
+  })
+
+  it('omits line-item loop, total row, and social section when their backing fields are absent', () => {
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext({
+        // Structural omission replaces the old has* flags: no products +
+        // no totalPrice means those sections don't render. TEST_THEME
+        // carries no social links → no social section.
+        cart: { url: 'https://shop.example.com/cart' },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).not.toContain('rc-loop')
+    expect(json).not.toContain('Total: ')
+    expect(json).not.toContain('rc-social')
+  })
+
+  it('omits optional line-item rows when refs are absent from cart.products', () => {
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext({
+        cart: {
+          url: 'https://shop.example.com/cart',
+          products: {
+            source: customField('Order', 'Products', 200014),
+            itemName: loopValue('name'),
+            // itemSku / itemQuantity / itemPrice all omitted → rows don't render
+          },
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[LoopValue:name]')
+    expect(json).not.toContain('[LoopValue:sku]')
+    expect(json).not.toContain('[LoopValue:quantity]')
+    expect(json).not.toContain('[LoopValue:unitPrice]')
+  })
+
+  it('propagates footer fontSize/textColor to rc-text attributes', () => {
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext({ footer: { fontSize: '14px', textColor: '#111111' } }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('14px')
+    expect(json).toContain('#111111')
+  })
+
+  it('renders social section from theme.links', () => {
+    // No context override — the factory derives socials from theme.
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext(),
+      theme: TEST_THEME_WITH_SOCIALS,
+    })
     const json = docToString(doc)
 
     expect(json).toContain('rc-social')
@@ -129,99 +166,15 @@ describe('createAbandonedCartEmail', () => {
     expect(json).toContain('instagram')
   })
 
-  it('omits line items, total row and social section when not configured', () => {
-    const doc = createAbandonedCartEmail({
+  it('renders logo section from theme.images.logo', () => {
+    // No context override — the factory derives the logo URL from theme.
+    const doc = createAbandonedCartTemplate().render({
+      context: fullContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      cartUrl: 'https://shop.example.com/cart',
-      text: {
-        preheader: 'Cart',
-        greeting: 'Hi',
-        message: 'Come back!',
-        reminder: 'Soon!',
-        ctaButton: 'Cart',
-      },
-      fieldNames: { firstName: 'Subscriber.FirstName' },
     })
-
     const json = docToString(doc)
 
-    expect(json).not.toContain('rc-loop')
-    expect(json).not.toContain('rc-social')
-    expect(json).not.toContain('Total: ')
-  })
-})
-
-describe('createAbandonedCartEmail — items/itemName validation', () => {
-  it('does not require items to be mapped in customFields when itemName is not supplied', () => {
-    // items mapped but itemName not supplied — loop will not render,
-    // so items should not trigger a missing-field validation error.
-    expect(() =>
-      createAbandonedCartEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        cartUrl: 'https://shop.example.com/cart',
-        text: {
-          preheader: 'Cart',
-          greeting: 'Hi',
-          message: 'You left items.',
-          reminder: 'Hurry!',
-          ctaButton: 'Cart',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          items: 'Order.UnmappedItems', // not in customFields — no error expected
-        },
-      }),
-    ).not.toThrow()
-  })
-
-  it('does not require totalPrice to be mapped in customFields when totalLabel is not supplied', () => {
-    // Regression: totalPrice used to be validated unconditionally.
-    // Without `text.totalLabel` the total row never renders, so an
-    // unmapped totalPrice must not throw.
-    expect(() =>
-      createAbandonedCartEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        cartUrl: 'https://shop.example.com/cart',
-        text: {
-          preheader: 'Cart',
-          greeting: 'Hi',
-          message: 'You left items.',
-          reminder: 'Hurry!',
-          ctaButton: 'Cart',
-          // totalLabel intentionally omitted → total row won't render.
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          totalPrice: 'Order.UnmappedTotal', // not in customFields
-        },
-      }),
-    ).not.toThrow()
-  })
-
-  it('throws when totalPrice is mapped and totalLabel is set but customFields entry is missing', () => {
-    // Rejection test: when both partners are set, the total row WILL
-    // render, so validation must surface the missing customFields entry.
-    expect(() =>
-      createAbandonedCartEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        cartUrl: 'https://shop.example.com/cart',
-        text: {
-          preheader: 'Cart',
-          greeting: 'Hi',
-          message: 'You left items.',
-          reminder: 'Hurry!',
-          ctaButton: 'Cart',
-          totalLabel: 'Total',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          totalPrice: 'Order.UnmappedTotal',
-        },
-      }),
-    ).toThrow(RuleConfigError)
+    // TEST_THEME.images.logo.url = 'https://example.com/logo.png'.
+    expect(json).toContain('https://example.com/logo.png')
   })
 })

@@ -18,16 +18,13 @@ export type { OrderConfirmationConfig } from './templates/order-confirmation/ord
 export { createShippingUpdateEmail } from './templates/shipping-update/shipping-update.js';
 export type { ShippingUpdateConfig } from './templates/shipping-update/shipping-update.js';
 
-export { createAbandonedCartEmail } from './templates/abandoned-cart/abandoned-cart.js';
-export type { AbandonedCartConfig } from './templates/abandoned-cart/abandoned-cart.js';
-
-export { createAbandonedCartTemplate } from './templates/abandoned-cart/create-abandoned-cart-template.js';
+export { createAbandonedCartTemplate } from './templates/abandoned-cart/abandoned-cart.js';
 export type {
   AbandonedCartRenderOptions,
   AbandonedCartTemplate,
   AbandonedCartTemplateContext,
   AbandonedCartTemplateCopy,
-} from './templates/abandoned-cart/create-abandoned-cart-template.js';
+} from './templates/abandoned-cart/abandoned-cart.js';
 
 export { createOrderCancellationEmail } from './templates/order-cancellation/order-cancellation.js';
 export type { OrderCancellationConfig } from './templates/order-cancellation/order-cancellation.js';

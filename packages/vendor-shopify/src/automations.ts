@@ -14,7 +14,6 @@ import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
 import { SHOPIFY_FIELDS } from './fields.js';
 import { createWelcomeEmail } from './generic-templates.js';
 import { SHOPIFY_TAGS } from './tags.js';
-import { createAbandonedCartEmail } from './templates/abandoned-cart/abandoned-cart.js';
 import { createOrderCancellationEmail } from './templates/order-cancellation/order-cancellation.js';
 import { createOrderConfirmationEmail } from './templates/order-confirmation/order-confirmation.js';
 import { createShippingUpdateEmail } from './templates/shipping-update/shipping-update.js';
@@ -86,19 +85,6 @@ const WELCOME_TEXT = {
   intro: "Thanks for joining our newsletter. We're glad to have you on board.",
   ctaButton: 'Learn More',
   closing: "We'll be in touch with news and updates.",
-} as const;
-
-/** Default English text for Shopify abandoned cart emails. */
-const ABANDONED_CART_TEXT = {
-  preheader: 'You left something behind!',
-  greeting: 'Hi',
-  message: 'It looks like you left some items in your cart.',
-  reminder: 'Complete your purchase before they sell out!',
-  ctaButton: 'Return to Cart',
-  itemQtyLabel: 'Qty: ',
-  itemUnitPriceLabel: 'Price: ',
-  itemSkuLabel: 'SKU: ',
-  totalLabel: 'Total',
 } as const;
 
 /**
@@ -255,39 +241,6 @@ export function createShopifyAutomations(): VendorAutomation[] {
           text: WELCOME_TEXT,
           fieldNames: {
             firstName: SHOPIFY_FIELDS.firstName,
-          },
-        }),
-    },
-    {
-      id: 'shopify-abandoned-cart',
-      name: 'Shopify Abandoned Cart',
-      description: 'Sent when a cart is abandoned after a delay',
-      triggerTag: SHOPIFY_TAGS.cartInProgress,
-      delayInSeconds: '3600',
-      conditions: {
-        notHasTag: [SHOPIFY_TAGS.orderCompleted, SHOPIFY_TAGS.orderCancelled],
-      },
-      subject: 'You Left Something Behind!',
-      preheader: ABANDONED_CART_TEXT.preheader,
-      templateBuilder: (config: VendorConsumerConfig) =>
-        createAbandonedCartEmail({
-          theme: config.theme,
-          customFields: config.customFields,
-          cartUrl: config.websiteUrl,
-          footer: config.footer,
-          text: ABANDONED_CART_TEXT,
-          fieldNames: {
-            firstName: SHOPIFY_FIELDS.firstName,
-            ...(config.customFields[SHOPIFY_FIELDS.products] !== undefined && {
-              items: SHOPIFY_FIELDS.products,
-              itemName: SHOPIFY_FIELDS.itemName,
-              itemQuantity: SHOPIFY_FIELDS.itemQuantity,
-              itemUnitPrice: SHOPIFY_FIELDS.itemPrice,
-              itemSku: SHOPIFY_FIELDS.itemSku,
-            }),
-            ...(config.customFields[SHOPIFY_FIELDS.totalPrice] !== undefined && {
-              totalPrice: SHOPIFY_FIELDS.totalPrice,
-            }),
           },
         }),
     },

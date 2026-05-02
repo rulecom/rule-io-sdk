@@ -2711,11 +2711,11 @@ export class RuleClient {
    * ```typescript
    * // Option 1: Provide a full RCML template
    * const result = await client.createAutomationEmail({
-   *   name: 'Abandoned Cart',
+   *   name: 'Order Confirmation',
    *   triggerType: 'tag',
-   *   triggerValue: 'CartInProgress',
-   *   subject: 'You left something behind!',
-   *   template: createAbandonedCartEmail(config),
+   *   triggerValue: 'OrderCompleted',
+   *   subject: 'Order confirmed!',
+   *   template: createOrderConfirmationEmail(config),
    * });
    *
    * // Option 2: Let the SDK build editor-compatible RCML from a brand style
