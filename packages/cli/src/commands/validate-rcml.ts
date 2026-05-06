@@ -42,7 +42,11 @@ import {
   placeholder,
   textNode,
 } from '@rule-io/rcml';
-import { EmailThemeColorType, type EmailTheme } from '@rule-io/core';
+import {
+  EmailThemeColorType,
+  EmailThemeFontStyleType,
+  type EmailTheme,
+} from '@rule-io/core';
 import type {
   Json,
   RcmlBodyChild,
@@ -722,7 +726,8 @@ async function create(): Promise<void> {
   console.log(`  Button:     ${theme.colors[EmailThemeColorType.Primary]?.hex}`);
   console.log(`  Body BG:    ${theme.colors[EmailThemeColorType.Background]?.hex}`);
   console.log(`  Section BG: ${theme.colors[EmailThemeColorType.Body]?.hex}`);
-  console.log(`  Text:       ${theme.colors[EmailThemeColorType.Secondary]?.hex}`);
+  console.log(`  Brand:      ${theme.colors[EmailThemeColorType.Secondary]?.hex}`);
+  console.log(`  Text:       ${theme.fontStyles[EmailThemeFontStyleType.Paragraph].color}`);
   const themeLinkEntries = Object.values(theme.links).filter(
     (l): l is NonNullable<typeof l> => l !== undefined,
   );

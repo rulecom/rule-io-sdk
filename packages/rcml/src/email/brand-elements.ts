@@ -532,7 +532,12 @@ export function addressBlock(options: AddressBlockOptions): RcmlBodyChild | unde
 
 /**
  * Require every `fieldNames` logical→rule-io mapping to be present in
- * `customFields`. Throws `RuleConfigError` listing the missing entries.
+ * `customFields`. Both an `undefined` mapping (no field name configured)
+ * and a configured field name absent from `customFields` are reported as
+ * missing. Throws `RuleConfigError` listing the missing entries.
+ *
+ * Callers that want to skip optional fields should omit them from
+ * `fieldNames` rather than passing `undefined`.
  */
 export function validateRequiredFields(
   customFields: CustomFieldMap,
@@ -541,7 +546,12 @@ export function validateRequiredFields(
   const missing: string[] = [];
 
   for (const [logical, fieldName] of Object.entries(fieldNames)) {
-    if (fieldName !== undefined && customFields[fieldName] === undefined) {
+    if (fieldName === undefined) {
+      missing.push(`${logical} (no field mapping configured)`);
+      continue;
+    }
+
+    if (customFields[fieldName] === undefined) {
       missing.push(`${logical} (mapped to "${fieldName}")`);
     }
   }
