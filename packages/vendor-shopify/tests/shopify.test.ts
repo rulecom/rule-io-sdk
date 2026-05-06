@@ -7,7 +7,7 @@ import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
-import { TEST_BRAND_STYLE, assertValidRCMLDocument } from './helpers.js';
+import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
 
 // ============================================================================
 // Shared fixtures
@@ -40,7 +40,7 @@ const TEST_CUSTOM_FIELDS: CustomFieldMap = {
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
-  brandStyle: TEST_BRAND_STYLE,
+  theme: TEST_THEME,
   customFields: TEST_CUSTOM_FIELDS,
   websiteUrl: 'https://myshop.example.com',
 };
@@ -164,7 +164,7 @@ describe('shopifyPreset', () => {
 
       for (const automation of automations) {
         const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://myshop.example.com',
         });
@@ -185,7 +185,7 @@ describe('shopifyPreset', () => {
       };
 
       const doc = orderConfirmation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: overriddenFields,
         websiteUrl: 'https://override.example.com',
       });
@@ -203,7 +203,7 @@ describe('shopifyPreset', () => {
       )!;
 
       const doc = orderConfirmation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
@@ -230,7 +230,7 @@ describe('shopifyPreset', () => {
       )!;
 
       const doc = orderConfirmation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
@@ -249,7 +249,7 @@ describe('shopifyPreset', () => {
       )!;
 
       const doc = shippingUpdate.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
@@ -278,7 +278,7 @@ describe('shopifyPreset', () => {
       expect(cancellation.triggerTag).toBe(SHOPIFY_TAGS.orderCancelled);
 
       const doc = cancellation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
@@ -300,7 +300,7 @@ describe('shopifyPreset', () => {
       expect(welcome!.delayInSeconds).toBeUndefined();
 
       const doc = welcome!.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myshop.example.com',
       });
@@ -319,7 +319,7 @@ describe('shopifyPreset', () => {
       // totalPrice — orderNumber and totalPrice are for the order-flow
       // automations; the welcome template itself only uses firstName.
       const minimal: VendorConsumerConfig = {
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: {
           [SHOPIFY_FIELDS.firstName]: 1,
           [SHOPIFY_FIELDS.orderNumber]: 2,

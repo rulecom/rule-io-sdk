@@ -28,6 +28,11 @@
             "input": "./packages/vendor-shopify",
             "glob": "*.md",
             "output": "./"
+          },
+          {
+            "input": "./packages/vendor-shopify/src/templates",
+            "glob": "*.xml",
+            "output": "./src/templates"
           }
         ]
       }

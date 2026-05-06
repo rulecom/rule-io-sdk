@@ -123,7 +123,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
       preheader: ORDER_CONFIRMATION_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createOrderConfirmationEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -182,7 +182,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
       preheader: SHIPPING_UPDATE_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createShippingUpdateEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           trackingUrl: config.websiteUrl,
           footer: config.footer,
@@ -228,7 +228,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
       preheader: ORDER_CANCELLATION_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createOrderCancellationEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -251,7 +251,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
       preheader: WELCOME_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createWelcomeEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           websiteUrl: config.websiteUrl,
           footer: config.footer,
@@ -274,7 +274,7 @@ export function createShopifyAutomations(): VendorAutomation[] {
       preheader: ABANDONED_CART_TEXT.preheader,
       templateBuilder: (config: VendorConsumerConfig) =>
         createAbandonedCartEmail({
-          brandStyle: config.brandStyle,
+          theme: config.theme,
           customFields: config.customFields,
           cartUrl: config.websiteUrl,
           footer: config.footer,

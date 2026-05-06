@@ -7,7 +7,7 @@ import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '../src/index.js';
-import { TEST_BRAND_STYLE, assertValidRCMLDocument } from './helpers.js';
+import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
 
 // ============================================================================
 // Shared fixtures
@@ -25,7 +25,7 @@ const TEST_CUSTOM_FIELDS: CustomFieldMap = {
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
-  brandStyle: TEST_BRAND_STYLE,
+  theme: TEST_THEME,
   customFields: TEST_CUSTOM_FIELDS,
   websiteUrl: 'https://myhotel.example.com',
 };
@@ -138,7 +138,7 @@ describe('bookzenPreset', () => {
 
       for (const automation of automations) {
         const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://myhotel.example.com',
         });
@@ -159,7 +159,7 @@ describe('bookzenPreset', () => {
       };
 
       const doc = confirmation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: overriddenFields,
         websiteUrl: 'https://override.example.com',
       });
@@ -177,7 +177,7 @@ describe('bookzenPreset', () => {
       )!;
 
       const doc = confirmation.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://myhotel.example.com',
       });

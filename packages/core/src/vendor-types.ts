@@ -63,7 +63,7 @@ export interface VendorTagSchema {
  * @example
  * ```typescript
  * const config: VendorConsumerConfig = {
- *   brandStyle: myBrandStyle,
+ *   theme: myEmailTheme,
  *   customFields: {
  *     'Order.CustomerName': 169233,
  *     'Order.OrderRef': 169234,

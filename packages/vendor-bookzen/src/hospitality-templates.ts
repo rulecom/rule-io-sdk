@@ -2,8 +2,9 @@
  * Hospitality Email Templates
  *
  * Pre-built templates for hotels, restaurants, and experiences.
- * These templates use the brand style system and placeholder nodes
- * for merge fields.
+ * These templates build branded RCML bodies and apply the consumer's
+ * {@link EmailTheme} via `applyTheme`, which decorates the head with
+ * brand-style id, fonts, social links, and the colour palette.
  *
  * All text and configuration must be provided by the consumer —
  * no hardcoded defaults for any specific business.
@@ -13,17 +14,411 @@
  * to override with your own locale.
  */
 
-import { type BrandStyleConfig, type CustomFieldMap, type FooterConfig } from '@rule-io/core';
-import { type RcmlDocument } from '@rule-io/rcml';
-import { createBrandTemplate, createBrandHeading, createBrandText, createBrandButton, createContentSection, createFooterSection, createPlaceholder, createTextNode, createDocWithPlaceholders, createLogoSection, createGreetingSection, createCtaSection, validateCustomFields, withTemplateContext } from '@rule-io/client';
+import { randomUUID } from 'node:crypto';
+import type {
+  CustomFieldMap,
+  EmailTheme,
+  FooterConfig,
+} from '@rule-io/core';
+import { EmailThemeColorType, RuleConfigError, sanitizeUrl } from '@rule-io/core';
+import type {
+  Json,
+  RcmlBodyChild,
+  RcmlButton,
+  RcmlDocument,
+  RcmlHead,
+  RcmlHeading,
+  RcmlSection,
+  RcmlText,
+} from '@rule-io/rcml';
+import { applyTheme } from '@rule-io/rcml';
+
+// ============================================================================
+// Local RCML helpers — terse replacements for the retired brand-template
+// builders. Encode the same `rc-class` / layout conventions the Rule.io
+// editor expects so the generated documents keep rendering identically
+// once `applyTheme` fills in the head from `config.theme`.
+// ============================================================================
+
+function genId(): string {
+  return randomUUID();
+}
+
+interface PlaceholderNode {
+  type: 'placeholder';
+  attrs: {
+    type: 'CustomField';
+    value: number;
+    name: string;
+    original: string;
+    'max-length': string | null;
+  };
+}
+interface TextNode {
+  type: 'text';
+  text: string;
+}
+type InlineNode = TextNode | PlaceholderNode;
+
+function textNode(text: string): TextNode {
+  return { type: 'text', text };
+}
+
+function placeholder(fieldName: string, fieldId: number): PlaceholderNode {
+  return {
+    type: 'placeholder',
+    attrs: {
+      type: 'CustomField',
+      value: fieldId,
+      name: fieldName,
+      original: `[CustomField:${String(fieldId)}]`,
+      'max-length': null,
+    },
+  };
+}
+
+function docWithNodes(nodes: readonly InlineNode[]): Json {
+  return {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [...nodes] }],
+  } as unknown as Json;
+}
+
+function brandHeading(content: Json, level: 1 | 2 | 3 | 4 = 1): RcmlHeading {
+  return {
+    tagName: 'rc-heading',
+    id: genId(),
+    attributes: { 'rc-class': `rcml-h${String(level)}-style` },
+    content,
+  };
+}
+
+function brandText(
+  content: Json,
+  options?: { align?: 'left' | 'center' | 'right'; padding?: string }
+): RcmlText {
+  return {
+    tagName: 'rc-text',
+    id: genId(),
+    attributes: {
+      'rc-class': 'rcml-p-style',
+      ...(options?.align !== undefined && { align: options.align }),
+      ...(options?.padding !== undefined && { padding: options.padding }),
+    },
+    content,
+  };
+}
+
+function brandButton(content: Json, href: string): RcmlButton {
+  const safe = sanitizeUrl(href);
+
+  if (!safe) {
+    throw new RuleConfigError('createBrandButton: invalid or unsafe URL');
+  }
+
+  return {
+    tagName: 'rc-button',
+    id: genId(),
+    attributes: {
+      href: safe,
+      align: 'center',
+      border: 'none',
+      'border-radius': '8px',
+      'inner-padding': '10px 16px',
+      padding: '0 0 20px 0',
+      'text-align': 'center',
+      'vertical-align': 'middle',
+      'rc-class': 'rcml-label-style',
+    },
+    content,
+  };
+}
+
+function contentSection(
+  children: readonly (RcmlHeading | RcmlText | RcmlButton)[],
+  options?: { padding?: string; backgroundColor?: string }
+): RcmlSection {
+  const padding = options?.padding ?? '20px 0';
+
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    attributes: {
+      padding,
+      ...(options?.backgroundColor !== undefined && {
+        'background-color': options.backgroundColor,
+      }),
+    },
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [...children],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+function logoSection(logoUrl: string): RcmlSection {
+  const safeSrc = sanitizeUrl(logoUrl);
+
+  if (!safeSrc) {
+    throw new RuleConfigError('createBrandLogo: invalid or unsafe logoUrl');
+  }
+
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [
+          {
+            tagName: 'rc-logo',
+            id: genId(),
+            attributes: {
+              'rc-class': 'rcml-logo-style rc-initial-logo',
+              src: safeSrc,
+              width: '96px',
+              padding: '20px 0',
+            },
+          },
+        ],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+function footerSection(config?: FooterConfig): RcmlSection {
+  const viewText = config?.viewInBrowserText ?? 'View in browser';
+  const unsubText = config?.unsubscribeText ?? 'Unsubscribe';
+  const textColor = config?.textColor ?? '#666666';
+  const fontSize = config?.fontSize ?? '10px';
+
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    attributes: { padding: '20px 0px 20px 0px' },
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [
+          {
+            tagName: 'rc-text',
+            id: genId(),
+            attributes: {
+              align: 'center',
+              padding: '0px 0px 10px 0px',
+              'rc-class': 'rcml-p-style',
+            },
+            content: {
+              type: 'doc',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [
+                    {
+                      type: 'text',
+                      text: viewText,
+                      marks: [
+                        {
+                          type: 'font',
+                          attrs: {
+                            'font-size': fontSize,
+                            'text-decoration': 'underline',
+                            color: textColor,
+                          },
+                        },
+                        {
+                          type: 'link',
+                          attrs: {
+                            href: '[Link:WebBrowser]',
+                            target: '_blank',
+                            'no-tracked': 'true',
+                          },
+                        },
+                      ],
+                    },
+                    { type: 'text', text: ' ' },
+                    {
+                      type: 'text',
+                      text: '|',
+                      marks: [
+                        { type: 'font', attrs: { 'font-size': fontSize, color: textColor } },
+                      ],
+                    },
+                    { type: 'text', text: ' ' },
+                    {
+                      type: 'text',
+                      text: unsubText,
+                      marks: [
+                        {
+                          type: 'font',
+                          attrs: {
+                            'font-size': fontSize,
+                            'text-decoration': 'underline',
+                            color: textColor,
+                          },
+                        },
+                        {
+                          type: 'link',
+                          attrs: {
+                            href: '[Link:Unsubscribe]',
+                            target: '_blank',
+                            'no-tracked': 'true',
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            tagName: 'rc-text',
+            id: genId(),
+            attributes: {
+              align: 'center',
+              padding: '10px 0px 0px 0px',
+              'font-family': "'Helvetica', sans-serif",
+              'font-style': 'normal',
+              'line-height': '120%',
+              'letter-spacing': '0em',
+              color: textColor,
+              'font-weight': '400',
+              'text-decoration': 'none',
+              'font-size': fontSize,
+            },
+            content: {
+              type: 'doc',
+              content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'Certified by Rule' }] },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+/** Zero-or-one-element array containing the logo section. */
+function maybeLogoSection(theme: EmailTheme): RcmlBodyChild[] {
+  const url = theme.images.logo?.url;
+
+  return url !== undefined && url !== '' ? [logoSection(url)] : [];
+}
+
+/** Greeting block = heading with `${greeting}, [firstNamePlaceholder]` + intro paragraph. */
+function greetingSection(
+  greeting: string,
+  intro: string,
+  firstNameField: string,
+  firstNameId: number,
+): RcmlSection {
+  return contentSection([
+    brandHeading(
+      docWithNodes([textNode(`${greeting}, `), placeholder(firstNameField, firstNameId)]),
+      1,
+    ),
+    brandText(docWithNodes([textNode(intro)])),
+  ]);
+}
+
+function ctaSection(label: string, href: string): RcmlSection {
+  return contentSection([brandButton(docWithNodes([textNode(label)]), href)]);
+}
+
+/**
+ * Validate that every logical→rule-io field mapping referenced in
+ * `fieldNames` has a matching entry in `customFields`. Undefined entries
+ * are skipped (supports optional fields in the config).
+ */
+function validateRequiredFields(
+  customFields: CustomFieldMap,
+  fieldNames: Record<string, string | undefined>,
+): void {
+  const missing: string[] = [];
+
+  for (const [logical, fieldName] of Object.entries(fieldNames)) {
+    if (fieldName !== undefined && customFields[fieldName] === undefined) {
+      missing.push(`${logical} (mapped to "${fieldName}")`);
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new RuleConfigError(
+      `missing customFields entries: ${missing.join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Wrap errors thrown by `fn` with a template-name prefix so callers can
+ * correlate failures with the builder that triggered them.
+ */
+function withTemplateContext<T>(templateName: string, fn: () => T): T {
+  try {
+    return fn();
+  } catch (err) {
+    if (err instanceof RuleConfigError) {
+      throw new RuleConfigError(`${templateName} > ${err.message}`);
+    }
+
+    throw err;
+  }
+}
+
+/**
+ * Wrap the built body in an `<rcml>` document and run `applyTheme` so the
+ * head gets populated (brand-style id, fonts, social links, colour
+ * palette) from `theme`. The optional preheader is prepended to the head
+ * as an `<rc-preview>` that survives `applyTheme`'s overlay.
+ */
+function buildThemedDocument(
+  theme: EmailTheme,
+  sections: readonly RcmlBodyChild[],
+  preheader?: string,
+): RcmlDocument {
+  const head: RcmlHead = {
+    tagName: 'rc-head',
+    id: genId(),
+    children:
+      preheader !== undefined
+        ? ([{ tagName: 'rc-preview', id: genId(), content: preheader }] as RcmlHead['children'])
+        : [],
+  };
+
+  const baseDoc: RcmlDocument = {
+    tagName: 'rcml',
+    id: genId(),
+    children: [
+      head,
+      { tagName: 'rc-body', id: genId(), children: [...sections] },
+    ],
+  };
+
+  return applyTheme(baseDoc, theme);
+}
+
+/** Convenience: the theme's Secondary colour slot used as accent-section background. */
+function accentBackground(theme: EmailTheme): string | undefined {
+  return theme.colors[EmailThemeColorType.Secondary]?.hex;
+}
 
 // ============================================================================
 // Template Configuration
 // ============================================================================
 
 export interface ReservationTemplateConfig {
-  /** Brand style configuration (required) */
-  brandStyle: BrandStyleConfig;
+  /** Typed email theme applied to the built document (required) */
+  theme: EmailTheme;
   /** Custom field ID mapping (required) */
   customFields: CustomFieldMap;
   /** Website URL for buttons */
@@ -69,147 +464,113 @@ export interface ReservationTemplateConfig {
  * @example
  * ```typescript
  * const email = createReservationConfirmationEmail({
- *   brandStyle: myBrandStyle,
+ *   theme: myEmailTheme,
  *   customFields: myFields,
  *   websiteUrl: 'https://example.com',
- *   text: {
- *     preheader: 'Thank you for your reservation!',
- *     greeting: 'Hello',
- *     intro: 'Thank you for your reservation. We look forward to welcoming you!',
- *     detailsHeading: 'Reservation Details',
- *     referenceLabel: 'Reference',
- *     serviceLabel: 'Service',
- *     roomLabel: 'Room',
- *     checkInLabel: 'Check-in',
- *     checkOutLabel: 'Check-out',
- *     guestsLabel: 'Guests',
- *     totalPriceLabel: 'Total',
- *     ctaButton: 'View Reservation',
- *   },
- *   fieldNames: {
- *     firstName: 'Booking.FirstName',
- *     bookingRef: 'Booking.BookingRef',
- *     serviceType: 'Booking.ServiceType',
- *     checkInDate: 'Booking.CheckInDate',
- *     checkOutDate: 'Booking.CheckOutDate',
- *     totalGuests: 'Booking.TotalGuests',
- *     totalPrice: 'Booking.TotalPrice',
- *     roomName: 'Booking.RoomName',
- *   },
+ *   text: { ... },
+ *   fieldNames: { ... },
  * });
  * ```
  */
-export function createReservationConfirmationEmail(config: ReservationTemplateConfig): RcmlDocument {
-  const templateName = 'createReservationConfirmationEmail';
+export function createReservationConfirmationEmail(
+  config: ReservationTemplateConfig,
+): RcmlDocument {
+  return withTemplateContext('createReservationConfirmationEmail', () => {
+    const { customFields, fieldNames, text, theme } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, fieldNames);
 
-    validateCustomFields(customFields, fieldNames);
-
-    const detailRows: ReturnType<typeof createBrandText>[] = [
-      // Reference
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.referenceLabel}: `),
-          createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-        ])
+    const detailRows: RcmlText[] = [
+      brandText(
+        docWithNodes([
+          textNode(`${text.referenceLabel}: `),
+          placeholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]!),
+        ]),
       ),
-      // Service type
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.serviceLabel}: `),
-          createPlaceholder(fieldNames.serviceType, customFields[fieldNames.serviceType]),
-        ])
+      brandText(
+        docWithNodes([
+          textNode(`${text.serviceLabel}: `),
+          placeholder(fieldNames.serviceType, customFields[fieldNames.serviceType]!),
+        ]),
       ),
     ];
 
-    // Room (optional)
-    if (fieldNames.roomName && text.roomLabel) {
+    if (fieldNames.roomName !== undefined && text.roomLabel !== undefined) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.roomLabel}: `),
-            createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
-          ])
-        )
-      );
-    }
-
-    // Check-in
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.checkInLabel}: `),
-          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-        ])
-      )
-    );
-
-    // Check-out (optional)
-    if (fieldNames.checkOutDate && text.checkOutLabel) {
-      detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.checkOutLabel}: `),
-            createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
-          ])
-        )
-      );
-    }
-
-    // Guests
-    detailRows.push(
-      createBrandText(
-        createDocWithPlaceholders([
-          createTextNode(`${text.guestsLabel}: `),
-          createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
-        ])
-      )
-    );
-
-    // Total price (optional)
-    if (fieldNames.totalPrice && text.totalPriceLabel) {
-      const priceContent = text.currency
-        ? [
-            createTextNode(`${text.totalPriceLabel}: `),
-            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-            createTextNode(` ${text.currency}`),
-          ]
-        : [
-            createTextNode(`${text.totalPriceLabel}: `),
-            createPlaceholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]),
-          ];
-
-      detailRows.push(createBrandText(createDocWithPlaceholders(priceContent)));
-    }
-
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections: [
-        // Logo
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        // Greeting
-        createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
-
-        // Details
-        createContentSection(
-          [
-            createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-            ...detailRows,
-          ],
-          { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+        brandText(
+          docWithNodes([
+            textNode(`${text.roomLabel}: `),
+            placeholder(fieldNames.roomName, customFields[fieldNames.roomName]!),
+          ]),
         ),
+      );
+    }
 
-        // CTA
-        createCtaSection(text.ctaButton, config.websiteUrl),
+    detailRows.push(
+      brandText(
+        docWithNodes([
+          textNode(`${text.checkInLabel}: `),
+          placeholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]!),
+        ]),
+      ),
+    );
 
-        // Footer
-        createFooterSection(config.footer),
-      ],
-    });
+    if (fieldNames.checkOutDate !== undefined && text.checkOutLabel !== undefined) {
+      detailRows.push(
+        brandText(
+          docWithNodes([
+            textNode(`${text.checkOutLabel}: `),
+            placeholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]!),
+          ]),
+        ),
+      );
+    }
+
+    detailRows.push(
+      brandText(
+        docWithNodes([
+          textNode(`${text.guestsLabel}: `),
+          placeholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]!),
+        ]),
+      ),
+    );
+
+    if (fieldNames.totalPrice !== undefined && text.totalPriceLabel !== undefined) {
+      const priceContent: InlineNode[] =
+        text.currency !== undefined
+          ? [
+              textNode(`${text.totalPriceLabel}: `),
+              placeholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]!),
+              textNode(` ${text.currency}`),
+            ]
+          : [
+              textNode(`${text.totalPriceLabel}: `),
+              placeholder(fieldNames.totalPrice, customFields[fieldNames.totalPrice]!),
+            ];
+
+      detailRows.push(brandText(docWithNodes(priceContent)));
+    }
+
+    const sections: RcmlBodyChild[] = [
+      ...maybeLogoSection(theme),
+      greetingSection(
+        text.greeting,
+        text.intro,
+        fieldNames.firstName,
+        customFields[fieldNames.firstName]!,
+      ),
+      contentSection(
+        [
+          brandHeading(docWithNodes([textNode(text.detailsHeading)]), 2),
+          ...detailRows,
+        ],
+        { padding: '20px 0', backgroundColor: accentBackground(theme) },
+      ),
+      ctaSection(text.ctaButton, config.websiteUrl),
+      footerSection(config.footer),
+    ];
+
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -218,7 +579,7 @@ export function createReservationConfirmationEmail(config: ReservationTemplateCo
 // ============================================================================
 
 export interface ReservationCancellationConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   websiteUrl: string;
   footer?: FooterConfig;
@@ -240,57 +601,42 @@ export interface ReservationCancellationConfig {
 /**
  * Create a reservation cancellation email template.
  */
-export function createReservationCancellationEmail(config: ReservationCancellationConfig): RcmlDocument {
-  const templateName = 'createReservationCancellationEmail';
+export function createReservationCancellationEmail(
+  config: ReservationCancellationConfig,
+): RcmlDocument {
+  return withTemplateContext('createReservationCancellationEmail', () => {
+    const { customFields, fieldNames, text, theme } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, fieldNames);
 
-    validateCustomFields(customFields, fieldNames);
+    const sections: RcmlBodyChild[] = [
+      ...maybeLogoSection(theme),
+      contentSection(
+        [
+          brandHeading(docWithNodes([textNode(text.heading)]), 1),
+          brandText(
+            docWithNodes([
+              textNode(`${text.greeting} `),
+              placeholder(fieldNames.firstName, customFields[fieldNames.firstName]!),
+              textNode(','),
+            ]),
+          ),
+          brandText(docWithNodes([textNode(text.message)])),
+          brandText(
+            docWithNodes([
+              textNode(`${text.referenceLabel}: `),
+              placeholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]!),
+            ]),
+          ),
+          brandText(docWithNodes([textNode(text.followUp)])),
+        ],
+        { padding: '20px 0' },
+      ),
+      ctaSection(text.ctaButton, config.websiteUrl),
+      footerSection(config.footer),
+    ];
 
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections: [
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        createContentSection(
-          [
-            createBrandHeading(createDocWithPlaceholders([createTextNode(text.heading)])),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.greeting} `),
-                createPlaceholder(fieldNames.firstName, customFields[fieldNames.firstName]),
-                createTextNode(','),
-              ])
-            ),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(text.message),
-              ])
-            ),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.referenceLabel}: `),
-                createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-              ])
-            ),
-
-            createBrandText(
-              createDocWithPlaceholders([createTextNode(text.followUp)])
-            ),
-          ],
-          { padding: '20px 0' }
-        ),
-
-        createCtaSection(text.ctaButton, config.websiteUrl),
-
-        createFooterSection(config.footer),
-      ],
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -299,7 +645,7 @@ export function createReservationCancellationEmail(config: ReservationCancellati
 // ============================================================================
 
 export interface ReservationReminderConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   websiteUrl: string;
   footer?: FooterConfig;
@@ -325,94 +671,84 @@ export interface ReservationReminderConfig {
 /**
  * Create a reservation reminder email template.
  */
-export function createReservationReminderEmail(config: ReservationReminderConfig): RcmlDocument {
-  const templateName = 'createReservationReminderEmail';
+export function createReservationReminderEmail(
+  config: ReservationReminderConfig,
+): RcmlDocument {
+  return withTemplateContext('createReservationReminderEmail', () => {
+    const { customFields, fieldNames, text, theme } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, fieldNames);
 
-    validateCustomFields(customFields, fieldNames);
+    const detailRows: RcmlText[] = [];
 
-    const detailRows: ReturnType<typeof createBrandText>[] = [];
-
-    // Dates
-    if (fieldNames.checkOutDate) {
+    if (fieldNames.checkOutDate !== undefined) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.dateLabel}: `),
-            createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-            createTextNode(' - '),
-            createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
-          ])
-        )
+        brandText(
+          docWithNodes([
+            textNode(`${text.dateLabel}: `),
+            placeholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]!),
+            textNode(' - '),
+            placeholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]!),
+          ]),
+        ),
       );
     } else {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.dateLabel}: `),
-            createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-          ])
-        )
+        brandText(
+          docWithNodes([
+            textNode(`${text.dateLabel}: `),
+            placeholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]!),
+          ]),
+        ),
       );
     }
 
-    // Room (optional)
-    if (fieldNames.roomName && text.roomLabel) {
+    if (fieldNames.roomName !== undefined && text.roomLabel !== undefined) {
       detailRows.push(
-        createBrandText(
-          createDocWithPlaceholders([
-            createTextNode(`${text.roomLabel}: `),
-            createPlaceholder(fieldNames.roomName, customFields[fieldNames.roomName]),
-          ])
-        )
+        brandText(
+          docWithNodes([
+            textNode(`${text.roomLabel}: `),
+            placeholder(fieldNames.roomName, customFields[fieldNames.roomName]!),
+          ]),
+        ),
       );
     }
 
-    const sections: RcmlDocument['children'][1]['children'] = [
-      ...createLogoSection(config.brandStyle.logoUrl),
-
-      createGreetingSection(text.greeting, text.intro, fieldNames.firstName, customFields[fieldNames.firstName]),
-
-      createContentSection(
+    const sections: RcmlBodyChild[] = [
+      ...maybeLogoSection(theme),
+      greetingSection(
+        text.greeting,
+        text.intro,
+        fieldNames.firstName,
+        customFields[fieldNames.firstName]!,
+      ),
+      contentSection(
         [
-          createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
+          brandHeading(docWithNodes([textNode(text.detailsHeading)]), 2),
           ...detailRows,
         ],
-        { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
+        { padding: '20px 0', backgroundColor: accentBackground(theme) },
       ),
     ];
 
-    // Practical info (optional)
-    if (text.practicalInfoHeading && text.practicalInfo) {
+    if (text.practicalInfoHeading !== undefined && text.practicalInfo !== undefined) {
       sections.push(
-        createContentSection(
+        contentSection(
           [
-            createBrandHeading(
-              createDocWithPlaceholders([createTextNode(text.practicalInfoHeading)]),
-              3
-            ),
-            createBrandText(createDocWithPlaceholders([createTextNode(text.practicalInfo)])),
-            createBrandButton(
-              createDocWithPlaceholders([createTextNode(text.ctaButton)]),
-              config.websiteUrl
-            ),
+            brandHeading(docWithNodes([textNode(text.practicalInfoHeading)]), 3),
+            brandText(docWithNodes([textNode(text.practicalInfo)])),
+            brandButton(docWithNodes([textNode(text.ctaButton)]), config.websiteUrl),
           ],
-          { padding: '20px 0' }
-        )
+          { padding: '20px 0' },
+        ),
       );
     } else {
-      sections.push(createCtaSection(text.ctaButton, config.websiteUrl));
+      sections.push(ctaSection(text.ctaButton, config.websiteUrl));
     }
 
-    sections.push(createFooterSection(config.footer));
+    sections.push(footerSection(config.footer));
 
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections,
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -421,7 +757,7 @@ export function createReservationReminderEmail(config: ReservationReminderConfig
 // ============================================================================
 
 export interface FeedbackRequestConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   feedbackUrl: string;
   footer?: FooterConfig;
@@ -441,26 +777,24 @@ export interface FeedbackRequestConfig {
  * Works for post-stay, post-purchase, or any review request.
  */
 export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RcmlDocument {
-  const templateName = 'createFeedbackRequestEmail';
+  return withTemplateContext('createFeedbackRequestEmail', () => {
+    const { customFields, fieldNames, text, theme } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, fieldNames);
 
-    validateCustomFields(customFields, fieldNames);
+    const sections: RcmlBodyChild[] = [
+      ...maybeLogoSection(theme),
+      greetingSection(
+        text.greeting,
+        text.message,
+        fieldNames.firstName,
+        customFields[fieldNames.firstName]!,
+      ),
+      ctaSection(text.ctaButton, config.feedbackUrl),
+      footerSection(config.footer),
+    ];
 
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections: [
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        createGreetingSection(text.greeting, text.message, fieldNames.firstName, customFields[fieldNames.firstName]),
-
-        createCtaSection(text.ctaButton, config.feedbackUrl),
-
-        createFooterSection(config.footer),
-      ],
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }
 
@@ -469,7 +803,7 @@ export function createFeedbackRequestEmail(config: FeedbackRequestConfig): RcmlD
 // ============================================================================
 
 export interface ReservationRequestConfig {
-  brandStyle: BrandStyleConfig;
+  theme: EmailTheme;
   customFields: CustomFieldMap;
   footer?: FooterConfig;
   text: {
@@ -493,59 +827,57 @@ export interface ReservationRequestConfig {
 /**
  * Create a reservation request confirmation email (for pending/manual approval flows).
  */
-export function createReservationRequestEmail(config: ReservationRequestConfig): RcmlDocument {
-  const templateName = 'createReservationRequestEmail';
+export function createReservationRequestEmail(
+  config: ReservationRequestConfig,
+): RcmlDocument {
+  return withTemplateContext('createReservationRequestEmail', () => {
+    const { customFields, fieldNames, text, theme } = config;
 
-  return withTemplateContext(templateName, () => {
-    const { customFields, fieldNames, text } = config;
+    validateRequiredFields(customFields, fieldNames);
 
-    validateCustomFields(customFields, fieldNames);
+    const dateContent: InlineNode[] =
+      fieldNames.checkOutDate !== undefined
+        ? [
+            textNode(`${text.dateLabel}: `),
+            placeholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]!),
+            textNode(' - '),
+            placeholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]!),
+          ]
+        : [
+            textNode(`${text.dateLabel}: `),
+            placeholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]!),
+          ];
 
-    const dateContent = fieldNames.checkOutDate
-      ? [
-          createTextNode(`${text.dateLabel}: `),
-          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-          createTextNode(' - '),
-          createPlaceholder(fieldNames.checkOutDate, customFields[fieldNames.checkOutDate]),
-        ]
-      : [
-          createTextNode(`${text.dateLabel}: `),
-          createPlaceholder(fieldNames.checkInDate, customFields[fieldNames.checkInDate]),
-        ];
+    const sections: RcmlBodyChild[] = [
+      ...maybeLogoSection(theme),
+      greetingSection(
+        text.greeting,
+        text.message,
+        fieldNames.firstName,
+        customFields[fieldNames.firstName]!,
+      ),
+      contentSection(
+        [
+          brandHeading(docWithNodes([textNode(text.detailsHeading)]), 2),
+          brandText(
+            docWithNodes([
+              textNode(`${text.referenceLabel}: `),
+              placeholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]!),
+            ]),
+          ),
+          brandText(docWithNodes(dateContent)),
+          brandText(
+            docWithNodes([
+              textNode(`${text.guestsLabel}: `),
+              placeholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]!),
+            ]),
+          ),
+        ],
+        { padding: '20px 0', backgroundColor: accentBackground(theme) },
+      ),
+      footerSection(config.footer),
+    ];
 
-    return createBrandTemplate({
-      brandStyle: config.brandStyle,
-      preheader: text.preheader,
-      sections: [
-        ...createLogoSection(config.brandStyle.logoUrl),
-
-        createGreetingSection(text.greeting, text.message, fieldNames.firstName, customFields[fieldNames.firstName]),
-
-        createContentSection(
-          [
-            createBrandHeading(createDocWithPlaceholders([createTextNode(text.detailsHeading)]), 2),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.referenceLabel}: `),
-                createPlaceholder(fieldNames.bookingRef, customFields[fieldNames.bookingRef]),
-              ])
-            ),
-
-            createBrandText(createDocWithPlaceholders(dateContent)),
-
-            createBrandText(
-              createDocWithPlaceholders([
-                createTextNode(`${text.guestsLabel}: `),
-                createPlaceholder(fieldNames.totalGuests, customFields[fieldNames.totalGuests]),
-              ])
-            ),
-          ],
-          { padding: '20px 0', backgroundColor: config.brandStyle.brandColor }
-        ),
-
-        createFooterSection(config.footer),
-      ],
-    });
+    return buildThemedDocument(theme, sections, text.preheader);
   });
 }

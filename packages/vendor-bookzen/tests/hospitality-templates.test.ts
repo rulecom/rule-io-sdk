@@ -15,7 +15,7 @@ import {
   createReservationReminderEmail,
   createReservationRequestEmail,
 } from '../src/hospitality-templates.js'
-import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers.js'
+import { TEST_THEME, assertValidRCMLDocument, docToString } from './helpers.js'
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
   'Booking.FirstName': 100001,
@@ -32,7 +32,7 @@ describe('Hospitality Templates', () => {
   describe('createReservationConfirmationEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createReservationConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -71,7 +71,7 @@ describe('Hospitality Templates', () => {
 
     it('should work without optional fields (room, checkout, price)', () => {
       const doc = createReservationConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -105,7 +105,7 @@ describe('Hospitality Templates', () => {
   describe('createReservationCancellationEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createReservationCancellationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -134,7 +134,7 @@ describe('Hospitality Templates', () => {
   describe('createReservationReminderEmail', () => {
     it('should produce valid RCML with all optional fields', () => {
       const doc = createReservationReminderEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -165,7 +165,7 @@ describe('Hospitality Templates', () => {
 
     it('should work without optional practical info', () => {
       const doc = createReservationReminderEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -190,7 +190,7 @@ describe('Hospitality Templates', () => {
 
     it('should handle single date (no check-out)', () => {
       const doc = createReservationReminderEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://example.com',
         text: {
@@ -214,7 +214,7 @@ describe('Hospitality Templates', () => {
   describe('createFeedbackRequestEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createFeedbackRequestEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         feedbackUrl: 'https://example.com/feedback',
         text: {
@@ -239,7 +239,7 @@ describe('Hospitality Templates', () => {
   describe('createReservationRequestEmail', () => {
     it('should produce valid RCML', () => {
       const doc = createReservationRequestEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         text: {
           preheader: 'We received your request',
@@ -268,7 +268,7 @@ describe('Hospitality Templates', () => {
 
     it('should handle single date (no checkout)', () => {
       const doc = createReservationRequestEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         text: {
           preheader: 'Request received',
@@ -295,7 +295,7 @@ describe('Hospitality Templates', () => {
 describe('Template Footer Localization (hospitality)', () => {
   it('should pass footer config through to templates', () => {
     const doc = createReservationConfirmationEmail({
-      brandStyle: TEST_BRAND_STYLE,
+      theme: TEST_THEME,
       customFields: TEST_CUSTOM_FIELDS,
       websiteUrl: 'https://example.com',
       footer: {
@@ -334,7 +334,7 @@ describe('template error context (hospitality)', () => {
   it('should include template name when createBrandButton throws inside a template', () => {
     expect(() =>
       createReservationConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'javascript:alert(1)',
         text: {
@@ -367,7 +367,7 @@ describe('template error context (hospitality)', () => {
     // preventing duplicated prefixes if someone later rearranges the code.
     try {
       createReservationConfirmationEmail({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: {},
         websiteUrl: 'https://example.com',
         text: {
@@ -396,7 +396,7 @@ describe('template error context (hospitality)', () => {
       const occurrences = message.split('createReservationConfirmationEmail').length - 1
 
       expect(occurrences).toBe(1)
-      expect(message).toContain('missing customFields entry for fieldNames.')
+      expect(message).toContain('missing customFields entries')
     }
   })
 })

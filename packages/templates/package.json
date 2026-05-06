@@ -1,0 +1,33 @@
+{
+  "name": "@rule-io/templates",
+  "version": "0.3.0",
+  "description": "Angular-like XML template engine used by Rule.io vendor email-template packages.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "keywords": ["rule.io", "sdk", "templates", "xml", "angular"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/templates"
+  },
+  "dependencies": {
+    "fast-xml-parser": "^4.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -2,21 +2,37 @@
  * Samfora Automation Definitions
  *
  * Swedish charitable-donation automations for the Samfora platform.
- * Each automation assembles its RCML document inline from the generic
- * brand-template helpers — no vertical-specific template builders exist
- * for donations, and the user chose "reuse generic templates only".
+ * Each automation assembles its RCML body inline from local helper
+ * factories and hands it to `applyTheme` so the consumer's
+ * {@link EmailTheme} decorates the head (brand-style id, fonts,
+ * social links, colour palette).
  *
  * Default copy ships in Swedish to match Samfora's market. Consumers can
  * still override any field value via the merged `TemplateConfigV2`.
  */
 
-import type { VendorAutomation, VendorConsumerConfig } from '@rule-io/core';
-import type { RcmlDocument, RcmlBodyChild } from '@rule-io/rcml';
-import type { CustomFieldMap, FooterConfig } from '@rule-io/core';
+import { randomUUID } from 'node:crypto';
+import type {
+  CustomFieldMap,
+  EmailTheme,
+  FooterConfig,
+  VendorAutomation,
+  VendorConsumerConfig,
+} from '@rule-io/core';
+import { RuleConfigError } from '@rule-io/core';
+import type {
+  Json,
+  RcmlBodyChild,
+  RcmlButton,
+  RcmlDocument,
+  RcmlHead,
+  RcmlHeading,
+  RcmlSection,
+  RcmlText,
+} from '@rule-io/rcml';
+import { applyTheme } from '@rule-io/rcml';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
-import { createBrandTemplate, createBrandLogo, createContentSection, createBrandHeading, createBrandText, createBrandButton, createDocWithPlaceholders, createPlaceholder, createTextNode, createFooterSection, validateCustomFields } from '@rule-io/client';
-import { RuleConfigError } from '@rule-io/core';
 
 // ============================================================================
 // Swedish copy fixtures
@@ -120,15 +136,335 @@ const TAX_SUMMARY_TEXT = {
 } as const;
 
 // ============================================================================
+// Local RCML helpers — terse replacements for the retired brand-template
+// builders. They encode the same `rc-class` / layout conventions the Rule.io
+// editor expects so the generated documents keep rendering identically
+// once `applyTheme` fills in the head from `config.theme`.
+// ============================================================================
+
+function genId(): string {
+  return randomUUID();
+}
+
+interface PlaceholderNode {
+  type: 'placeholder';
+  attrs: {
+    type: 'CustomField';
+    value: number;
+    name: string;
+    original: string;
+    'max-length': string | null;
+  };
+}
+interface TextNode {
+  type: 'text';
+  text: string;
+}
+type InlineNode = TextNode | PlaceholderNode;
+
+function textNode(text: string): TextNode {
+  return { type: 'text', text };
+}
+
+function placeholder(fieldName: string, fieldId: number): PlaceholderNode {
+  return {
+    type: 'placeholder',
+    attrs: {
+      type: 'CustomField',
+      value: fieldId,
+      name: fieldName,
+      original: `[CustomField:${String(fieldId)}]`,
+      'max-length': null,
+    },
+  };
+}
+
+function docWithNodes(nodes: readonly InlineNode[]): Json {
+  return {
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [...nodes] }],
+  } as unknown as Json;
+}
+
+function brandHeading(content: Json, level: 1 | 2 | 3 | 4): RcmlHeading {
+  return {
+    tagName: 'rc-heading',
+    id: genId(),
+    attributes: { 'rc-class': `rcml-h${String(level)}-style` },
+    content,
+  };
+}
+
+function brandText(
+  content: Json,
+  options?: { align?: 'left' | 'center' | 'right'; padding?: string }
+): RcmlText {
+  return {
+    tagName: 'rc-text',
+    id: genId(),
+    attributes: {
+      'rc-class': 'rcml-p-style',
+      ...(options?.align !== undefined && { align: options.align }),
+      ...(options?.padding !== undefined && { padding: options.padding }),
+    },
+    content,
+  };
+}
+
+function brandButton(content: Json, href: string): RcmlButton {
+  return {
+    tagName: 'rc-button',
+    id: genId(),
+    attributes: {
+      href,
+      align: 'center',
+      border: 'none',
+      'border-radius': '8px',
+      'inner-padding': '10px 16px',
+      padding: '0 0 20px 0',
+      'text-align': 'center',
+      'vertical-align': 'middle',
+      'rc-class': 'rcml-label-style',
+    },
+    content,
+  };
+}
+
+function contentSection(children: readonly (RcmlHeading | RcmlText | RcmlButton)[]): RcmlSection {
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    attributes: { padding: '20px 0' },
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [...children],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+function logoSection(logoUrl: string): RcmlSection {
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [
+          {
+            tagName: 'rc-logo',
+            id: genId(),
+            attributes: {
+              'rc-class': 'rcml-logo-style rc-initial-logo',
+              src: logoUrl,
+              width: '96px',
+              padding: '20px 0',
+            },
+          },
+        ],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+function footerSection(config: FooterConfig): RcmlSection {
+  const viewText = config.viewInBrowserText ?? 'View in browser';
+  const unsubText = config.unsubscribeText ?? 'Unsubscribe';
+  const textColor = config.textColor ?? '#666666';
+  const fontSize = config.fontSize ?? '10px';
+
+  return {
+    tagName: 'rc-section',
+    id: genId(),
+    attributes: { padding: '20px 0px 20px 0px' },
+    children: [
+      {
+        tagName: 'rc-column',
+        id: genId(),
+        attributes: { padding: '0 20px' },
+        children: [
+          {
+            tagName: 'rc-text',
+            id: genId(),
+            attributes: {
+              align: 'center',
+              padding: '0px 0px 10px 0px',
+              'rc-class': 'rcml-p-style',
+            },
+            content: {
+              type: 'doc',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [
+                    {
+                      type: 'text',
+                      text: viewText,
+                      marks: [
+                        {
+                          type: 'font',
+                          attrs: {
+                            'font-size': fontSize,
+                            'text-decoration': 'underline',
+                            color: textColor,
+                          },
+                        },
+                        {
+                          type: 'link',
+                          attrs: {
+                            href: '[Link:WebBrowser]',
+                            target: '_blank',
+                            'no-tracked': 'true',
+                          },
+                        },
+                      ],
+                    },
+                    { type: 'text', text: ' ' },
+                    {
+                      type: 'text',
+                      text: '|',
+                      marks: [
+                        { type: 'font', attrs: { 'font-size': fontSize, color: textColor } },
+                      ],
+                    },
+                    { type: 'text', text: ' ' },
+                    {
+                      type: 'text',
+                      text: unsubText,
+                      marks: [
+                        {
+                          type: 'font',
+                          attrs: {
+                            'font-size': fontSize,
+                            'text-decoration': 'underline',
+                            color: textColor,
+                          },
+                        },
+                        {
+                          type: 'link',
+                          attrs: {
+                            href: '[Link:Unsubscribe]',
+                            target: '_blank',
+                            'no-tracked': 'true',
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          },
+          {
+            tagName: 'rc-text',
+            id: genId(),
+            attributes: {
+              align: 'center',
+              padding: '10px 0px 0px 0px',
+              'font-family': "'Helvetica', sans-serif",
+              'font-style': 'normal',
+              'line-height': '120%',
+              'letter-spacing': '0em',
+              color: textColor,
+              'font-weight': '400',
+              'text-decoration': 'none',
+              'font-size': fontSize,
+            },
+            content: {
+              type: 'doc',
+              content: [
+                { type: 'paragraph', content: [{ type: 'text', text: 'Certified by Rule' }] },
+              ],
+            },
+          },
+        ],
+      },
+    ],
+  } as unknown as RcmlSection;
+}
+
+/**
+ * Require every `fieldNames` logical→rule-io mapping to be present in
+ * `customFields`. Throws `RuleConfigError` listing the missing entries.
+ */
+function validateRequiredFields(
+  customFields: CustomFieldMap,
+  fieldNames: Record<string, string | undefined>,
+  templateName: string,
+): void {
+  const missing: string[] = [];
+
+  for (const [logical, fieldName] of Object.entries(fieldNames)) {
+    if (fieldName === undefined || customFields[fieldName] === undefined) {
+      missing.push(logical);
+    }
+  }
+
+  if (missing.length > 0) {
+    throw new RuleConfigError(
+      `${templateName}: missing customFields entries for ${missing.join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Wrap the built body in an `<rcml>` document and run `applyTheme` so the
+ * head gets populated (brand-style id, fonts, social links, colour
+ * palette) from `theme`. The optional preheader is prepended to the head
+ * as an `<rc-preview>` that survives `applyTheme`'s overlay.
+ */
+function buildThemedDocument(
+  theme: EmailTheme,
+  sections: readonly RcmlBodyChild[],
+  preheader?: string,
+  plainText?: string,
+): RcmlDocument {
+  const head: RcmlHead = {
+    tagName: 'rc-head',
+    id: genId(),
+    children: [
+      ...(preheader !== undefined
+        ? ([{ tagName: 'rc-preview', id: genId(), content: preheader }] as RcmlHead['children'])
+        : []),
+      ...(plainText !== undefined
+        ? ([
+            {
+              tagName: 'rc-plain-text',
+              id: genId(),
+              content: { type: 'text', text: plainText },
+            },
+          ] as RcmlHead['children'])
+        : []),
+    ],
+  };
+
+  const baseDoc: RcmlDocument = {
+    tagName: 'rcml',
+    id: genId(),
+    children: [
+      head,
+      { tagName: 'rc-body', id: genId(), children: [...sections] },
+    ],
+  };
+
+  return applyTheme(baseDoc, theme);
+}
+
+// ============================================================================
 // Placeholder helper
 // ============================================================================
 
 /**
  * Look up a placeholder for a field name, throwing if it isn't mapped.
- * Callers should pre-validate with `validateCustomFields`; this is a
- * defensive backstop so the non-null assertion doesn't appear inline.
+ * Callers should pre-validate with {@link validateRequiredFields}; this is
+ * a defensive backstop so the non-null assertion doesn't appear inline.
  */
-function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
+function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string): PlaceholderNode {
   const id = customFields[fieldName];
 
   if (id === undefined) {
@@ -137,7 +473,7 @@ function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
     );
   }
 
-  return createPlaceholder(fieldName, id);
+  return placeholder(fieldName, id);
 }
 
 // ============================================================================
@@ -145,8 +481,7 @@ function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string) {
 // ============================================================================
 
 /**
- * Swedish footer text defaults. `createFooterSection()` ships with English
- * link text as its own default — without these, an out-of-the-box Samfora
+ * Swedish footer text defaults. Without these, an out-of-the-box Samfora
  * email mixes Swedish body copy with English footer links, which conflicts
  * with the preset's stated Swedish-first intent.
  *
@@ -159,25 +494,19 @@ const SAMFORA_FOOTER_DEFAULTS: FooterConfig = {
 };
 
 function samforaFooterSection(override: FooterConfig | undefined): RcmlBodyChild {
-  return createFooterSection({ ...SAMFORA_FOOTER_DEFAULTS, ...override });
+  return footerSection({ ...SAMFORA_FOOTER_DEFAULTS, ...override });
 }
 
 /**
  * Produce a zero-or-one-element array with the brand logo as the first
- * body section. Matches the `createLogoSection` helper in `brand-template`
- * but stays local here so the preset doesn't reach past the public `rcml`
- * barrel — sibling presets (shopify, bookzen) only import via the barrel
- * and mixing paths risks duplicate module instances under ESM.
+ * body section.
  */
 function samforaLogoSection(logoUrl: string | undefined): RcmlBodyChild[] {
-  return logoUrl ? [createBrandLogo(logoUrl)] : [];
+  return logoUrl !== undefined && logoUrl !== '' ? [logoSection(logoUrl)] : [];
 }
 
 /**
- * Swedish plain-text fallback. `createBrandHead()` otherwise defaults to
- * English ("View this email in your browser: ..." / "Unsubscribe: ...") —
- * same class of leak as the footer links. Passed explicitly into every
- * `createBrandTemplate` call below.
+ * Swedish plain-text fallback.
  */
 const SAMFORA_PLAIN_TEXT =
   'Öppna e-postmeddelandet i webbläsaren: %Link:WebBrowser%\n\n---\nAvregistrera: %Link:Unsubscribe%';
@@ -190,25 +519,19 @@ const SAMFORA_PLAIN_TEXT =
  * Build a labelled summary row (label on one line, value placeholder below).
  * Kept simple for readability — one row renders as two short paragraphs.
  */
-function summaryRow(label: string, valueContent: ReturnType<typeof createDocWithPlaceholders>): RcmlBodyChild {
-  return createContentSection([
-    createBrandText(
-      createDocWithPlaceholders([createTextNode(label)]),
-      { padding: '8px 0 2px 0' },
-    ),
-    createBrandText(valueContent, { padding: '0 0 8px 0' }),
+function summaryRow(label: string, valueContent: Json): RcmlBodyChild {
+  return contentSection([
+    brandText(docWithNodes([textNode(label)]), { padding: '8px 0 2px 0' }),
+    brandText(valueContent, { padding: '0 0 8px 0' }),
   ]);
 }
 
-function greetingSection(
-  greeting: string,
-  firstNameId: number,
-): RcmlBodyChild {
-  return createContentSection([
-    createBrandHeading(
-      createDocWithPlaceholders([
-        createTextNode(`${greeting}, `),
-        createPlaceholder(SAMFORA_FIELDS.donorFirstName, firstNameId),
+function greetingSection(greeting: string, firstNameId: number): RcmlBodyChild {
+  return contentSection([
+    brandHeading(
+      docWithNodes([
+        textNode(`${greeting}, `),
+        placeholder(SAMFORA_FIELDS.donorFirstName, firstNameId),
       ]),
       1,
     ),
@@ -216,18 +539,11 @@ function greetingSection(
 }
 
 function paragraphSection(text: string): RcmlBodyChild {
-  return createContentSection([
-    createBrandText(createDocWithPlaceholders([createTextNode(text)])),
-  ]);
+  return contentSection([brandText(docWithNodes([textNode(text)]))]);
 }
 
 function ctaSection(label: string, href: string): RcmlBodyChild {
-  return createContentSection([
-    createBrandButton(
-      createDocWithPlaceholders([createTextNode(label)]),
-      href,
-    ),
-  ]);
+  return contentSection([brandButton(docWithNodes([textNode(label)]), href)]);
 }
 
 // ============================================================================
@@ -238,7 +554,7 @@ function buildDonationConfirmationTemplate(
   config: VendorConsumerConfig,
   text: DonationConfirmationText,
 ): RcmlDocument {
-  validateCustomFields(
+  validateRequiredFields(
     config.customFields,
     {
       donorFirstName: SAMFORA_FIELDS.donorFirstName,
@@ -251,57 +567,38 @@ function buildDonationConfirmationTemplate(
   );
 
   const cf = config.customFields;
-  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
+  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName]!;
 
   const sections: RcmlBodyChild[] = [
-    ...samforaLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.theme.images.logo?.url),
     greetingSection(text.heading, firstNameId),
     paragraphSection(text.intro),
-    createContentSection([
-      createBrandHeading(
-        createDocWithPlaceholders([createTextNode(text.detailsHeading)]),
-        3,
-      ),
-    ]),
+    contentSection([brandHeading(docWithNodes([textNode(text.detailsHeading)]), 3)]),
     summaryRow(
       text.amountLabel,
-      createDocWithPlaceholders([
+      docWithNodes([
         fieldPlaceholder(cf, SAMFORA_FIELDS.donationAmount),
         ...(cf[SAMFORA_FIELDS.donationCurrency] !== undefined
-          ? [
-              createTextNode(' '),
-              fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency),
-            ]
+          ? [textNode(' '), fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency)]
           : []),
       ]),
     ),
-    summaryRow(
-      text.causeLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.causeName)]),
-    ),
-    summaryRow(
-      text.dateLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.donationDate)]),
-    ),
+    summaryRow(text.causeLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.causeName)])),
+    summaryRow(text.dateLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.donationDate)])),
     summaryRow(
       text.referenceLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.donationRef)]),
+      docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.donationRef)]),
     ),
     ctaSection(text.ctaButton, config.websiteUrl),
     paragraphSection(text.signOff),
     samforaFooterSection(config.footer),
   ];
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: text.preheader,
-    plainText: SAMFORA_PLAIN_TEXT,
-    sections,
-  });
+  return buildThemedDocument(config.theme, sections, text.preheader, SAMFORA_PLAIN_TEXT);
 }
 
 function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RcmlDocument {
-  validateCustomFields(
+  validateRequiredFields(
     config.customFields,
     {
       donorFirstName: SAMFORA_FIELDS.donorFirstName,
@@ -314,94 +611,64 @@ function buildMonthlyDonationTemplate(config: VendorConsumerConfig): RcmlDocumen
   );
 
   const cf = config.customFields;
-  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
+  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName]!;
   const t = MONTHLY_DONATION_TEXT;
 
   const sections: RcmlBodyChild[] = [
-    ...samforaLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.theme.images.logo?.url),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
-    createContentSection([
-      createBrandHeading(
-        createDocWithPlaceholders([createTextNode(t.detailsHeading)]),
-        3,
-      ),
-    ]),
+    contentSection([brandHeading(docWithNodes([textNode(t.detailsHeading)]), 3)]),
     summaryRow(
       t.amountLabel,
-      createDocWithPlaceholders([
+      docWithNodes([
         fieldPlaceholder(cf, SAMFORA_FIELDS.donationAmount),
         ...(cf[SAMFORA_FIELDS.donationCurrency] !== undefined
-          ? [
-              createTextNode(' '),
-              fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency),
-            ]
+          ? [textNode(' '), fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency)]
           : []),
       ]),
     ),
-    summaryRow(
-      t.causeLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.causeName)]),
-    ),
-    summaryRow(
-      t.dateLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.donationDate)]),
-    ),
-    summaryRow(
-      t.referenceLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.donationRef)]),
-    ),
+    summaryRow(t.causeLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.causeName)])),
+    summaryRow(t.dateLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.donationDate)])),
+    summaryRow(t.referenceLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.donationRef)])),
     ctaSection(t.ctaButton, config.websiteUrl),
     paragraphSection(t.signOff),
     samforaFooterSection(config.footer),
   ];
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: t.preheader,
-    plainText: SAMFORA_PLAIN_TEXT,
-    sections,
-  });
+  return buildThemedDocument(config.theme, sections, t.preheader, SAMFORA_PLAIN_TEXT);
 }
 
 function buildWelcomeTemplate(config: VendorConsumerConfig): RcmlDocument {
-  validateCustomFields(
+  validateRequiredFields(
     config.customFields,
     { donorFirstName: SAMFORA_FIELDS.donorFirstName },
     'samforaWelcome',
   );
 
-  const firstNameId = config.customFields[SAMFORA_FIELDS.donorFirstName];
+  const firstNameId = config.customFields[SAMFORA_FIELDS.donorFirstName]!;
   const t = WELCOME_TEXT;
 
   const sections: RcmlBodyChild[] = [
-    ...samforaLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.theme.images.logo?.url),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
-    createContentSection([
-      createBrandHeading(
-        createDocWithPlaceholders([createTextNode(t.listHeading)]),
-        3,
-      ),
-      createBrandText(createDocWithPlaceholders([createTextNode(`1. ${t.stepOne}`)])),
-      createBrandText(createDocWithPlaceholders([createTextNode(`2. ${t.stepTwo}`)])),
-      createBrandText(createDocWithPlaceholders([createTextNode(`3. ${t.stepThree}`)])),
+    contentSection([
+      brandHeading(docWithNodes([textNode(t.listHeading)]), 3),
+      brandText(docWithNodes([textNode(`1. ${t.stepOne}`)])),
+      brandText(docWithNodes([textNode(`2. ${t.stepTwo}`)])),
+      brandText(docWithNodes([textNode(`3. ${t.stepThree}`)])),
     ]),
     ctaSection(t.ctaButton, config.websiteUrl),
     paragraphSection(t.signOff),
     samforaFooterSection(config.footer),
   ];
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: t.preheader,
-    plainText: SAMFORA_PLAIN_TEXT,
-    sections,
-  });
+  return buildThemedDocument(config.theme, sections, t.preheader, SAMFORA_PLAIN_TEXT);
 }
 
 function buildTaxSummaryTemplate(config: VendorConsumerConfig): RcmlDocument {
-  validateCustomFields(
+  validateRequiredFields(
     config.customFields,
     {
       donorFirstName: SAMFORA_FIELDS.donorFirstName,
@@ -413,44 +680,30 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RcmlDocument {
   );
 
   const cf = config.customFields;
-  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName];
+  const firstNameId = cf[SAMFORA_FIELDS.donorFirstName]!;
   const t = TAX_SUMMARY_TEXT;
 
   const sections: RcmlBodyChild[] = [
-    ...samforaLogoSection(config.brandStyle.logoUrl),
+    ...samforaLogoSection(config.theme.images.logo?.url),
     greetingSection(t.heading, firstNameId),
     paragraphSection(t.intro),
-    createContentSection([
-      createBrandHeading(
-        createDocWithPlaceholders([createTextNode(t.detailsHeading)]),
-        3,
-      ),
-    ]),
-    summaryRow(
-      t.yearLabel,
-      createDocWithPlaceholders([fieldPlaceholder(cf, SAMFORA_FIELDS.taxYear)]),
-    ),
+    contentSection([brandHeading(docWithNodes([textNode(t.detailsHeading)]), 3)]),
+    summaryRow(t.yearLabel, docWithNodes([fieldPlaceholder(cf, SAMFORA_FIELDS.taxYear)])),
     summaryRow(
       t.totalLabel,
-      createDocWithPlaceholders([
+      docWithNodes([
         fieldPlaceholder(cf, SAMFORA_FIELDS.totalLifetimeAmount),
         ...(cf[SAMFORA_FIELDS.donationCurrency] !== undefined
-          ? [
-              createTextNode(' '),
-              fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency),
-            ]
+          ? [textNode(' '), fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency)]
           : []),
       ]),
     ),
     summaryRow(
       t.deductibleLabel,
-      createDocWithPlaceholders([
+      docWithNodes([
         fieldPlaceholder(cf, SAMFORA_FIELDS.taxDeductibleAmount),
         ...(cf[SAMFORA_FIELDS.donationCurrency] !== undefined
-          ? [
-              createTextNode(' '),
-              fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency),
-            ]
+          ? [textNode(' '), fieldPlaceholder(cf, SAMFORA_FIELDS.donationCurrency)]
           : []),
       ]),
     ),
@@ -460,12 +713,7 @@ function buildTaxSummaryTemplate(config: VendorConsumerConfig): RcmlDocument {
     samforaFooterSection(config.footer),
   ];
 
-  return createBrandTemplate({
-    brandStyle: config.brandStyle,
-    preheader: t.preheader,
-    plainText: SAMFORA_PLAIN_TEXT,
-    sections,
-  });
+  return buildThemedDocument(config.theme, sections, t.preheader, SAMFORA_PLAIN_TEXT);
 }
 
 // ============================================================================

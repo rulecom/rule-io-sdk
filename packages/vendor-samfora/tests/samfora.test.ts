@@ -8,7 +8,7 @@ import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import type { RcmlDocument } from '@rule-io/rcml';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '../src/index.js';
-import { TEST_BRAND_STYLE, assertValidRCMLDocument, docToString } from './helpers.js';
+import { TEST_THEME, themeWithoutLogo, assertValidRCMLDocument, docToString } from './helpers.js';
 
 // ============================================================================
 // Shared fixtures
@@ -37,13 +37,13 @@ const TEST_CUSTOM_FIELDS_WITH_OPTIONAL: CustomFieldMap = {
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
-  brandStyle: TEST_BRAND_STYLE,
+  theme: TEST_THEME,
   customFields: TEST_CUSTOM_FIELDS,
   websiteUrl: 'https://samfora.org',
 };
 
 const TEST_CONFIG_WITH_OPTIONAL: VendorConsumerConfig = {
-  brandStyle: TEST_BRAND_STYLE,
+  theme: TEST_THEME,
   customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
   websiteUrl: 'https://samfora.org',
 };
@@ -240,7 +240,7 @@ describe('samforaPreset', () => {
 
       for (const automation of automations) {
         const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
         }) as unknown as RcmlDocument;
@@ -254,7 +254,7 @@ describe('samforaPreset', () => {
 
       for (const automation of automations) {
         const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS_WITH_OPTIONAL,
           websiteUrl: 'https://samfora.org',
         }) as unknown as RcmlDocument;
@@ -277,7 +277,7 @@ describe('samforaPreset', () => {
       )!;
 
       const doc = first.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: {
           ...TEST_CUSTOM_FIELDS,
           [SAMFORA_FIELDS.donationAmount]: 999999,
@@ -297,7 +297,7 @@ describe('samforaPreset', () => {
       )!;
 
       const doc = first.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       }) as unknown as RcmlDocument;
@@ -316,7 +316,7 @@ describe('samforaPreset', () => {
 
       for (const automation of automations) {
         const doc = automation.templateBuilder({
-          brandStyle: TEST_BRAND_STYLE,
+          theme: TEST_THEME,
           customFields: TEST_CUSTOM_FIELDS,
           websiteUrl: 'https://samfora.org',
         }) as unknown as RcmlDocument;
@@ -335,17 +335,18 @@ describe('samforaPreset', () => {
       }
     });
 
-    it('omits the logo section when brandStyle has no logoUrl', () => {
+    it('omits the logo section when the theme has no logo image', () => {
+      const noLogo = themeWithoutLogo();
       const automations = samforaPreset.getAutomations({
         ...TEST_CONFIG,
-        brandStyle: { ...TEST_BRAND_STYLE, logoUrl: undefined },
+        theme: noLogo,
       });
       const first = automations.find(
         (a) => a.id === 'samfora-donation-confirmation-first',
       )!;
 
       const doc = first.templateBuilder({
-        brandStyle: { ...TEST_BRAND_STYLE, logoUrl: undefined },
+        theme: noLogo,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       }) as unknown as RcmlDocument;
@@ -362,7 +363,7 @@ describe('samforaPreset', () => {
 
       expect(first.subject).toContain('Tack');
       const doc = first.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       }) as unknown as RcmlDocument;
@@ -379,7 +380,7 @@ describe('samforaPreset', () => {
       )!;
 
       const doc = first.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       }) as unknown as RcmlDocument;
@@ -408,7 +409,7 @@ describe('samforaPreset', () => {
       )!;
 
       const doc = first.templateBuilder({
-        brandStyle: TEST_BRAND_STYLE,
+        theme: TEST_THEME,
         customFields: TEST_CUSTOM_FIELDS,
         websiteUrl: 'https://samfora.org',
       }) as unknown as RcmlDocument;
