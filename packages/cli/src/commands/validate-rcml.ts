@@ -26,7 +26,7 @@ import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Command } from 'commander';
 import { RuleClient, RULE_API_V2_BASE_URL } from '@rule-io/client';
-import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement } from '@rule-io/rcml';
+import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement, getConfiguredSocialLinks } from '@rule-io/rcml';
 import { resolveBrandTheme } from '@rule-io/client';
 import {
   brandButton,
@@ -608,9 +608,9 @@ function buildSectionGroups(
   });
 
   // == 15. Social (rc-social + rc-social-element) — last before footer
-  const themeSocialLinks = Object.values(theme.links).filter(
-    (l): l is NonNullable<typeof l> => l !== undefined,
-  );
+  // Filter out theme defaults so the hardcoded fallback list actually
+  // kicks in when the brand style has no socials configured.
+  const themeSocialLinks = getConfiguredSocialLinks(theme.links);
   const rawSocialLinks: { name: string; href: string }[] =
     themeSocialLinks.length > 0
       ? themeSocialLinks.map((l) => ({ name: l.type, href: l.url }))
@@ -618,7 +618,7 @@ function buildSectionGroups(
           { name: 'facebook', href: 'https://facebook.com' },
           { name: 'instagram', href: 'https://instagram.com' },
           { name: 'x', href: 'https://x.com' },
-          { name: 'web', href: 'https://example.com' },
+          { name: 'website', href: 'https://example.com' },
         ];
 
   // Filter out links with invalid/unsafe URLs (createSocialChildElement throws on bad hrefs)
@@ -728,9 +728,9 @@ async function create(): Promise<void> {
   console.log(`  Section BG: ${theme.colors[EmailThemeColorType.Body]?.hex}`);
   console.log(`  Brand:      ${theme.colors[EmailThemeColorType.Secondary]?.hex}`);
   console.log(`  Text:       ${theme.fontStyles[EmailThemeFontStyleType.Paragraph].color}`);
-  const themeLinkEntries = Object.values(theme.links).filter(
-    (l): l is NonNullable<typeof l> => l !== undefined,
-  );
+  // Report only the slots the brand style actually configured —
+  // theme.links is otherwise seeded with placeholder defaults.
+  const themeLinkEntries = getConfiguredSocialLinks(theme.links);
 
   console.log(
     `  Social:     ${themeLinkEntries.length} link(s)${themeLinkEntries.length ? ' — ' + themeLinkEntries.map((l) => l.type).join(', ') : ''}`,

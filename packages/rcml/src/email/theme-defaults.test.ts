@@ -9,6 +9,7 @@ import {
   DEFAULT_LINKS_MAP,
   DEFAULT_MAIN_FONT_FAMILIES_MAP,
   DefaultFontFamily,
+  getConfiguredSocialLinks,
   getFallbackFontFamily,
 } from './theme-defaults.js'
 
@@ -122,5 +123,44 @@ describe('getFallbackFontFamily', () => {
   it('falls back to sans-serif (Helvetica default) for unknown families', () => {
     expect(getFallbackFontFamily('Totally Fake Font')).toBe('sans-serif')
     expect(getFallbackFontFamily('')).toBe('sans-serif')
+  })
+})
+
+describe('getConfiguredSocialLinks', () => {
+  it('returns an empty array when every slot is at its default', () => {
+    const result = getConfiguredSocialLinks(DEFAULT_LINKS_MAP)
+
+    expect(result).toEqual([])
+  })
+
+  it('returns only the slots whose URL differs from the default', () => {
+    const result = getConfiguredSocialLinks({
+      ...DEFAULT_LINKS_MAP,
+      facebook: { type: 'facebook', url: 'https://facebook.com/acme' },
+      website: { type: 'website', url: 'https://acme.example/' },
+    })
+
+    expect(result).toEqual([
+      { type: 'facebook', url: 'https://facebook.com/acme' },
+      { type: 'website', url: 'https://acme.example/' },
+    ])
+  })
+
+  it('skips slots that are absent from the map', () => {
+    const result = getConfiguredSocialLinks({
+      facebook: { type: 'facebook', url: 'https://facebook.com/acme' },
+    })
+
+    expect(result).toEqual([
+      { type: 'facebook', url: 'https://facebook.com/acme' },
+    ])
+  })
+
+  it('treats a URL that exactly matches the default as not configured (documented edge case)', () => {
+    const result = getConfiguredSocialLinks({
+      facebook: { type: 'facebook', url: DEFAULT_LINKS_MAP.facebook.url },
+    })
+
+    expect(result).toEqual([])
   })
 })

@@ -310,3 +310,78 @@ describe('renderTemplate — nested directives', () => {
     expect(out).not.toContain('<li>1</li>')
   })
 })
+
+// ────────────────────────────────────────────────────────────────────────────
+// Sandbox — prototype-chain access is blocked
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('renderTemplate — sandbox', () => {
+  it('blocks member access to constructor', () => {
+    expect(() =>
+      renderTemplate('<a>{{ obj.constructor }}</a>', { obj: {} }),
+    ).toThrow(TemplateRenderError)
+  })
+
+  it('blocks member access to __proto__', () => {
+    expect(() =>
+      renderTemplate('<a>{{ obj.__proto__ }}</a>', { obj: {} }),
+    ).toThrow(TemplateRenderError)
+  })
+
+  it('blocks member access to prototype', () => {
+    expect(() =>
+      renderTemplate('<a>{{ obj.prototype }}</a>', { obj: {} }),
+    ).toThrow(TemplateRenderError)
+  })
+
+  it('blocks index access to constructor (the Function-constructor escape path)', () => {
+    expect(() =>
+      renderTemplate('<a>{{ obj["constructor"] }}</a>', { obj: {} }),
+    ).toThrow(TemplateRenderError)
+  })
+
+  it('blocks index access to __proto__ even when key is computed', () => {
+    expect(() =>
+      renderTemplate(
+        '<a>{{ obj[k] }}</a>',
+        { obj: {}, k: '__proto__' },
+      ),
+    ).toThrow(TemplateRenderError)
+  })
+
+  it('still permits regular property and index access', () => {
+    expect(
+      renderTemplate('<a>{{ obj.name }}|{{ obj["age"] }}</a>', {
+        obj: { name: 'Ada', age: 30 },
+      }),
+    ).toBe('<a>Ada|30</a>')
+  })
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+// Error messages — no duplicated " (at <path>) (at <path>)" suffix
+// ────────────────────────────────────────────────────────────────────────────
+
+describe('renderTemplate — error messages', () => {
+  it('does not duplicate the "(at <path>)" suffix when an inner expression error is rewrapped', () => {
+    let caught: unknown
+
+    try {
+      // obj.constructor throws an inner TemplateRenderError from the
+      // expression evaluator (path ''), which renderTemplate then
+      // re-wraps with the actual node path. The composed message
+      // must include exactly one " (at ...)" suffix, not two.
+      renderTemplate('<root><span>{{ obj.constructor }}</span></root>', {
+        obj: {},
+      })
+    } catch (err) {
+      caught = err
+    }
+
+    expect(caught).toBeInstanceOf(TemplateRenderError)
+    const message = (caught as Error).message
+    const suffixCount = message.match(/\(at [^)]*\)/g)?.length ?? 0
+
+    expect(suffixCount).toBe(1)
+  })
+})

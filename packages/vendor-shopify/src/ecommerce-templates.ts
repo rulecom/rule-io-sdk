@@ -21,6 +21,7 @@ import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
 import type { CustomFieldMap, EmailTheme, FooterConfig } from '@rule-io/core';
 import { applyTheme, xmlToRcml, type RcmlDocument } from '@rule-io/rcml';
 import {
+  getConfiguredSocialLinks,
   validateRequiredFields,
   withTemplateContext,
 } from '@rule-io/rcml';
@@ -591,8 +592,11 @@ export function createAbandonedCartEmail(config: AbandonedCartConfig): RcmlDocum
     if (hasTotalRow && fieldNames.totalPrice) fieldsToValidate.totalPrice = fieldNames.totalPrice;
     validateRequiredFields(customFields, fieldsToValidate);
 
-    // Precompute the social link list for the template.
-    const socialLinkEntries = Object.values(theme.links);
+    // Precompute the social link list for the template. theme.links is
+    // seeded with default placeholders by createEmailTheme, so filter to
+    // slots the consumer actually configured before driving the
+    // hasSocial flag (otherwise the social block would always render).
+    const socialLinkEntries = getConfiguredSocialLinks(theme.links);
     const hasSocial = socialLinkEntries.length > 0;
 
     const { field, loopValue } = makeTemplateHelpers(customFields, fieldNames);

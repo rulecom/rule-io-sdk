@@ -371,7 +371,10 @@ function safeEvaluate(expr: string, scopes: readonly Scope[], path: string): unk
     return evaluateExpression(expr, scopes)
   } catch (err) {
     if (err instanceof TemplateRenderError) {
-      throw new TemplateRenderError(err.message, path, err.source)
+      // err.message already carries " (at <innerPath>)" from the
+      // constructor; pass originalMessage so the new path doesn't
+      // produce a stacked " (at ) (at /actual/path)" suffix.
+      throw new TemplateRenderError(err.originalMessage, path, err.source)
     }
 
     throw new TemplateRenderError(

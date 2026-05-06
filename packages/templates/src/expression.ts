@@ -486,6 +486,26 @@ class Parser {
 
 // ─── Evaluator ──────────────────────────────────────────────────────────────
 
+/**
+ * Property names that would let an expression walk the prototype chain to
+ * the `Function` constructor (`obj.constructor.constructor("...")`) and
+ * execute arbitrary code. Both `.foo` and `obj["foo"]` access are gated
+ * through {@link readSafeProperty} so a denylist here is sufficient.
+ */
+const FORBIDDEN_PROPERTY_KEYS = new Set(['__proto__', 'constructor', 'prototype'])
+
+function readSafeProperty(obj: object, key: string, source: string): unknown {
+  if (FORBIDDEN_PROPERTY_KEYS.has(key)) {
+    throw new TemplateRenderError(
+      `Access to '${key}' is forbidden in '${source}'`,
+      '',
+      source,
+    )
+  }
+
+  return (obj as Record<string, unknown>)[key]
+}
+
 export function evaluateExpression(
   source: string,
   scopes: readonly Scope[],
@@ -518,7 +538,7 @@ function evalNode(node: AstNode, scopes: readonly Scope[], source: string): unkn
         )
       }
 
-      return (obj as Record<string, unknown>)[node.property]
+      return readSafeProperty(obj as object, node.property, source)
     }
 
     case 'index': {
@@ -536,7 +556,7 @@ function evalNode(node: AstNode, scopes: readonly Scope[], source: string): unkn
 
       const key = evalNode(node.index, scopes, source)
 
-      return (obj as Record<string, unknown>)[String(key)]
+      return readSafeProperty(obj as object, String(key), source)
     }
 
     case 'call': {

@@ -18,6 +18,7 @@ import {
   createDividerElement,
   createSocialElement,
   createSocialChildElement,
+  getConfiguredSocialLinks,
   type RcmlBodyChild,
   type RcmlColumnChild,
   type RcmlDocument,
@@ -117,8 +118,10 @@ export function createWelcomeEmail(config: WelcomeEmailConfig): RcmlDocument {
 
     validateRequiredFields(customFields, { firstName: fieldNames.firstName });
 
-    const socialElements = Object.values(theme.links)
-      .filter((link): link is NonNullable<typeof link> => link !== undefined)
+    // theme.links is seeded with default placeholders by createEmailTheme,
+    // so filter to slots the consumer actually configured before deciding
+    // whether to render a social block.
+    const socialElements = getConfiguredSocialLinks(theme.links)
       .map((link) => {
         try {
           return createSocialChildElement({

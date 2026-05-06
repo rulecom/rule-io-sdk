@@ -12,9 +12,7 @@
     }
   },
   "files": [
-    "src",
-    "README.md",
-    "CHANGELOG.md"
+    "src"
   ],
   "keywords": ["rule.io", "sdk", "templates", "xml", "angular"],
   "license": "MIT",

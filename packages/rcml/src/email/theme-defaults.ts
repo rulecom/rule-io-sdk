@@ -48,6 +48,39 @@ export const DEFAULT_LINKS_MAP: Record<EmailThemeSocialLinkType, EmailThemeSocia
   website: { type: 'website', url: 'https://www.example.com/' },
 }
 
+/**
+ * Filter `theme.links` to entries the consumer explicitly configured —
+ * any slot whose URL still equals the corresponding {@link
+ * DEFAULT_LINKS_MAP} placeholder is treated as not configured and
+ * dropped.
+ *
+ * Use this in vendor templates that should *not* render a social block
+ * when the consumer never supplied socials. `createEmailTheme` always
+ * seeds `theme.links` with the defaults so a naive
+ * `Object.values(theme.links).length > 0` check is always true.
+ *
+ * Edge case: if a consumer happens to set a URL to *exactly* the
+ * default placeholder string (e.g. `'https://www.facebook.com/'`),
+ * this helper treats it as unconfigured. Real social URLs almost
+ * always include a username or path segment, so the false-negative
+ * rate is negligible in practice.
+ *
+ * @public
+ */
+export function getConfiguredSocialLinks(
+  links: Readonly<Partial<Record<EmailThemeSocialLinkType, EmailThemeSocialLink>>>,
+): EmailThemeSocialLink[] {
+  const result: EmailThemeSocialLink[] = []
+
+  for (const link of Object.values(links)) {
+    if (link === undefined) continue
+    if (link.url === DEFAULT_LINKS_MAP[link.type].url) continue
+    result.push(link)
+  }
+
+  return result
+}
+
 /** Named system-font families available out of the box. @public */
 export enum DefaultFontFamily {
   Arial = 'Arial',

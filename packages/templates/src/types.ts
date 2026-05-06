@@ -29,11 +29,18 @@ export interface TemplateContext {
 export class TemplateRenderError extends Error {
   readonly path: string
   readonly source?: string
+  /**
+   * Original message without the ` (at <path>)` suffix appended by the
+   * constructor. Use this when re-wrapping an inner error with a new
+   * path so the suffix is not duplicated.
+   */
+  readonly originalMessage: string
 
   constructor(message: string, path: string, source?: string) {
     super(`${message} (at ${path})`)
     this.name = 'TemplateRenderError'
     this.path = path
+    this.originalMessage = message
 
     if (source !== undefined) this.source = source
   }
