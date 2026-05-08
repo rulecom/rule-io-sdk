@@ -2,7 +2,7 @@
 
 A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and send email campaigns, set up tag-triggered automations, manage subscribers, and create RCML templates — all from code.
 
-**Zero external runtime dependencies** | **Full TypeScript types** | **Node.js >= 20**
+**Full TypeScript types** | **Node.js >= 20**
 
 ## Table of Contents
 
@@ -652,23 +652,20 @@ npm run dev          # Build in watch mode
 npm run test:watch   # Tests in watch mode
 ```
 
-### RCML Validation Script
+### RCML Validation
 
-Verify that the SDK produces valid templates by creating a campaign with all RCML elements:
+Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rule-io/cli`](../cli/README.md):
 
 ```bash
 echo "RULE_API_KEY=your-key" > .env
-npx tsx scripts/validate-rcml.ts                    # All elements
-npx tsx scripts/validate-rcml.ts --sections=1,4,7   # Specific sections
-npx tsx scripts/validate-rcml.ts --cleanup           # Clean up
+npx @rule-io/cli validate-rcml                  # All elements
+npx @rule-io/cli validate-rcml --sections 1,4,7 # Specific sections
+npx @rule-io/cli validate-rcml --cleanup        # Clean up
 ```
 
 ### Releasing
 
-1. Update `CHANGELOG.md` with the new version's changes
-2. Run `npm version <patch|minor|major>` (runs type-check + tests automatically)
-3. Push with tags: `git push && git push --tags`
-4. Publish: `npm publish`
+Releases are managed at the workspace level via `nx release`. See the [root README](../../README.md#release-process) for the full process.
 
 ### API Documentation
 

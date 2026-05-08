@@ -1,27 +1,36 @@
 # rule-io-sdk
 
-Nx monorepo for the Rule.io TypeScript SDK. Publishes eight packages under the `@rule-io/*` npm scope:
+Nx monorepo for the Rule.io TypeScript SDK. Consumer-facing SDK docs live in [`packages/sdk`](packages/sdk/README.md); this README is for contributors and release maintainers.
+
+Publishes the following packages under the `@rule-io/*` npm scope:
 
 | Package | Purpose |
 |---|---|
-| [`@rule-io/core`](packages/core) | Shared error classes (zero deps) |
+| [`@rule-io/core`](packages/core) | Shared error classes |
+| [`@rule-io/templates`](packages/templates) | Angular-like XML template engine; consumed by `@rule-io/vendor-shopify` |
 | [`@rule-io/rcml`](packages/rcml) | RCML email-template builders, RCML types, automation-config schema |
 | [`@rule-io/client`](packages/client) | HTTP wrapper around the Rule.io v2/v3 API |
 | [`@rule-io/vendor-shopify`](packages/vendor-shopify) | Shopify preset — e-commerce automation flows |
 | [`@rule-io/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
 | [`@rule-io/vendor-samfora`](packages/vendor-samfora) | Samfora preset — Swedish donation flows |
-| [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the six library packages above |
+| [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
 | [`@rule-io/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
-Dependency graph (clean DAG, no cycles):
+Dependency graph (clean DAG, no cycles — `←` reads as "depends on"):
 
 ```
-core ← rcml ← client
-  ↑     ↑       ↑
-  └── vendor-{shopify,bookzen,samfora}
-                                    ↑
-sdk (meta) ─── depends on all six   │
-cli        ─── depends on client, rcml, core, all three vendor-*
+core            (leaf, no deps)
+templates       (leaf, external: fast-xml-parser)
+
+rcml            ← core
+
+client          ← core, rcml
+vendor-bookzen  ← core, rcml
+vendor-samfora  ← core, rcml
+vendor-shopify  ← core, rcml, templates
+
+sdk (meta)      ← core, rcml, client, vendor-{shopify,bookzen,samfora}
+cli             ← core, rcml, client, vendor-{shopify,bookzen,samfora}  (+ commander)
 ```
 
 ---
@@ -32,7 +41,7 @@ Node `>=20` required (the Nx plugins used by this workspace rely on `node:util.s
 
 ```bash
 npm install                         # install + link workspace packages
-npx nx show projects                # sanity-check: 8 publishable projects
+npx nx show projects                # sanity-check: 9 publishable projects
 npm run build                       # build all publishable packages → dist/packages/<pkg>/
 npm run test                        # run every package's tests
 npm run lint                        # lint every package
@@ -130,11 +139,9 @@ For each bumped package, Nx runs `npm publish` from `dist/packages/<pkg>/`. Cont
 - the package-specific `README.md` and `CHANGELOG.md`
 - a `package.json` with the bumped version, rewritten paths, and no `devDependencies`
 
-Runtime dependencies across all seven packages are only `@rule-io/*` workspace siblings — CI enforces zero external deps.
-
 ### CI / automated release
 
-CI (`.github/workflows/ci.yml`) currently runs quality gates (lint / test / build / zero-deps check) on every PR. Automated publish from CI is **not** wired up yet. When adding it, the usual pattern is a `release.yml` workflow triggered by a push to `main` or a manual `workflow_dispatch` that runs `npx nx release` with `NPM_CONFIG_TOKEN` from repo secrets.
+CI (`.github/workflows/ci.yml`) currently runs quality gates (lint / test / build / per-package runtime-dependency allowlist) on every PR. Automated publish from CI is **not** wired up yet. When adding it, the usual pattern is a `release.yml` workflow triggered by a push to `main` or a manual `workflow_dispatch` that runs `npx nx release` with `NPM_CONFIG_TOKEN` from repo secrets.
 
 ### Rolling back a bad release
 
@@ -161,19 +168,18 @@ If a broken version is live on npm, **unpublish within 72 hours** (`npm unpublis
 ```
 packages/
 ├── core/
+├── templates/
 ├── rcml/
 ├── client/
 ├── vendor-shopify/
 ├── vendor-bookzen/
 ├── vendor-samfora/
-└── sdk/                    # meta-package
-scripts/                    # dev utilities (deploy, clone, validate); not published
+├── sdk/                    # meta-package
+└── cli/                    # rule-io command-line tool
 .github/workflows/          # CI
 nx.json                     # Nx config incl. `release`
 tsconfig.json               # path mappings for IDE autocompletion
 ```
-
-Dev utility scripts in `scripts/` consume `@rule-io/sdk` (the meta) via the workspace symlink. Run any of them with `npx tsx scripts/<name>.ts`.
 
 ---
 
