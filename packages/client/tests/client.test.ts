@@ -847,6 +847,52 @@ describe('RuleClient', () => {
     });
   });
 
+  describe('v3 read-side types preserve utm and dynamic-set fields', () => {
+    it('getDynamicSet surfaces name, pre_header, and utm fields', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 200,
+            message_id: 456,
+            template_id: 789,
+            name: 'Standard',
+            subject: 'Fallback Subject',
+            pre_header: 'Fallback preheader',
+            utm_campaign: 'order-return',
+            utm_term: null,
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getDynamicSet(200);
+
+      expect(result?.data?.name).toBe('Standard');
+      expect(result?.data?.subject).toBe('Fallback Subject');
+      expect(result?.data?.pre_header).toBe('Fallback preheader');
+      expect(result?.data?.utm_campaign).toBe('order-return');
+      expect(result?.data?.utm_term).toBeNull();
+    });
+
+    it('listDynamicSets preserves name on list items', async () => {
+      // Real API shape (verified against email-snapshots/*): list endpoint
+      // returns only { id, name, template_id, __resource }. utm/subject/
+      // pre_header are only populated on getDynamicSet and on the nested
+      // default_dynamic_set inside Message responses.
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [{ id: 200, name: 'Standard', template_id: 789 }],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listDynamicSets({ message_id: 456 });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data?.[0].name).toBe('Standard');
+    });
+  });
+
   describe('v3 Custom Field Data API (Deprecated)', () => {
     it('should get custom field data for a subscriber', async () => {
       const mockData = {
