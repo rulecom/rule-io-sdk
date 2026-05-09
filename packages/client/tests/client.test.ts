@@ -2699,6 +2699,71 @@ describe('RuleClient', () => {
     });
   });
 
+  describe('v3 read-side types preserve utm and dynamic-set fields', () => {
+    it('getMessage surfaces populated utm_campaign and utm_term', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 99,
+            name: 'Promo Email',
+            subject: 'Special Offer',
+            utm_campaign: 'summer-sale',
+            utm_term: 'organic-search',
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getMessage(99);
+
+      expect(result?.data?.utm_campaign).toBe('summer-sale');
+      expect(result?.data?.utm_term).toBe('organic-search');
+    });
+
+    it('getMessage preserves null utm fields without dropping them', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 99,
+            name: 'Plain Email',
+            subject: 'No UTM',
+            utm_campaign: null,
+            utm_term: null,
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.getMessage(99);
+
+      expect(result?.data?.utm_campaign).toBeNull();
+      expect(result?.data?.utm_term).toBeNull();
+    });
+
+    it('listMessages preserves utm fields on list items', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            {
+              id: 10,
+              name: 'Msg 1',
+              subject: 'Test',
+              utm_campaign: 'q1-promo',
+              utm_term: null,
+            },
+          ],
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+      const result = await client.listMessages({ id: 123, dispatcher_type: 'automail' });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data?.[0].utm_campaign).toBe('q1-promo');
+      expect(result.data?.[0].utm_term).toBeNull();
+    });
+  });
+
   describe('v3 Export API', () => {
     it('should export dispatchers with date range', async () => {
       const mockData = {
