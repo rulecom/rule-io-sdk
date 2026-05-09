@@ -16,11 +16,11 @@ Publishes the following packages under the `@rule-io/*` npm scope:
 | [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
 | [`@rule-io/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
-Dependency graph (clean DAG, no cycles — `←` reads as "depends on"):
+Dependency graph (clean DAG, no cycles — `←` reads as "depends on"; workspace edges only, external runtime deps live in each package's `package.json`):
 
 ```
-core            (leaf, no deps)
-templates       (leaf, external: fast-xml-parser)
+core
+templates
 
 rcml            ← core
 
@@ -30,7 +30,7 @@ vendor-samfora  ← core, rcml
 vendor-shopify  ← core, rcml, templates
 
 sdk (meta)      ← core, rcml, client, vendor-{shopify,bookzen,samfora}
-cli             ← core, rcml, client, vendor-{shopify,bookzen,samfora}  (+ commander)
+cli             ← core, rcml, client, vendor-{shopify,bookzen,samfora}
 ```
 
 ---
@@ -41,7 +41,7 @@ Node `>=20` required (the Nx plugins used by this workspace rely on `node:util.s
 
 ```bash
 npm install                         # install + link workspace packages
-npx nx show projects                # sanity-check: 9 publishable projects
+npx nx show projects                # sanity-check: 9 publishable packages + the workspace root
 npm run build                       # build all publishable packages → dist/packages/<pkg>/
 npm run test                        # run every package's tests
 npm run lint                        # lint every package
@@ -141,7 +141,7 @@ For each bumped package, Nx runs `npm publish` from `dist/packages/<pkg>/`. Cont
 
 ### CI / automated release
 
-CI (`.github/workflows/ci.yml`) currently runs quality gates (lint / test / build / per-package runtime-dependency allowlist) on every PR. Automated publish from CI is **not** wired up yet. When adding it, the usual pattern is a `release.yml` workflow triggered by a push to `main` or a manual `workflow_dispatch` that runs `npx nx release` with `NPM_CONFIG_TOKEN` from repo secrets.
+CI (`.github/workflows/ci.yml`) currently runs quality gates (lint / test / build / per-package runtime-dependency allowlist) on PRs to `main`, excluding docs-only changes. Automated publish from CI is **not** wired up yet. When adding it, the usual pattern is a `release.yml` workflow triggered by a push to `main` or a manual `workflow_dispatch` that runs `npx nx release` with `NPM_CONFIG_TOKEN` from repo secrets.
 
 ### Rolling back a bad release
 
