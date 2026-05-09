@@ -2699,7 +2699,7 @@ describe('RuleClient', () => {
     });
   });
 
-  describe('v3 read-side types preserve utm and dynamic-set fields', () => {
+  describe('v3 read-side types preserve Message utm fields', () => {
     it('getMessage surfaces populated utm_campaign and utm_term', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
