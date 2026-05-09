@@ -643,13 +643,14 @@ const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs
 
 ## Development
 
+This package is part of the [`rule-io-sdk` Nx monorepo](../../README.md). Build, test, and lint commands are run at the workspace level — see the root README's [Dev workflow](../../README.md#dev-workflow) section.
+
+For commands scoped to this package only:
+
 ```bash
-npm install
-npm run build        # Build with tsup (CJS + ESM)
-npm run test         # Run tests with Vitest
-npm run type-check   # TypeScript strict mode
-npm run dev          # Build in watch mode
-npm run test:watch   # Tests in watch mode
+npx nx build sdk          # build @rule-io/sdk and its workspace deps
+npx nx vitest:test sdk    # run this package's tests
+npx nx eslint:lint sdk    # lint this package
 ```
 
 ### RCML Validation

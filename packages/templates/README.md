@@ -1,6 +1,6 @@
 # @rule-io/templates
 
-Angular-like XML template engine used by `@rule-io/*` vendor email-template packages. Supports `{{ expression }}` interpolation, `*ngIf` / `*ngFor` structural directives, and `[attr]` property binding on XML elements.
+Angular-like XML template engine. Currently used by `@rule-io/vendor-shopify` to render its email content; intended as the shared rendering layer for any future `@rule-io/vendor-*` package that wants the same templating model. Supports `{{ expression }}` interpolation, `*ngIf` / `*ngFor` structural directives, and `[attr]` property binding on XML elements.
 
 Most consumers don't depend on this package directly — it's pulled in transitively through `@rule-io/vendor-shopify`. Import from it explicitly when you need the renderer or its error type:
 

@@ -136,7 +136,8 @@ git push --follow-tags
 For each bumped package, Nx runs `npm publish` from `dist/packages/<pkg>/`. Contents of each tarball:
 
 - the `.js` + `.d.ts` output under `dist/packages/<pkg>/src/`
-- the package-specific `README.md` and `CHANGELOG.md`
+- the package-specific `README.md` (every package's `project.json` declares `*.md` as a build asset, so any markdown alongside the source is copied into the tarball)
+- the package-specific `CHANGELOG.md` once it exists — `nx release` auto-generates one in `packages/<pkg>/CHANGELOG.md` on each version bump (config: `release.changelog.projectChangelogs` in `nx.json`); packages that haven't been released yet don't have one
 - a `package.json` with the bumped version, rewritten paths, and no `devDependencies`
 
 ### CI / automated release
