@@ -32,6 +32,9 @@ import type {
   RuleSubscriberResponse,
   RuleSubscriberFieldsResponse,
   RuleSubscriberTagsResponse,
+  RuleSubscribersV2ListResponse,
+  ListSubscribersByTagIdsParams,
+  ListSubscribersByTagIdsResult,
   RuleTagsResponse,
   RuleAutomationCreateRequest,
   RuleAutomationUpdateRequest,
@@ -404,6 +407,22 @@ type QueryParamValues = Record<string, QueryParamValue | QueryParamValue[]>;
  * await client.addSubscriberTags('customer@example.com', ['accommodation'], 'force');
  * ```
  */
+
+function parseNextPage(nextUrl: string | null): number | null {
+  if (!nextUrl) return null;
+
+  try {
+    const pageStr = new URL(nextUrl).searchParams.get('page');
+
+    if (!pageStr) return null;
+    const page = Number.parseInt(pageStr, 10);
+
+    return Number.isFinite(page) && page > 0 ? page : null;
+  } catch {
+    return null;
+  }
+}
+
 export class RuleClient {
   private config: Required<RuleClientConfig>;
 
@@ -900,6 +919,66 @@ export class RuleClient {
 
       throw error;
     }
+  }
+
+  /**
+   * List subscribers filtered by tag intersection.
+   *
+   * Returns one page at a time. Subscribers are filtered client-side (Rule.io
+   * ignores server-side tag filters as of 2026-04), so this method requires
+   * scanning the entire list. Caller drives pagination by passing `next_page`
+   * back until it returns null.
+   *
+   * @param params - Pagination and filter parameters
+   * @returns Paginated result with matched subscribers and next page cursor
+   * @throws RuleConfigError if tag_ids is empty
+   *
+   * @example
+   * ```typescript
+   * // Collect all subscribers with tag IDs 42 AND 99
+   * const all: RuleSubscriberV2[] = [];
+   * let page: number | null = 1;
+   * while (page !== null) {
+   *   const res = await client.listSubscribersByTagIds({
+   *     tag_ids: [42, 99],
+   *     page,
+   *     limit: 500,
+   *   });
+   *   all.push(...res.subscribers);
+   *   page = res.next_page;
+   * }
+   * ```
+   */
+  async listSubscribersByTagIds(
+    params: ListSubscribersByTagIdsParams
+  ): Promise<ListSubscribersByTagIdsResult> {
+    if (!params.tag_ids || params.tag_ids.length === 0) {
+      throw new RuleConfigError('tag_ids must not be empty');
+    }
+
+    const qs = RuleClient.buildQueryString({
+      page: params.page,
+      limit: params.limit,
+    });
+    const response = await this.request<RuleSubscribersV2ListResponse>(
+      `/subscribers${qs}`,
+      { method: 'GET' }
+    );
+
+    const scanned = response.subscribers ?? [];
+    const required = params.tag_ids;
+    const matched = scanned.filter((sub) => {
+      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
+
+      return required.every((id) => subTagIds.has(id));
+    });
+
+    return {
+      subscribers: matched,
+      matched: matched.length,
+      scanned: scanned.length,
+      next_page: parseNextPage(response.meta?.next ?? null),
+    };
   }
 
   // ==========================================================================
