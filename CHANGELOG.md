@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `exportStatistics` no longer auto-decodes base64-encoded `object.name`
+  values, and the `decodeNames` parameter is gone. Rule.io fixed the
+  underlying server-side bug (where records with `object.type === 'message'`
+  returned `object.name` base64-encoded) between 2026-04-28 and 2026-05-09;
+  the SDK's defensive decode is now a no-op for all observed traffic, and
+  removing it eliminates a hidden behavior that could have decoded plain-text
+  names that happened to be canonical base64. Consumers passing
+  `decodeNames: false` should drop the parameter; consumers relying on the
+  decode should not need to change anything because the API now returns
+  plain text directly.
+
 ### Added
 - `listSubscribersByTagIds()` on `RuleClient` — page-at-a-time listing of
   subscribers tagged with ALL of the given tag IDs (intersection). Rule.io's
