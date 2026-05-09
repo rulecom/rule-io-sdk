@@ -231,6 +231,8 @@ export interface RuleMessage {
   from_name?: string;
   from_email?: string;
   reply_to?: string;
+  utm_campaign?: string | null;
+  utm_term?: string | null;
 }
 
 export interface RuleMessageCreateRequest {
