@@ -6,9 +6,9 @@ Publishes the following packages under the `@rule-io/*` npm scope:
 
 | Package | Purpose |
 |---|---|
-| [`@rule-io/core`](packages/core) | Shared error classes |
+| [`@rule-io/core`](packages/core) | Shared types and utilities — error classes, brand/theme types, automation-config contract, vendor-preset interface, HTML/URL helpers |
 | [`@rule-io/templates`](packages/templates) | Angular-like XML template engine; consumed by `@rule-io/vendor-shopify` |
-| [`@rule-io/rcml`](packages/rcml) | RCML email-template builders, RCML types, automation-config schema |
+| [`@rule-io/rcml`](packages/rcml) | RCML email-template builders, types, and validators |
 | [`@rule-io/client`](packages/client) | HTTP wrapper around the Rule.io v2/v3 API |
 | [`@rule-io/vendor-shopify`](packages/vendor-shopify) | Shopify preset — e-commerce automation flows |
 | [`@rule-io/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
