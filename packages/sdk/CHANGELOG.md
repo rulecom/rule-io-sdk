@@ -56,13 +56,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs when no override is given. Explicit overrides via `--brand=<id>` and
   `RULE_BRAND_STYLE_ID` are still supported.
 
-### Fixed
-- `exportStatistics` now transparently decodes the base64-encoded
-  `object.name` that Rule.io returns for records where
-  `object.type === 'message'` (every other object type returns plain text).
-  A round-trip guard limits decoding to values that look like canonical
-  base64. If you need to inspect the raw API response or disable this
-  behavior, opt out with `decodeNames: false`. (#95)
+### Removed
+- `exportStatistics` no longer auto-decodes base64-encoded `object.name`
+  values, and the `decodeNames` parameter is gone. Rule.io fixed the
+  underlying server-side bug (where records with `object.type === 'message'`
+  returned `object.name` base64-encoded) between 2026-04-28 and 2026-05-09;
+  the SDK's defensive decode (originally added in #98 to address #95) is
+  now a no-op for all observed traffic, and removing it eliminates a hidden
+  hazard that could have decoded plain-text names that happened to be
+  canonical base64. Consumers passing `decodeNames: false` should drop the
+  parameter; consumers relying on the decode should not need to change
+  anything because the API now returns plain text directly.
 
 ## [0.3.0] - 2026-04-07
 
