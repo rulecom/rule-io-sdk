@@ -274,8 +274,8 @@ describe('findTemplateOwner', () => {
     const fixture = {
       campaignsPages: [[
         { id: 1, name: 'a', messages: [{ id: 11, subject: 's', templateId: 99 }] },
-        { id: 2, name: 'b', messages: [{ id: 22, subject: 's', templateId: 42 }] },
-        { id: 3, name: 'c', messages: [{ id: 33, subject: 's', templateId: 99 }] },
+        { id: 2, name: 'b', messages: [{ id: 22, subject: 's', templateId: 99 }] },
+        { id: 3, name: 'c', messages: [{ id: 33, subject: 's', templateId: 42 }] },
       ]],
       automationsPages: [[]],
     };
@@ -286,6 +286,10 @@ describe('findTemplateOwner', () => {
     const c2 = buildClient(fixture);
     const r2 = await findTemplateOwner(c2, 42);
 
+    // With the match on the last dispatcher, both concurrency settings
+    // probe all three before short-circuit kicks in, so `scanned` matches.
+    // (Earlier matches expose timing-dependent scanned counts — covered
+    // by the dedicated short-circuit tests above.)
     expect(r1.owner).toEqual(r2.owner);
     expect(r1.scanned).toEqual(r2.scanned);
   });
@@ -311,6 +315,33 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     await findTemplateOwner(client, 42, { concurrency: 5 });
     expect(peakInFlight).toBeGreaterThanOrEqual(2);
+  });
+
+  it('reports `scanned` as actually-probed dispatchers, not the full fetched page', async () => {
+    // Page of 10, dispatcher 1 matches. Workers 0-2 probe in parallel
+    // (concurrency=3); worker 0 finds the match and aborts; workers 1-2
+    // may still finish their in-flight probe, so 1 ≤ scanned ≤ 3 — but
+    // never the full 10. (The previous behaviour counted all 10.)
+    const client = new RuleClient('test-key');
+    const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
+
+    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client, 'listMessages').mockImplementation(async ({ id }) => {
+      await new Promise((r) => setTimeout(r, 5));
+      if (id === 1) return { data: [{ id: 101, subject: 's', name: 'm' }] } as never;
+
+      return { data: [] } as never;
+    });
+    vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
+      data: [{ id: 1, message_id: 101, template_id: 42 }],
+    } as never);
+
+    const result = await findTemplateOwner(client, 42, { concurrency: 3 });
+
+    expect(result.owner?.id).toBe(1);
+    expect(result.scanned.campaigns).toBeLessThanOrEqual(3);
+    expect(result.scanned.campaigns).toBeGreaterThanOrEqual(1);
   });
 
   it('short-circuits mid-page: when an early dispatcher matches, sibling probes do not all fire', async () => {

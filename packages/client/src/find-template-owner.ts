@@ -251,16 +251,18 @@ async function scanDispatcherKind(
     // lets workers stop claiming new dispatchers as soon as any probe finds
     // a match (probeDispatcher itself triggers the abort on hit), so a match
     // on dispatcher 1 of a page of 100 doesn't burn API calls on 2-100.
+    // `pageScanned` is a mutable counter that probeDispatcher increments
+    // when it actually starts probing — so the surfaced `scanned` count
+    // reflects work done, not items fetched.
+    const pageScanned = { count: 0 };
     const probes = await runWithConcurrency(
       dispatchers,
-      (d) => probeDispatcher(client, kind, d, templateId, partialErrors, internalAbort),
+      (d) => probeDispatcher(client, kind, d, templateId, partialErrors, internalAbort, pageScanned),
       concurrency,
       internalAbort.signal
     );
 
-    for (const dispatcher of dispatchers) {
-      if (dispatcher.id != null) scanned += 1;
-    }
+    scanned += pageScanned.count;
 
     // First non-null result is the match; document order is preserved by
     // runWithConcurrency. probeDispatcher already aborted on match, so any
@@ -302,10 +304,15 @@ async function probeDispatcher(
   dispatcher: DispatcherListEntry,
   templateId: number,
   partialErrors: PartialScanError[],
-  internalAbort: AbortController
+  internalAbort: AbortController,
+  pageScanned: { count: number }
 ): Promise<TemplateOwner | null> {
   if (dispatcher.id == null) return null;
   if (internalAbort.signal.aborted) return null;
+
+  // Count this dispatcher only after the abort check — so aborted-before-
+  // started probes don't inflate the surfaced `scanned` count.
+  pageScanned.count += 1;
 
   const dispatcherId = dispatcher.id;
   const dispatcherType = kind === 'campaign' ? 'campaign' : 'automail';
