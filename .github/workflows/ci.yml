@@ -48,9 +48,28 @@ jobs:
           fail=0
           for pkg in packages/*/package.json; do
             name=$(jq -r '.name' "$pkg")
+            # Per-package allowlist of non-@rule-io/* runtime deps. Adding
+            # an entry here means we accept that the dep ships in the
+            # published tarball and counts toward each consumer's install
+            # footprint.
             case "$name" in
-              "@rule-io/cli") allowed='["commander"]' ;;
-              *)              allowed='[]' ;;
+              "@rule-io/cli")
+                allowed='["commander"]'
+                ;;
+              "@rule-io/rcml")
+                # ajv: JSON-schema validator for RCML; prosemirror-model:
+                # ProseMirror doc nodes; remark-* / unified / vfile / mdast-*:
+                # markdown→RCML pipeline; fast-xml-parser: RCML XML
+                # round-trip; zod: runtime schema for create-rcml-element.
+                allowed='["@types/mdast","@types/unist","ajv","fast-xml-parser","mdast-util-directive","prosemirror-model","remark-directive","remark-parse","unified","vfile","zod"]'
+                ;;
+              "@rule-io/templates")
+                # fast-xml-parser: XML parsing for the Angular-like template engine.
+                allowed='["fast-xml-parser"]'
+                ;;
+              *)
+                allowed='[]'
+                ;;
             esac
             bad=$(jq --argjson allowed "$allowed" -r '
               (.dependencies // {})
