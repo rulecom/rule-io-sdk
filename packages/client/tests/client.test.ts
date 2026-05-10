@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client.js';
 import { RuleApiError, RuleConfigError } from '@rule-io/core';
-import type { RuleAnalyticsParams } from '../src/types.js';
+import type { RuleAnalyticsParams, RuleAutomationTrigger } from '../src/types.js';
 import type { RcmlDocument } from '@rule-io/rcml';
 
 /** Minimal valid RcmlDocument for tests that need a template value. */
@@ -845,6 +845,45 @@ describe('RuleClient', () => {
         trigger: { type: 'TAG', id: 42 },
         sendout_type: 2,
       });
+    });
+
+    it('should not fast-path when a required field is null (JS caller bypassing types)', async () => {
+      // GET — slow path takes over because trigger is null.
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+      // PUT
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'X' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      // A JS caller could pass null even though the type forbids it. The fast
+      // path must fall through so the slow path's `??` merges from `current`.
+      await client.updateAutomation(1, {
+        name: 'X',
+        active: true,
+        trigger: null as unknown as RuleAutomationTrigger,
+        sendout_type: 2,
+      });
+
+      // Two fetches → slow path was taken.
+      expect(mockFetch).toHaveBeenCalledTimes(2);
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body);
+
+      // Trigger comes from the existing record, not the null we passed.
+      expect(body.trigger).toEqual({ type: 'TAG', id: 7 });
+      expect(body).not.toHaveProperty('trigger', null);
     });
 
     it('should send a full PUT body when only name is updated (read-modify-write)', async () => {

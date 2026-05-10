@@ -1088,11 +1088,14 @@ export class RuleClient {
     // Fast path: when the caller already supplies every field the API requires,
     // skip the read and PUT directly. Saves one round-trip for full-body
     // updates like clone-email and the deploy CLIs once they pass full bodies.
+    // Guard with `!= null` (not `!== undefined`) so a JS caller passing
+    // `{ trigger: null }` falls through to the slow path's nullish handling
+    // instead of sending a `null` field straight to the API.
     if (
-      update.name !== undefined &&
-      update.active !== undefined &&
-      update.trigger !== undefined &&
-      update.sendout_type !== undefined
+      update.name != null &&
+      update.active != null &&
+      update.trigger != null &&
+      update.sendout_type != null
     ) {
       return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
         method: 'PUT',
