@@ -44,6 +44,7 @@ import type {
   RuleAutomationCreateRequest,
   RuleAutomationUpdateRequest,
   RuleAutomationResponse,
+  RuleSendoutType,
   RuleAutomationListParams,
   RuleAutomationListResponse,
   RuleMessageCreateRequest,
@@ -1047,14 +1048,23 @@ export class RuleClient {
   }
 
   /**
-   * Update an automation. Supports partial updates — only include the fields
-   * you want to change.
+   * Update an automation. Accepts a partial input — any field omitted is
+   * preserved from the current automation.
+   *
+   * IMPORTANT: Rule.io's `PUT /editor/automail/{id}` rejects partial bodies —
+   * it requires `name`, `active`, `trigger`, and `sendout_type` together.
+   * This method performs read-modify-write internally (one extra GET per
+   * update) so callers can pass only the fields they want to change.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
    * The API error messages incorrectly suggest lowercase, but uppercase is required.
    *
    * @param id - Automation ID
    * @param update - Partial update request (all fields optional)
+   * @throws RuleApiError(404) if no automation exists with the given id
+   * @throws RuleConfigError if the existing automation lacks a trigger or
+   *   sendout_type and the update does not provide one (the PUT body would be
+   *   incomplete and the API would reject it)
    *
    * @example
    * ```typescript
@@ -1074,9 +1084,57 @@ export class RuleClient {
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
+    const existing = await this.getAutomation(id);
+
+    if (!existing?.data) {
+      throw new RuleApiError(`Automation ${id} not found`, 404);
+    }
+
+    const current = existing.data;
+
+    // Response shape wraps sendout_type as { value, key, description }; the
+    // request shape requires the numeric value. Tolerate either form in case
+    // the response is ever flattened upstream.
+    const currentSendout: number | undefined =
+      typeof current.sendout_type === 'number'
+        ? current.sendout_type
+        : current.sendout_type?.value;
+
+    const trigger = update.trigger ?? current.trigger;
+    const sendoutType = update.sendout_type ?? currentSendout;
+    // Don't fall back to a boolean default for `active` — the API requires it
+    // in the PUT body, and silently defaulting to `false` could deactivate an
+    // automation when the caller only meant to rename it.
+    const active = update.active ?? current.active;
+
+    if (!trigger) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no trigger and update did not provide one`
+      );
+    }
+
+    if (sendoutType == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no sendout_type and update did not provide one`
+      );
+    }
+
+    if (active == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no active state and update did not provide one`
+      );
+    }
+
+    const fullBody: RuleAutomationUpdateRequest = {
+      name: update.name ?? current.name,
+      active,
+      trigger,
+      sendout_type: sendoutType as RuleSendoutType,
+    };
+
     return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(update),
+      body: JSON.stringify(fullBody),
     });
   }
 
@@ -2590,9 +2648,15 @@ export class RuleClient {
       metrics = params.metrics;
     }
 
+    // The /analytics endpoint rejects datetime form (`YYYY-MM-DD HH:MM:SS`) and
+    // accepts only bare dates, even though sibling v3 endpoints (e.g.
+    // exportStatistics) accept both. Strip any time portion so consumers using
+    // a shared date normalizer don't have to special-case this endpoint.
+    const stripTime = (d: string): string => d.split(/[ T]/)[0];
+
     const qs = RuleClient.buildQueryString({
-      date_from: params.date_from,
-      date_to: params.date_to,
+      date_from: stripTime(params.date_from),
+      date_to: stripTime(params.date_to),
       object_type: objectType,
       'object_ids[]': objectIds,
       'metrics[]': metrics,

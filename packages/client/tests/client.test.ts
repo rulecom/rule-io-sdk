@@ -815,6 +815,19 @@ describe('RuleClient', () => {
     });
 
     it('should update an automation with all fields', async () => {
+      // GET (read-modify-write fetches existing first)
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old',
+            active: false,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+      // PUT
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 1, name: 'Updated', active: true },
@@ -830,11 +843,18 @@ describe('RuleClient', () => {
       });
 
       expect(result.data?.name).toBe('Updated');
-      const [url, options] = mockFetch.mock.calls[0];
+      expect(mockFetch).toHaveBeenCalledTimes(2);
 
-      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
-      expect(options.method).toBe('PUT');
-      const body = JSON.parse(options.body);
+      const [getUrl, getOptions] = mockFetch.mock.calls[0];
+
+      expect(getUrl).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(getOptions.method).toBe('GET');
+
+      const [putUrl, putOptions] = mockFetch.mock.calls[1];
+
+      expect(putUrl).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(putOptions.method).toBe('PUT');
+      const body = JSON.parse(putOptions.body);
 
       expect(body.name).toBe('Updated');
       expect(body.active).toBe(true);
@@ -842,39 +862,206 @@ describe('RuleClient', () => {
       expect(body.sendout_type).toBe(2);
     });
 
-    it('should update an automation with partial fields (name only)', async () => {
+    it('should send a full PUT body when only name is updated (read-modify-write)', async () => {
+      // GET — existing automation
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 1, name: 'Renamed' },
+          data: {
+            id: 1,
+            name: 'Old',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 2, key: 'TRANSACTIONAL', description: '' },
+          },
         })
+      );
+      // PUT
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Renamed' } })
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
       const result = await client.updateAutomation(1, { name: 'Renamed' });
 
       expect(result.data?.name).toBe('Renamed');
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
 
-      expect(body).toEqual({ name: 'Renamed' });
-      expect(body).not.toHaveProperty('active');
-      expect(body).not.toHaveProperty('trigger');
-      expect(body).not.toHaveProperty('sendout_type');
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body);
+
+      // Rule.io's PUT requires the full object — partial input is merged.
+      expect(body).toEqual({
+        name: 'Renamed',
+        active: true,
+        trigger: { type: 'TAG', id: 7 },
+        sendout_type: 2,
+      });
     });
 
-    it('should update an automation with partial fields (active only)', async () => {
+    it('should send a full PUT body when only active is updated (preserves other fields)', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 1, name: 'Test', active: false },
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'SEGMENT', id: 99 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
         })
+      );
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Test', active: false } })
       );
 
       const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
 
       await client.updateAutomation(1, { active: false });
 
-      const body = JSON.parse(mockFetch.mock.calls[0][1].body);
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body);
 
-      expect(body).toEqual({ active: false });
+      expect(body).toEqual({
+        name: 'Test',
+        active: false,
+        trigger: { type: 'SEGMENT', id: 99 },
+        sendout_type: 1,
+      });
+    });
+
+    it('should convert sendout_type response object form to numeric in PUT body', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 2, key: 'TRANSACTIONAL', description: 'Trans' },
+          },
+        })
+      );
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'X' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.updateAutomation(1, { name: 'X' });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body);
+
+      expect(body.sendout_type).toBe(2);
+      expect(typeof body.sendout_type).toBe('number');
+    });
+
+    it('should throw RuleApiError(404) when the automation does not exist', async () => {
+      // getAutomation returns null on 404
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ error: 'Not found' }, 404)
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.updateAutomation(999, { name: 'Whatever' })
+      ).rejects.toMatchObject({
+        name: 'RuleApiError',
+        statusCode: 404,
+      });
+
+      // No PUT fired — only the GET attempt.
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw RuleConfigError when existing record has no trigger and update omits it', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            // no trigger
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.updateAutomation(1, { name: 'Renamed' })
+      ).rejects.toThrow(RuleConfigError);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw RuleConfigError when existing record has no sendout_type and update omits it', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            // no sendout_type
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.updateAutomation(1, { name: 'Renamed' })
+      ).rejects.toThrow(RuleConfigError);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should throw RuleConfigError when existing record has no active state and update omits it', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            // no active
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.updateAutomation(1, { name: 'Renamed' })
+      ).rejects.toThrow(RuleConfigError);
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
+    it('should let the update override an existing trigger', async () => {
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Test' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.updateAutomation(1, {
+        trigger: { type: 'SEGMENT', id: 42 },
+      });
+
+      const body = JSON.parse(mockFetch.mock.calls[1][1].body);
+
+      expect(body.trigger).toEqual({ type: 'SEGMENT', id: 42 });
     });
 
     it('should render a template and return HTML', async () => {
@@ -2908,6 +3095,64 @@ describe('RuleClient', () => {
       expect(url).not.toContain('object_ids');
       expect(url).not.toContain('metrics');
     });
+
+    // The /analytics endpoint rejects datetime form even though sibling v3
+    // endpoints accept it. The SDK strips the time portion so consumers can
+    // pass either form.
+    it('should strip space-separated time from date_from / date_to', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.getAnalytics({
+        date_from: '2024-01-01 00:00:00',
+        date_to: '2024-01-31 23:59:59',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(url).not.toContain('00%3A00%3A00');
+      expect(url).not.toContain('23%3A59%3A59');
+    });
+
+    it('should strip ISO-8601 T-separated time from date_from / date_to', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.getAnalytics({
+        date_from: '2024-01-01T00:00:00Z',
+        date_to: '2024-01-31T23:59:59Z',
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+
+      expect(url).toContain('date_from=2024-01-01');
+      expect(url).toContain('date_to=2024-01-31');
+      expect(url).not.toContain('T00');
+      expect(url).not.toContain('T23');
+    });
+
+    it('should pass bare YYYY-MM-DD dates through unchanged', async () => {
+      mockFetch.mockResolvedValueOnce(createMockResponse({ data: [] }));
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.getAnalytics({
+        date_from: '2024-01-01',
+        date_to: '2024-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['1'],
+        metrics: ['sent'],
+      });
+
+      const url = mockFetch.mock.calls[0][0] as string;
+
+      expect(url).toContain('date_from=2024-01-01&');
+      expect(url).toMatch(/date_to=2024-01-31(&|$)/);
+    });
   });
 
   describe('v3 Delete 204 handling', () => {
@@ -3721,6 +3966,19 @@ describe('RuleClient', () => {
     });
 
     it('updateAutomail() should delegate to updateAutomation()', async () => {
+      // GET (read-modify-write)
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+      // PUT
       mockFetch.mockResolvedValueOnce(
         createMockResponse({ data: { id: 1, name: 'Updated' } })
       );

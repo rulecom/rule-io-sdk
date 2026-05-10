@@ -1014,7 +1014,10 @@ export type RuleAnalyticsMessageType = 'email' | 'text_message';
 
 /**
  * Base date range shared by all analytics queries.
- * All date strings must be in `YYYY-MM-DD` format.
+ *
+ * Dates may be passed as `YYYY-MM-DD` or `YYYY-MM-DD HH:MM:SS` /
+ * `YYYY-MM-DDTHH:MM:SS` — the SDK strips any time portion before sending,
+ * since the analytics endpoint only accepts bare dates.
  */
 export interface RuleAnalyticsDateRange {
   /** Start date (inclusive), e.g. "2024-01-01" */
