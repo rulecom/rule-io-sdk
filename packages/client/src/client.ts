@@ -1110,9 +1110,10 @@ export class RuleClient {
     // updates like clone-email and the deploy CLIs once they pass full bodies.
     // Guard with `!= null` (not `!== undefined`) so a JS caller passing
     // `{ trigger: null }` falls through to the slow path's nullish handling
-    // instead of sending a `null` field straight to the API. Also require
-    // sendout_type to coerce to a number — the response-wrapper object falls
-    // through to the slow path where it's normalized consistently.
+    // instead of sending a `null` field straight to the API. `sendout_type`
+    // accepts either form (number or response-wrapper object) — it was
+    // coerced to a number by `toNumericSendout` above, and the coerced
+    // value is what we PUT.
     if (
       update.name != null &&
       update.active != null &&
