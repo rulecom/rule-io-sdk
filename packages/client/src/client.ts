@@ -1063,9 +1063,9 @@ export class RuleClient {
    * @param id - Automation ID
    * @param update - Partial update request (all fields optional)
    * @throws RuleApiError(404) if no automation exists with the given id
-   * @throws RuleConfigError if the existing automation lacks a trigger or
-   *   sendout_type and the update does not provide one (the PUT body would be
-   *   incomplete and the API would reject it)
+   * @throws RuleConfigError if the existing automation lacks `trigger`,
+   *   `sendout_type`, or `active` and the update does not provide one (the
+   *   PUT body would be incomplete and the API would reject it)
    *
    * @example
    * ```typescript
