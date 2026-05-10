@@ -41,7 +41,7 @@ import {
   logoSection,
   placeholder,
   textNode,
-} from '@rule-io/rcml';
+} from './validate-rcml-builders.js';
 import { EmailThemeColorType, type EmailTheme } from '@rule-io/core';
 import type {
   Json,
