@@ -1,0 +1,15 @@
+{
+  "preheader": "Din månadsgåva är mottagen",
+  "greetingHeading": "Månadsgåva mottagen, {{firstName}}",
+  "intro": "Din månadsgåva har dragits och skickats vidare till det ändamål du har valt. Tack för att du ger regelbundet.",
+  "detailsHeading": "Gåvans detaljer",
+  "amountRow": "Belopp: {{amount}}",
+  "amountRowWithCurrency": "Belopp: {{amount}} {{currency}}",
+  "causeRow": "Ändamål: {{causeName}}",
+  "dateRow": "Dragningsdatum: {{date}}",
+  "referenceRow": "Referens: {{ref}}",
+  "ctaButton": "Hantera månadsgåva",
+  "signOff": "Tack för att du är månadsgivare hos Samfora.",
+  "footerLinks": ":link[:font[Öppna i webbläsare]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Avregistrera]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

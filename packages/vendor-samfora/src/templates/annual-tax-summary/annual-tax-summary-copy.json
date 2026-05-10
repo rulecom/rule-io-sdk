@@ -1,0 +1,16 @@
+{
+  "preheader": "Din gåvosammanställning för skatteavdrag",
+  "greetingHeading": "Din gåvosammanställning, {{firstName}}",
+  "intro": "Här är en sammanställning av dina gåvor under året. Du kan använda den för att göra skatteavdrag för gåvor i din deklaration.",
+  "detailsHeading": "Sammanställning",
+  "yearRow": "Skatteår: {{year}}",
+  "totalRow": "Totalt givet: {{total}}",
+  "totalRowWithCurrency": "Totalt givet: {{total}} {{currency}}",
+  "deductibleRow": "Avdragsgillt belopp: {{deductible}}",
+  "deductibleRowWithCurrency": "Avdragsgillt belopp: {{deductible}} {{currency}}",
+  "disclaimer": "Vi rapporterar dina gåvor till Skatteverket enligt gällande regler för gåvoskatteavdrag.",
+  "ctaButton": "Ladda ner kvitto",
+  "signOff": "Tack för ditt engagemang under året.",
+  "footerLinks": ":link[:font[Öppna i webbläsare]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Avregistrera]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

@@ -1,0 +1,13 @@
+{
+  "preheader": "Välkommen till Samfora",
+  "greetingHeading": "Välkommen till Samfora, {{firstName}}",
+  "intro": "Kul att du är här! Samfora är ditt konto för ditt givande — samla dina gåvor, följ dina ändamål och bidra till en värld som mår bättre.",
+  "listHeading": "Så här kommer du igång",
+  "stepOne": "1. Välj ett ändamål som berör dig.",
+  "stepTwo": "2. Ge en engångsgåva eller starta ett månadsgivande.",
+  "stepThree": "3. Följ effekten av ditt givande från ditt konto.",
+  "ctaButton": "Utforska ändamål",
+  "signOff": "Varmt välkommen — vi ses på plattformen.",
+  "footerLinks": ":link[:font[Öppna i webbläsare]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Avregistrera]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

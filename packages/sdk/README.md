@@ -314,42 +314,45 @@ const automations = bookzenPreset.getAutomations(config);
 
 ### Samfora (Donation)
 
-Swedish charitable-giving preset. Default email copy ships in Swedish.
-Three donation-confirmation variants are gated by donor-lifecycle tags
-(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
-second-time, and loyal donors see different wording.
+Swedish charitable-giving preset. Default email copy ships in Swedish; pass
+`copy: { ... }` at render time to localise.
 
 Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
 `Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
 new custom ones — those fields already exist on every account. Per-donation
 data lives on a historical `Donation.*` group.
 
+Six template factories ship for the donation lifecycle:
+
+- `createDonationConfirmationFirstTemplate` — first-time donor
+- `createDonationConfirmationSecondTemplate` — second one-time donation
+- `createDonationConfirmationReturningTemplate` — third or later one-time donation
+- `createMonthlyDonationConfirmationTemplate` — recurring monthly donation
+- `createSamforaWelcomeTemplate` — new donor account
+- `createAnnualTaxSummaryTemplate` — year-end gåvoskatteavdrag summary
+
 ```typescript
-import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
+import {
+  createDonationConfirmationFirstTemplate,
+  SAMFORA_FIELDS,
+} from '@rule-io/sdk';
+import { customField } from '@rule-io/templates';
 
-const config = {
-  brandStyle: myBrand,
-  customFields: {
-    // Required: standard Subscriber field for the greeting
-    [SAMFORA_FIELDS.donorFirstName]: 47736,
-    // Required: historical Donation.* group
-    [SAMFORA_FIELDS.donationAmount]: 200002,
-    [SAMFORA_FIELDS.donationDate]: 200003,
-    [SAMFORA_FIELDS.donationRef]: 200004,
-    [SAMFORA_FIELDS.causeName]: 200005,
-    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
-    [SAMFORA_FIELDS.taxYear]: 200007,
-    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
-    // Optional Subscriber extensions (not referenced by built-in
-    // templates but available for consumer extensions):
-    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
-    // donorCity, donorCountry, donorPhone, donorSource
-    // Optional Donation extras: donationCurrency, donationType
+const template = createDonationConfirmationFirstTemplate();
+const doc = template.render({
+  context: {
+    recipient: { firstName: customField('Subscriber', 'FirstName', 47736) },
+    donation: {
+      amount: customField('Donation', 'Amount', 200002),
+      date: customField('Donation', 'Date', 200003),
+      ref: customField('Donation', 'Reference', 200004),
+      causeName: customField('Donation', 'CauseName', 200005),
+    },
+    websiteUrl: 'https://samfora.org',
+    footer: { fontSize: '10px', textColor: '#666666' },
   },
-  websiteUrl: 'https://samfora.org',
-};
-
-const automations = samforaPreset.getAutomations(config);
+  theme: myEmailTheme,
+});
 ```
 
 Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
