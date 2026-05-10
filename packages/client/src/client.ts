@@ -1085,17 +1085,39 @@ export class RuleClient {
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
+    // Coerce sendout_type to its numeric request form, accepting either the
+    // numeric value or the response wrapper `{ value, key, description }`.
+    // A consumer round-tripping a getAutomation() response into update can
+    // legitimately pass the object form; both paths must handle it.
+    const toNumericSendout = (
+      v: unknown
+    ): RuleSendoutType | undefined => {
+      if (typeof v === 'number') return v as RuleSendoutType;
+
+      if (v != null && typeof v === 'object' && 'value' in v) {
+        const val = (v as { value: unknown }).value;
+
+        if (typeof val === 'number') return val as RuleSendoutType;
+      }
+
+      return undefined;
+    };
+
+    const updateSendout = toNumericSendout(update.sendout_type);
+
     // Fast path: when the caller already supplies every field the API requires,
     // skip the read and PUT directly. Saves one round-trip for full-body
     // updates like clone-email and the deploy CLIs once they pass full bodies.
     // Guard with `!= null` (not `!== undefined`) so a JS caller passing
     // `{ trigger: null }` falls through to the slow path's nullish handling
-    // instead of sending a `null` field straight to the API.
+    // instead of sending a `null` field straight to the API. Also require
+    // sendout_type to coerce to a number — the response-wrapper object falls
+    // through to the slow path where it's normalized consistently.
     if (
       update.name != null &&
       update.active != null &&
       update.trigger != null &&
-      update.sendout_type != null
+      updateSendout != null
     ) {
       return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
         method: 'PUT',
@@ -1103,7 +1125,7 @@ export class RuleClient {
           name: update.name,
           active: update.active,
           trigger: update.trigger,
-          sendout_type: update.sendout_type,
+          sendout_type: updateSendout,
         }),
       });
     }
@@ -1128,16 +1150,10 @@ export class RuleClient {
 
     const current = existing.data;
 
-    // Response shape wraps sendout_type as { value, key, description }; the
-    // request shape requires the numeric value. Tolerate either form in case
-    // the response is ever flattened upstream.
-    const currentSendout: number | undefined =
-      typeof current.sendout_type === 'number'
-        ? current.sendout_type
-        : current.sendout_type?.value;
+    const currentSendout = toNumericSendout(current.sendout_type);
 
     const trigger = update.trigger ?? current.trigger;
-    const sendoutType = update.sendout_type ?? currentSendout;
+    const sendoutType = updateSendout ?? currentSendout;
     // Don't fall back to a boolean default for `active` — the API requires it
     // in the PUT body, and silently defaulting to `false` could deactivate an
     // automation when the caller only meant to rename it.
@@ -1165,7 +1181,7 @@ export class RuleClient {
       name: update.name ?? current.name,
       active,
       trigger,
-      sendout_type: sendoutType as RuleSendoutType,
+      sendout_type: sendoutType,
     };
 
     return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {

@@ -5,7 +5,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RuleClient } from '../src/client.js';
 import { RuleApiError, RuleConfigError } from '@rule-io/core';
-import type { RuleAnalyticsParams, RuleAutomationTrigger } from '../src/types.js';
+import type {
+  RuleAnalyticsParams,
+  RuleAutomationTrigger,
+  RuleSendoutType,
+} from '../src/types.js';
 import type { RcmlDocument } from '@rule-io/rcml';
 
 /** Minimal valid RcmlDocument for tests that need a template value. */
@@ -845,6 +849,64 @@ describe('RuleClient', () => {
         trigger: { type: 'TAG', id: 42 },
         sendout_type: 2,
       });
+    });
+
+    it('should coerce update.sendout_type from response object form to numeric (fast path & slow path)', async () => {
+      // Fast path: caller round-trips the response wrapper as the input.
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'X' } })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await client.updateAutomation(1, {
+        name: 'X',
+        active: true,
+        trigger: { type: 'TAG', id: 7 },
+        sendout_type: {
+          value: 2,
+          key: 'TRANSACTIONAL',
+          description: 'Trans',
+        } as unknown as RuleSendoutType,
+      });
+
+      // Object form coerces to number; fast path still fires (one fetch, no GET).
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+
+      const fastBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+
+      expect(fastBody.sendout_type).toBe(2);
+      expect(typeof fastBody.sendout_type).toBe('number');
+
+      // Slow path: same object form, but with a partial input that forces RMW.
+      mockFetch.mockReset();
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Test',
+            active: true,
+            trigger: { type: 'TAG', id: 7 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
+          },
+        })
+      );
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Test' } })
+      );
+
+      await client.updateAutomation(1, {
+        sendout_type: {
+          value: 2,
+          key: 'TRANSACTIONAL',
+          description: 'Trans',
+        } as unknown as RuleSendoutType,
+      });
+
+      const slowBody = JSON.parse(mockFetch.mock.calls[1][1].body);
+
+      expect(slowBody.sendout_type).toBe(2);
+      expect(typeof slowBody.sendout_type).toBe('number');
     });
 
     it('should not fast-path when a required field is null (JS caller bypassing types)', async () => {
