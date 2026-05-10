@@ -1,0 +1,435 @@
+/**
+ * Find the campaign or automation that owns a given RCML template.
+ *
+ * Rule.io has no direct template→owner endpoint, so this scans dispatchers
+ * (campaigns first, then automations), resolves each one's messages, and
+ * checks dynamic-set `template_id` for a match. Scans run concurrently with
+ * a configurable cap and short-circuit on the first match.
+ *
+ * The 1:1 invariant — each template has at most one owner — is enforced by
+ * Rule.io's data model and lets us stop scanning automations as soon as a
+ * campaign match is found.
+ *
+ * @public
+ */
+
+import { RuleApiError } from '@rule-io/core';
+import type { RuleClient } from './client.js';
+import type { RuleAutomation, RuleCampaign, RuleMessage } from './types.js';
+
+type DispatcherKind = 'campaign' | 'automation';
+
+interface DispatcherListEntry {
+  id?: number;
+  name?: string;
+  status?: { value: number; key: string; description: string } | null;
+  active?: boolean;
+}
+
+/**
+ * Owner record when a template is used by a campaign.
+ *
+ * @public
+ */
+export interface CampaignTemplateOwner {
+  kind: 'campaign';
+  id: number;
+  name: string;
+  message_id: number;
+  subject: string;
+  status: string | null;
+}
+
+/**
+ * Owner record when a template is used by an automation.
+ *
+ * @public
+ */
+export interface AutomationTemplateOwner {
+  kind: 'automation';
+  id: number;
+  name: string;
+  message_id: number;
+  active: boolean | null;
+}
+
+/**
+ * Discriminated union of possible template owners.
+ *
+ * @public
+ */
+export type TemplateOwner = CampaignTemplateOwner | AutomationTemplateOwner;
+
+/**
+ * Per-dispatcher failure that occurred during scanning. The scan continues
+ * past these errors so a single misbehaving dispatcher doesn't poison the
+ * whole result.
+ *
+ * @public
+ */
+export interface PartialScanError {
+  dispatcher_kind: DispatcherKind;
+  dispatcher_id: number;
+  message_id?: number;
+  error: string;
+  status_code?: number;
+}
+
+/**
+ * Options for {@link RuleClient.findTemplateOwner}.
+ *
+ * @public
+ */
+export interface FindTemplateOwnerOptions {
+  /**
+   * Max concurrent in-flight `listMessages` and `listDynamicSets` calls.
+   * Higher values speed up scans but risk hitting Rule.io rate limits.
+   *
+   * @defaultValue 10
+   */
+  concurrency?: number;
+
+  /**
+   * Optional signal to abort an in-flight scan. The promise resolves with
+   * the partial result accumulated so far when aborted.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Result of a template-owner scan. `owner` is `null` when the template is
+ * not used (orphaned templates pending Rule.io's CRON cleanup, or
+ * templates not yet attached to any dispatcher).
+ *
+ * @public
+ */
+export interface FindTemplateOwnerResult {
+  owner: TemplateOwner | null;
+  scanned: { campaigns: number; automations: number };
+  partial_errors: PartialScanError[];
+}
+
+const DEFAULT_CONCURRENCY = 10;
+const PER_PAGE = 100;
+
+/**
+ * Scan dispatchers (campaigns then automations) for the one whose message
+ * carries a dynamic-set with the given `template_id`. Exported as a free
+ * function for testability; consumers normally call
+ * {@link RuleClient.findTemplateOwner}.
+ *
+ * @public
+ */
+export async function findTemplateOwner(
+  client: RuleClient,
+  templateId: number,
+  options: FindTemplateOwnerOptions = {}
+): Promise<FindTemplateOwnerResult> {
+  const concurrency = Math.max(1, options.concurrency ?? DEFAULT_CONCURRENCY);
+  const partialErrors: PartialScanError[] = [];
+
+  const internalAbort = new AbortController();
+  const externalSignal = options.signal;
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      return {
+        owner: null,
+        scanned: { campaigns: 0, automations: 0 },
+        partial_errors: [],
+      };
+    }
+
+    externalSignal.addEventListener('abort', () => internalAbort.abort(), {
+      once: true,
+    });
+  }
+
+  const campaignScan = await scanDispatcherKind(
+    client,
+    'campaign',
+    templateId,
+    concurrency,
+    partialErrors,
+    internalAbort
+  );
+
+  if (campaignScan.match) {
+    return {
+      owner: campaignScan.match,
+      scanned: { campaigns: campaignScan.scanned, automations: 0 },
+      partial_errors: partialErrors,
+    };
+  }
+
+  if (internalAbort.signal.aborted) {
+    return {
+      owner: null,
+      scanned: { campaigns: campaignScan.scanned, automations: 0 },
+      partial_errors: partialErrors,
+    };
+  }
+
+  const automationScan = await scanDispatcherKind(
+    client,
+    'automation',
+    templateId,
+    concurrency,
+    partialErrors,
+    internalAbort
+  );
+
+  return {
+    owner: automationScan.match,
+    scanned: {
+      campaigns: campaignScan.scanned,
+      automations: automationScan.scanned,
+    },
+    partial_errors: partialErrors,
+  };
+}
+
+interface KindScanResult {
+  match: TemplateOwner | null;
+  scanned: number;
+}
+
+async function scanDispatcherKind(
+  client: RuleClient,
+  kind: DispatcherKind,
+  templateId: number,
+  concurrency: number,
+  partialErrors: PartialScanError[],
+  internalAbort: AbortController
+): Promise<KindScanResult> {
+  let match: TemplateOwner | null = null;
+  let scanned = 0;
+  let page = 1;
+
+  while (!internalAbort.signal.aborted) {
+    let dispatchers: DispatcherListEntry[];
+
+    try {
+      dispatchers = await listDispatchers(client, kind, page);
+    } catch (error) {
+      // Top-level list failure aborts the whole kind — there's no salvageable
+      // data to scan. Surface it as a synthetic dispatcher_id=0 partial error
+      // so the caller sees something happened.
+      partialErrors.push({
+        dispatcher_kind: kind,
+        dispatcher_id: 0,
+        ...toErrorFields(error),
+      });
+      break;
+    }
+
+    if (dispatchers.length === 0) break;
+
+    // Probe each dispatcher in parallel (with concurrency cap).
+    const probes = await runWithConcurrency(
+      dispatchers,
+      (d) => probeDispatcher(client, kind, d, templateId, partialErrors, internalAbort),
+      concurrency
+    );
+
+    for (const dispatcher of dispatchers) {
+      if (dispatcher.id != null) scanned += 1;
+    }
+
+    // First match in document order wins. Once found, abort to halt any
+    // not-yet-started inner work in subsequent pages.
+    for (const candidate of probes) {
+      if (candidate) {
+        match = candidate;
+        internalAbort.abort();
+        break;
+      }
+    }
+
+    if (match || internalAbort.signal.aborted) break;
+    if (dispatchers.length < PER_PAGE) break;
+    page += 1;
+  }
+
+  return { match, scanned };
+}
+
+async function listDispatchers(
+  client: RuleClient,
+  kind: DispatcherKind,
+  page: number
+): Promise<DispatcherListEntry[]> {
+  if (kind === 'campaign') {
+    const response = await client.listCampaigns({ page, per_page: PER_PAGE });
+
+    return (response.data ?? []) as DispatcherListEntry[];
+  }
+
+  const response = await client.listAutomations({ page, per_page: PER_PAGE });
+
+  return (response.data ?? []) as DispatcherListEntry[];
+}
+
+async function probeDispatcher(
+  client: RuleClient,
+  kind: DispatcherKind,
+  dispatcher: DispatcherListEntry,
+  templateId: number,
+  partialErrors: PartialScanError[],
+  internalAbort: AbortController
+): Promise<TemplateOwner | null> {
+  if (dispatcher.id == null) return null;
+  if (internalAbort.signal.aborted) return null;
+
+  const dispatcherId = dispatcher.id;
+  const dispatcherType = kind === 'campaign' ? 'campaign' : 'automail';
+
+  let messages: readonly RuleMessage[];
+
+  try {
+    const response = await client.listMessages({
+      id: dispatcherId,
+      dispatcher_type: dispatcherType,
+    });
+
+    messages = response.data ?? [];
+  } catch (error) {
+    partialErrors.push({
+      dispatcher_kind: kind,
+      dispatcher_id: dispatcherId,
+      ...toErrorFields(error),
+    });
+
+    return null;
+  }
+
+  for (const message of messages) {
+    if (internalAbort.signal.aborted) return null;
+    if (message.id == null) continue;
+
+    let templateIdForMessage: number | null;
+
+    try {
+      templateIdForMessage = await resolveTemplateIdForMessage(client, message.id);
+    } catch (error) {
+      partialErrors.push({
+        dispatcher_kind: kind,
+        dispatcher_id: dispatcherId,
+        message_id: message.id,
+        ...toErrorFields(error),
+      });
+      continue;
+    }
+
+    if (templateIdForMessage === templateId) {
+      return toOwner(kind, dispatcher, message);
+    }
+  }
+
+  return null;
+}
+
+async function resolveTemplateIdForMessage(
+  client: RuleClient,
+  messageId: number
+): Promise<number | null> {
+  const response = await client.listDynamicSets({ message_id: messageId });
+
+  for (const ds of response.data ?? []) {
+    if (ds.template_id != null) return ds.template_id;
+  }
+
+  return null;
+}
+
+function toOwner(
+  kind: DispatcherKind,
+  dispatcher: DispatcherListEntry,
+  message: RuleMessage
+): TemplateOwner {
+  const dispatcherId = dispatcher.id as number;
+  const messageId = (message.id ?? 0) as number;
+
+  if (kind === 'campaign') {
+    const camp = dispatcher as RuleCampaign;
+
+    return {
+      kind: 'campaign',
+      id: dispatcherId,
+      name: camp.name,
+      message_id: messageId,
+      subject: message.subject,
+      status: extractCampaignStatus(camp),
+    };
+  }
+
+  const auto = dispatcher as RuleAutomation;
+
+  return {
+    kind: 'automation',
+    id: dispatcherId,
+    name: auto.name,
+    message_id: messageId,
+    active: auto.active ?? null,
+  };
+}
+
+function extractCampaignStatus(camp: RuleCampaign): string | null {
+  const status = camp.status as RuleCampaign['status'] | string | undefined;
+
+  if (status == null) return null;
+  if (typeof status === 'string') return status;
+
+  if (typeof status === 'object' && 'key' in status) {
+    return (status as { key?: string }).key ?? null;
+  }
+
+  return null;
+}
+
+function toErrorFields(error: unknown): { error: string; status_code?: number } {
+  if (error instanceof RuleApiError) {
+    return {
+      error: `Rule.io API error (${String(error.statusCode)}): ${error.message}`,
+      status_code: error.statusCode,
+    };
+  }
+
+  return {
+    error: error instanceof Error ? error.message : String(error),
+  };
+}
+
+/**
+ * Concurrency-limited map. Preserves input order in the output array.
+ * Errors thrown by `fn` propagate (caller must handle them inside `fn`).
+ */
+async function runWithConcurrency<T, R>(
+  items: readonly T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number
+): Promise<R[]> {
+  if (items.length === 0) return [];
+
+  const results: R[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const idx = nextIndex;
+
+      nextIndex += 1;
+      if (idx >= items.length) return;
+      results[idx] = await fn(items[idx]);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    () => worker()
+  );
+
+  await Promise.all(workers);
+
+  return results;
+}

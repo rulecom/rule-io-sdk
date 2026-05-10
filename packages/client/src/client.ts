@@ -26,6 +26,11 @@ import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
 import { RuleApiError, RuleConfigError, type RuleValidationErrors } from '@rule-io/core';
 import { applyTheme } from '@rule-io/rcml';
 import type { RcmlBodyChild, RcmlDocument, RcmlHead } from '@rule-io/rcml';
+import {
+  findTemplateOwner as findTemplateOwnerImpl,
+  type FindTemplateOwnerOptions,
+  type FindTemplateOwnerResult,
+} from './find-template-owner.js';
 import type {
   RuleApiResponse,
   RuleSubscriber,
@@ -3163,5 +3168,47 @@ export class RuleClient {
     });
 
     return { success: true };
+  }
+
+  // ==========================================================================
+  // Cross-cutting helpers
+  // ==========================================================================
+
+  /**
+   * Find the campaign or automation that owns a given template.
+   *
+   * Rule.io has no direct template→owner endpoint, so this scans dispatchers
+   * (campaigns first, then automations), resolves each one's messages, and
+   * checks dynamic-set `template_id` for a match. Scans run concurrently and
+   * short-circuit on the first match.
+   *
+   * Each template has at most one owner (the 1:1 invariant), so a campaign
+   * match short-circuits the automations pass entirely.
+   *
+   * @param templateId - Template ID to look up.
+   * @param options - Concurrency cap and optional abort signal.
+   * @returns Owner record + scan stats + per-dispatcher errors that occurred
+   *   without aborting the whole scan.
+   *
+   * @example
+   * ```typescript
+   * const { owner, scanned, partial_errors } = await client.findTemplateOwner(2363);
+   * if (owner) {
+   *   console.log(`Used by ${owner.kind} "${owner.name}" (id ${owner.id})`);
+   * } else {
+   *   console.log('Template is orphaned');
+   * }
+   * ```
+   *
+   * @remarks
+   * Cost note: this is O(N) over campaigns + automations, with up to two
+   * follow-up calls per dispatcher (`listMessages`, `listDynamicSets`).
+   * Use sparingly on large accounts; consider caching results.
+   */
+  async findTemplateOwner(
+    templateId: number,
+    options?: FindTemplateOwnerOptions
+  ): Promise<FindTemplateOwnerResult> {
+    return findTemplateOwnerImpl(this, templateId, options);
   }
 }
