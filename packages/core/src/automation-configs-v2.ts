@@ -42,8 +42,11 @@ export interface TemplateConfigV2 {
  *
  * @example
  * ```typescript
- * import { RuleTags, createOrderConfirmationEmail } from '@rule-io/sdk';
+ * import { RuleTags, createOrderConfirmationTemplate } from '@rule-io/sdk';
+ * import { customField } from '@rule-io/templates';
  * import type { AutomationConfigV2 } from '@rule-io/sdk';
+ *
+ * const template = createOrderConfirmationTemplate();
  *
  * const orderConfirmationAutomation: AutomationConfigV2 = {
  *   id: 'order-confirmation',
@@ -51,12 +54,13 @@ export interface TemplateConfigV2 {
  *   description: 'Sent when an order is completed',
  *   triggerTag: RuleTags.ORDER_COMPLETED,
  *   subject: 'Order confirmed!',
- *   templateBuilder: (config) => createOrderConfirmationEmail({
+ *   templateBuilder: (config) => template.render({
  *     theme: config.theme,
- *     customFields: config.customFields,
- *     websiteUrl: config.websiteUrl,
- *     text: { ... },
- *     fieldNames: { ... },
+ *     context: {
+ *       recipient: { firstName: customField('Subscriber', 'FirstName', ...) },
+ *       order: { ref: customField('Order', 'Number', ...) },
+ *       // ... populate from config.customFields
+ *     },
  *   }),
  * };
  * ```

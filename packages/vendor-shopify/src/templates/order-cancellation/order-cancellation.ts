@@ -1,164 +1,136 @@
 /**
- * Order cancellation email template builder.
+ * Order-cancellation template factory.
  *
- * Consumes the v1.1 XML template at `./order-cancellation.xml` and
- * the parameterised message tree at `./messages.ts`, then hands both
- * to {@link compileTemplate} along with a pre-resolved data object.
- * The rendered XML is parsed into an {@link RcmlDocument} and themed
- * via `applyTheme`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * The caller owns context assembly (building the typed
+ * {@link OrderCancellationTemplateContext} with `customField` from
+ * `@rule-io/templates`); the reusable factory handles loading the XML
+ * + JSON copy, merging copy overrides, projecting
+ * `theme.images.logo` / `theme.links` into context, compiling,
+ * parsing to RCML, and applying the theme.
+ *
+ * Context is fully structural: optional sections are controlled by
+ * the presence of their backing fields (e.g. omit `order.date` to
+ * skip the cancellation-date row), never by parallel boolean flags.
  */
 
-import { RuleConfigError, sanitizeUrl } from '@rule-io/core'
-import type { CustomFieldMap, EmailTheme, FooterConfig } from '@rule-io/core'
 import {
-  applyTheme,
-  validateRequiredFields,
-  withTemplateContext,
-  xmlToRcml,
-  type RcmlDocument,
+  createEmailTemplate,
+  type EmailTemplate,
+  type EmailTemplateRenderArgs,
 } from '@rule-io/rcml'
-import { compileTemplate, loadTemplate } from '@rule-io/templates'
-
-import { messages } from './messages.js'
-
-const TEMPLATE_XML = loadTemplate(import.meta.url, './order-cancellation.xml')
+import type { CustomFieldRef } from '@rule-io/templates'
 
 /**
- * Configuration accepted by {@link createOrderCancellationEmail}.
+ * Typed data context consumed by `order-cancellation.xml`.
+ *
+ * Presence is the contract: the XML's `<?if?>` guards probe for
+ * optional sub-objects and ref descriptors directly, so optional
+ * sections turn on/off by supplying (or omitting) the backing field.
+ *
+ * - `order.date` absent → no cancellation-date row.
+ * - `support` absent → no support callout.
+ * - `support.linkHref` absent → support paragraph renders without a
+ *   link beside it.
+ *
+ * The logo section and the social-links section are driven by the
+ * theme (`theme.images.logo` / `theme.links`). The secondary-color
+ * backgrounds on the hero banner and order-details section come from
+ * `theme.colors.secondary` via `applyTheme`'s `rcml-brand-color`
+ * class binding. Callers filter by curating their theme.
+ *
+ * All free-text (heading, greeting, message, follow-up, CTA label,
+ * support paragraph text) lives in the copy defaults — override the
+ * relevant `copy` entry to change wording or localize.
  */
-export interface OrderCancellationConfig {
-  theme: EmailTheme
-  customFields: CustomFieldMap
-  websiteUrl: string
-  footer?: FooterConfig
-  text: {
-    preheader: string
-    heading: string
-    greeting: string
-    message: string
-    orderRefLabel: string
-    followUp: string
-    ctaButton: string
-    /** Label for optional order date row */
-    orderDateLabel?: string
-    /** Optional support/refund callout text — rendered centered when supplied */
-    supportText?: string
-    /** Optional support email — rendered as a mailto link beside supportText */
-    supportEmail?: string
-    /** Optional support URL — rendered as a link beside supportText */
-    supportUrl?: string
+export interface OrderCancellationTemplateContext {
+  recipient: {
+    firstName: CustomFieldRef
   }
-  fieldNames: {
-    firstName: string
-    orderRef: string
-    /** Optional order date custom field */
-    orderDate?: string
+  order: {
+    ref: CustomFieldRef
+    date?: CustomFieldRef
+  }
+  /** URL the CTA button links to. */
+  websiteUrl: string
+  /**
+   * Optional support callout. Presence drives section rendering;
+   * `linkHref` additionally drives whether the link row renders
+   * alongside the `supportText` paragraph. Callers are responsible
+   * for sanitizing `linkHref` (URL or `mailto:…`).
+   */
+  support?: {
+    linkText?: string
+    linkHref?: string
+  }
+  footer: {
+    fontSize: string
+    textColor: string
   }
 }
 
 /**
- * Create an order cancellation email template.
+ * Default copy tree for `order-cancellation.xml`.
  *
- * @param config - Caller configuration (theme, custom field map, text
- *   labels, field-name overrides, optional support link / footer).
- * @returns A themed {@link RcmlDocument} ready to be passed to
- *   `client.createAutomation` or similar.
+ * Each entry maps to a single `<?copy key …?>` PI in the XML. Bodies
+ * carry the full English text plus `{{slot}}` substitutions for
+ * custom-field refs supplied at render time. The `supportLink` and
+ * `footerLinks` entries carry RFM atom structure inline so callers
+ * can tweak labels / layout / styling through copy overrides.
+ *
+ * To customize wording, supply a partial override to `render`'s
+ * `copy?: Partial<OrderCancellationTemplateCopy>`.
  */
-export function createOrderCancellationEmail(
-  config: OrderCancellationConfig,
-): RcmlDocument {
-  return withTemplateContext('createOrderCancellationEmail', () => {
-    const { theme, customFields, fieldNames, text } = config
+export interface OrderCancellationTemplateCopy {
+  /** `<rc-preview>` body. */
+  readonly preheader: string
+  /** Hero banner heading. */
+  readonly heading: string
+  /** Greeting line. Slot: `{{firstName}}` — CustomField placeholder. */
+  readonly greetingLine: string
+  /** Main cancellation-confirmation paragraph. */
+  readonly message: string
+  /** Order reference row. Slot: `{{orderRef}}` — CustomField placeholder. */
+  readonly orderRefRow: string
+  /** Cancellation-date row. Slot: `{{orderDate}}` — CustomField placeholder. */
+  readonly orderDateRow: string
+  /** Support callout paragraph. */
+  readonly supportText: string
+  /**
+   * Support link atom. Slots: `{{linkText}}`, `{{linkHref}}` — both
+   * supplied by the caller via `context.support.linkText` / `.linkHref`.
+   */
+  readonly supportLink: string
+  /** Closing follow-up paragraph. */
+  readonly followUp: string
+  /** Primary CTA button label. */
+  readonly ctaButton: string
+  /**
+   * Footer link row. Labels are inline literals; font-size and color
+   * come from `rc-text` attributes on the host element.
+   */
+  readonly footerLinks: string
+  /** Fixed "Certified by Rule" footer attribution. */
+  readonly certifiedByRule: string
+}
 
-    const hasOrderDate = !!(text.orderDateLabel && fieldNames.orderDate)
-    const fieldsToValidate: Record<string, string> = {
-      firstName: fieldNames.firstName,
-      orderRef: fieldNames.orderRef,
-    }
+/** Arguments to `render` — {@link EmailTemplateRenderArgs} bound to order-cancellation. */
+export type OrderCancellationRenderOptions =
+  EmailTemplateRenderArgs<OrderCancellationTemplateCopy, OrderCancellationTemplateContext>
 
-    if (hasOrderDate && fieldNames.orderDate) {
-      fieldsToValidate.orderDate = fieldNames.orderDate
-    }
+/** Factory output — {@link EmailTemplate} bound to order-cancellation. */
+export type OrderCancellationTemplate =
+  EmailTemplate<OrderCancellationTemplateCopy, OrderCancellationTemplateContext>
 
-    validateRequiredFields(customFields, fieldsToValidate)
-
-    // Support-link selection: prefer explicit URL over email; fail fast on
-    // malformed emails so we never produce broken mailto links.
-    let supportLinkHref: string | undefined
-    let supportLinkText: string | undefined
-
-    if (text.supportText) {
-      const safeSupportUrl = text.supportUrl ? sanitizeUrl(text.supportUrl) : undefined
-
-      if (safeSupportUrl) {
-        supportLinkHref = safeSupportUrl
-        supportLinkText = safeSupportUrl
-      } else if (text.supportEmail) {
-        if (!/^[^\s\x00-\x1F\x7F?#&/:]+@[^\s\x00-\x1F\x7F?#&/:]+$/.test(text.supportEmail)) {
-          throw new RuleConfigError(
-            `supportEmail "${text.supportEmail}" is not a valid email address`,
-          )
-        }
-
-        supportLinkHref = `mailto:${encodeURIComponent(text.supportEmail)}`
-        supportLinkText = text.supportEmail
-      }
-    }
-
-    const data = {
-      // Caller-provided text with `??` defaults pre-resolved.
-      text: {
-        preheader: text.preheader,
-        heading: text.heading,
-        greeting: text.greeting,
-        message: text.message,
-        orderRefLabel: text.orderRefLabel,
-        orderDateLabel: text.orderDateLabel ?? '',
-        followUp: text.followUp,
-        ctaButton: text.ctaButton,
-        supportText: text.supportText ?? '',
-      },
-      // Field-resolution scaffolding for the RFM `customField` atom.
-      fieldNames: {
-        firstName: fieldNames.firstName,
-        orderRef: fieldNames.orderRef,
-        orderDate: fieldNames.orderDate ?? '',
-      },
-      customFieldsById: {
-        firstName: String(customFields[fieldNames.firstName]),
-        orderRef: String(customFields[fieldNames.orderRef]),
-        orderDate: fieldNames.orderDate
-          ? String(customFields[fieldNames.orderDate])
-          : '',
-      },
-      // Derived flags driving @if blocks.
-      hasLogo: !!theme.images.logo?.url,
-      hasOrderDate,
-      hasSupportText: !!text.supportText,
-      hasSupportLink: !!supportLinkHref,
-      // Pre-resolved scalars replacing `?.` / `??` expressions.
-      logoUrl: theme.images.logo?.url ?? '',
-      secondaryBg: theme.colors.secondary?.hex ?? '',
-      websiteUrl: config.websiteUrl,
-      supportLinkHref: supportLinkHref ?? '',
-      supportLinkText: supportLinkText ?? '',
-      // Footer defaults pre-resolved.
-      footer: {
-        viewInBrowserText: config.footer?.viewInBrowserText ?? 'View in browser',
-        unsubscribeText: config.footer?.unsubscribeText ?? 'Unsubscribe',
-        fontSize: config.footer?.fontSize ?? '10px',
-        textColor: config.footer?.textColor ?? '#666666',
-      },
-    }
-
-    const { xml: interpolatedXml } = compileTemplate({
-      template: TEMPLATE_XML,
-      copy: messages,
-      context: data,
-    })
-
-    const baseDoc = xmlToRcml(interpolatedXml)
-
-    return applyTheme(baseDoc, theme)
+/**
+ * Return a renderer bound to the order-cancellation XML. Call
+ * `render({ context, theme, copy? })` to produce the themed
+ * RcmlDocument.
+ */
+export function createOrderCancellationTemplate(): OrderCancellationTemplate {
+  return createEmailTemplate<OrderCancellationTemplateCopy, OrderCancellationTemplateContext>({
+    baseUrl: import.meta.url,
+    templatePath: './order-cancellation.xml',
+    copyPath: './order-cancellation-copy.json',
   })
 }

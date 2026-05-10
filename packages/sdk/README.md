@@ -159,33 +159,28 @@ The SDK offers three levels of template building, from highest to lowest abstrac
 
 ### Pre-Built Templates
 
-Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings). Some optional labels (e.g., line-item labels, footer link text) have English defaults — provide them explicitly for full localization control.
+Ready-to-use templates shaped as **factories** — each returns an `EmailTemplate` whose `render({ context, theme, copy? })` method produces an `RcmlDocument`. The caller builds a typed context using `customField` / `loopValue` from `@rule-io/templates`; the factory handles loading, compiling, theme projection, and theming. See [`packages/templates/README.md`](../templates/README.md) for the authoring pattern.
 
 **Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
 
-**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createOrderCancellationEmail`, `createAbandonedCartTemplate` (factory)
+**E-commerce:** `createAbandonedCartTemplate`, `createOrderConfirmationTemplate`, `createShippingUpdateTemplate`, `createOrderCancellationTemplate`, `createWelcomeTemplate`
 
 ```typescript
-import { createOrderConfirmationEmail } from '@rule-io/sdk';
+import { createOrderConfirmationTemplate } from '@rule-io/sdk';
+import { customField } from '@rule-io/templates';
 
-const email = createOrderConfirmationEmail({
-  brandStyle: myBrand,        // BrandStyleConfig (see Brand Styles above)
-  customFields: myFields,     // CustomFieldMap (see Brand Styles above)
-  websiteUrl: 'https://myshop.com',
-  text: {
-    preheader: 'Your order has been confirmed!',
-    greeting: 'Hi',
-    intro: 'Thank you for your order.',
-    detailsHeading: 'Order Summary',
-    orderRefLabel: 'Order',
-    totalLabel: 'Total',
-    ctaButton: 'View Order',
+const template = createOrderConfirmationTemplate();
+
+const email = template.render({
+  theme: myEmailTheme,
+  context: {
+    recipient: { firstName: customField('Subscriber', 'FirstName', 200001) },
+    order: { ref: customField('Order', 'Number', 200003) },
+    financial: { total: customField('Order', 'TotalPrice', 200005) },
+    websiteUrl: 'https://myshop.com',
+    footer: { fontSize: '10px', textColor: '#666666' },
   },
-  fieldNames: {
-    firstName: 'Order.CustomerName',
-    orderRef: 'Order.OrderRef',
-    totalPrice: 'Order.Total',
-  },
+  copy: { ctaButton: 'Track Order' },  // optional partial override
 });
 ```
 

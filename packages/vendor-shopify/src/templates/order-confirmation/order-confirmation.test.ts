@@ -1,654 +1,289 @@
 /**
- * Unit tests for {@link createOrderConfirmationEmail}.
+ * Unit tests for {@link createOrderConfirmationTemplate}.
  *
- * Covers: baseline RCML shape, optional sections (items loop, hero
- * heading, financial summary, extended shipping address), line-item
- * label defaults, label overrides, validation/render-gate parity,
- * and template-context error wrapping.
+ * Drives the factory end-to-end: caller-assembled typed refs →
+ * bound template → compiled XML → themed RCML document. The
+ * compiler serializes `CustomFieldRef` / `LoopValueRef` values into
+ * RFM placeholder strings automatically.
  */
 
 import { describe, expect, it } from 'vitest'
 
-import type { CustomFieldMap } from '@rule-io/core'
-import { RuleConfigError } from '@rule-io/core'
+import { customField, loopValue } from '@rule-io/templates'
 
 import {
   TEST_THEME,
+  TEST_THEME_WITH_SOCIALS,
   assertValidRCMLDocument,
   docToString,
 } from '../../test-fixtures.js'
-import { createOrderConfirmationEmail } from './order-confirmation.js'
+import {
+  createOrderConfirmationTemplate,
+  type OrderConfirmationTemplateContext,
+} from './order-confirmation.js'
 
-const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  'Subscriber.FirstName': 200001,
-  'Order.Number': 200003,
-  'Order.Date': 200004,
-  'Order.TotalPrice': 200005,
-  'Order.Products': 200014,
-  'Order.ShippingAddress1': 200016,
-  'Order.ShippingCity': 200018,
-  'Order.ShippingZip': 200019,
-  'Order.ShippingCountryCode': 200020,
-  'Order.Subtotal': 200030,
-  'Order.TaxAmount': 200031,
-  'Order.DiscountAmount': 200032,
-  'Order.ShippingCost': 200033,
+/** Baseline context: minimal required fields only. */
+function baseContext(
+  overrides: Partial<OrderConfirmationTemplateContext> = {},
+): OrderConfirmationTemplateContext {
+  return {
+    recipient: {
+      firstName: customField('Subscriber', 'FirstName', 200001),
+    },
+    order: {
+      ref: customField('Order', 'Number', 200003),
+    },
+    cart: {},
+    websiteUrl: 'https://shop.example.com/orders',
+    footer: { fontSize: '10px', textColor: '#666666' },
+    ...overrides,
+  }
 }
 
-describe('createOrderConfirmationEmail', () => {
-  it('should produce valid RCML', () => {
-    const doc = createOrderConfirmationEmail({
+describe('createOrderConfirmationTemplate — baseline', () => {
+  it('renders a valid RCML document with default copy', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com/orders',
-      text: {
-        preheader: 'Your order has been confirmed!',
-        greeting: 'Hi',
-        intro: 'Thank you for your order. Here are the details:',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View Order',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-      },
     })
 
     assertValidRCMLDocument(doc)
     const json = docToString(doc)
 
+    expect(json).toContain('Thank you for your order')
     expect(json).toContain('Order Summary')
-    expect(json).toContain('200001') // FirstName field ID
-    expect(json).toContain('200003') // Order.Number field ID
+    expect(json).toContain('View Order')
+    expect(json).toContain('[CustomField:200001]')
+    expect(json).toContain('[CustomField:200003]')
   })
 
-  it('should include optional items and shipping fields', () => {
-    const doc = createOrderConfirmationEmail({
+  it('omits all optional sections when only required fields are supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Order confirmed',
-        greeting: 'Hello',
-        intro: 'Your order is confirmed.',
-        detailsHeading: 'Summary',
-        orderRefLabel: 'Order #',
-        itemsLabel: 'Items',
-        totalLabel: 'Total',
-        shippingLabel: 'Ship to',
-        ctaButton: 'Track Order',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        shippingAddress: 'Order.ShippingAddress1',
-      },
     })
+    const json = docToString(doc)
 
-    assertValidRCMLDocument(doc)
+    expect(json).not.toContain('rc-loop')
+    expect(json).not.toContain('Items Ordered')
+    expect(json).not.toContain('Shipping to')
+    expect(json).not.toContain('Order date')
+  })
+})
+
+describe('createOrderConfirmationTemplate — order meta', () => {
+  it('renders a two-column orderRef/orderDate meta row when date supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        order: {
+          ref: customField('Order', 'Number', 200003),
+          date: customField('Order', 'Date', 200004),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200003]')
+    expect(json).toContain('[CustomField:200004]')
+    expect(json).toContain('Order date')
+  })
+
+  it('renders the paymentMethod row when supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        order: {
+          ref: customField('Order', 'Number', 200003),
+          paymentMethod: customField('Order', 'Gateway', 200007),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200007]')
+    expect(json).toContain('Payment')
+  })
+})
+
+describe('createOrderConfirmationTemplate — cart', () => {
+  it('renders the inline items row when cart.items is supplied alone', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        cart: { items: customField('Order', 'Products', 200014) },
+      }),
+      theme: TEST_THEME,
+    })
     const json = docToString(doc)
 
     expect(json).toContain('Items')
-    expect(json).toContain('Ship to')
-    expect(json).toContain('200014') // Products field ID
-    expect(json).toContain('200016') // ShippingAddress1 field ID
-  })
-
-  it('should work without optional fields', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Done.',
-        detailsHeading: 'Order',
-        orderRefLabel: 'Ref',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    // Should NOT have items/shipping labels
-    expect(json).not.toContain('Items')
-    expect(json).not.toContain('Ship to')
-  })
-
-  it('should render rc-loop when item sub-fields are provided', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    // Loop block present
-    expect(json).toContain('rc-loop')
-    expect(json).toContain('custom-field')
-    expect(json).toContain('200014') // Products field as loop-value
-
-    // Line item sub-fields (JSON key names, not numeric IDs)
-    expect(json).toContain('[LoopValue:name]')
-    expect(json).toContain('[LoopValue:quantity]')
-    expect(json).toContain('[LoopValue:price]')
-    expect(json).toContain('[LoopValue:total]')
-  })
-
-  it('should use custom label values when provided', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        itemQtyLabel: 'Antal: ',
-        itemUnitPriceLabel: 'Pris: ',
-        itemSubtotalLabel: 'Delsumma: ',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    // Custom labels should appear
-    expect(json).toContain('Antal: ')
-    expect(json).toContain('Pris: ')
-    expect(json).toContain('Delsumma: ')
-
-    // Default English labels should NOT appear
-    expect(json).not.toContain('Qty: ')
-    expect(json).not.toContain('Price: ')
-    expect(json).not.toContain('Subtotal: ')
-  })
-
-  it('should use default English labels when custom labels not provided', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    // Default English labels should appear
-    expect(json).toContain('Qty: ')
-    expect(json).toContain('Price: ')
-    expect(json).toContain('Subtotal: ')
-  })
-
-  it('should fall back to single-field items when no sub-fields', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Summary',
-        orderRefLabel: 'Order',
-        itemsLabel: 'Items',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    // Should NOT have a loop
+    expect(json).toContain('[CustomField:200014]')
     expect(json).not.toContain('rc-loop')
-    // Should have the items field as a single placeholder
-    expect(json).toContain('200014') // Products field ID
   })
 
-  it('renders the hero heading when prefix/suffix text supplied', () => {
-    const doc = createOrderConfirmationEmail({
+  it('renders the line-items loop when cart.products is supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        cart: {
+          products: {
+            source: customField('Order', 'Products', 200014),
+            itemName: loopValue('name'),
+            itemSku: loopValue('sku'),
+            itemQuantity: loopValue('quantity'),
+            itemPrice: loopValue('unitPrice'),
+          },
+        },
+      }),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        heroHeadingPrefix: 'Order',
-        heroHeadingSuffix: 'confirmed',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-      },
     })
-
     const json = docToString(doc)
 
-    // Hero heading wraps orderRef placeholder with prefix/suffix text
+    expect(json).toContain('rc-loop')
+    expect(json).toContain('Items Ordered')
+    expect(json).toContain('[LoopValue:name]')
+    expect(json).toContain('[LoopValue:sku]')
+    expect(json).toContain('[LoopValue:quantity]')
+    expect(json).toContain('[LoopValue:unitPrice]')
+  })
+
+  it('omits line-item rows whose refs are absent from cart.products', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        cart: {
+          products: {
+            source: customField('Order', 'Products', 200014),
+            itemName: loopValue('name'),
+            // itemSku / itemQuantity / itemPrice / itemTotal all omitted
+          },
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[LoopValue:name]')
+    expect(json).not.toContain('[LoopValue:sku]')
+    expect(json).not.toContain('[LoopValue:quantity]')
+    expect(json).not.toContain('[LoopValue:unitPrice]')
+  })
+})
+
+describe('createOrderConfirmationTemplate — financial', () => {
+  it('renders just the total row when financial has only total', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        financial: { total: customField('Order', 'TotalPrice', 200005) },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Total')
+    expect(json).toContain('[CustomField:200005]')
+    expect(json).not.toContain('Subtotal')
+  })
+
+  it('renders subtotal / discount / tax / shippingCost when supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        financial: {
+          subtotal: customField('Order', 'Subtotal', 200030),
+          discount: customField('Order', 'DiscountAmount', 200032),
+          tax: customField('Order', 'TaxAmount', 200031),
+          shippingCost: customField('Order', 'ShippingCost', 200033),
+          total: customField('Order', 'TotalPrice', 200005),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200030]')
+    expect(json).toContain('[CustomField:200031]')
+    expect(json).toContain('[CustomField:200032]')
+    expect(json).toContain('[CustomField:200033]')
+    expect(json).toContain('[CustomField:200005]')
+    expect(json).toContain('Subtotal')
+    expect(json).toContain('Tax')
+    expect(json).toContain('Discount')
+  })
+})
+
+describe('createOrderConfirmationTemplate — shipping address', () => {
+  it('renders an inline row when inlineShippingAddress is supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        inlineShippingAddress: customField('Order', 'ShippingAddress1', 200016),
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Shipping to')
+    expect(json).toContain('[CustomField:200016]')
+  })
+
+  it('renders the extended address block when shippingAddress is supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({
+        shippingAddress: {
+          line1: customField('Order', 'ShippingAddress1', 200016),
+          city: customField('Order', 'ShippingCity', 200018),
+          zip: customField('Order', 'ShippingZip', 200019),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200016]')
+    expect(json).toContain('[CustomField:200018]')
+    expect(json).toContain('[CustomField:200019]')
+  })
+})
+
+describe('createOrderConfirmationTemplate — chrome + overrides', () => {
+  it('renders the hero heading when supplied', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext({ heroHeading: { prefix: 'Order ', suffix: ' confirmed' } }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
     expect(json).toContain('Order ')
     expect(json).toContain(' confirmed')
   })
 
-  it('renders a two-column meta row when orderDate label+field supplied', () => {
-    const doc = createOrderConfirmationEmail({
+  it('applies a partial copy override', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        orderDateLabel: 'Order date',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        orderDate: 'Order.Date',
-      },
+      copy: { ctaButton: 'Track shipment' },
     })
-
     const json = docToString(doc)
 
-    expect(json).toContain('Order date')
-    expect(json).toContain('200004') // Order.Date field ID
+    expect(json).toContain('Track shipment')
+    expect(json).not.toContain('View Order')
   })
 
-  it('renders financial summary when any financial field is mapped', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        subtotalLabel: 'Subtotal',
-        taxLabel: 'Tax',
-        discountLabel: 'Discount',
-        shippingCostLabel: 'Shipping',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        subtotal: 'Order.Subtotal',
-        taxAmount: 'Order.TaxAmount',
-        discountAmount: 'Order.DiscountAmount',
-        shippingCost: 'Order.ShippingCost',
-      },
+  it('renders the social section from theme.links', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext(),
+      theme: TEST_THEME_WITH_SOCIALS,
     })
-
     const json = docToString(doc)
 
-    expect(json).toContain('Subtotal: ')
-    expect(json).toContain('Tax: ')
-    expect(json).toContain('Discount: ')
-    expect(json).toContain('Shipping: ')
-    expect(json).toContain('200030') // Order.Subtotal
-    expect(json).toContain('200033') // Order.ShippingCost
+    expect(json).toContain('rc-social')
+    expect(json).toContain('facebook')
   })
 
-  it('renders address block when extended shipping fields are mapped', () => {
-    const doc = createOrderConfirmationEmail({
+  it('renders the logo from theme.images.logo', () => {
+    const doc = createOrderConfirmationTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        shippingAddressHeading: 'Shipping to',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        shippingAddress: 'Order.ShippingAddress1',
-        shippingCity: 'Order.ShippingCity',
-        shippingZip: 'Order.ShippingZip',
-        shippingCountryCode: 'Order.ShippingCountryCode',
-      },
     })
-
     const json = docToString(doc)
 
-    expect(json).toContain('Shipping to')
-    expect(json).toContain('200016') // address1
-    expect(json).toContain('200018') // city
-    expect(json).toContain('200019') // zip
-    expect(json).toContain('200020') // country
-  })
-
-  it('omits hero heading, meta row, financial summary and address block when not configured', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).not.toContain('Order date')
-    expect(json).not.toContain('Subtotal: ')
-    expect(json).not.toContain('Shipping to')
-  })
-
-  it('throws when an extended shipping field is mapped without shippingAddress', () => {
-    expect(() =>
-      createOrderConfirmationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Confirmed',
-          greeting: 'Hi',
-          intro: 'Thanks!',
-          detailsHeading: 'Order Summary',
-          orderRefLabel: 'Order',
-          totalLabel: 'Total',
-          ctaButton: 'View',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          totalPrice: 'Order.TotalPrice',
-          // shippingAddress intentionally omitted
-          shippingCity: 'Order.ShippingCity',
-        },
-      }),
-    ).toThrow(RuleConfigError)
-  })
-
-  it('keeps total in details box when financial fields are mapped without labels', () => {
-    // Regression: hasFinancialSummary requires both fieldName + label
-    // so a mapped field with no label cannot relocate the total row.
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        subtotal: 'Order.Subtotal',
-      },
-    })
-
-    const json = docToString(doc)
-
-    // Total still rendered exactly once (in the details box)
-    expect(json.match(/Total: /g)).toHaveLength(1)
-    expect(json).not.toContain('Subtotal: ')
-  })
-
-  it('renders SKU loop row when itemSku sub-field is provided', () => {
-    const doc = createOrderConfirmationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Confirmed',
-        greeting: 'Hi',
-        intro: 'Thanks!',
-        detailsHeading: 'Order Summary',
-        orderRefLabel: 'Order',
-        totalLabel: 'Total',
-        ctaButton: 'View',
-        itemSkuLabel: 'SKU: ',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemSku: 'sku',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).toContain('SKU: ')
-    expect(json).toContain('[LoopValue:sku]')
-  })
-
-  it('does not throw when optional fields are mapped without their render partners', () => {
-    expect(() =>
-      createOrderConfirmationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Confirmed',
-          greeting: 'Hi',
-          intro: 'Thanks!',
-          detailsHeading: 'Order Summary',
-          orderRefLabel: 'Order',
-          totalLabel: 'Total',
-          ctaButton: 'View',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          totalPrice: 'Order.TotalPrice',
-          subtotal: 'Order.MissingSubtotal',
-          discountAmount: 'Order.MissingDiscount',
-          taxAmount: 'Order.MissingTax',
-          shippingCost: 'Order.MissingShipping',
-          paymentMethod: 'Order.MissingPayment',
-          orderDate: 'Order.MissingDate',
-        },
-      }),
-    ).not.toThrow()
-  })
-
-  it('still throws when a field whose render partners are set is missing from customFields', () => {
-    expect(() =>
-      createOrderConfirmationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Confirmed',
-          greeting: 'Hi',
-          intro: 'Thanks!',
-          detailsHeading: 'Order Summary',
-          orderRefLabel: 'Order',
-          totalLabel: 'Total',
-          subtotalLabel: 'Subtotal',
-          ctaButton: 'View',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          totalPrice: 'Order.TotalPrice',
-          subtotal: 'Order.MissingSubtotal',
-        },
-      }),
-    ).toThrow(RuleConfigError)
-  })
-
-  it('does not duplicate the template name prefix in validation errors', () => {
-    // Regression: validateCustomFields + withTemplateContext used to
-    // duplicate the prefix. The prefix must appear exactly once.
-    try {
-      createOrderConfirmationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Confirmed',
-          greeting: 'Hi',
-          intro: 'Thanks!',
-          detailsHeading: 'Order Summary',
-          orderRefLabel: 'Order',
-          totalLabel: 'Total',
-          ctaButton: 'View',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.MissingOrderRef',
-          totalPrice: 'Order.TotalPrice',
-        },
-      })
-      throw new Error('expected throw')
-    } catch (error) {
-      expect(error).toBeInstanceOf(RuleConfigError)
-      const msg = (error as RuleConfigError).message
-
-      expect(msg).toBe(
-        'createOrderConfirmationEmail > missing customFields entries: orderRef (mapped to "Order.MissingOrderRef")',
-      )
-      expect(msg.split('createOrderConfirmationEmail').length - 1).toBe(1)
-    }
-  })
-})
-
-describe('template error context (order-confirmation)', () => {
-  it('should include template name when createBrandLogo throws inside builder', () => {
-    const badTheme: typeof TEST_THEME = {
-      ...TEST_THEME,
-      images: {
-        logo: { type: 'logo' as const, url: 'javascript:void(0)' },
-      },
-    }
-
-    expect(() =>
-      createOrderConfirmationEmail({
-        theme: badTheme,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://example.com',
-        text: {
-          preheader: 'Test',
-          greeting: 'Hi',
-          intro: 'Intro',
-          detailsHeading: 'Details',
-          orderRefLabel: 'Order',
-          totalLabel: 'Total',
-          ctaButton: 'View',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          totalPrice: 'Order.TotalPrice',
-        },
-      }),
-    ).toThrow('createOrderConfirmationEmail > createBrandLogo: invalid or unsafe logoUrl')
+    expect(json).toContain('https://example.com/logo.png')
   })
 })

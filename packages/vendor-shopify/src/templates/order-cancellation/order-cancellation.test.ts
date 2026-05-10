@@ -1,316 +1,156 @@
 /**
- * Unit tests for {@link createOrderCancellationEmail}.
+ * Unit tests for {@link createOrderCancellationTemplate}.
  *
- * Exercises the builder through its public API; asserts the produced
- * RCML document carries the expected text, placeholders, and
- * conditional sections (order-date row, support callout, etc.).
+ * Drives the factory end-to-end: caller-assembled typed refs + copy
+ * overrides → bound template → compiled XML → themed RCML document.
+ * The compiler serializes `CustomFieldRef` values into RFM placeholder
+ * strings automatically.
  */
 
 import { describe, expect, it } from 'vitest'
 
-import type { CustomFieldMap } from '@rule-io/core'
-import { RuleConfigError } from '@rule-io/core'
+import { customField } from '@rule-io/templates'
 
 import {
   TEST_THEME,
+  TEST_THEME_WITH_SOCIALS,
   assertValidRCMLDocument,
   docToString,
 } from '../../test-fixtures.js'
-import { createOrderCancellationEmail } from './order-cancellation.js'
+import {
+  createOrderCancellationTemplate,
+  type OrderCancellationTemplateContext,
+} from './order-cancellation.js'
 
-const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  'Subscriber.FirstName': 200001,
-  'Order.Number': 200003,
-  'Order.Date': 200004,
+/** A fully-populated data shape exercising every optional section. */
+function fullContext(
+  overrides: Partial<OrderCancellationTemplateContext> = {},
+): OrderCancellationTemplateContext {
+  return {
+    recipient: {
+      firstName: customField('Subscriber', 'FirstName', 200001),
+    },
+    order: {
+      ref: customField('Order', 'OrderRef', 200010),
+      date: customField('Order', 'OrderDate', 200012),
+    },
+    websiteUrl: 'https://shop.example.com',
+    footer: { fontSize: '10px', textColor: '#666666' },
+    ...overrides,
+  }
 }
 
-describe('createOrderCancellationEmail', () => {
-  it('should produce valid RCML', () => {
-    const doc = createOrderCancellationEmail({
+describe('createOrderCancellationTemplate', () => {
+  it('renders a valid RCML document with default copy', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Your order has been cancelled',
-        heading: 'Order Cancelled',
-        greeting: 'Hello',
-        message: 'Your order has been cancelled as requested.',
-        orderRefLabel: 'Order',
-        followUp: 'If this was a mistake, please place a new order.',
-        ctaButton: 'Shop Again',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
     })
 
     assertValidRCMLDocument(doc)
     const json = docToString(doc)
 
     expect(json).toContain('Order Cancelled')
-    expect(json).toContain('Shop Again')
-    expect(json).toContain('200003') // Order.Number field ID
+    expect(json).toContain('Visit Our Store')
+    expect(json).toContain('[CustomField:200001]')
+    expect(json).toContain('[CustomField:200010]')
+    expect(json).toContain('[CustomField:200012]')
+    expect(json).toContain('https://shop.example.com')
   })
 
-  it('renders order date when orderDate field + label supplied', () => {
-    const doc = createOrderCancellationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Cancelled',
-        heading: 'Order Cancelled',
-        greeting: 'Hi',
-        message: 'Cancelled as requested.',
-        orderRefLabel: 'Order',
-        orderDateLabel: 'Order date',
-        followUp: 'Sorry!',
-        ctaButton: 'Shop',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        orderDate: 'Order.Date',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).toContain('Order date')
-    expect(json).toContain('200004') // Order.Date
-  })
-
-  it('renders support callout with email link when supportEmail supplied', () => {
-    const doc = createOrderCancellationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Cancelled',
-        heading: 'Order Cancelled',
-        greeting: 'Hi',
-        message: 'Cancelled.',
-        orderRefLabel: 'Order',
-        followUp: 'Bye.',
-        ctaButton: 'Shop',
-        supportText: 'Need help?',
-        supportEmail: 'help@shop.example.com',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).toContain('Need help?')
-    // Email local parts and @ get percent-encoded by encodeURIComponent,
-    // which prevents mailto parameter injection.
-    expect(json).toContain('mailto:help%40shop.example.com')
-  })
-
-  it('omits the support callout when supportText is not supplied', () => {
-    const doc = createOrderCancellationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Cancelled',
-        heading: 'Order Cancelled',
-        greeting: 'Hi',
-        message: 'Cancelled.',
-        orderRefLabel: 'Order',
-        followUp: 'Bye.',
-        ctaButton: 'Shop',
-        supportEmail: 'help@shop.example.com',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).not.toContain('mailto:help%40shop.example.com')
-  })
-
-  it('uses the sanitized URL as link text so displayed text and href stay in sync', () => {
-    // sanitizeUrl trims whitespace; displayed link text must reflect that.
-    const doc = createOrderCancellationEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      websiteUrl: 'https://shop.example.com',
-      text: {
-        preheader: 'Cancelled',
-        heading: 'Order Cancelled',
-        greeting: 'Hi',
-        message: 'Cancelled.',
-        orderRefLabel: 'Order',
-        followUp: 'Bye.',
-        ctaButton: 'Shop',
-        supportText: 'Need help?',
-        supportUrl: '  https://support.example.com  ',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
-    })
-
-    const json = docToString(doc)
-
-    // Raw padded URL must not appear as displayed text
-    expect(json).not.toContain('  https://support.example.com  ')
-    expect(json).toContain('https://support.example.com')
-  })
-
-  it('rejects support emails containing reserved URI characters that could inject mailto parameters', () => {
-    // `?`, `#`, `&`, `/`, `:` in a mailto address can hijack headers
-    // or URL parsing
-    const injectionAttempts = [
-      'help@shop.example.com?bcc=attacker@evil.com',
-      'help@shop.example.com&bcc=attacker@evil.com',
-      'help@shop.example.com#fragment',
-      'help:password@shop.example.com',
-      'help/path@shop.example.com',
-    ]
-
-    for (const supportEmail of injectionAttempts) {
-      expect(() =>
-        createOrderCancellationEmail({
-          theme: TEST_THEME,
-          customFields: TEST_CUSTOM_FIELDS,
-          websiteUrl: 'https://shop.example.com',
-          text: {
-            preheader: 'Cancelled',
-            heading: 'Order Cancelled',
-            greeting: 'Hi',
-            message: 'Cancelled.',
-            orderRefLabel: 'Order',
-            followUp: 'Bye.',
-            ctaButton: 'Shop',
-            supportText: 'Need help?',
-            supportEmail,
-          },
-          fieldNames: {
-            firstName: 'Subscriber.FirstName',
-            orderRef: 'Order.Number',
-          },
-        }),
-      ).toThrow(RuleConfigError)
-    }
-  })
-
-  it('rejects support emails containing whitespace or control characters', () => {
-    expect(() =>
-      createOrderCancellationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Cancelled',
-          heading: 'Order Cancelled',
-          greeting: 'Hi',
-          message: 'Cancelled.',
-          orderRefLabel: 'Order',
-          followUp: 'Bye.',
-          ctaButton: 'Shop',
-          supportText: 'Need help?',
-          supportEmail: 'help@shop.example.com\r\nBcc: attacker@evil.com',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-        },
+  it('omits the cancellation-date row when `order.date` is absent', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext({
+        order: { ref: customField('Order', 'OrderRef', 200010) },
       }),
-    ).toThrow(RuleConfigError)
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
 
-    expect(() =>
-      createOrderCancellationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Cancelled',
-          heading: 'Order Cancelled',
-          greeting: 'Hi',
-          message: 'Cancelled.',
-          orderRefLabel: 'Order',
-          followUp: 'Bye.',
-          ctaButton: 'Shop',
-          supportText: 'Need help?',
-          supportEmail: 'not-an-email',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-        },
-      }),
-    ).toThrow(RuleConfigError)
+    expect(json).toContain('[CustomField:200010]')
+    expect(json).not.toContain('[CustomField:200012]')
+    expect(json).not.toContain('Cancelled on')
   })
 
-  it('wraps supportEmail validation error with template prefix exactly once', () => {
-    // Regression: the inner throw must not hardcode the template name,
-    // since withTemplateContext prepends it. A duplicated prefix would
-    // look like "createOrderCancellationEmail > createOrderCancellationEmail: ...".
-    try {
-      createOrderCancellationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Cancelled',
-          heading: 'Order Cancelled',
-          greeting: 'Hi',
-          message: 'Cancelled.',
-          orderRefLabel: 'Order',
-          followUp: 'Bye.',
-          ctaButton: 'Shop',
-          supportText: 'Need help?',
-          supportEmail: 'not-an-email',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-        },
-      })
-      throw new Error('expected createOrderCancellationEmail to throw')
-    } catch (error) {
-      expect(error).toBeInstanceOf(RuleConfigError)
-      const message = (error as RuleConfigError).message
-      const occurrences = message.split('createOrderCancellationEmail').length - 1
+  it('omits the support callout when `support` is absent', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext(),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
 
-      expect(occurrences).toBe(1)
-    }
+    expect(json).not.toContain('Have questions')
   })
 
-  it('does not throw when orderDate is mapped without orderDateLabel', () => {
-    // Regression: the order-date row uses a conditional block that
-    // skips silently when either side is missing. Validation must
-    // match the render gate.
-    expect(() =>
-      createOrderCancellationEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://shop.example.com',
-        text: {
-          preheader: 'Cancelled',
-          heading: 'Order Cancelled',
-          greeting: 'Hi',
-          message: 'Cancelled.',
-          orderRefLabel: 'Order',
-          followUp: 'Bye.',
-          ctaButton: 'Shop',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          orderDate: 'Order.MissingDate', // not in customFields, but no label — won't render
-        },
+  it('renders the support paragraph only when `support` is an empty object', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext({ support: {} }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Have questions')
+    // No linkHref → the support-link atom does not appear.
+    expect(json).not.toContain('mailto:')
+  })
+
+  it('renders the support link when `support.linkHref` is supplied', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext({
+        support: { linkText: 'Contact us', linkHref: 'mailto:help@example.com' },
       }),
-    ).not.toThrow()
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Have questions')
+    expect(json).toContain('Contact us')
+    expect(json).toContain('mailto:help@example.com')
+  })
+
+  it('applies a partial copy override without touching other entries', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext(),
+      theme: TEST_THEME,
+      copy: { ctaButton: 'Shop again' },
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Shop again')
+    expect(json).not.toContain('Visit Our Store')
+  })
+
+  it('propagates footer fontSize/textColor to rc-text attributes', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext({ footer: { fontSize: '14px', textColor: '#111111' } }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('14px')
+    expect(json).toContain('#111111')
+  })
+
+  it('renders the social section from theme.links', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext(),
+      theme: TEST_THEME_WITH_SOCIALS,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('rc-social')
+    expect(json).toContain('facebook')
+    expect(json).toContain('instagram')
+  })
+
+  it('renders the logo from theme.images.logo', () => {
+    const doc = createOrderCancellationTemplate().render({
+      context: fullContext(),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    // TEST_THEME.images.logo.url = 'https://example.com/logo.png'.
+    expect(json).toContain('https://example.com/logo.png')
   })
 })

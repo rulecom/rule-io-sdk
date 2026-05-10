@@ -2715,7 +2715,7 @@ export class RuleClient {
    *   triggerType: 'tag',
    *   triggerValue: 'OrderCompleted',
    *   subject: 'Order confirmed!',
-   *   template: createOrderConfirmationEmail(config),
+   *   template: createOrderConfirmationTemplate().render({ context, theme }),
    * });
    *
    * // Option 2: Let the SDK build editor-compatible RCML from a brand style

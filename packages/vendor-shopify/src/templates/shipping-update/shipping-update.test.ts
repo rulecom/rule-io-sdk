@@ -1,466 +1,237 @@
 /**
- * Unit tests for {@link createShippingUpdateEmail}.
+ * Unit tests for {@link createShippingUpdateTemplate}.
  *
- * Covers: baseline shipping-notification shape, receipt upgrade
- * (seller + financial + legal sections), line-item loop defaults +
- * overrides, status tracker rendering, and validation/render-gate
- * parity on optional receipt fields.
+ * Drives the factory end-to-end: caller-assembled typed refs →
+ * bound template → compiled XML → themed RCML document. Optional
+ * sections (status tracker, seller, shipping details, line items,
+ * financial, buyer, legal) toggle on sub-object presence.
  */
 
 import { describe, expect, it } from 'vitest'
 
-import type { CustomFieldMap } from '@rule-io/core'
-import { RuleConfigError } from '@rule-io/core'
-import { statusTrackerSection as createStatusTrackerSection } from '@rule-io/rcml'
+import { customField, loopValue } from '@rule-io/templates'
 
 import {
   TEST_THEME,
+  TEST_THEME_WITH_SOCIALS,
   assertValidRCMLDocument,
   docToString,
 } from '../../test-fixtures.js'
-import { createShippingUpdateEmail } from './shipping-update.js'
+import {
+  createShippingUpdateTemplate,
+  type ShippingUpdateTemplateContext,
+} from './shipping-update.js'
 
-const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  'Subscriber.FirstName': 200001,
-  'Order.Number': 200003,
-  'Order.TotalPrice': 200005,
-  'Order.Products': 200014,
-  'Order.ShippingAddress1': 200016,
-  'Order.TrackingNumber': 200021,
-  'Order.EstimatedDelivery': 200022,
-  'Order.CustomerFullName': 200023,
-  'Order.CustomerEmail': 200024,
-  'Order.OrderDate': 200025,
-  'Order.BillingAddress': 200026,
-  'Order.CompanyName': 200027,
-  'Order.VATNumber': 200028,
-  'Order.PaymentMethod': 200029,
-  'Order.Subtotal': 200030,
-  'Order.TaxAmount': 200031,
-  'Order.DiscountAmount': 200032,
-  'Order.ShippingCost': 200033,
-  'Order.ShippingCarrier': 200034,
-  'Order.Currency': 200009,
+function baseContext(
+  overrides: Partial<ShippingUpdateTemplateContext> = {},
+): ShippingUpdateTemplateContext {
+  return {
+    recipient: {
+      firstName: customField('Subscriber', 'FirstName', 200001),
+    },
+    order: {
+      ref: customField('Order', 'Number', 200003),
+    },
+    trackingUrl: 'https://shop.example.com/orders/tracking',
+    cart: {},
+    footer: { fontSize: '10px', textColor: '#666666' },
+    ...overrides,
+  }
 }
 
-describe('createShippingUpdateEmail', () => {
-  it('should produce valid RCML', () => {
-    const doc = createShippingUpdateEmail({
+describe('createShippingUpdateTemplate — baseline', () => {
+  it('renders a valid RCML document with default copy', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Your order has shipped!',
-        heading: 'Your Order is On Its Way',
-        greeting: 'Hi',
-        message: 'your order has been shipped.',
-        orderRefLabel: 'Order',
-        trackingLabel: 'Tracking #',
-        estimatedDeliveryLabel: 'Estimated Delivery',
-        ctaButton: 'Track Package',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        trackingNumber: 'Order.TrackingNumber',
-        estimatedDelivery: 'Order.EstimatedDelivery',
-      },
     })
 
     assertValidRCMLDocument(doc)
     const json = docToString(doc)
 
-    expect(json).toContain('Track Package')
-    expect(json).toContain('https://track.example.com')
-    expect(json).toContain('200021') // TrackingNumber field ID
+    expect(json).toContain('Shipping Confirmation & Receipt')
+    expect(json).toContain('View Order')
+    expect(json).toContain('[CustomField:200001]')
+    expect(json).toContain('[CustomField:200003]')
+    expect(json).toContain('https://shop.example.com/orders/tracking')
   })
 
-  it('should work without optional tracking fields', () => {
-    const doc = createShippingUpdateEmail({
+  it('omits all optional sections when only required fields are supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext(),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped!',
-        heading: 'Shipped',
-        greeting: 'Hi',
-        message: 'your order shipped.',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
     })
-
-    assertValidRCMLDocument(doc)
-  })
-
-  it('should render receipt sections when receipt fields provided', () => {
-    const doc = createShippingUpdateEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped!',
-        heading: 'Shipping Confirmation & Receipt',
-        greeting: 'Hi',
-        message: 'your order has been shipped!',
-        orderRefLabel: 'Order',
-        trackingLabel: 'Tracking',
-        estimatedDeliveryLabel: 'Est. delivery',
-        ctaButton: 'Track Shipment',
-        companyLabel: 'Seller',
-        vatLabel: 'VAT',
-        orderDateLabel: 'Date',
-        paymentMethodLabel: 'Payment',
-        customerEmailLabel: 'Email',
-        shippingAddressLabel: 'Ship to',
-        carrierLabel: 'Carrier',
-        lineItemsHeading: 'Items',
-        subtotalLabel: 'Subtotal',
-        taxLabel: 'Tax',
-        discountLabel: 'Discount',
-        shippingCostLabel: 'Shipping',
-        totalLabel: 'Total',
-        billingAddressLabel: 'Bill to',
-        legalText: 'This is your receipt.',
-        returnPolicyText: 'Return Policy',
-        returnPolicyUrl: 'https://shop.example.com/returns',
-        termsText: 'Terms',
-        termsUrl: 'https://shop.example.com/terms',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        trackingNumber: 'Order.TrackingNumber',
-        estimatedDelivery: 'Order.EstimatedDelivery',
-        customerFullName: 'Order.CustomerFullName',
-        customerEmail: 'Order.CustomerEmail',
-        orderDate: 'Order.OrderDate',
-        billingAddress: 'Order.BillingAddress',
-        companyName: 'Order.CompanyName',
-        vatNumber: 'Order.VATNumber',
-        paymentMethod: 'Order.PaymentMethod',
-        currency: 'Order.Currency',
-        subtotal: 'Order.Subtotal',
-        taxAmount: 'Order.TaxAmount',
-        discountAmount: 'Order.DiscountAmount',
-        shippingCost: 'Order.ShippingCost',
-        shippingAddress: 'Order.ShippingAddress1',
-        shippingCarrier: 'Order.ShippingCarrier',
-        totalPrice: 'Order.TotalPrice',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-        itemSku: 'sku',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
     const json = docToString(doc)
-
-    // Receipt sections present
-    expect(json).toContain('Seller')
-    expect(json).toContain('VAT')
-    expect(json).toContain('Subtotal')
-    expect(json).toContain('Tax')
-    expect(json).toContain('Total')
-    expect(json).toContain('This is your receipt.')
-    expect(json).toContain('Return Policy')
-    expect(json).toContain('https://shop.example.com/returns')
-
-    // Loop block for line items
-    expect(json).toContain('rc-loop')
-    expect(json).toContain('custom-field')
-    expect(json).toContain('200014') // Products field ID as loop-value
-
-    // Line item sub-fields in loop (JSON key names)
-    expect(json).toContain('[LoopValue:name]')
-    expect(json).toContain('[LoopValue:sku]')
-  })
-
-  it('should use default English labels for ShippingUpdate line items', () => {
-    const doc = createShippingUpdateEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped!',
-        heading: 'Shipped',
-        greeting: 'Hi',
-        message: 'shipped.',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-        lineItemsHeading: 'Items',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-        itemSku: 'sku',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    expect(json).toContain('SKU: ')
-    expect(json).toContain('Qty: ')
-    expect(json).toContain('Unit price: ')
-    expect(json).toContain('Line total: ')
-  })
-
-  it('should use custom labels for ShippingUpdate line items when provided', () => {
-    const doc = createShippingUpdateEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped!',
-        heading: 'Shipped',
-        greeting: 'Hi',
-        message: 'shipped.',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-        lineItemsHeading: 'Items',
-        itemSkuLabel: 'Artikelnr: ',
-        itemQtyLabel: 'Antal: ',
-        itemUnitPriceLabel: 'Styckpris: ',
-        itemLineTotalLabel: 'Radsumma: ',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-        items: 'Order.Products',
-        itemName: 'name',
-        itemQuantity: 'quantity',
-        itemUnitPrice: 'price',
-        itemTotal: 'total',
-        itemSku: 'sku',
-      },
-    })
-
-    assertValidRCMLDocument(doc)
-    const json = docToString(doc)
-
-    expect(json).toContain('Artikelnr: ')
-    expect(json).toContain('Antal: ')
-    expect(json).toContain('Styckpris: ')
-    expect(json).toContain('Radsumma: ')
-
-    expect(json).not.toContain('SKU: ')
-    expect(json).not.toContain('Qty: ')
-    expect(json).not.toContain('Unit price: ')
-    expect(json).not.toContain('Line total: ')
-  })
-
-  it('should render identically to base when no receipt fields provided', () => {
-    const baseDoc = createShippingUpdateEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped!',
-        heading: 'Shipped',
-        greeting: 'Hi',
-        message: 'shipped.',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
-    })
-
-    assertValidRCMLDocument(baseDoc)
-    const json = docToString(baseDoc)
 
     expect(json).not.toContain('rc-loop')
+    expect(json).not.toContain('VAT')
+    expect(json).not.toContain('Tracking')
     expect(json).not.toContain('Subtotal')
-    expect(json).not.toContain('receipt')
+    expect(json).not.toContain('This email serves as your official receipt')
   })
+})
 
-  it('renders a 3-step status tracker when all three labels supplied', () => {
-    const doc = createShippingUpdateEmail({
+describe('createShippingUpdateTemplate — status tracker', () => {
+  it('renders three-step status tracker when status.steps supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        status: {
+          steps: [
+            { label: 'Confirmed', bg: '#00FF00', fg: '#000000', width: '33%' },
+            { label: 'Shipped', bg: '#0000FF', fg: '#FFFFFF', width: '33%' },
+            { label: 'Delivered', bg: '#CCCCCC', fg: '#666666', width: '34%' },
+          ],
+        },
+      }),
       theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped',
-        heading: 'On its way',
-        greeting: 'Hi',
-        message: 'shipped!',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-        statusConfirmedLabel: 'Confirmed',
-        statusShippedLabel: 'Shipped',
-        statusDeliveredLabel: 'Delivered',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
     })
-
     const json = docToString(doc)
 
     expect(json).toContain('Confirmed')
     expect(json).toContain('Shipped')
     expect(json).toContain('Delivered')
-    // Active step (Shipped, activeIndex=1) uses the button color as background
-    expect(json).toContain('#0066CC')
-  })
-
-  it('omits the status tracker when any step label is missing', () => {
-    const doc = createShippingUpdateEmail({
-      theme: TEST_THEME,
-      customFields: TEST_CUSTOM_FIELDS,
-      trackingUrl: 'https://track.example.com',
-      text: {
-        preheader: 'Shipped',
-        heading: 'On its way',
-        greeting: 'Hi',
-        message: 'shipped!',
-        orderRefLabel: 'Order',
-        ctaButton: 'Track',
-        // Only two of three labels supplied — tracker should NOT render
-        statusConfirmedLabel: 'Confirmed',
-        statusShippedLabel: 'Shipped',
-      },
-      fieldNames: {
-        firstName: 'Subscriber.FirstName',
-        orderRef: 'Order.Number',
-      },
-    })
-
-    const json = docToString(doc)
-
-    expect(json).not.toContain('Confirmed')
-    expect(json).not.toContain('Delivered')
-  })
-
-  it('does not throw when optional receipt fields are mapped without their labels', () => {
-    expect(() =>
-      createShippingUpdateEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        trackingUrl: 'https://track.example.com',
-        text: {
-          preheader: 'Shipped',
-          heading: 'Shipped',
-          greeting: 'Hi',
-          message: 'your order has shipped.',
-          orderRefLabel: 'Order',
-          ctaButton: 'Track',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          trackingNumber: 'Order.MissingTracking',
-          orderDate: 'Order.MissingDate',
-          billingAddress: 'Order.MissingBilling',
-          companyName: 'Order.MissingCompany',
-          vatNumber: 'Order.MissingVat',
-          subtotal: 'Order.MissingSubtotal',
-          taxAmount: 'Order.MissingTax',
-          totalPrice: 'Order.MissingTotal',
-        },
-      }),
-    ).not.toThrow()
-  })
-
-  it('still throws when a field whose label is set is missing from customFields', () => {
-    expect(() =>
-      createShippingUpdateEmail({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        trackingUrl: 'https://track.example.com',
-        text: {
-          preheader: 'Shipped',
-          heading: 'Shipped',
-          greeting: 'Hi',
-          message: 'your order has shipped.',
-          orderRefLabel: 'Order',
-          trackingLabel: 'Tracking',
-          ctaButton: 'Track',
-        },
-        fieldNames: {
-          firstName: 'Subscriber.FirstName',
-          orderRef: 'Order.Number',
-          trackingNumber: 'Order.MissingTracking',
-        },
-      }),
-    ).toThrow(RuleConfigError)
   })
 })
 
-// ============================================================================
-// Status-tracker builder: rejection tests (exported from rcml package)
-// ============================================================================
-
-describe('statusTrackerSection (rcml helper used by shipping-update)', () => {
-  it('rejects status trackers with more than 4 steps', () => {
-    expect(() =>
-      createStatusTrackerSection({
-        steps: [
-          { label: 'a' },
-          { label: 'b' },
-          { label: 'c' },
-          { label: 'd' },
-          { label: 'e' },
-        ],
-        activeIndex: 0,
-        theme: TEST_THEME,
+describe('createShippingUpdateTemplate — seller', () => {
+  it('renders company and VAT rows when seller is supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        seller: {
+          company: customField('Seller', 'Company', 200040),
+          vatNumber: customField('Seller', 'VatNumber', 200041),
+        },
       }),
-    ).toThrow(RuleConfigError)
-  })
-
-  it('rejects status trackers with activeIndex out of range', () => {
-    expect(() =>
-      createStatusTrackerSection({
-        steps: [{ label: 'a' }, { label: 'b' }],
-        activeIndex: 5,
-        theme: TEST_THEME,
-      }),
-    ).toThrow(RuleConfigError)
-    expect(() =>
-      createStatusTrackerSection({
-        steps: [{ label: 'a' }, { label: 'b' }],
-        activeIndex: -1,
-        theme: TEST_THEME,
-      }),
-    ).toThrow(RuleConfigError)
-  })
-
-  it('rejects empty step lists', () => {
-    expect(() =>
-      createStatusTrackerSection({
-        steps: [],
-        activeIndex: 0,
-        theme: TEST_THEME,
-      }),
-    ).toThrow(RuleConfigError)
-  })
-
-  it('distributes rounding remainder so column widths sum to 100%', () => {
-    const section = createStatusTrackerSection({
-      steps: [{ label: 'a' }, { label: 'b' }, { label: 'c' }],
-      activeIndex: 0,
       theme: TEST_THEME,
     })
-    const widths = (
-      section as { children: { attributes: { width: string } }[] }
-    ).children.map((col) => parseInt(col.attributes.width, 10))
+    const json = docToString(doc)
 
-    expect(widths.reduce((a, b) => a + b, 0)).toBe(100)
+    expect(json).toContain('[CustomField:200040]')
+    expect(json).toContain('[CustomField:200041]')
+    expect(json).toContain('Company')
+    expect(json).toContain('VAT')
+  })
+})
+
+describe('createShippingUpdateTemplate — shipping details', () => {
+  it('renders tracking and carrier rows when supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        shippingDetails: {
+          tracking: customField('Order', 'TrackingNumber', 200050),
+          carrier: customField('Order', 'ShippingCarrier', 200051),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200050]')
+    expect(json).toContain('[CustomField:200051]')
+    expect(json).toContain('Tracking')
+    expect(json).toContain('Carrier')
+  })
+})
+
+describe('createShippingUpdateTemplate — cart + financial', () => {
+  it('renders the line-items loop when cart.products is supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        cart: {
+          products: {
+            source: customField('Order', 'Products', 200014),
+            itemName: loopValue('name'),
+            itemQuantity: loopValue('quantity'),
+          },
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('rc-loop')
+    expect(json).toContain('[LoopValue:name]')
+    expect(json).toContain('[LoopValue:quantity]')
+  })
+
+  it('renders the financial summary when supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        financial: {
+          subtotal: customField('Order', 'Subtotal', 200030),
+          total: customField('Order', 'TotalPrice', 200005),
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('[CustomField:200030]')
+    expect(json).toContain('[CustomField:200005]')
+    expect(json).toContain('Subtotal')
+    expect(json).toContain('Total')
+  })
+})
+
+describe('createShippingUpdateTemplate — legal', () => {
+  it('renders the legal section when legal is supplied', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext({
+        legal: {
+          text: 'This email serves as your official receipt for this transaction.',
+          returnPolicy: {
+            linkText: 'Return policy',
+            linkHref: 'https://shop.example.com/returns',
+          },
+          terms: {
+            linkText: 'Terms',
+            linkHref: 'https://shop.example.com/terms',
+          },
+        },
+      }),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('This email serves as your official receipt')
+    expect(json).toContain('Return policy')
+    expect(json).toContain('Terms')
+    expect(json).toContain('https://shop.example.com/returns')
+    expect(json).toContain('https://shop.example.com/terms')
+  })
+})
+
+describe('createShippingUpdateTemplate — chrome + overrides', () => {
+  it('applies a partial copy override', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext(),
+      theme: TEST_THEME,
+      copy: { ctaButton: 'Track shipment' },
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('Track shipment')
+    expect(json).not.toContain('View Order')
+  })
+
+  it('renders the social section from theme.links', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext(),
+      theme: TEST_THEME_WITH_SOCIALS,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('rc-social')
+    expect(json).toContain('facebook')
+  })
+
+  it('renders the logo from theme.images.logo', () => {
+    const doc = createShippingUpdateTemplate().render({
+      context: baseContext(),
+      theme: TEST_THEME,
+    })
+    const json = docToString(doc)
+
+    expect(json).toContain('https://example.com/logo.png')
   })
 })
