@@ -7,7 +7,7 @@ import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '../src/index.js';
-import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
+import { TEST_THEME } from './helpers.js';
 
 // ============================================================================
 // Shared fixtures
@@ -104,110 +104,15 @@ describe('bookzenPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 5 automations', () => {
+    // The pre-built automation entries have been retired. Template
+    // authors now build contexts directly via the factory functions
+    // (createReservationConfirmationTemplate, etc.) and wire
+    // automations through @rule-io/client. See
+    // packages/templates/README.md for the authoring pattern.
+    it('returns an empty list (pre-built automations retired)', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
 
-      expect(automations).toHaveLength(5);
-    });
-
-    it('returns automations with unique IDs', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const ids = automations.map((a) => a.id);
-
-      expect(new Set(ids).size).toBe(ids.length);
-    });
-
-    it('returns automations with unique trigger tags', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const triggerTags = automations.map((a) => a.triggerTag);
-
-      expect(new Set(triggerTags).size).toBe(triggerTags.length);
-    });
-
-    it('all automations have trigger tags from BOOKZEN_TAGS', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set<string>(Object.values(BOOKZEN_TAGS));
-
-      for (const automation of automations) {
-        expect(validTags.has(automation.triggerTag)).toBe(true);
-      }
-    });
-
-    it('all automations produce valid RCML documents', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-
-      for (const automation of automations) {
-        const doc = automation.templateBuilder({
-          theme: TEST_THEME,
-          customFields: TEST_CUSTOM_FIELDS,
-          websiteUrl: 'https://myhotel.example.com',
-        });
-
-        assertValidRCMLDocument(doc);
-      }
-    });
-
-    it('templateBuilder honors TemplateConfigV2 overrides', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const confirmation = automations.find(
-        (a) => a.id === 'bookzen-reservation-confirmation'
-      )!;
-
-      const overriddenFields: CustomFieldMap = {
-        ...TEST_CUSTOM_FIELDS,
-        [BOOKZEN_FIELDS.bookingRef]: 999999,
-      };
-
-      const doc = confirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: overriddenFields,
-        websiteUrl: 'https://override.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      // Should use the overridden field ID, not the original
-      expect(json).toContain('[CustomField:999999]');
-      expect(json).not.toContain('[CustomField:100002]');
-    });
-
-    it('RCML contains Bookzen field placeholders', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const confirmation = automations.find(
-        (a) => a.id === 'bookzen-reservation-confirmation'
-      )!;
-
-      const doc = confirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myhotel.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      expect(json).toContain('[CustomField:100002]'); // bookingRef
-      expect(json).toContain('[CustomField:100004]'); // checkInDate
-    });
-
-    it('throws RuleConfigError for incomplete config', () => {
-      expect(() =>
-        bookzenPreset.getAutomations({
-          ...TEST_CONFIG,
-          customFields: {},
-        })
-      ).toThrow(RuleConfigError);
-    });
-
-    it('reminder has a delay', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const reminder = automations.find((a) => a.id === 'bookzen-reservation-reminder')!;
-
-      expect(reminder.delayInSeconds).toBe('86400');
-    });
-
-    it('feedback request has a delay', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const feedback = automations.find((a) => a.id === 'bookzen-feedback-request')!;
-
-      expect(feedback.delayInSeconds).toBe('172800');
+      expect(automations).toHaveLength(0);
     });
   });
 
@@ -216,17 +121,7 @@ describe('bookzenPreset', () => {
   // ============================================================================
 
   describe('getAutomation', () => {
-    it('returns a single automation by ID', () => {
-      const automation = bookzenPreset.getAutomation(
-        'bookzen-reservation-confirmation',
-        TEST_CONFIG
-      );
-
-      expect(automation).toBeDefined();
-      expect(automation!.id).toBe('bookzen-reservation-confirmation');
-    });
-
-    it('returns undefined for unknown ID', () => {
+    it('returns undefined for any ID (no automations defined)', () => {
       const automation = bookzenPreset.getAutomation('nonexistent', TEST_CONFIG);
 
       expect(automation).toBeUndefined();

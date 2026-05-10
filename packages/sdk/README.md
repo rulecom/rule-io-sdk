@@ -161,7 +161,7 @@ The SDK offers three levels of template building, from highest to lowest abstrac
 
 Ready-to-use templates shaped as **factories** — each returns an `EmailTemplate` whose `render({ context, theme, copy? })` method produces an `RcmlDocument`. The caller builds a typed context using `customField` / `loopValue` from `@rule-io/templates`; the factory handles loading, compiling, theme projection, and theming. See [`packages/templates/README.md`](../templates/README.md) for the authoring pattern.
 
-**Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
+**Hospitality:** `createReservationConfirmationTemplate`, `createReservationCancellationTemplate`, `createReservationReminderTemplate`, `createFeedbackRequestTemplate`, `createReservationRequestTemplate`
 
 **E-commerce:** `createAbandonedCartTemplate`, `createOrderConfirmationTemplate`, `createShippingUpdateTemplate`, `createOrderCancellationTemplate`, `createWelcomeTemplate`
 
