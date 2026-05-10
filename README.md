@@ -1,6 +1,6 @@
 # rule-io-sdk
 
-Nx monorepo for the Rule.io TypeScript SDK. Consumer-facing SDK docs live in [`packages/sdk`](packages/sdk/README.md); this README is for contributors and release maintainers.
+Nx monorepo for the Rule.io TypeScript SDK. Detailed usage docs live in [`packages/sdk`](packages/sdk/README.md) and the per-package READMEs; this README covers package selection, contributor workflow, and the release process.
 
 Publishes the following packages under the `@rule-io/*` npm scope:
 
@@ -16,7 +16,65 @@ Publishes the following packages under the `@rule-io/*` npm scope:
 | [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
 | [`@rule-io/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
-Dependency graph (clean DAG, no cycles — `←` reads as "depends on"; workspace edges only, external runtime deps live in each package's `package.json`):
+---
+
+## Which package should I install?
+
+Most consumers install **one** package — npm pulls in everything else as transitive dependencies.
+
+| If you want to… | Install | Notes |
+|---|---|---|
+| Call the Rule.io HTTP API | `@rule-io/client` | The 90% case. Brings in `core` + `rcml` automatically. |
+| Ship a Shopify e-commerce integration | `@rule-io/client` + `@rule-io/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
+| Ship a Bookzen hospitality integration | `@rule-io/client` + `@rule-io/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
+| Ship a Samfora donation integration | `@rule-io/client` + `@rule-io/vendor-samfora` | Swedish donation-platform flows. |
+| Compose custom RCML templates from primitives | `@rule-io/rcml` | Low-level builders only — pair with `@rule-io/client` to send. |
+| Run the CLI to deploy presets / validate RCML | `@rule-io/cli` | Installs the `rule-io` binary. |
+| Try everything in one install (prototypes, demos) | `@rule-io/sdk` | Meta-package re-exporting every library above. Larger `node_modules` — prefer the direct installs above for production. |
+
+### Examples
+
+Just calling the API:
+
+```bash
+npm install @rule-io/client
+```
+
+```ts
+import { RuleClient } from '@rule-io/client';
+
+const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
+await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
+```
+
+Shipping a Shopify integration:
+
+```bash
+npm install @rule-io/client @rule-io/vendor-shopify
+```
+
+```ts
+import { RuleClient } from '@rule-io/client';
+import { createOrderConfirmationEmail } from '@rule-io/vendor-shopify';
+```
+
+Kitchen sink for prototyping:
+
+```bash
+npm install @rule-io/sdk
+```
+
+```ts
+import { RuleClient, createOrderConfirmationEmail } from '@rule-io/sdk';
+```
+
+> `@rule-io/core` and `@rule-io/templates` are infrastructure packages — they almost never appear in a consumer's `package.json`. They arrive as transitive dependencies of the libraries above.
+
+---
+
+## Dependency graph
+
+Clean DAG, no cycles — `←` reads as "depends on"; workspace edges only, external runtime deps live in each package's `package.json`:
 
 ```
 core
