@@ -125,68 +125,90 @@ export async function findTemplateOwner(
   templateId: number,
   options: FindTemplateOwnerOptions = {}
 ): Promise<FindTemplateOwnerResult> {
-  const concurrency = Math.max(1, options.concurrency ?? DEFAULT_CONCURRENCY);
+  const concurrency = sanitizeConcurrency(options.concurrency);
   const partialErrors: PartialScanError[] = [];
 
   const internalAbort = new AbortController();
   const externalSignal = options.signal;
 
+  if (externalSignal?.aborted) {
+    return {
+      owner: null,
+      scanned: { campaigns: 0, automations: 0 },
+      partial_errors: [],
+    };
+  }
+
+  // Track the listener so we can remove it on normal completion. Without
+  // this, callers reusing a long-lived signal across many calls would
+  // accumulate listeners on it.
+  const onExternalAbort = (): void => {
+    internalAbort.abort();
+  };
+
   if (externalSignal) {
-    if (externalSignal.aborted) {
+    externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+  }
+
+  try {
+    const campaignScan = await scanDispatcherKind(
+      client,
+      'campaign',
+      templateId,
+      concurrency,
+      partialErrors,
+      internalAbort
+    );
+
+    if (campaignScan.match) {
       return {
-        owner: null,
-        scanned: { campaigns: 0, automations: 0 },
-        partial_errors: [],
+        owner: campaignScan.match,
+        scanned: { campaigns: campaignScan.scanned, automations: 0 },
+        partial_errors: partialErrors,
       };
     }
 
-    externalSignal.addEventListener('abort', () => internalAbort.abort(), {
-      once: true,
-    });
-  }
+    if (internalAbort.signal.aborted) {
+      return {
+        owner: null,
+        scanned: { campaigns: campaignScan.scanned, automations: 0 },
+        partial_errors: partialErrors,
+      };
+    }
 
-  const campaignScan = await scanDispatcherKind(
-    client,
-    'campaign',
-    templateId,
-    concurrency,
-    partialErrors,
-    internalAbort
-  );
+    const automationScan = await scanDispatcherKind(
+      client,
+      'automation',
+      templateId,
+      concurrency,
+      partialErrors,
+      internalAbort
+    );
 
-  if (campaignScan.match) {
     return {
-      owner: campaignScan.match,
-      scanned: { campaigns: campaignScan.scanned, automations: 0 },
+      owner: automationScan.match,
+      scanned: {
+        campaigns: campaignScan.scanned,
+        automations: automationScan.scanned,
+      },
       partial_errors: partialErrors,
     };
+  } finally {
+    if (externalSignal) {
+      externalSignal.removeEventListener('abort', onExternalAbort);
+    }
   }
+}
 
-  if (internalAbort.signal.aborted) {
-    return {
-      owner: null,
-      scanned: { campaigns: campaignScan.scanned, automations: 0 },
-      partial_errors: partialErrors,
-    };
-  }
+/**
+ * Coerce a caller-supplied concurrency value into a finite positive integer.
+ * Falls back to the default when missing, NaN, Infinity, or otherwise
+ * non-finite — guards against `Array(NaN)` blowing up the worker pool.
+ */
+function sanitizeConcurrency(value: number | undefined): number {
+  if (value == null || !Number.isFinite(value)) return DEFAULT_CONCURRENCY;
 
-  const automationScan = await scanDispatcherKind(
-    client,
-    'automation',
-    templateId,
-    concurrency,
-    partialErrors,
-    internalAbort
-  );
-
-  return {
-    owner: automationScan.match,
-    scanned: {
-      campaigns: campaignScan.scanned,
-      automations: automationScan.scanned,
-    },
-    partial_errors: partialErrors,
-  };
+  return Math.max(1, Math.floor(value));
 }
 
 interface KindScanResult {
@@ -322,7 +344,7 @@ async function probeDispatcher(
     }
 
     if (templateIdForMessage === templateId) {
-      return toOwner(kind, dispatcher, message);
+      return toOwner(kind, dispatcher, dispatcherId, message, message.id);
     }
   }
 
@@ -345,11 +367,10 @@ async function resolveTemplateIdForMessage(
 function toOwner(
   kind: DispatcherKind,
   dispatcher: DispatcherListEntry,
-  message: RuleMessage
+  dispatcherId: number,
+  message: RuleMessage,
+  messageId: number
 ): TemplateOwner {
-  const dispatcherId = dispatcher.id as number;
-  const messageId = (message.id ?? 0) as number;
-
   if (kind === 'campaign') {
     const camp = dispatcher as RuleCampaign;
 

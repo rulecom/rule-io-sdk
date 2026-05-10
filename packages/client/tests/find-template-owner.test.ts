@@ -234,6 +234,42 @@ describe('findTemplateOwner', () => {
     });
   });
 
+  it.each([
+    ['NaN', NaN],
+    ['Infinity', Infinity],
+    ['negative', -5],
+    ['zero', 0],
+    ['fractional', 2.7],
+  ])('sanitises invalid concurrency value (%s) instead of throwing', async (_label, value) => {
+    const client = buildClient({
+      campaignsPages: [[
+        { id: 1, name: 'x', messages: [{ id: 11, subject: 's', templateId: 42 }] },
+      ]],
+    });
+    // The bare worker pool would throw `RangeError: Invalid array length` on NaN.
+    const result = await findTemplateOwner(client, 42, { concurrency: value });
+
+    expect(result.owner?.id).toBe(1);
+  });
+
+  it('removes the abort listener on normal completion to prevent leaks', async () => {
+    const ac = new AbortController();
+    const addSpy = vi.spyOn(ac.signal, 'addEventListener');
+    const removeSpy = vi.spyOn(ac.signal, 'removeEventListener');
+    const client = buildClient({
+      campaignsPages: [[
+        { id: 1, name: 'x', messages: [{ id: 11, subject: 's', templateId: 42 }] },
+      ]],
+    });
+
+    await findTemplateOwner(client, 42, { signal: ac.signal });
+
+    expect(addSpy).toHaveBeenCalledTimes(1);
+    expect(removeSpy).toHaveBeenCalledTimes(1);
+    // Same handler reference passed to both — proves the listener was tracked, not anonymous.
+    expect(addSpy.mock.calls[0][1]).toBe(removeSpy.mock.calls[0][1]);
+  });
+
   it('with concurrency=1 produces the same result as the default', async () => {
     const fixture = {
       campaignsPages: [[
