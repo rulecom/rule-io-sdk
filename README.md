@@ -25,12 +25,12 @@ Most consumers install **one** package — npm pulls in everything else as trans
 | If you want to… | Install | Notes |
 |---|---|---|
 | Call the Rule.io HTTP API | `@rule-io/client` | The 90% case. Brings in `core` + `rcml` automatically. |
-| Ship a Shopify e-commerce integration | `@rule-io/client` + `@rule-io/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
-| Ship a Bookzen hospitality integration | `@rule-io/client` + `@rule-io/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
-| Ship a Samfora donation integration | `@rule-io/client` + `@rule-io/vendor-samfora` | Swedish donation-platform flows. |
 | Compose custom RCML templates from primitives | `@rule-io/rcml` | Low-level builders only — pair with `@rule-io/client` to send. |
 | Run the CLI to deploy presets / validate RCML | `@rule-io/cli` | Installs the `rule-io` binary. |
 | Try everything in one install (prototypes, demos) | `@rule-io/sdk` | Meta-package re-exporting every library above. Larger `node_modules` — prefer the direct installs above for production. |
+| Ship a Shopify e-commerce integration | `@rule-io/client` + `@rule-io/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
+| Ship a Bookzen hospitality integration | `@rule-io/client` + `@rule-io/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
+| Ship a Samfora donation integration | `@rule-io/client` + `@rule-io/vendor-samfora` | Swedish donation-platform flows. |
 
 ### Examples
 
