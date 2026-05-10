@@ -814,20 +814,8 @@ describe('RuleClient', () => {
       expect(body.active).toBe(true);
     });
 
-    it('should update an automation with all fields', async () => {
-      // GET (read-modify-write fetches existing first)
-      mockFetch.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'Old',
-            active: false,
-            trigger: { type: 'TAG', id: 7 },
-            sendout_type: { value: 1, key: 'CAMPAIGN', description: '' },
-          },
-        })
-      );
-      // PUT
+    it('should skip the read-modify-write GET when the caller supplies all required fields', async () => {
+      // Only the PUT — no GET should fire on the fast path.
       mockFetch.mockResolvedValueOnce(
         createMockResponse({
           data: { id: 1, name: 'Updated', active: true },
@@ -843,23 +831,20 @@ describe('RuleClient', () => {
       });
 
       expect(result.data?.name).toBe('Updated');
-      expect(mockFetch).toHaveBeenCalledTimes(2);
+      expect(mockFetch).toHaveBeenCalledTimes(1);
 
-      const [getUrl, getOptions] = mockFetch.mock.calls[0];
+      const [url, options] = mockFetch.mock.calls[0];
 
-      expect(getUrl).toBe('https://app.rule.io/api/v3/editor/automail/1');
-      expect(getOptions.method).toBe('GET');
+      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(options.method).toBe('PUT');
+      const body = JSON.parse(options.body);
 
-      const [putUrl, putOptions] = mockFetch.mock.calls[1];
-
-      expect(putUrl).toBe('https://app.rule.io/api/v3/editor/automail/1');
-      expect(putOptions.method).toBe('PUT');
-      const body = JSON.parse(putOptions.body);
-
-      expect(body.name).toBe('Updated');
-      expect(body.active).toBe(true);
-      expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
-      expect(body.sendout_type).toBe(2);
+      expect(body).toEqual({
+        name: 'Updated',
+        active: true,
+        trigger: { type: 'TAG', id: 42 },
+        sendout_type: 2,
+      });
     });
 
     it('should send a full PUT body when only name is updated (read-modify-write)', async () => {

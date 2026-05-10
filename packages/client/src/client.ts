@@ -1053,8 +1053,9 @@ export class RuleClient {
    *
    * IMPORTANT: Rule.io's `PUT /editor/automail/{id}` rejects partial bodies —
    * it requires `name`, `active`, `trigger`, and `sendout_type` together.
-   * This method performs read-modify-write internally (one extra GET per
-   * update) so callers can pass only the fields they want to change.
+   * This method performs read-modify-write internally so callers can pass only
+   * the fields they want to change. When the input already includes all four
+   * required fields, the GET is skipped and the PUT runs directly.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
    * The API error messages incorrectly suggest lowercase, but uppercase is required.
@@ -1084,6 +1085,26 @@ export class RuleClient {
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
+    // Fast path: when the caller already supplies every field the API requires,
+    // skip the read and PUT directly. Saves one round-trip for full-body
+    // updates like clone-email and the deploy CLIs once they pass full bodies.
+    if (
+      update.name !== undefined &&
+      update.active !== undefined &&
+      update.trigger !== undefined &&
+      update.sendout_type !== undefined
+    ) {
+      return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: update.name,
+          active: update.active,
+          trigger: update.trigger,
+          sendout_type: update.sendout_type,
+        }),
+      });
+    }
+
     const existing = await this.getAutomation(id);
 
     if (!existing?.data) {
@@ -2648,10 +2669,11 @@ export class RuleClient {
       metrics = params.metrics;
     }
 
-    // The /analytics endpoint rejects datetime form (`YYYY-MM-DD HH:MM:SS`) and
-    // accepts only bare dates, even though sibling v3 endpoints (e.g.
-    // exportStatistics) accept both. Strip any time portion so consumers using
-    // a shared date normalizer don't have to special-case this endpoint.
+    // The /analytics endpoint rejects any datetime form (e.g. ISO-8601 or
+    // space-separated `YYYY-MM-DD hh:mm:ss`) and accepts only bare dates,
+    // even though sibling v3 endpoints (e.g. exportStatistics) accept both.
+    // Strip any time portion so consumers using a shared date normalizer
+    // don't have to special-case this endpoint.
     const stripTime = (d: string): string => d.split(/[ T]/)[0];
 
     const qs = RuleClient.buildQueryString({
