@@ -317,6 +317,43 @@ describe('findTemplateOwner', () => {
     expect(peakInFlight).toBeGreaterThanOrEqual(2);
   });
 
+  it('finds the template even when its dynamic set is not first in the response', async () => {
+    // A single message can have multiple dynamic sets. A previous
+    // iteration of resolveTemplateIdForMessage returned the FIRST
+    // non-null template_id and would miss the match if the target
+    // template was later in the array — this test locks that fix in.
+    const client = new RuleClient('test-key');
+
+    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
+      data: [{ id: 1, name: 'Promo' }],
+    } as never);
+    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client, 'listMessages').mockResolvedValue({
+      data: [{ id: 101, subject: 'Hi', name: 'm' }],
+    } as never);
+    // Three dynamic sets: target template_id (42) is in the SECOND entry,
+    // not the first. The previous boolean-skip-first-non-null logic would
+    // have returned 99 from entry 0 and missed the match entirely.
+    vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
+      data: [
+        { id: 1, message_id: 101, template_id: 99 },
+        { id: 2, message_id: 101, template_id: 42 },
+        { id: 3, message_id: 101, template_id: 7 },
+      ],
+    } as never);
+
+    const result = await findTemplateOwner(client, 42);
+
+    expect(result.owner).toEqual({
+      kind: 'campaign',
+      id: 1,
+      name: 'Promo',
+      message_id: 101,
+      subject: 'Hi',
+      status: null,
+    });
+  });
+
   it('reports `scanned` as actually-probed dispatchers, not the full fetched page', async () => {
     // Page of 10, dispatcher 1 matches. Workers 0-2 probe in parallel
     // (concurrency=3); worker 0 finds the match and aborts; workers 1-2

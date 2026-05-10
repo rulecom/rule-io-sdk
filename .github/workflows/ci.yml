@@ -49,8 +49,9 @@ jobs:
           for pkg in packages/*/package.json; do
             name=$(jq -r '.name' "$pkg")
             # Per-package allowlist of non-@rule-io/* runtime deps. Adding
-            # entries here means we accept the dep ships in the published
-            # tarball and counts toward our consumer install footprint.
+            # an entry here means we accept that the dep ships in the
+            # published tarball and counts toward each consumer's install
+            # footprint.
             case "$name" in
               "@rule-io/cli")
                 allowed='["commander"]'

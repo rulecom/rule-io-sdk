@@ -340,10 +340,10 @@ async function probeDispatcher(
     if (internalAbort.signal.aborted) return null;
     if (message.id == null) continue;
 
-    let templateIdForMessage: number | null;
+    let owns: boolean;
 
     try {
-      templateIdForMessage = await resolveTemplateIdForMessage(client, message.id);
+      owns = await messageOwnsTemplate(client, message.id, templateId);
     } catch (error) {
       partialErrors.push({
         dispatcher_kind: kind,
@@ -354,7 +354,7 @@ async function probeDispatcher(
       continue;
     }
 
-    if (templateIdForMessage === templateId) {
+    if (owns) {
       // Abort eagerly so sibling workers in the current page stop claiming
       // new dispatchers — preserves the "short-circuit on first match"
       // promise. In-flight HTTP calls can't be cancelled (the SDK doesn't
@@ -368,17 +368,24 @@ async function probeDispatcher(
   return null;
 }
 
-async function resolveTemplateIdForMessage(
+/**
+ * Check whether any of `messageId`'s dynamic sets points at `templateId`.
+ * A message can have multiple dynamic sets; checking only the first one
+ * (the previous behaviour) produced false negatives when the matching
+ * dynamic set wasn't first in the response.
+ */
+async function messageOwnsTemplate(
   client: RuleClient,
-  messageId: number
-): Promise<number | null> {
+  messageId: number,
+  templateId: number
+): Promise<boolean> {
   const response = await client.listDynamicSets({ message_id: messageId });
 
   for (const ds of response.data ?? []) {
-    if (ds.template_id != null) return ds.template_id;
+    if (ds.template_id === templateId) return true;
   }
 
-  return null;
+  return false;
 }
 
 function toOwner(
