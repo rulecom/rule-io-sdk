@@ -995,6 +995,29 @@ describe('RuleClient', () => {
       expect(mockFetch).toHaveBeenCalledTimes(1);
     });
 
+    it('should distinguish a 2xx-with-no-data envelope from a true 404', async () => {
+      // 2xx response with an error envelope and no `data` — must NOT be
+      // remapped to 404; surface the server detail instead.
+      mockFetch.mockResolvedValueOnce(
+        createMockResponse({
+          success: false,
+          error: 'Internal data store unavailable',
+        })
+      );
+
+      const client = new RuleClient({ apiKey: 'test-key', fetch: mockFetch });
+
+      await expect(
+        client.updateAutomation(1, { name: 'Renamed' })
+      ).rejects.toMatchObject({
+        name: 'RuleApiError',
+        statusCode: 500,
+        message: expect.stringContaining('Internal data store unavailable'),
+      });
+
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('should throw RuleConfigError when existing record has no trigger and update omits it', async () => {
       mockFetch.mockResolvedValueOnce(
         createMockResponse({

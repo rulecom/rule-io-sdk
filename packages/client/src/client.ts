@@ -1110,8 +1110,20 @@ export class RuleClient {
 
     const existing = await this.getAutomation(id);
 
-    if (!existing?.data) {
+    // getAutomation() returns null only on HTTP 404 — anything else with
+    // missing `data` is a malformed/error envelope on a 2xx response, and
+    // we should surface that distinctly instead of remapping to 404.
+    if (existing === null) {
       throw new RuleApiError(`Automation ${id} not found`, 404);
+    }
+
+    if (!existing.data) {
+      const detail = existing.error ?? existing.message ?? 'response had no data';
+
+      throw new RuleApiError(
+        `Cannot update automation ${id}: unexpected response from getAutomation (${detail})`,
+        500
+      );
     }
 
     const current = existing.data;
