@@ -2673,7 +2673,7 @@ export class RuleClient {
     }
 
     // The /analytics endpoint rejects any datetime form (e.g. ISO-8601 or
-    // space-separated `YYYY-MM-DD hh:mm:ss`) and accepts only bare dates,
+    // space-separated `YYYY-MM-DD HH:mm:ss`) and accepts only bare dates,
     // even though sibling v3 endpoints (e.g. exportStatistics) accept both.
     // Strip any time portion so consumers using a shared date normalizer
     // don't have to special-case this endpoint.

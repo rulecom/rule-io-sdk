@@ -1015,9 +1015,9 @@ export type RuleAnalyticsMessageType = 'email' | 'text_message';
 /**
  * Base date range shared by all analytics queries.
  *
- * Dates may be passed as bare `YYYY-MM-DD` or as a datetime string in
- * space-separated (`YYYY-MM-DD hh:mm:ss`) or ISO-8601 form
- * (`YYYY-MM-DDThh:mm:ss[Z|±hh:mm]`). The SDK strips any time portion before
+ * Dates may be passed as bare `YYYY-MM-DD` or as a 24-hour datetime string
+ * in space-separated (`YYYY-MM-DD HH:mm:ss`) or ISO-8601 form
+ * (`YYYY-MM-DDTHH:mm:ss[Z|±HH:mm]`). The SDK strips any time portion before
  * sending, since the analytics endpoint only accepts bare dates.
  */
 export interface RuleAnalyticsDateRange {
