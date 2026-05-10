@@ -189,7 +189,7 @@ describe('findTemplateOwner', () => {
   it('continues past a listMessages failure and records a partial_error', async () => {
     const errors = new Map<string, Error>();
 
-    errors.set('campaign:11', new RuleApiError('boom', 500, undefined as never, undefined as never));
+    errors.set('campaign:11', new RuleApiError('boom', 500));
     const client = buildClient({
       campaignsPages: [[
         { id: 11, name: 'Broken', messages: [] },
@@ -313,6 +313,42 @@ describe('findTemplateOwner', () => {
     expect(peakInFlight).toBeGreaterThanOrEqual(2);
   });
 
+  it('short-circuits mid-page: when an early dispatcher matches, sibling probes do not all fire', async () => {
+    // Page of 10 dispatchers, dispatcher 1 matches. With concurrency=3 the
+    // worker pool starts indices 0,1,2 in parallel. Worker 0 finds the
+    // match and aborts. Workers 1,2 may already be mid-listMessages, but
+    // workers 3-9 must never start. So total listMessages calls ≤ 3.
+    const client = new RuleClient('test-key');
+    const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
+
+    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    let listMessagesCalls = 0;
+
+    vi.spyOn(client, 'listMessages').mockImplementation(async ({ id }) => {
+      listMessagesCalls += 1;
+      // Tiny delay so workers actually overlap.
+      await new Promise((r) => setTimeout(r, 5));
+
+      // First dispatcher has the matching message; rest don't.
+      if (id === 1) return { data: [{ id: 101, subject: 's', name: 'm' }] } as never;
+
+      return { data: [] } as never;
+    });
+    vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
+      data: [{ id: 1, message_id: 101, template_id: 42 }],
+    } as never);
+
+    const result = await findTemplateOwner(client, 42, { concurrency: 3 });
+
+    expect(result.owner?.id).toBe(1);
+    // The exact count depends on scheduling, but it must be < 10 (full page)
+    // and ≤ concurrency since at most `concurrency` workers can be in-flight
+    // when the match aborts the rest.
+    expect(listMessagesCalls).toBeLessThanOrEqual(3);
+    expect(listMessagesCalls).toBeGreaterThanOrEqual(1);
+  });
+
   it('respects the concurrency cap', async () => {
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
@@ -392,7 +428,7 @@ describe('findTemplateOwner', () => {
     const client = new RuleClient('test-key');
 
     vi.spyOn(client, 'listCampaigns').mockRejectedValue(
-      new RuleApiError('forbidden', 403, undefined as never, undefined as never)
+      new RuleApiError('forbidden', 403)
     );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     vi.spyOn(client, 'listMessages').mockResolvedValue({ data: [] } as never);

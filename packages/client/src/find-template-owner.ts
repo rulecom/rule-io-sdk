@@ -247,23 +247,27 @@ async function scanDispatcherKind(
 
     if (dispatchers.length === 0) break;
 
-    // Probe each dispatcher in parallel (with concurrency cap).
+    // Probe each dispatcher in parallel (with concurrency cap). The signal
+    // lets workers stop claiming new dispatchers as soon as any probe finds
+    // a match (probeDispatcher itself triggers the abort on hit), so a match
+    // on dispatcher 1 of a page of 100 doesn't burn API calls on 2-100.
     const probes = await runWithConcurrency(
       dispatchers,
       (d) => probeDispatcher(client, kind, d, templateId, partialErrors, internalAbort),
-      concurrency
+      concurrency,
+      internalAbort.signal
     );
 
     for (const dispatcher of dispatchers) {
       if (dispatcher.id != null) scanned += 1;
     }
 
-    // First match in document order wins. Once found, abort to halt any
-    // not-yet-started inner work in subsequent pages.
+    // First non-null result is the match; document order is preserved by
+    // runWithConcurrency. probeDispatcher already aborted on match, so any
+    // sibling probes mid-flight will have returned null on their next check.
     for (const candidate of probes) {
       if (candidate) {
         match = candidate;
-        internalAbort.abort();
         break;
       }
     }
@@ -344,6 +348,12 @@ async function probeDispatcher(
     }
 
     if (templateIdForMessage === templateId) {
+      // Abort eagerly so sibling workers in the current page stop claiming
+      // new dispatchers — preserves the "short-circuit on first match"
+      // promise. In-flight HTTP calls can't be cancelled (the SDK doesn't
+      // wire a signal through fetch yet), but their results are dropped.
+      internalAbort.abort();
+
       return toOwner(kind, dispatcher, dispatcherId, message, message.id);
     }
   }
@@ -424,19 +434,25 @@ function toErrorFields(error: unknown): { error: string; status_code?: number } 
 /**
  * Concurrency-limited map. Preserves input order in the output array.
  * Errors thrown by `fn` propagate (caller must handle them inside `fn`).
+ *
+ * If `signal` is provided, workers stop claiming new indices as soon as
+ * the signal aborts. Slots for not-yet-claimed indices are populated with
+ * `null`, so the output array length always matches the input.
  */
 async function runWithConcurrency<T, R>(
   items: readonly T[],
-  fn: (item: T) => Promise<R>,
-  concurrency: number
-): Promise<R[]> {
+  fn: (item: T) => Promise<R | null>,
+  concurrency: number,
+  signal?: AbortSignal
+): Promise<(R | null)[]> {
   if (items.length === 0) return [];
 
-  const results: R[] = new Array(items.length);
+  const results: (R | null)[] = new Array(items.length).fill(null);
   let nextIndex = 0;
 
   async function worker(): Promise<void> {
     while (true) {
+      if (signal?.aborted) return;
       const idx = nextIndex;
 
       nextIndex += 1;
