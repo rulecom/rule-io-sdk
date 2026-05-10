@@ -44,6 +44,7 @@ import type {
   RuleAutomationCreateRequest,
   RuleAutomationUpdateRequest,
   RuleAutomationResponse,
+  RuleSendoutType,
   RuleAutomationListParams,
   RuleAutomationListResponse,
   RuleMessageCreateRequest,
@@ -1047,14 +1048,24 @@ export class RuleClient {
   }
 
   /**
-   * Update an automation. Supports partial updates — only include the fields
-   * you want to change.
+   * Update an automation. Accepts a partial input — any field omitted is
+   * preserved from the current automation.
+   *
+   * IMPORTANT: Rule.io's `PUT /editor/automail/{id}` rejects partial bodies —
+   * it requires `name`, `active`, `trigger`, and `sendout_type` together.
+   * This method performs read-modify-write internally so callers can pass only
+   * the fields they want to change. When the input already includes all four
+   * required fields, the GET is skipped and the PUT runs directly.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
    * The API error messages incorrectly suggest lowercase, but uppercase is required.
    *
    * @param id - Automation ID
    * @param update - Partial update request (all fields optional)
+   * @throws RuleApiError(404) if no automation exists with the given id
+   * @throws RuleConfigError if the existing automation lacks `trigger`,
+   *   `sendout_type`, or `active` and the update does not provide one (the
+   *   PUT body would be incomplete and the API would reject it)
    *
    * @example
    * ```typescript
@@ -1074,9 +1085,109 @@ export class RuleClient {
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
+    // Coerce sendout_type to its numeric request form, accepting either the
+    // numeric value or the response wrapper `{ value, key, description }`.
+    // A consumer round-tripping a getAutomation() response into update can
+    // legitimately pass the object form; both paths must handle it.
+    const toNumericSendout = (
+      v: unknown
+    ): RuleSendoutType | undefined => {
+      if (typeof v === 'number') return v as RuleSendoutType;
+
+      if (v != null && typeof v === 'object' && 'value' in v) {
+        const val = (v as { value: unknown }).value;
+
+        if (typeof val === 'number') return val as RuleSendoutType;
+      }
+
+      return undefined;
+    };
+
+    const updateSendout = toNumericSendout(update.sendout_type);
+
+    // Fast path: when the caller already supplies every field the API requires,
+    // skip the read and PUT directly. Saves one round-trip for full-body
+    // updates like clone-email and the deploy CLIs once they pass full bodies.
+    // Guard with `!= null` (not `!== undefined`) so a JS caller passing
+    // `{ trigger: null }` falls through to the slow path's nullish handling
+    // instead of sending a `null` field straight to the API. `sendout_type`
+    // accepts either form (number or response-wrapper object) — it was
+    // coerced to a number by `toNumericSendout` above, and the coerced
+    // value is what we PUT.
+    if (
+      update.name != null &&
+      update.active != null &&
+      update.trigger != null &&
+      updateSendout != null
+    ) {
+      return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: update.name,
+          active: update.active,
+          trigger: update.trigger,
+          sendout_type: updateSendout,
+        }),
+      });
+    }
+
+    const existing = await this.getAutomation(id);
+
+    // getAutomation() returns null only on HTTP 404 — anything else with
+    // missing `data` is a malformed/error envelope on a 2xx response, and
+    // we should surface that distinctly instead of remapping to 404.
+    if (existing === null) {
+      throw new RuleApiError(`Automation ${id} not found`, 404);
+    }
+
+    if (!existing.data) {
+      const detail = existing.error ?? existing.message ?? 'response had no data';
+
+      throw new RuleApiError(
+        `Cannot update automation ${id}: unexpected response from getAutomation (${detail})`,
+        500
+      );
+    }
+
+    const current = existing.data;
+
+    const currentSendout = toNumericSendout(current.sendout_type);
+
+    const trigger = update.trigger ?? current.trigger;
+    const sendoutType = updateSendout ?? currentSendout;
+    // Don't fall back to a boolean default for `active` — the API requires it
+    // in the PUT body, and silently defaulting to `false` could deactivate an
+    // automation when the caller only meant to rename it.
+    const active = update.active ?? current.active;
+
+    if (!trigger) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no trigger and update did not provide one`
+      );
+    }
+
+    if (sendoutType == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no sendout_type and update did not provide one`
+      );
+    }
+
+    if (active == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no active state and update did not provide one`
+      );
+    }
+
+    const fullBody: RuleAutomationUpdateRequest = {
+      name: update.name ?? current.name,
+      active,
+      trigger,
+      sendout_type: sendoutType,
+    };
+
     return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(update),
+      body: JSON.stringify(fullBody),
     });
   }
 
@@ -2590,9 +2701,16 @@ export class RuleClient {
       metrics = params.metrics;
     }
 
+    // The /analytics endpoint rejects any datetime form (e.g. ISO-8601 or
+    // space-separated `YYYY-MM-DD HH:mm:ss`) and accepts only bare dates,
+    // even though sibling v3 endpoints (e.g. exportStatistics) accept both.
+    // Strip any time portion so consumers using a shared date normalizer
+    // don't have to special-case this endpoint.
+    const stripTime = (d: string): string => d.split(/[ T]/)[0];
+
     const qs = RuleClient.buildQueryString({
-      date_from: params.date_from,
-      date_to: params.date_to,
+      date_from: stripTime(params.date_from),
+      date_to: stripTime(params.date_to),
       object_type: objectType,
       'object_ids[]': objectIds,
       'metrics[]': metrics,
