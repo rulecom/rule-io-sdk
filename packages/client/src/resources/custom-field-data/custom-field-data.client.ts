@@ -1,0 +1,146 @@
+/**
+ * Custom-field-data namespace client.
+ *
+ * Wraps the v3 `/custom-field-data/*` endpoints. The Custom Field Data API
+ * is **deprecated by Rule.io** but remains available for back-compat with
+ * existing consumers (e.g. CLI deploy commands).
+ */
+
+import { RuleApiError } from '@rule-io/core';
+
+import { BaseResource } from '../../core/base-resource.js';
+import { buildQueryString } from '../../core/query-string.js';
+import type { RuleApiResponse } from '../../shared.types.js';
+
+import type {
+  RuleCustomFieldDataCreateRequest,
+  RuleCustomFieldDataGroupParams,
+  RuleCustomFieldDataListParams,
+  RuleCustomFieldDataResponse,
+  RuleCustomFieldDataSearchParams,
+  RuleCustomFieldDataSingleResponse,
+  RuleCustomFieldDataUpdateRequest,
+} from './custom-field-data.types.js';
+
+export class CustomFieldDataClient extends BaseResource {
+  /**
+   * Get custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  list(
+    subscriberId: number,
+    params?: RuleCustomFieldDataListParams
+  ): Promise<RuleCustomFieldDataResponse> {
+    const qs = params
+      ? buildQueryString({
+          page: params.page,
+          per_page: params.per_page,
+          'groups_id[]': params.groups_id,
+          'groups_name[]': params.groups_name,
+        })
+      : '';
+
+    return this.transport.get<RuleCustomFieldDataResponse>(
+      `/custom-field-data/${subscriberId}${qs}`
+    );
+  }
+
+  /**
+   * Create custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  create(
+    subscriberId: number,
+    request: RuleCustomFieldDataCreateRequest
+  ): Promise<RuleApiResponse> {
+    return this.transport.post<RuleApiResponse>(
+      `/custom-field-data/${subscriberId}`,
+      { body: JSON.stringify(request) }
+    );
+  }
+
+  /**
+   * Update custom field data for a subscriber.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  async update(
+    subscriberId: number,
+    request: RuleCustomFieldDataUpdateRequest
+  ): Promise<RuleApiResponse> {
+    await this.transport.fetchRaw('PUT', `/custom-field-data/${subscriberId}`, {
+      body: JSON.stringify(request),
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Get custom field data for a subscriber filtered by group.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  listByGroup(
+    subscriberId: number,
+    group: number | string,
+    params?: RuleCustomFieldDataGroupParams
+  ): Promise<RuleCustomFieldDataResponse> {
+    const qs = params
+      ? buildQueryString({
+          page: params.page,
+          per_page: params.per_page,
+          'fields[]': params.fields,
+        })
+      : '';
+
+    return this.transport.get<RuleCustomFieldDataResponse>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`
+    );
+  }
+
+  /**
+   * Delete all custom field data for a subscriber in a specific group.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  deleteByGroup(
+    subscriberId: number,
+    group: number | string
+  ): Promise<RuleApiResponse> {
+    return this.transport.delete<RuleApiResponse>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}`
+    );
+  }
+
+  /**
+   * Search custom field data for a subscriber by identifier. Returns null
+   * on 404.
+   *
+   * @deprecated Custom Field Data API is deprecated by Rule.io.
+   */
+  async search(
+    subscriberId: number,
+    params: RuleCustomFieldDataSearchParams
+  ): Promise<RuleCustomFieldDataSingleResponse | null> {
+    const qs = buildQueryString({
+      data_id: params.data_id,
+      group: params.group,
+      field: params.field,
+      value: params.value,
+    });
+
+    try {
+      return await this.transport.get<RuleCustomFieldDataSingleResponse>(
+        `/custom-field-data/${subscriberId}/search${qs}`
+      );
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+}

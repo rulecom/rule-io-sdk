@@ -13,8 +13,8 @@ import {
   applyTheme,
 } from '@rule-io/rcml';
 
-import { emailThemeFromBrandStyle } from '../src/index.js';
-import type { RuleBrandStyle } from '../src/index.js';
+import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
+import type { RuleBrandStyle } from './types.js';
 
 const NOW = '2026-04-30T00:00:00Z';
 
