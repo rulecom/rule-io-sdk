@@ -23,15 +23,14 @@ describe('SubscribersClient', () => {
     fetchMock = createMockFetch();
   });
 
-  // ── v2 sync ────────────────────────────────────────────────────────────────
+  // ── v3 sync ────────────────────────────────────────────────────────────────
   describe('sync', () => {
-    it('posts to v2 /subscribers with prefixed fields and the provided tags', async () => {
+    it('POSTs to v3 /subscribers, then writes fields and tags in parallel', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          success: true,
-          subscriber: { id: '123', email: 'test@example.com' },
-        })
+        createMockResponse({ id: 123, email: 'test@example.com' })
       );
+      fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+      fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
 
       const result = await client.sync({
@@ -41,23 +40,42 @@ describe('SubscribersClient', () => {
       }, 'Booking');
 
       expect(result.success).toBe(true);
-      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(fetchMock.mock.calls).toHaveLength(3);
 
-      expect(url).toBe('https://app.rule.io/api/v2/subscribers');
-      expect((init as RequestInit).method).toBe('POST');
-      const body = JSON.parse((init as RequestInit).body as string);
+      // Call 1: POST /v3/subscribers
+      const [url1, init1] = fetchMock.mock.calls[0]!;
 
-      expect(body.update_on_duplicate).toBe(true);
-      expect(body.tags).toEqual(['booking-confirmed']);
-      expect(body.subscribers.email).toBe('test@example.com');
-      expect(body.subscribers.fields).toContainEqual({
-        key: 'Booking.FirstName',
-        value: 'Anna',
+      expect(url1).toBe('https://app.rule.io/api/v3/subscribers');
+      expect((init1 as RequestInit).method).toBe('POST');
+      expect(JSON.parse((init1 as RequestInit).body as string)).toEqual({
+        email: 'test@example.com',
       });
+
+      // Call 2: POST /v3/custom-field-data/123
+      const [url2, init2] = fetchMock.mock.calls[1]!;
+
+      expect(url2).toBe('https://app.rule.io/api/v3/custom-field-data/123');
+      expect((init2 as RequestInit).method).toBe('POST');
+      const fieldBody = JSON.parse((init2 as RequestInit).body as string);
+
+      expect(fieldBody.groups[0].group).toBe('Booking');
+      expect(fieldBody.groups[0].values).toContainEqual({ field: 'FirstName', value: 'Anna' });
+      expect(fieldBody.groups[0].values).toContainEqual({ field: 'LastName', value: 'Svensson' });
+
+      // Call 3: PUT /v3/subscribers/{email}/tags
+      const [url3, init3] = fetchMock.mock.calls[2]!;
+
+      expect(url3).toBe(
+        'https://app.rule.io/api/v3/subscribers/test%40example.com/tags?identified_by=email'
+      );
+      expect((init3 as RequestInit).method).toBe('PUT');
+      expect(JSON.parse((init3 as RequestInit).body as string).tags).toEqual(['booking-confirmed']);
     });
 
     it('filters out undefined and empty-string fields', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 200, email: 'test@example.com' }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+      fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
 
       await client.sync({
@@ -66,16 +84,18 @@ describe('SubscribersClient', () => {
         tags: ['test'],
       }, 'Booking');
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
-      const fieldKeys = body.subscribers.fields.map((f: { key: string }) => f.key);
+      const fieldBody = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
+      const fieldNames = fieldBody.groups[0].values.map((f: { field: string }) => f.field);
 
-      expect(fieldKeys).toContain('Booking.FirstName');
-      expect(fieldKeys).not.toContain('Booking.LastName');
-      expect(fieldKeys).not.toContain('Booking.Phone');
+      expect(fieldNames).toContain('FirstName');
+      expect(fieldNames).not.toContain('LastName');
+      expect(fieldNames).not.toContain('Phone');
     });
 
-    it('uses the provided prefix for every field key', async () => {
+    it('uses the provided prefix as the group name', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 300, email: 'test@example.com' }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+      fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
 
       await client.sync({
@@ -84,12 +104,32 @@ describe('SubscribersClient', () => {
         tags: ['test'],
       }, 'Order');
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      const fieldBody = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
 
-      expect(body.subscribers.fields).toContainEqual({
-        key: 'Order.Ref',
-        value: 'ORD-123',
-      });
+      expect(fieldBody.groups[0].group).toBe('Order');
+      expect(fieldBody.groups[0].values).toContainEqual({ field: 'Ref', value: 'ORD-123' });
+    });
+
+    it('falls back to v2 GET when v3 subscriber create fails', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Duplicate' }, 422));
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '999', email: 'test@example.com' } })
+      );
+      fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.sync({
+        email: 'test@example.com',
+        fields: { FirstName: 'Anna' },
+        tags: ['test'],
+      }, 'Booking');
+
+      expect(result.success).toBe(true);
+      expect(fetchMock.mock.calls).toHaveLength(4);
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/subscribers');
+      expect(fetchMock.mock.calls[1]![0]).toMatch(/\/api\/v2\/subscribers\//);
+      expect(fetchMock.mock.calls[2]![0]).toBe('https://app.rule.io/api/v3/custom-field-data/999');
     });
 
     it('throws RuleConfigError when a field key contains a dot', async () => {
@@ -124,14 +164,16 @@ describe('SubscribersClient', () => {
     });
 
     it('trims whitespace from fieldGroupPrefix', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 400, email: 'test@example.com' }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
       await client.sync({ email: 'test@example.com', fields: { Ref: '1' } }, '  Booking  ');
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      const fieldBody = JSON.parse(fetchMock.mock.calls[1]![1]!.body as string);
 
-      expect(body.subscribers.fields).toContainEqual({ key: 'Booking.Ref', value: '1' });
+      expect(fieldBody.groups[0].group).toBe('Booking');
+      expect(fieldBody.groups[0].values).toContainEqual({ field: 'Ref', value: '1' });
     });
   });
 

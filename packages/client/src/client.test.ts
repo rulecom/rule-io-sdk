@@ -207,7 +207,8 @@ describe('RuleClient — deprecated-alias delegation', () => {
     const client = makeClient(fetchMock);
     const spy = vi.spyOn(client.subscribers, 'sync');
 
-    fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+    fetchMock.mockResolvedValueOnce(createMockResponse({ id: 1, email: 'a@b.c' }));
+    fetchMock.mockResolvedValueOnce(createMock204Response());
     await client.syncSubscriber({ email: 'a@b.c', tags: ['t'] }, 'Booking');
 
     expect(spy).toHaveBeenCalledTimes(1);

@@ -260,7 +260,7 @@ export class RuleClient extends BaseResource {
   // ── Subscribers — v2 ──────────────────────────────────────────────────────
 
   /** @deprecated Use `client.subscribers.sync()` instead. */
-  syncSubscriber(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleSubscriberResponse> {
+  syncSubscriber(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleApiResponse> {
     return this.subscribers.sync(subscriber, fieldGroupPrefix);
   }
 

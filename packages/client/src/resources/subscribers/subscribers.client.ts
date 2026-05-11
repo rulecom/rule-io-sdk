@@ -257,20 +257,26 @@ export class SubscribersClient extends BaseResource {
     return { success: true };
   }
 
-  // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
-
   /**
-   * Create or update a subscriber via the v2 `/subscribers` endpoint.
+   * Create or update a subscriber via the v3 API, writing custom field data
+   * and assigning tags in a single logical operation.
    *
-   * `fieldGroupPrefix` is prepended to every field key before the request is
-   * sent (e.g. `{ FirstName: 'Anna' }` → `{ key: 'Booking.FirstName', value: 'Anna' }`).
+   * Internally makes up to three v3 requests:
+   * 1. `POST /subscribers` — create subscriber (or fetch numeric id if they
+   *    already exist).
+   * 2. `POST /custom-field-data/{id}` — write field values (skipped when
+   *    `subscriber.fields` is empty).
+   * 3. `PUT /subscribers/{email}/tags` — assign tags (skipped when
+   *    `subscriber.tags` is empty).
+   *
+   * Requests 2 and 3 are issued in parallel once the subscriber id is known.
    *
    * @param subscriber - Subscriber data including email, fields, and tags.
    *   Field keys must be bare names — the SDK adds the group prefix
    *   automatically.
    * @param fieldGroupPrefix - Group prefix for custom fields (e.g. `'Booking'`).
    *   Must be non-empty and must not contain dots.
-   * @returns API response with subscriber data.
+   * @returns A success response.
    * @throws {RuleConfigError} If `fieldGroupPrefix` is empty or contains a dot,
    *   or if any field key already contains a dot.
    *
@@ -283,7 +289,7 @@ export class SubscribersClient extends BaseResource {
    * }, 'Booking');
    * ```
    */
-  async sync(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleSubscriberResponse> {
+  async sync(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleApiResponse> {
     const prefix = fieldGroupPrefix.trim();
 
     if (!prefix) {
@@ -304,28 +310,60 @@ export class SubscribersClient extends BaseResource {
       }
     }
 
+    // Step 1: ensure subscriber exists and obtain their numeric id.
+    // POST /v3/subscribers creates the subscriber if new (returns id).
+    // On any API error (the exact code for "already exists" is undocumented),
+    // fall back to the v2 GET to retrieve the id of the existing subscriber.
+    let subscriberId: number | undefined;
+
+    try {
+      const created = await this.transport.post<RuleSubscriberV3Response>('/subscribers', {
+        body: JSON.stringify({ email: subscriber.email }),
+      });
+
+      subscriberId = created.id;
+    } catch (error) {
+      if (error instanceof RuleApiError) {
+        const existing = await this.get(subscriber.email);
+
+        if (existing?.subscriber?.id) {
+          subscriberId = parseInt(existing.subscriber.id, 10);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
+
+    if (subscriberId === undefined) {
+      throw new RuleApiError('v3 POST /subscribers returned no id', 0);
+    }
+
+    // Steps 2 & 3: write custom fields and assign tags in parallel.
+    const ops: Promise<unknown>[] = [];
+
     const fields = subscriber.fields
       ? Object.entries(subscriber.fields)
           .filter(([, value]) => value !== undefined && value !== '')
-          .map(([key, value]) => ({
-            key: `${prefix}.${key}`,
-            value: String(value),
-          }))
+          .map(([key, value]) => ({ field: key, value: String(value) }))
       : [];
 
-    const payload = {
-      update_on_duplicate: true,
-      tags: subscriber.tags || [],
-      subscribers: {
-        email: subscriber.email,
-        fields,
-      },
-    };
+    if (fields.length > 0) {
+      ops.push(
+        this.transport.post<RuleApiResponse>(`/custom-field-data/${subscriberId}`, {
+          body: JSON.stringify({ groups: [{ group: prefix, values: fields }] }),
+        })
+      );
+    }
 
-    return this.transport.post<RuleSubscriberResponse>('/subscribers', {
-      version: 'v2',
-      body: JSON.stringify(payload),
-    });
+    if (subscriber.tags?.length) {
+      ops.push(this.addTags(subscriber.email, { tags: subscriber.tags }));
+    }
+
+    await Promise.all(ops);
+
+    return { success: true };
   }
 
   /**
@@ -349,6 +387,8 @@ export class SubscribersClient extends BaseResource {
       throw error;
     }
   }
+
+  // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
 
   /**
    * Get a subscriber's custom-field values, flattened to a `Group.Field` map.
