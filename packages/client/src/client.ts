@@ -165,7 +165,7 @@ type V2SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identi
  *
  * // Flat API (deprecated, kept for back-compat):
  * await client.createAutomation({ name: 'Welcome' });
- * await client.syncSubscriber({ email: 'a@b.c', tags: ['Newsletter'] });
+ * await client.syncSubscriber({ email: 'a@b.c', tags: ['Newsletter'] }, 'Booking');
  * ```
  */
 export class RuleClient extends BaseResource {
@@ -188,7 +188,7 @@ export class RuleClient extends BaseResource {
   get subscribers(): SubscribersClient {
     return this.lazy(
       'subscribers',
-      () => new SubscribersClient(this.transport, this.resolvedConfig.fieldGroupPrefix)
+      () => new SubscribersClient(this.transport)
     );
   }
 
@@ -260,8 +260,8 @@ export class RuleClient extends BaseResource {
   // ── Subscribers — v2 ──────────────────────────────────────────────────────
 
   /** @deprecated Use `client.subscribers.sync()` instead. */
-  syncSubscriber(subscriber: RuleSubscriber): Promise<RuleSubscriberResponse> {
-    return this.subscribers.sync(subscriber);
+  syncSubscriber(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleSubscriberResponse> {
+    return this.subscribers.sync(subscriber, fieldGroupPrefix);
   }
 
   /** @deprecated Use `client.subscribers.get()` instead. */

@@ -208,10 +208,11 @@ describe('RuleClient — deprecated-alias delegation', () => {
     const spy = vi.spyOn(client.subscribers, 'sync');
 
     fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
-    await client.syncSubscriber({ email: 'a@b.c', tags: ['t'] });
+    await client.syncSubscriber({ email: 'a@b.c', tags: ['t'] }, 'Booking');
 
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0]![0]).toEqual({ email: 'a@b.c', tags: ['t'] });
+    expect(spy.mock.calls[0]![1]).toBe('Booking');
   });
 
   it('getAnalytics delegates to analytics.get', async () => {

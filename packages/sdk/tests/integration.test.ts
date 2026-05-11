@@ -133,7 +133,7 @@ describe.skipIf(!runIntegration)('Integration: Live Rule.io API', { timeout: 30_
           LastName: 'Test',
         },
         tags: [`${RUN_ID}`],
-      });
+      }, 'Booking');
 
       expect(result).toBeDefined();
 

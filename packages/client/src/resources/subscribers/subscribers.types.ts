@@ -12,9 +12,9 @@ import type { RuleApiResponse } from '../../shared.types.js';
 /**
  * Subscriber fields to sync to Rule.io.
  *
- * Keys are field names (e.g., 'FirstName', 'OrderRef').
- * The client prepends the configured `fieldGroupPrefix` (default: 'Booking')
- * to create the full Rule.io field key (e.g., 'Booking.FirstName').
+ * Keys are bare field names (e.g., 'FirstName', 'OrderRef'). The
+ * `fieldGroupPrefix` passed to `sync()` is prepended to form the full
+ * Rule.io key (e.g., 'Booking.FirstName').
  */
 export interface RuleSubscriberFields {
   [key: string]: string | number | undefined;

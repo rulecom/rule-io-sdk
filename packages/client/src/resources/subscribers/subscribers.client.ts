@@ -11,7 +11,6 @@
 import { RuleApiError, RuleConfigError } from '@rule-io/core';
 
 import { BaseResource } from '../../core/base-resource.js';
-import type { HttpTransport } from '../../core/transport.js';
 import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
@@ -29,13 +28,6 @@ import type {
 export type SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
 
 export class SubscribersClient extends BaseResource {
-  constructor(
-    transport: HttpTransport,
-    private readonly fieldGroupPrefix: string
-  ) {
-    super(transport);
-  }
-
   // ── v3 endpoints (primary API) ─────────────────────────────────────────────
 
   /**
@@ -270,15 +262,17 @@ export class SubscribersClient extends BaseResource {
   /**
    * Create or update a subscriber via the v2 `/subscribers` endpoint.
    *
-   * The configured `fieldGroupPrefix` is prepended to every field key before
-   * the request is sent (e.g. `{ FirstName: 'Anna' }` →
-   * `{ key: 'Booking.FirstName', value: 'Anna' }`).
+   * `fieldGroupPrefix` is prepended to every field key before the request is
+   * sent (e.g. `{ FirstName: 'Anna' }` → `{ key: 'Booking.FirstName', value: 'Anna' }`).
    *
    * @param subscriber - Subscriber data including email, fields, and tags.
    *   Field keys must be bare names — the SDK adds the group prefix
    *   automatically.
+   * @param fieldGroupPrefix - Group prefix for custom fields (e.g. `'Booking'`).
+   *   Must be non-empty and must not contain dots.
    * @returns API response with subscriber data.
-   * @throws {RuleConfigError} If any field key already contains a dot.
+   * @throws {RuleConfigError} If `fieldGroupPrefix` is empty or contains a dot,
+   *   or if any field key already contains a dot.
    *
    * @example
    * ```typescript
@@ -286,10 +280,20 @@ export class SubscribersClient extends BaseResource {
    *   email: 'customer@example.com',
    *   fields: { FirstName: 'Anna', OrderRef: 'ORD-456' },
    *   tags: ['OrderCompleted', 'Newsletter'],
-   * });
+   * }, 'Booking');
    * ```
    */
-  async sync(subscriber: RuleSubscriber): Promise<RuleSubscriberResponse> {
+  async sync(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleSubscriberResponse> {
+    const prefix = fieldGroupPrefix.trim();
+
+    if (!prefix) {
+      throw new RuleConfigError('fieldGroupPrefix must not be empty');
+    }
+
+    if (prefix.includes('.')) {
+      throw new RuleConfigError('fieldGroupPrefix must not contain dots');
+    }
+
     if (subscriber.fields) {
       const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
 
@@ -304,7 +308,7 @@ export class SubscribersClient extends BaseResource {
       ? Object.entries(subscriber.fields)
           .filter(([, value]) => value !== undefined && value !== '')
           .map(([key, value]) => ({
-            key: `${this.fieldGroupPrefix}.${key}`,
+            key: `${prefix}.${key}`,
             value: String(value),
           }))
       : [];

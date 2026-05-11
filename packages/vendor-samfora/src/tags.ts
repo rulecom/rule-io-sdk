@@ -20,7 +20,7 @@ import type { VendorTagSchema } from '@rule-io/core';
  * await client.syncSubscriber({
  *   email: 'donor@example.com',
  *   tags: [SAMFORA_TAGS.donationReceived, SAMFORA_TAGS.donorFirstGift],
- * });
+ * }, 'Donation');
  * ```
  */
 export const SAMFORA_TAGS = {

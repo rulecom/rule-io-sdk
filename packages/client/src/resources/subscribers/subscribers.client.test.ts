@@ -12,8 +12,8 @@ import {
 } from '../../core/mock-fetch.js';
 import { SubscribersClient } from './subscribers.client.js';
 
-function createClient(fetchMock: MockFetch, prefix = 'Booking'): SubscribersClient {
-  return new SubscribersClient(createMockTransport(fetchMock), prefix);
+function createClient(fetchMock: MockFetch): SubscribersClient {
+  return new SubscribersClient(createMockTransport(fetchMock));
 }
 
 describe('SubscribersClient', () => {
@@ -38,7 +38,7 @@ describe('SubscribersClient', () => {
         email: 'test@example.com',
         fields: { FirstName: 'Anna', LastName: 'Svensson' },
         tags: ['booking-confirmed'],
-      });
+      }, 'Booking');
 
       expect(result.success).toBe(true);
       const [url, init] = fetchMock.mock.calls[0]!;
@@ -64,7 +64,7 @@ describe('SubscribersClient', () => {
         email: 'test@example.com',
         fields: { FirstName: 'Anna', LastName: undefined, Phone: '' },
         tags: ['test'],
-      });
+      }, 'Booking');
 
       const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
       const fieldKeys = body.subscribers.fields.map((f: { key: string }) => f.key);
@@ -74,15 +74,15 @@ describe('SubscribersClient', () => {
       expect(fieldKeys).not.toContain('Booking.Phone');
     });
 
-    it('uses the configured prefix for every field key', async () => {
+    it('uses the provided prefix for every field key', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
-      const client = createClient(fetchMock, 'Order');
+      const client = createClient(fetchMock);
 
       await client.sync({
         email: 'test@example.com',
         fields: { Ref: 'ORD-123' },
         tags: ['test'],
-      });
+      }, 'Order');
 
       const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
 
@@ -100,9 +100,38 @@ describe('SubscribersClient', () => {
           email: 'test@example.com',
           fields: { 'Booking.FirstName': 'Anna' },
           tags: ['test'],
-        })
+        }, 'Booking')
       ).rejects.toThrow(RuleConfigError);
       expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('throws RuleConfigError when fieldGroupPrefix is empty', async () => {
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.sync({ email: 'test@example.com' }, '')
+      ).rejects.toThrow(RuleConfigError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('throws RuleConfigError when fieldGroupPrefix contains a dot', async () => {
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.sync({ email: 'test@example.com' }, 'A.B')
+      ).rejects.toThrow(RuleConfigError);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('trims whitespace from fieldGroupPrefix', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+      const client = createClient(fetchMock);
+
+      await client.sync({ email: 'test@example.com', fields: { Ref: '1' } }, '  Booking  ');
+
+      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+
+      expect(body.subscribers.fields).toContainEqual({ key: 'Booking.Ref', value: '1' });
     });
   });
 

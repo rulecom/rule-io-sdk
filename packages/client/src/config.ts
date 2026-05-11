@@ -19,11 +19,6 @@ export interface RuleClientConfig {
   fetch?: typeof fetch;
   /** Enable debug logging. */
   debug?: boolean;
-  /**
-   * Group prefix for subscriber custom fields (default: 'Booking').
-   * Fields are sent as `{prefix}.{fieldName}` (e.g., 'Booking.FirstName').
-   */
-  fieldGroupPrefix?: string;
 }
 
 /** Fully-resolved configuration with every default applied. */
@@ -33,16 +28,13 @@ export interface ResolvedClientConfig {
   baseUrlV3: string;
   fetch: typeof fetch;
   debug: boolean;
-  fieldGroupPrefix: string;
 }
 
 /**
  * Apply defaults and validate configuration. Accepts a string for the
  * historical "just an API key" constructor form.
  *
- * Throws {@link RuleConfigError} if `apiKey` is empty, or `fieldGroupPrefix`
- * is empty after trimming, or contains a dot (since dots are the separator
- * between group and field name in the v2 subscriber API).
+ * Throws {@link RuleConfigError} if `apiKey` is empty.
  */
 export function resolveConfig(input: RuleClientConfig | string): ResolvedClientConfig {
   const config: RuleClientConfig =
@@ -52,22 +44,11 @@ export function resolveConfig(input: RuleClientConfig | string): ResolvedClientC
     throw new RuleConfigError('API key is required');
   }
 
-  const fieldGroupPrefix = (config.fieldGroupPrefix ?? 'Booking').trim();
-
-  if (!fieldGroupPrefix) {
-    throw new RuleConfigError('fieldGroupPrefix must not be empty');
-  }
-
-  if (fieldGroupPrefix.includes('.')) {
-    throw new RuleConfigError('fieldGroupPrefix must not contain dots');
-  }
-
   return {
     apiKey: config.apiKey,
     baseUrlV2: config.baseUrlV2 ?? RULE_API_V2_BASE_URL,
     baseUrlV3: config.baseUrlV3 ?? RULE_API_V3_BASE_URL,
     fetch: config.fetch ?? globalThis.fetch,
     debug: config.debug ?? false,
-    fieldGroupPrefix,
   };
 }
