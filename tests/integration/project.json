@@ -1,0 +1,16 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "integration",
+  "projectType": "application",
+  "sourceRoot": "tests/integration/src",
+  "tags": ["scope:testing", "type:integration"],
+  "targets": {
+    "test": {
+      "executor": "@nx/vitest:test",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "reportsDirectory": "../../coverage/tests/integration"
+      }
+    }
+  }
+}
