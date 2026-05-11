@@ -13,7 +13,20 @@ import type {
 } from '../recipients.types.js';
 
 export class RecipientTagsClient extends BaseResource {
-  /** List tags available for recipient targeting. */
+  /**
+   * List tags available for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters.
+   * @returns List of tags.
+   *
+   * @example
+   * ```typescript
+   * const result = await client.recipients.tags.list();
+   * for (const tag of result.data ?? []) {
+   *   console.log(tag.id, tag.name);
+   * }
+   * ```
+   */
   list(params?: RuleRecipientsListParams): Promise<RuleRecipientTagListResponse> {
     const qs = buildQueryString({
       page: params?.page,

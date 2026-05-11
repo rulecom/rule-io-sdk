@@ -23,6 +23,10 @@ export class TemplatesClient extends BaseResource {
   /**
    * Create a template with RCML content.
    *
+   * @param template - Template create request (message_id, name,
+   *   message_type, RCML document).
+   * @returns The created template.
+   *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Template
    */
   create(template: RuleTemplateCreateRequest): Promise<RuleTemplateResponse> {
@@ -31,7 +35,13 @@ export class TemplatesClient extends BaseResource {
     });
   }
 
-  /** Get a template by ID. Returns null on 404. */
+  /**
+   * Get a template by ID.
+   *
+   * @param id - Template ID.
+   * @returns The template, or `null` if no template with that ID exists
+   *   (HTTP 404).
+   */
   async get(id: number): Promise<RuleTemplateResponse | null> {
     try {
       return await this.transport.get<RuleTemplateResponse>(`/editor/template/${id}`);
@@ -44,7 +54,14 @@ export class TemplatesClient extends BaseResource {
     }
   }
 
-  /** Update a template. */
+  /**
+   * Update a template.
+   *
+   * @param id - Template ID.
+   * @param template - Partial update body — any subset of the create-request
+   *   fields.
+   * @returns The updated template.
+   */
   update(
     id: number,
     template: Partial<RuleTemplateCreateRequest>
@@ -54,12 +71,27 @@ export class TemplatesClient extends BaseResource {
     });
   }
 
-  /** Delete a template. */
+  /**
+   * Delete a template.
+   *
+   * @param id - Template ID.
+   * @returns A success response.
+   */
   delete(id: number): Promise<RuleApiResponse> {
     return this.transport.delete<RuleApiResponse>(`/editor/template/${id}`);
   }
 
-  /** List templates with optional pagination. */
+  /**
+   * List templates with optional pagination.
+   *
+   * @param params - Optional pagination parameters.
+   * @returns List of templates.
+   *
+   * @example
+   * ```typescript
+   * const templates = await client.templates.list({ page: 1, per_page: 50 });
+   * ```
+   */
   list(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
     const qs = params ? buildQueryString({ ...params }) : '';
 
@@ -67,8 +99,25 @@ export class TemplatesClient extends BaseResource {
   }
 
   /**
-   * Render a template to HTML. Optionally pass `subscriber_id` to substitute
-   * merge tags with the subscriber's field values. Returns null on 404.
+   * Render a template to HTML.
+   *
+   * Optionally pass `subscriber_id` to substitute merge tags with the
+   * subscriber's field values (e.g. `{{Booking.FirstName}}` becomes their
+   * actual name).
+   *
+   * @param id - Template ID.
+   * @param params - Optional parameters (`subscriber_id` for merge tag
+   *   substitution).
+   * @returns Rendered HTML string, or `null` if no template with that ID
+   *   exists (HTTP 404).
+   *
+   * @example
+   * ```typescript
+   * const html = await client.templates.render(42);
+   *
+   * // With subscriber data for merge tag substitution
+   * const personalized = await client.templates.render(42, { subscriber_id: 1001 });
+   * ```
    */
   async render(
     id: number,

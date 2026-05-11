@@ -24,6 +24,17 @@ export class AccountsClient extends BaseResource {
    * List all accounts visible to the authenticated user.
    *
    * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @returns List of accounts (simplified representation without nested
+   *   relations).
+   *
+   * @example
+   * ```typescript
+   * const response = await client.accounts.list();
+   * for (const account of response.data ?? []) {
+   *   console.log(account.id, account.name);
+   * }
+   * ```
    */
   list(): Promise<RuleAccountListResponse> {
     return this.transport.get<RuleAccountListResponse>('/accounts');
@@ -32,7 +43,19 @@ export class AccountsClient extends BaseResource {
   /**
    * Create a new account.
    *
-   * **Requires Super Admin privileges.**
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @param request - Account name and language code.
+   * @returns The created account (simplified representation).
+   *
+   * @example
+   * ```typescript
+   * const response = await client.accounts.create({
+   *   name: 'My New Account',
+   *   language: 'en',
+   * });
+   * console.log('Created account:', response.data?.id);
+   * ```
    */
   create(request: RuleAccountCreateRequest): Promise<RuleAccountCreateResponse> {
     return this.transport.post<RuleAccountCreateResponse>('/accounts', {
@@ -45,9 +68,27 @@ export class AccountsClient extends BaseResource {
    *
    * Pass `'show'` as the accountId to retrieve the currently authenticated
    * account. Use `params.includes` to load related data such as Sitoo
-   * credentials. Returns null on 404.
+   * credentials.
    *
-   * **Requires Super Admin privileges.**
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @param accountId - Numeric account ID or `'show'` for the current
+   *   account.
+   * @param params - Optional query parameters (e.g.
+   *   `{ includes: ['sitoo_credentials'] }`).
+   * @returns The account with optional nested relations, or `null` if no
+   *   account with that ID exists (HTTP 404).
+   *
+   * @example
+   * ```typescript
+   * // Get current account
+   * const me = await client.accounts.get('show');
+   *
+   * // Get account with Sitoo credentials
+   * const account = await client.accounts.get(42, {
+   *   includes: ['sitoo_credentials'],
+   * });
+   * ```
    */
   async get(
     accountId: number | 'show',
@@ -77,9 +118,18 @@ export class AccountsClient extends BaseResource {
    * Delete an account.
    *
    * The deletion is queued asynchronously by the API; processing is not
-   * immediate. Once processed this is destructive and cannot be undone.
+   * immediate and may take time to complete. Once processed this is a
+   * destructive operation that cannot be undone.
    *
-   * **Requires Super Admin privileges.**
+   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
+   *
+   * @param accountId - Numeric account ID to delete.
+   * @returns A success response indicating the deletion request was accepted.
+   *
+   * @example
+   * ```typescript
+   * await client.accounts.delete(42);
+   * ```
    */
   async delete(accountId: number): Promise<RuleApiResponse> {
     await this.transport.fetchRaw('DELETE', `/accounts/${accountId}`);

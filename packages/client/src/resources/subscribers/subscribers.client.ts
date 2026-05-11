@@ -41,6 +41,9 @@ export class SubscribersClient extends BaseResource {
   /**
    * Create a subscriber via the v3 API.
    *
+   * @param subscriber - Subscriber data (email, phone_number, status, etc.).
+   * @returns API response with the created subscriber data.
+   *
    * @example
    * ```typescript
    * const result = await client.subscribers.create({
@@ -48,6 +51,7 @@ export class SubscribersClient extends BaseResource {
    *   status: 'ACTIVE',
    *   language: 'sv',
    * });
+   * console.log(result.id);
    * ```
    */
   create(subscriber: RuleSubscriberV3CreateRequest): Promise<RuleSubscriberV3Response> {
@@ -59,6 +63,21 @@ export class SubscribersClient extends BaseResource {
   /**
    * Delete a subscriber via the v3 API. Returns `{ success: true }` on
    * successful deletion (HTTP 204).
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or
+   *   custom identifier).
+   * @param identifiedBy - How the `subscriber` parameter should be
+   *   interpreted (default: `'email'`).
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Delete by email (default)
+   * await client.subscribers.delete('customer@example.com');
+   *
+   * // Delete by ID
+   * await client.subscribers.delete(12345, 'id');
+   * ```
    */
   async delete(
     subscriber: string | number,
@@ -76,6 +95,19 @@ export class SubscribersClient extends BaseResource {
    * Block multiple subscribers in bulk via the v3 API.
    *
    * Asynchronous (HTTP 204) — Rule.io processes the block in the background.
+   *
+   * @param subscribers - Array of subscriber identifiers to block.
+   * @param callbackUrl - Optional webhook URL to notify when the async
+   *   operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.block([
+   *   { email: 'spam@example.com' },
+   *   { id: 456 },
+   * ]);
+   * ```
    */
   async block(
     subscribers: RuleBulkSubscriberIdentifier[],
@@ -95,6 +127,19 @@ export class SubscribersClient extends BaseResource {
    * Unblock multiple subscribers in bulk via the v3 API.
    *
    * Asynchronous (HTTP 204) — Rule.io processes the unblock in the background.
+   *
+   * @param subscribers - Array of subscriber identifiers to unblock.
+   * @param callbackUrl - Optional webhook URL to notify when the async
+   *   operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unblock([
+   *   { email: 'restored@example.com' },
+   *   { phone_number: '+46701234567' },
+   * ]);
+   * ```
    */
   async unblock(
     subscribers: RuleBulkSubscriberIdentifier[],
@@ -113,7 +158,18 @@ export class SubscribersClient extends BaseResource {
   /**
    * Add tags to multiple subscribers in bulk via the v3 API.
    *
-   * Asynchronous (HTTP 204).
+   * Asynchronous (HTTP 204) — tags are applied in the background by Rule.io.
+   *
+   * @param request - Subscribers and tags to apply.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.bulkAddTags({
+   *   subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+   *   tags: ['newsletter', 'promo-2024'],
+   * });
+   * ```
    */
   async bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
     await this.transport.fetchRaw('POST', '/subscribers/tags', {
@@ -127,6 +183,17 @@ export class SubscribersClient extends BaseResource {
    * Remove tags from multiple subscribers in bulk via the v3 API.
    *
    * Asynchronous (HTTP 204). Sends a DELETE request with a JSON body.
+   *
+   * @param request - Subscribers and tags to remove.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.bulkRemoveTags({
+   *   subscribers: [{ email: 'a@example.com' }],
+   *   tags: ['old-campaign'],
+   * });
+   * ```
    */
   async bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
     await this.transport.fetchRaw('DELETE', '/subscribers/tags', {
@@ -140,6 +207,21 @@ export class SubscribersClient extends BaseResource {
    * Add tags to a single subscriber via the v3 API.
    *
    * Supports automation triggering and optional subscriber sync.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or
+   *   custom identifier).
+   * @param request - Tags to add and optional automation/sync settings.
+   * @param identifiedBy - How the `subscriber` parameter should be
+   *   interpreted (default: `'email'`).
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.addTags('customer@example.com', {
+   *   tags: ['vip', 'returning'],
+   *   automation: 'force',
+   * });
+   * ```
    */
   async addTags(
     subscriber: string | number,
@@ -155,7 +237,21 @@ export class SubscribersClient extends BaseResource {
     return { success: true };
   }
 
-  /** Remove a single tag from a subscriber via the v3 API. */
+  /**
+   * Remove a single tag from a subscriber via the v3 API.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or
+   *   custom identifier).
+   * @param tag - Tag name or ID to remove.
+   * @param identifiedBy - How the `subscriber` parameter should be
+   *   interpreted (default: `'email'`).
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.removeTag('customer@example.com', 'old-promo');
+   * ```
+   */
   async removeTag(
     subscriber: string | number,
     tag: string | number,
@@ -176,8 +272,13 @@ export class SubscribersClient extends BaseResource {
    *
    * The configured `fieldGroupPrefix` is prepended to every field key before
    * the request is sent (e.g. `{ FirstName: 'Anna' }` →
-   * `{ key: 'Booking.FirstName', value: 'Anna' }`). Throws
-   * {@link RuleConfigError} if a field key already contains a dot.
+   * `{ key: 'Booking.FirstName', value: 'Anna' }`).
+   *
+   * @param subscriber - Subscriber data including email, fields, and tags.
+   *   Field keys must be bare names — the SDK adds the group prefix
+   *   automatically.
+   * @returns API response with subscriber data.
+   * @throws {RuleConfigError} If any field key already contains a dot.
    *
    * @example
    * ```typescript
@@ -223,7 +324,13 @@ export class SubscribersClient extends BaseResource {
     });
   }
 
-  /** Get subscriber details. Returns null on 404. */
+  /**
+   * Get subscriber details from Rule.io.
+   *
+   * @param email - Subscriber email address.
+   * @returns The subscriber payload, or `null` if no subscriber with that
+   *   email exists (HTTP 404).
+   */
   async get(email: string): Promise<RuleSubscriberResponse | null> {
     try {
       return await this.transport.get<RuleSubscriberResponse>(
@@ -241,9 +348,13 @@ export class SubscribersClient extends BaseResource {
 
   /**
    * Get a subscriber's custom-field values, flattened to a `Group.Field` map.
-   * Returns an empty object on 404.
    *
    * Note: Uses the `/subscriber/` (singular) endpoint, not `/subscribers/`.
+   *
+   * @param email - Subscriber email address.
+   * @returns Map of field keys to values (e.g.
+   *   `{ "Group.FirstName": "Anna" }`), or an empty object if no subscriber
+   *   with that email exists (HTTP 404).
    */
   async getFields(email: string): Promise<Record<string, string | null>> {
     try {
@@ -270,8 +381,11 @@ export class SubscribersClient extends BaseResource {
   }
 
   /**
-   * Get the names of every tag attached to a subscriber. Returns an empty
-   * array on 404.
+   * Get the names of every tag attached to a subscriber.
+   *
+   * @param email - Subscriber email address.
+   * @returns Array of tag names, or an empty array if no subscriber with that
+   *   email exists (HTTP 404).
    */
   async getTagNames(email: string): Promise<string[]> {
     try {

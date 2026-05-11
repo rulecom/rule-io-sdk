@@ -12,7 +12,12 @@ import type {
 } from '../recipients.types.js';
 
 export class SegmentsClient extends BaseResource {
-  /** List available segments for recipient targeting. */
+  /**
+   * List available segments for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters.
+   * @returns List of segments.
+   */
   list(params?: RuleRecipientsListParams): Promise<RuleSegmentListResponse> {
     const qs = buildQueryString({
       page: params?.page,

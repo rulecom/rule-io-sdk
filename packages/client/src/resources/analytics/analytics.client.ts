@@ -22,6 +22,15 @@ export class AnalyticsClient extends BaseResource {
   /**
    * Retrieve analytics (dispatcher statistics) for one or more objects.
    *
+   * Returns metric values (opens, clicks, bounces, etc.) for the specified
+   * objects within the given date range.
+   *
+   * @param params - Analytics query parameters. Either a date-range-only
+   *   query or a full query with `object_type`, `object_ids`, and `metrics`.
+   * @returns Analytics response with per-object metric data.
+   * @throws {RuleConfigError} If `object_ids`/`metrics` are passed without
+   *   `object_type`, or either is an empty array when `object_type` is set.
+   *
    * @example
    * ```typescript
    * const stats = await client.analytics.get({
@@ -31,6 +40,10 @@ export class AnalyticsClient extends BaseResource {
    *   object_ids: ['123', '456'],
    *   metrics: ['sent', 'open_uniq', 'click_uniq'],
    * });
+   *
+   * for (const stat of stats.data ?? []) {
+   *   console.log(`Object ${stat.id}:`, stat.metrics);
+   * }
    * ```
    */
   async get(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {

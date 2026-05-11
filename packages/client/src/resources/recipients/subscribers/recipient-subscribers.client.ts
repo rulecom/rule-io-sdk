@@ -15,7 +15,20 @@ import type {
 } from '../recipients.types.js';
 
 export class RecipientSubscribersClient extends BaseResource {
-  /** List subscribers available for recipient targeting. */
+  /**
+   * List subscribers available for recipient targeting.
+   *
+   * @param params - Optional pagination query parameters.
+   * @returns List of subscribers.
+   *
+   * @example
+   * ```typescript
+   * const result = await client.recipients.subscribers.list({ per_page: 50 });
+   * for (const subscriber of result.data ?? []) {
+   *   console.log(subscriber.id, subscriber.email);
+   * }
+   * ```
+   */
   list(
     params?: RuleRecipientsListParams
   ): Promise<RuleRecipientSubscriberListResponse> {

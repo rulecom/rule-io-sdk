@@ -21,6 +21,10 @@ export class MessagesClient extends BaseResource {
   /**
    * Create a message attached to a dispatcher (automation or campaign).
    *
+   * @param message - Message create request (dispatcher reference, type,
+   *   subject, sender, automail_setting, etc.).
+   * @returns The created message.
+   *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Message
    */
   create(message: RuleMessageCreateRequest): Promise<RuleMessageResponse> {
@@ -29,7 +33,13 @@ export class MessagesClient extends BaseResource {
     });
   }
 
-  /** Get a message by ID. Returns null on 404. */
+  /**
+   * Get a message by ID.
+   *
+   * @param id - Message ID.
+   * @returns The message, or `null` if no message with that ID exists
+   *   (HTTP 404).
+   */
   async get(id: number): Promise<RuleMessageResponse | null> {
     try {
       return await this.transport.get<RuleMessageResponse>(`/editor/message/${id}`);
@@ -42,7 +52,14 @@ export class MessagesClient extends BaseResource {
     }
   }
 
-  /** Update a message. */
+  /**
+   * Update a message.
+   *
+   * @param id - Message ID.
+   * @param message - Partial update body — any subset of the create-request
+   *   fields.
+   * @returns The updated message.
+   */
   update(
     id: number,
     message: Partial<RuleMessageCreateRequest>
@@ -52,7 +69,12 @@ export class MessagesClient extends BaseResource {
     });
   }
 
-  /** Delete a message. */
+  /**
+   * Delete a message.
+   *
+   * @param id - Message ID.
+   * @returns A success response.
+   */
   delete(id: number): Promise<RuleApiResponse> {
     return this.transport.delete<RuleApiResponse>(`/editor/message/${id}`);
   }
@@ -61,6 +83,17 @@ export class MessagesClient extends BaseResource {
    * List messages for a dispatcher (automation or campaign).
    *
    * Both `id` and `dispatcher_type` are required by the API.
+   *
+   * @param params - Dispatcher ID and type.
+   * @returns List of messages for the dispatcher.
+   *
+   * @example
+   * ```typescript
+   * const messages = await client.messages.list({
+   *   id: 123,
+   *   dispatcher_type: 'automail',
+   * });
+   * ```
    */
   list(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
     const qs = buildQueryString({ ...params });

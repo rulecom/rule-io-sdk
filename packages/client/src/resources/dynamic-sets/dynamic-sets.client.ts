@@ -23,6 +23,10 @@ export class DynamicSetsClient extends BaseResource {
   /**
    * Create a dynamic set to connect a message with a template.
    *
+   * @param dynamicSet - Dynamic-set create request (`message_id` and
+   *   `template_id`).
+   * @returns The created dynamic set.
+   *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Dynamic-Set
    */
   create(dynamicSet: RuleDynamicSetCreateRequest): Promise<RuleDynamicSetResponse> {
@@ -31,7 +35,13 @@ export class DynamicSetsClient extends BaseResource {
     });
   }
 
-  /** Get a dynamic set by ID. Returns null on 404. */
+  /**
+   * Get a dynamic set by ID.
+   *
+   * @param id - Dynamic-set ID.
+   * @returns The dynamic set, or `null` if no dynamic set with that ID
+   *   exists (HTTP 404).
+   */
   async get(id: number): Promise<RuleDynamicSetResponse | null> {
     try {
       return await this.transport.get<RuleDynamicSetResponse>(`/editor/dynamic-set/${id}`);
@@ -50,6 +60,19 @@ export class DynamicSetsClient extends BaseResource {
    * Note: If a duplicate active dynamic set with the same trigger already
    * exists and this one has `active: true`, the API may automatically
    * deactivate it.
+   *
+   * @param id - Dynamic-set ID.
+   * @param update - Update request body.
+   * @returns The updated dynamic set.
+   *
+   * @example
+   * ```typescript
+   * await client.dynamicSets.update(789, {
+   *   message_id: 456,
+   *   template_id: 101,
+   *   active: true,
+   * });
+   * ```
    */
   update(
     id: number,
@@ -60,7 +83,12 @@ export class DynamicSetsClient extends BaseResource {
     });
   }
 
-  /** Delete a dynamic set. */
+  /**
+   * Delete a dynamic set.
+   *
+   * @param id - Dynamic-set ID.
+   * @returns A success response.
+   */
   delete(id: number): Promise<RuleApiResponse> {
     return this.transport.delete<RuleApiResponse>(`/editor/dynamic-set/${id}`);
   }
@@ -68,6 +96,14 @@ export class DynamicSetsClient extends BaseResource {
   /**
    * List dynamic sets for a message. The `message_id` parameter is required —
    * the API returns all dynamic sets for that message.
+   *
+   * @param params - Query parameters with required `message_id`.
+   * @returns List of dynamic sets.
+   *
+   * @example
+   * ```typescript
+   * const sets = await client.dynamicSets.list({ message_id: 456 });
+   * ```
    */
   list(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
     const qs = buildQueryString({ ...params });

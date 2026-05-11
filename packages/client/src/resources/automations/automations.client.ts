@@ -24,6 +24,10 @@ export class AutomationsClient extends BaseResource {
    * Create an automation. Trigger and sendout_type can be set directly on
    * creation.
    *
+   * @param automation - Automation create request (name, optional trigger,
+   *   optional sendout_type, etc.).
+   * @returns The created automation.
+   *
    * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail/operation/AutomailCreate
    */
   create(automation: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
@@ -32,7 +36,13 @@ export class AutomationsClient extends BaseResource {
     });
   }
 
-  /** Get an automation by ID. Returns null on 404. */
+  /**
+   * Get an automation by ID.
+   *
+   * @param id - Automation ID.
+   * @returns The automation, or `null` if no automation with that ID exists
+   *   (HTTP 404).
+   */
   async get(id: number): Promise<RuleAutomationResponse | null> {
     try {
       return await this.transport.get<RuleAutomationResponse>(`/editor/automail/${id}`);
@@ -50,7 +60,26 @@ export class AutomationsClient extends BaseResource {
    * you want to change.
    *
    * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
-   * The API error messages incorrectly suggest lowercase, but uppercase is required.
+   * The API error messages incorrectly suggest lowercase, but uppercase is
+   * required.
+   *
+   * @param id - Automation ID.
+   * @param update - Partial update request (all fields optional).
+   * @returns The updated automation.
+   *
+   * @example
+   * ```typescript
+   * // Partial update — only change the name
+   * await client.automations.update(123, { name: 'New Name' });
+   *
+   * // Full update
+   * await client.automations.update(123, {
+   *   name: 'New Name',
+   *   active: true,
+   *   trigger: { type: 'TAG', id: 42 },
+   *   sendout_type: 2,
+   * });
+   * ```
    */
   update(
     id: number,
@@ -61,12 +90,36 @@ export class AutomationsClient extends BaseResource {
     });
   }
 
-  /** Delete an automation. */
+  /**
+   * Delete an automation.
+   *
+   * @param id - Automation ID.
+   * @returns A success response.
+   */
   delete(id: number): Promise<RuleApiResponse> {
     return this.transport.delete<RuleApiResponse>(`/editor/automail/${id}`);
   }
 
-  /** List automations with optional filtering and pagination. */
+  /**
+   * List automations with optional filtering and pagination.
+   *
+   * @param params - Optional query parameters for filtering and pagination.
+   * @returns List of automations.
+   *
+   * @example
+   * ```typescript
+   * // List all automations
+   * const all = await client.automations.list();
+   *
+   * // List active email automations, page 2
+   * const filtered = await client.automations.list({
+   *   active: true,
+   *   message_type: 1,
+   *   page: 2,
+   *   per_page: 20,
+   * });
+   * ```
+   */
   list(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     const qs = params ? buildQueryString({ ...params }) : '';
 

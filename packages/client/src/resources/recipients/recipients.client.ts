@@ -15,10 +15,12 @@ import { RecipientTagsClient } from './tags/recipient-tags.client.js';
 import { SegmentsClient } from './segments/segments.client.js';
 
 export class RecipientsClient extends BaseResource {
+  /** Segments available for recipient targeting (lazy, cached singleton). */
   get segments(): SegmentsClient {
     return this.lazy('segments', () => new SegmentsClient(this.transport));
   }
 
+  /** Subscribers available for recipient targeting (lazy, cached singleton). */
   get subscribers(): RecipientSubscribersClient {
     return this.lazy(
       'subscribers',
@@ -26,6 +28,7 @@ export class RecipientsClient extends BaseResource {
     );
   }
 
+  /** Tags available for recipient targeting (lazy, cached singleton). */
   get tags(): RecipientTagsClient {
     return this.lazy('tags', () => new RecipientTagsClient(this.transport));
   }

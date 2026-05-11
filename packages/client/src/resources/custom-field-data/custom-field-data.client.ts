@@ -27,6 +27,20 @@ export class CustomFieldDataClient extends BaseResource {
    * Get custom field data for a subscriber.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Optional pagination and group filters.
+   * @returns Custom field data records for the subscriber.
+   *
+   * @example
+   * ```typescript
+   * const data = await client.customFieldData.list(42);
+   * const filtered = await client.customFieldData.list(42, {
+   *   page: 1,
+   *   per_page: 10,
+   *   groups_id: [1, 2],
+   * });
+   * ```
    */
   list(
     subscriberId: number,
@@ -50,6 +64,21 @@ export class CustomFieldDataClient extends BaseResource {
    * Create custom field data for a subscriber.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param request - The field data to create, grouped by field group.
+   * @returns A success response (HTTP 201 on success).
+   *
+   * @example
+   * ```typescript
+   * await client.customFieldData.create(42, {
+   *   groups: [{
+   *     group: 'Order',
+   *     create_if_not_exists: true,
+   *     values: [{ field: 'Ref', create_if_not_exists: true, value: 'ORD-123' }],
+   *   }],
+   * });
+   * ```
    */
   create(
     subscriberId: number,
@@ -65,6 +94,19 @@ export class CustomFieldDataClient extends BaseResource {
    * Update custom field data for a subscriber.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param request - The identifier for the record to update and the new
+   *   values.
+   * @returns A success response (HTTP 204 on success).
+   *
+   * @example
+   * ```typescript
+   * await client.customFieldData.update(42, {
+   *   identifier: { group: 'Order', field: 'Ref', value: 'ORD-123' },
+   *   values: [{ field: 'Status', value: 'shipped' }],
+   * });
+   * ```
    */
   async update(
     subscriberId: number,
@@ -81,6 +123,21 @@ export class CustomFieldDataClient extends BaseResource {
    * Get custom field data for a subscriber filtered by group.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @param params - Optional pagination and field filters.
+   * @returns Custom field data records in the specified group.
+   *
+   * @example
+   * ```typescript
+   * const data = await client.customFieldData.listByGroup(42, 'Order');
+   * const byId = await client.customFieldData.listByGroup(42, 5, {
+   *   page: 1,
+   *   per_page: 10,
+   *   fields: ['Ref', 'Status'],
+   * });
+   * ```
    */
   listByGroup(
     subscriberId: number,
@@ -104,6 +161,16 @@ export class CustomFieldDataClient extends BaseResource {
    * Delete all custom field data for a subscriber in a specific group.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * await client.customFieldData.deleteByGroup(42, 'Order');
+   * await client.customFieldData.deleteByGroup(42, 5);
+   * ```
    */
   deleteByGroup(
     subscriberId: number,
@@ -115,10 +182,26 @@ export class CustomFieldDataClient extends BaseResource {
   }
 
   /**
-   * Search custom field data for a subscriber by identifier. Returns null
-   * on 404.
+   * Search custom field data for a subscriber by identifier.
    *
    * @deprecated Custom Field Data API is deprecated by Rule.io.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Search parameters (`data_id`, `group`, `field`, `value`).
+   * @returns A single matching record, or `null` if no record matches
+   *   (HTTP 404).
+   *
+   * @example
+   * ```typescript
+   * const record = await client.customFieldData.search(42, {
+   *   group: 'Order',
+   *   field: 'Ref',
+   *   value: 'ORD-123',
+   * });
+   * if (record) {
+   *   console.log(record.data?.values);
+   * }
+   * ```
    */
   async search(
     subscriberId: number,

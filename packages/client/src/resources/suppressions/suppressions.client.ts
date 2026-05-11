@@ -22,6 +22,30 @@ export class SuppressionsClient extends BaseResource {
    *
    * Already-suppressed subscribers are silently skipped (idempotent).
    * A maximum of 1000 subscribers can be included per request.
+   *
+   * @param request - Suppression request with subscriber identifiers and
+   *   optional `message_types` filter / `callback_url`.
+   * @returns A success response (actual processing happens asynchronously).
+   * @throws {RuleConfigError} If the `subscribers` array is empty or contains
+   *   more than 1000 items.
+   *
+   * @example
+   * ```typescript
+   * // Suppress all channels for two subscribers
+   * await client.suppressions.create({
+   *   subscribers: [
+   *     { email: 'user1@example.com' },
+   *     { email: 'user2@example.com' },
+   *   ],
+   * });
+   *
+   * // Suppress only email channel with a callback
+   * await client.suppressions.create({
+   *   subscribers: [{ email: 'user@example.com' }],
+   *   message_types: ['email'],
+   *   callback_url: 'https://example.com/webhook/suppression-done',
+   * });
+   * ```
    */
   async create(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
     validateRequest(request);
@@ -38,6 +62,27 @@ export class SuppressionsClient extends BaseResource {
    *
    * If `message_types` is omitted, all channel suppressions are removed for
    * the specified subscribers.
+   *
+   * @param request - Unsuppression request with subscriber identifiers and
+   *   optional filters.
+   * @returns A success response (actual processing happens asynchronously).
+   * @throws {RuleConfigError} If the `subscribers` array is empty or contains
+   *   more than 1000 items.
+   *
+   * @example
+   * ```typescript
+   * // Remove all suppressions for a subscriber
+   * await client.suppressions.delete({
+   *   subscribers: [{ email: 'user@example.com' }],
+   * });
+   *
+   * // Remove only text_message suppression with a callback
+   * await client.suppressions.delete({
+   *   subscribers: [{ email: 'user@example.com' }],
+   *   message_types: ['text_message'],
+   *   callback_url: 'https://example.com/webhook/unsuppression-done',
+   * });
+   * ```
    */
   async delete(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
     validateRequest(request);
