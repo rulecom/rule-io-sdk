@@ -18,6 +18,27 @@ export interface RuleTagEntity {
   updated_at?: string;
 }
 
+/** Pagination cursor returned by `GET /tags`. */
+export interface RuleTagsMeta {
+  next?: string;
+}
+
 export interface RuleTagsResponse extends RuleApiResponse {
   tags?: RuleTagEntity[];
+  meta?: RuleTagsMeta;
+}
+
+/** Request body for `PUT /tags/{identifier}`. Both fields are optional. */
+export interface RuleTagUpdateRequest {
+  name?: string;
+  description?: string;
+}
+
+/**
+ * A single tag as returned by `GET /tags/{identifier}`.
+ * Extends `RuleTagEntity` with the optional `recipient_count` field that
+ * is only present when `with_count=true` is requested.
+ */
+export interface RuleTagDetailEntity extends RuleTagEntity {
+  recipient_count?: number;
 }

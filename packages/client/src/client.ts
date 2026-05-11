@@ -401,9 +401,11 @@ export class RuleClient extends BaseResource {
     return this.tags.list();
   }
 
-  /** @deprecated Use `client.tags.findIdByName()` instead. */
-  getTagIdByName(name: string): Promise<number | null> {
-    return this.tags.findIdByName(name);
+  /** @deprecated Use `client.tags.getByName()` instead. */
+  async getTagIdByName(name: string): Promise<number | null> {
+    const tag = await this.tags.getByName(name);
+
+    return tag?.id ?? null;
   }
 
   // ── Automations (incl. legacy `Automail` aliases) ─────────────────────────
@@ -869,16 +871,16 @@ export class RuleClient extends BaseResource {
       let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
 
       if (config.triggerType === 'tag' && config.triggerValue) {
-        const tagId = await this.tags.findIdByName(config.triggerValue);
+        const tag = await this.tags.getByName(config.triggerValue);
 
-        if (!tagId) {
+        if (!tag) {
           throw new RuleApiError(
             `Tag "${config.triggerValue}" not found. Create it first or check the tag name.`,
             404
           );
         }
 
-        trigger = { type: 'TAG', id: tagId };
+        trigger = { type: 'TAG', id: tag.id };
       } else if (config.triggerType === 'segment' && config.triggerValue) {
         const segmentId = parseInt(config.triggerValue, 10);
 
