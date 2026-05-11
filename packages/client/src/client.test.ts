@@ -28,7 +28,6 @@ import {
   createMockResponse,
   type MockFetch,
 } from './core/mock-fetch.js';
-import { AccountsClient } from './resources/accounts/accounts.client.js';
 import { AnalyticsClient } from './resources/analytics/analytics.client.js';
 import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
 import { AutomationsClient } from './resources/automations/automations.client.js';
@@ -76,7 +75,6 @@ describe('RuleClient — namespaced API', () => {
       expect(client.exports).toBeInstanceOf(ExportsClient);
       expect(client.analytics).toBeInstanceOf(AnalyticsClient);
       expect(client.recipients).toBeInstanceOf(RecipientsClient);
-      expect(client.accounts).toBeInstanceOf(AccountsClient);
       expect(client.customFieldData).toBeInstanceOf(CustomFieldDataClient);
     });
 
@@ -153,7 +151,6 @@ describe('RuleClient — namespaced API', () => {
         client.exports,
         client.analytics,
         client.recipients,
-        client.accounts,
         client.customFieldData,
       ];
 

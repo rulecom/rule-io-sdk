@@ -180,18 +180,6 @@ export type {
   RuleTagSegment,
 } from './resources/recipients/recipients.types.js';
 
-// ── Accounts ─────────────────────────────────────────────────────────────────
-export type {
-  RuleAccount,
-  RuleAccountCreateRequest,
-  RuleAccountCreateResponse,
-  RuleAccountGetParams,
-  RuleAccountListResponse,
-  RuleAccountResponse,
-  RuleAccountSimple,
-  RuleSitooCredential,
-} from './resources/accounts/accounts.types.js';
-
 // ── Custom field data (deprecated by Rule.io) ────────────────────────────────
 export type {
   RuleCustomFieldDataCreateRequest,

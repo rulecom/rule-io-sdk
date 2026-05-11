@@ -29,7 +29,6 @@ import { BaseResource } from './core/base-resource.js';
 import { HttpTransport } from './core/transport.js';
 import { resolveConfig, type ResolvedClientConfig, type RuleClientConfig } from './config.js';
 
-import { AccountsClient } from './resources/accounts/accounts.client.js';
 import { AnalyticsClient } from './resources/analytics/analytics.client.js';
 import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
 import { AutomationsClient } from './resources/automations/automations.client.js';
@@ -48,13 +47,6 @@ import { TemplatesClient } from './resources/templates/templates.client.js';
 import { buildDefaultBrandedTemplate } from './default-branded-template.js';
 
 import type { RuleApiResponse } from './shared.types.js';
-import type {
-  RuleAccountCreateRequest,
-  RuleAccountCreateResponse,
-  RuleAccountGetParams,
-  RuleAccountListResponse,
-  RuleAccountResponse,
-} from './resources/accounts/accounts.types.js';
 import type {
   RuleAnalyticsParams,
   RuleAnalyticsResponse,
@@ -238,10 +230,6 @@ export class RuleClient extends BaseResource {
 
   get recipients(): RecipientsClient {
     return this.lazy('recipients', () => new RecipientsClient(this.transport));
-  }
-
-  get accounts(): AccountsClient {
-    return this.lazy('accounts', () => new AccountsClient(this.transport));
   }
 
   get customFieldData(): CustomFieldDataClient {
@@ -732,31 +720,6 @@ export class RuleClient extends BaseResource {
     params?: RuleRecipientsListParams
   ): Promise<RuleRecipientTagListResponse> {
     return this.recipients.tags.list(params);
-  }
-
-  // ── Accounts ──────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.accounts.list()` instead. */
-  listAccounts(): Promise<RuleAccountListResponse> {
-    return this.accounts.list();
-  }
-
-  /** @deprecated Use `client.accounts.create()` instead. */
-  createAccount(request: RuleAccountCreateRequest): Promise<RuleAccountCreateResponse> {
-    return this.accounts.create(request);
-  }
-
-  /** @deprecated Use `client.accounts.get()` instead. */
-  getAccount(
-    accountId: number | 'show',
-    params?: RuleAccountGetParams
-  ): Promise<RuleAccountResponse | null> {
-    return this.accounts.get(accountId, params);
-  }
-
-  /** @deprecated Use `client.accounts.delete()` instead. */
-  deleteAccount(accountId: number): Promise<RuleApiResponse> {
-    return this.accounts.delete(accountId);
   }
 
   // ── Custom field data (deprecated by Rule.io) ─────────────────────────────
