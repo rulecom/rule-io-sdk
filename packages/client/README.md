@@ -16,6 +16,5 @@ await client.createSubscriberV3({
 ## Composes with
 
 - [`@rulecom/rcml`](../rcml/README.md) — build email templates that the client sends via `createAutomationEmail()` / `createCampaignEmail()`.
-- [`@rulecom/vendor-shopify`](../vendor-shopify/README.md), [`-bookzen`](../vendor-bookzen/README.md), [`-samfora`](../vendor-samfora/README.md) — turnkey presets for platform-specific automation flows.
 
 See the [main `@rulecom/sdk` README](../sdk/README.md) for end-to-end usage.

@@ -1,11 +1,9 @@
-# vendor
+# @rulecom/vendor
 
-This library was generated with [Nx](https://nx.dev).
+> **Under Development** — This package is not yet published to npm. It is under active development and will be included in a future release of the Rule.io SDK. The API is unstable and may change without notice.
 
-## Building
+---
 
-Run `nx build vendor` to build the library.
+Shared vendor-preset infrastructure for the Rule.io SDK. Provides the `VendorPreset` interface, `VendorPresetError`, and common types (`CustomFieldMap`, `VendorConsumerConfig`, etc.) used by `@rulecom/vendor-shopify`, `@rulecom/vendor-bookzen`, and `@rulecom/vendor-samfora`.
 
-## Running unit tests
-
-Run `nx test vendor` to execute the unit tests via [Vitest](https://vitest.dev/).
+This is an infrastructure package — it is not intended to be installed directly by SDK consumers. It arrives as a transitive dependency of the vendor preset packages.

@@ -1,4 +1,8 @@
-# @rulecom/templates
+# @rulecom/template-engine
+
+> **Under Development** — This package is not yet published to npm. It is under active development and will be included in a future release of the Rule.io SDK. The API is unstable and may change without notice.
+
+---
 
 Minimal, XML-native template engine that powers the ready-made email templates in `@rulecom/rcml` and the vendor packages (`@rulecom/vendor-shopify`, etc.). Pure, synchronous, no JS runtime inside templates, no filesystem access from the compiler itself.
 
