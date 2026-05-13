@@ -31,11 +31,11 @@ export interface ReservationConfirmationTemplateContext {
   reservation: {
     bookingRef: CustomFieldRef
     serviceType: CustomFieldRef
-    roomName?: CustomFieldRef
+    totalGuests: CustomFieldRef
     checkInDate: CustomFieldRef
     checkOutDate?: CustomFieldRef
-    totalGuests: CustomFieldRef
     totalPrice?: CustomFieldRef
+    roomName?: CustomFieldRef
   }
   /** URL the CTA button links to. */
   websiteUrl: string

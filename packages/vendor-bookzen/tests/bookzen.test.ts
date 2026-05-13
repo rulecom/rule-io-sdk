@@ -6,7 +6,7 @@ import { describe, it, expect } from 'vitest';
 import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
-import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '../src/index.js';
+import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '../src/index.js';
 import { TEST_THEME } from './helpers.js';
 
 // ============================================================================
@@ -14,14 +14,14 @@ import { TEST_THEME } from './helpers.js';
 // ============================================================================
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  [BOOKZEN_FIELDS.guestFirstName]: 100001,
-  [BOOKZEN_FIELDS.bookingRef]: 100002,
-  [BOOKZEN_FIELDS.serviceType]: 100003,
-  [BOOKZEN_FIELDS.checkInDate]: 100004,
-  [BOOKZEN_FIELDS.checkOutDate]: 100005,
-  [BOOKZEN_FIELDS.totalGuests]: 100006,
-  [BOOKZEN_FIELDS.totalPrice]: 100007,
-  [BOOKZEN_FIELDS.roomName]: 100008,
+  [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
+  [BOOKZEN_FIELD_SCHEMA.bookingRef]: 100002,
+  [BOOKZEN_FIELD_SCHEMA.serviceType]: 100003,
+  [BOOKZEN_FIELD_SCHEMA.checkInDate]: 100004,
+  [BOOKZEN_FIELD_SCHEMA.checkOutDate]: 100005,
+  [BOOKZEN_FIELD_SCHEMA.totalGuests]: 100006,
+  [BOOKZEN_FIELD_SCHEMA.totalPrice]: 100007,
+  [BOOKZEN_FIELD_SCHEMA.roomName]: 100008,
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
@@ -42,7 +42,7 @@ describe('bookzenPreset', () => {
   });
 
   it('exposes field and tag schemas', () => {
-    expect(bookzenPreset.fields).toBe(BOOKZEN_FIELDS);
+    expect(bookzenPreset.fields).toBe(BOOKZEN_FIELD_SCHEMA);
     expect(bookzenPreset.tags).toBe(BOOKZEN_TAGS);
   });
 
@@ -59,7 +59,7 @@ describe('bookzenPreset', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
-          [BOOKZEN_FIELDS.guestFirstName]: 100001,
+          [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
         },
       };
 
@@ -86,13 +86,13 @@ describe('bookzenPreset', () => {
     it('returns all fields with descriptions', () => {
       const fields = bookzenPreset.getRequiredFields();
 
-      expect(fields.length).toBe(Object.keys(BOOKZEN_FIELDS).length);
+      expect(fields.length).toBe(Object.keys(BOOKZEN_FIELD_SCHEMA).length);
 
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
         expect(field.fieldName).toBeTruthy();
         expect(field.description).toBeTruthy();
-        expect(BOOKZEN_FIELDS[field.logicalName as keyof typeof BOOKZEN_FIELDS]).toBe(
+        expect(BOOKZEN_FIELD_SCHEMA[field.logicalName as keyof typeof BOOKZEN_FIELD_SCHEMA]).toBe(
           field.fieldName
         );
       }
@@ -135,7 +135,7 @@ describe('bookzenPreset', () => {
 
 describe('BOOKZEN_FIELDS', () => {
   it('all values are non-empty strings', () => {
-    for (const value of Object.values(BOOKZEN_FIELDS)) {
+    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }
@@ -145,16 +145,16 @@ describe('BOOKZEN_FIELDS', () => {
     // Rule.io praxis: guest identity on the flat Subscriber.* group
     // (overwritten per sync); per-booking event data on the historical
     // Booking.* group (appended per sync).
-    expect(BOOKZEN_FIELDS.guestFirstName).toBe('Subscriber.FirstName');
+    expect(BOOKZEN_FIELD_SCHEMA.guestFirstName).toBe('Subscriber.FirstName');
 
     const bookingFields = [
-      BOOKZEN_FIELDS.bookingRef,
-      BOOKZEN_FIELDS.serviceType,
-      BOOKZEN_FIELDS.checkInDate,
-      BOOKZEN_FIELDS.checkOutDate,
-      BOOKZEN_FIELDS.totalGuests,
-      BOOKZEN_FIELDS.totalPrice,
-      BOOKZEN_FIELDS.roomName,
+      BOOKZEN_FIELD_SCHEMA.bookingRef,
+      BOOKZEN_FIELD_SCHEMA.serviceType,
+      BOOKZEN_FIELD_SCHEMA.checkInDate,
+      BOOKZEN_FIELD_SCHEMA.checkOutDate,
+      BOOKZEN_FIELD_SCHEMA.totalGuests,
+      BOOKZEN_FIELD_SCHEMA.totalPrice,
+      BOOKZEN_FIELD_SCHEMA.roomName,
     ];
 
     for (const value of bookingFields) {
@@ -163,7 +163,7 @@ describe('BOOKZEN_FIELDS', () => {
   });
 
   it('every field uses either a Subscriber.* or Booking.* prefix', () => {
-    for (const value of Object.values(BOOKZEN_FIELDS)) {
+    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
       expect(/^(Subscriber|Booking)\./.test(value)).toBe(true);
     }
   });
