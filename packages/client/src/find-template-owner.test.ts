@@ -9,9 +9,9 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RuleApiError } from '@rulecom/client';
-import { RuleClient } from '../src/client.js';
-import { findTemplateOwner } from '../src/find-template-owner.js';
+import { RuleApiError } from './errors.js';
+import { RuleClient } from './client.js';
+import { findTemplateOwner } from './find-template-owner.js';
 
 interface DispatcherFixture {
   id: number;

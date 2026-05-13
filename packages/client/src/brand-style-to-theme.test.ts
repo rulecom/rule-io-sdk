@@ -170,6 +170,72 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     expect(theme.fonts).toEqual([{ fontFamily: 'Helvetica' }]);
   });
 
+  it('drops social links with empty or unsafe URLs so they do not override theme defaults', () => {
+    const theme = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        links: [
+          { id: 30, brand_style_id: 99999, type: 'facebook', link: '', created_at: NOW, updated_at: NOW },
+          { id: 31, brand_style_id: 99999, type: 'instagram', link: '   ', created_at: NOW, updated_at: NOW },
+          { id: 32, brand_style_id: 99999, type: 'linkedin', link: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+          { id: 33, brand_style_id: 99999, type: 'twitter', link: 'not-a-url', created_at: NOW, updated_at: NOW },
+          { id: 34, brand_style_id: 99999, type: 'website', link: '  https://acme.example/  ', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    // Empty and whitespace-only links are dropped.
+    expect(theme.links.facebook?.url).toBe('https://www.facebook.com/');
+    expect(theme.links.instagram?.url).toBe('https://www.instagram.com/');
+    // javascript: URI is blocked by @braintree/sanitize-url → about:blank → dropped.
+    expect(theme.links.linkedin?.url).toBe('https://www.linkedin.com/');
+    // A string without a protocol is passed through as-is by sanitize-url.
+    expect(theme.links.x?.url).toBe('not-a-url');
+
+    // A safe URL is trimmed and applied.
+    expect(theme.links.website?.url).toBe('https://acme.example/');
+  });
+
+  it('drops font url when it is empty or unsafe (applyTheme rejects unsafe font urls)', () => {
+    const theme = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        fonts: [
+          { id: 10, brand_style_id: 99999, type: 'title', origin: 'google', origin_name: 'Merriweather', name: 'Merriweather', url: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+          { id: 11, brand_style_id: 99999, type: 'body', origin: 'google', origin_name: 'Open Sans', name: 'Open Sans', url: '', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    // Font families still register, but unsafe URLs are stripped so
+    // applyTheme does not later throw EmailThemeApplyError on a partial
+    // brand style.
+    expect(theme.fonts).toEqual([
+      { fontFamily: 'Merriweather' },
+      { fontFamily: 'Open Sans' },
+    ]);
+  });
+
+  it('drops the logo image when its URL is empty or unsafe', () => {
+    const empty = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        images: [
+          { id: 20, brand_style_id: 99999, type: 'logo', public_path: '', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    expect(empty.images[EmailThemeImageType.Logo]).toBeUndefined();
+
+    const unsafe = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        images: [
+          { id: 20, brand_style_id: 99999, type: 'logo', public_path: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    expect(unsafe.images[EmailThemeImageType.Logo]).toBeUndefined();
+  });
+
   it('is tolerant of null top-level arrays', () => {
     const theme = emailThemeFromBrandStyle({
       id: 1,
