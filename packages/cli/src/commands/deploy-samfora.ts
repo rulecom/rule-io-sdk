@@ -7,7 +7,8 @@ import type { Command } from 'commander';
 import { type RuleClient } from '@rulecom/client';
 import { type RcmlDocument } from '@rulecom/rcml';
 import { resolveBrandTheme } from '@rulecom/client';
-import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/core';
+import type { CustomFieldMap } from '@rulecom/core';
+import type { VendorConsumerConfig } from '@rulecom/vendor';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rulecom/vendor-samfora';
 import { createClient } from '../shared/client.js';
 

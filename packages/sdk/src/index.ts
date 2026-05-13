@@ -16,6 +16,7 @@
 export * from '@rulecom/core';
 export * from '@rulecom/rcml';
 export * from '@rulecom/client';
+export * from '@rulecom/vendor';
 export * from '@rulecom/vendor-shopify';
 export * from '@rulecom/vendor-bookzen';
 export * from '@rulecom/vendor-samfora';

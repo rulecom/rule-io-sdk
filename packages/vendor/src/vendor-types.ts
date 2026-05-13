@@ -14,9 +14,9 @@
 import type {
   AutomationConfigV2,
   TemplateConfigV2,
-} from './automation-configs-v2.js'
-import type { FooterConfig } from './brand-types.js'
-import type { RCMLDocumentRoot } from './rcml-document-root.js'
+  FooterConfig,
+  RCMLDocumentRoot,
+} from '@rulecom/core'
 
 // ─── Schema types ────────────────────────────────────────────────────────────
 

@@ -16,10 +16,9 @@ import type {
   CustomFieldMap,
   EmailTheme,
   FooterConfig,
-  VendorAutomation,
-  VendorConsumerConfig,
 } from '@rulecom/core';
 import { RuleConfigError } from '@rulecom/core';
+import type { VendorAutomation, VendorConsumerConfig } from '@rulecom/vendor';
 import type {
   Json,
   RcmlBodyChild,

@@ -30,6 +30,7 @@
     "@rulecom/client": "0.3.0",
     "@rulecom/core": "0.3.0",
     "@rulecom/rcml": "0.3.0",
+    "@rulecom/vendor": "0.3.0",
     "@rulecom/vendor-shopify": "0.3.0",
     "@rulecom/vendor-bookzen": "0.3.0",
     "@rulecom/vendor-samfora": "0.3.0",

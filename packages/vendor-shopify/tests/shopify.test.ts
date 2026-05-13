@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from 'vitest';
 import type { CustomFieldMap } from '@rulecom/core';
-import type { VendorConsumerConfig } from '@rulecom/core';
 import { RuleConfigError } from '@rulecom/core';
+import type { VendorConsumerConfig } from '@rulecom/vendor';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
 import { TEST_THEME } from '../src/test-fixtures.js';
 

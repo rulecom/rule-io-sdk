@@ -28,8 +28,8 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/core';
-import { resolveVendorAutomations } from '@rulecom/core';
+import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/vendor';
+import { resolveVendorAutomations } from '@rulecom/vendor';
 import type { AutomationConfigV2 } from '@rulecom/core';
 import type { SamforaFieldSchema, SamforaFieldNames } from './fields.js';
 import type { SamforaTagSchema } from './tags.js';

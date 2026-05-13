@@ -12,7 +12,7 @@
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
-import type { VendorAutomation } from '@rulecom/core';
+import type { VendorAutomation } from '@rulecom/vendor';
 
 /**
  * Shopify automation definitions. Currently empty; see module JSDoc.

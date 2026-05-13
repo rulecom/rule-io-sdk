@@ -27,6 +27,9 @@
     "url": "https://github.com/rulecom/rule-io-sdk.git",
     "directory": "packages/vendor"
   },
+  "dependencies": {
+    "@rulecom/core": "0.3.0"
+  },
   "engines": {
     "node": ">=20"
   },
