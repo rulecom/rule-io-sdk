@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError } from '@rulecom/client';
+import { RuleApiError } from '../../errors.js';
 import type { RcmlDocument } from '@rulecom/rcml';
 
 import {

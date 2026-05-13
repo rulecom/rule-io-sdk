@@ -13,5 +13,6 @@
  * ```
  */
 export function formatDateForRule(date: Date): string {
-  return date.toISOString().split('T')[0]!;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  return date.toISOString().split('T')[0]!; // ISO string always contains 'T'
 }

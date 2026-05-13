@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unnecessary-condition */
 import { describe, it, expect } from 'vitest'
 import { parse, parseRfm, parseInlineRfm, RcmlValidationError } from './parse.js'
 

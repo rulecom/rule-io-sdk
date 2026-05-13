@@ -90,6 +90,7 @@ function visitInlines(inlines: InlineNode[], path: string, issues: SemanticIssue
       // Check adjacency: consecutive text nodes with the same mark set should be merged
       const next = inlines[i + 1]
 
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       if (next !== undefined && next.type === 'text' && marksEqual(node.marks, next.marks)) {
         issues.push({
           path: nodePath,
@@ -222,6 +223,7 @@ function normalizeInlines(inlines: InlineNode[]): InlineNode[] {
 
     const prev = merged[merged.length - 1]
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (prev !== undefined && prev.type === 'text' && marksEqual(prev.marks, node.marks)) {
       merged[merged.length - 1] = { ...prev, text: prev.text + node.text }
     } else {

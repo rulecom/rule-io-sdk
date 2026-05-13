@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleClientError } from '@rulecom/client';
+import { RuleClientError } from './errors.js';
 
 import { resolveConfig } from './config.js';
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';

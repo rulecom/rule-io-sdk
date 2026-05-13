@@ -337,7 +337,8 @@ export async function resolveBrandTheme(
     throw new RuleClientError('No brand styles available in the account');
   }
 
-  const preferred = styles.find((s) => s.is_default) ?? styles[0]!;
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const preferred = styles.find((s) => s.is_default) ?? styles[0]!; // guarded non-empty above
   const source: 'default' | 'fallback' = preferred.is_default ? 'default' : 'fallback';
   const resp = await client.getBrandStyle(preferred.id);
 

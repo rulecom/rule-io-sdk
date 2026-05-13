@@ -907,7 +907,8 @@ export class RuleClient extends BaseResource {
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {
@@ -1041,7 +1042,8 @@ export class RuleClient extends BaseResource {
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {

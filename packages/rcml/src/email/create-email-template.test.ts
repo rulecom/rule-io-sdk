@@ -5,7 +5,7 @@ import { customField, type TemplateRefSerializer } from '@rulecom/template-engin
 import { createEmailTemplate } from './create-email-template.js'
 import { createEmailTheme } from './create-theme.js'
 import { EmailThemeImageType } from './theme-types.js'
-import type { EmailTheme } from '@rulecom/rcml'
+import type { EmailTheme } from './theme-types.js'
 
 interface FixtureCopy {
   greeting: string

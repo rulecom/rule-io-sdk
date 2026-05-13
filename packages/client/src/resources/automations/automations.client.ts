@@ -88,6 +88,7 @@ export class AutomationsClient extends BaseResource {
   ): Promise<RuleAutomationResponse> {
     const toNumericSendout = (v: unknown): RuleSendoutType | undefined => {
       if (typeof v === 'number') return v as RuleSendoutType;
+
       if (v != null && typeof v === 'object' && 'value' in v) {
         const val = (v as { value: unknown }).value;
 

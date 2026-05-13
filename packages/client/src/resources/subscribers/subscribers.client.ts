@@ -330,7 +330,7 @@ export class SubscribersClient extends BaseResource {
       if (error instanceof RuleApiError) {
         const existing = await this.getByEmail(subscriber.email);
 
-        if (existing?.subscriber?.id) {
+        if (existing?.subscriber.id) {
           subscriberId = existing.subscriber.id;
         } else {
           throw error;
@@ -340,7 +340,8 @@ export class SubscribersClient extends BaseResource {
       }
     }
 
-    if (subscriberId === undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (subscriberId === undefined) { // defensive guard: API could return unexpected data
       throw new RuleApiError('v3 POST /subscribers returned no id', 0);
     }
 
@@ -398,7 +399,7 @@ export class SubscribersClient extends BaseResource {
   async listSubscribersByTagIds(
     params: ListSubscribersByTagIdsParams
   ): Promise<ListSubscribersByTagIdsResult> {
-    if (!params.tag_ids || params.tag_ids.length === 0) {
+    if (params.tag_ids.length === 0) {
       throw new RuleClientError('tag_ids must not be empty');
     }
 

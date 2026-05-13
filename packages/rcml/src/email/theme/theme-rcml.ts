@@ -195,10 +195,10 @@ export class EmailThemeRcmlMapper {
   static resolveImageClassName(
     imageType: EmailThemeImageType,
     isInitial = false
-  ): string | undefined {
+  ): string {
     return isInitial
-      ? CLASS_NAMES_BY_IMAGE_TYPE_MAP[imageType]?.initial
-      : CLASS_NAMES_BY_IMAGE_TYPE_MAP[imageType]?.main
+      ? CLASS_NAMES_BY_IMAGE_TYPE_MAP[imageType].initial
+      : CLASS_NAMES_BY_IMAGE_TYPE_MAP[imageType].main
   }
 
   /**
@@ -207,7 +207,7 @@ export class EmailThemeRcmlMapper {
    * @param fontStyleType - The theme font-style slot.
    * @returns             The `rcml-{type}-style` class name.
    */
-  static resolveFontStyleClassName(fontStyleType: EmailThemeFontStyleType): string | undefined {
+  static resolveFontStyleClassName(fontStyleType: EmailThemeFontStyleType): string {
     return CLASS_NAMES_BY_FONT_STYLE_TYPE_MAP[fontStyleType]
   }
 
@@ -529,7 +529,7 @@ export function upsertLogoClass(
   children: AnyAttrChild[],
   logoUrl: string
 ): void {
-  const className = EmailThemeRcmlMapper.resolveImageClassName(EmailThemeImageType.Logo)!
+  const className = EmailThemeRcmlMapper.resolveImageClassName(EmailThemeImageType.Logo)
   const safeUrl = ensureSafeUrl(logoUrl, 'logo image')
 
   upsertClassNode(children, className, { name: className, src: safeUrl })
@@ -548,6 +548,7 @@ export function upsertBrandColorClass(
   children: AnyAttrChild[],
   colorHex: string
 ): void {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   const className = EmailThemeRcmlMapper.resolveColorClassName(EmailThemeColorType.Secondary)!
 
   upsertClassNode(children, className, { name: className, 'background-color': colorHex })
@@ -573,7 +574,7 @@ export function upsertFontStyleClass(
   fontStyle: EmailThemeFontStyle,
   type: EmailThemeFontStyleType
 ): void {
-  const className = EmailThemeRcmlMapper.resolveFontStyleClassName(type)!
+  const className = EmailThemeRcmlMapper.resolveFontStyleClassName(type)
 
   upsertClassNode(children, className, {
     name: className,
@@ -593,7 +594,7 @@ function upsertClassNode(
   attrs: Record<string, string>
 ): void {
   const idx = children.findIndex(
-    (c) => c.tagName === 'rc-class' && (c as RcmlClass).attributes?.name === className
+    (c) => c.tagName === 'rc-class' && (c as RcmlClass).attributes.name === className
   )
   const existing = idx >= 0 ? (children[idx] as RcmlClass) : undefined
 
@@ -663,7 +664,7 @@ export function upsertSocialOverlay(
   const byName = new Map<string, RcmlSocialElement>()
 
   for (const el of elements.slice()) {
-    const name = el.attributes?.name as string | undefined
+    const name = el.attributes.name as string | undefined
 
     if (typeof name !== 'string') continue
 
@@ -678,9 +679,9 @@ export function upsertSocialOverlay(
     const existingEl = byName.get(link.type)
 
     if (existingEl) {
-      if ((existingEl.attributes?.href as string | undefined) !== link.url) {
+      if ((existingEl.attributes.href as string | undefined) !== link.url) {
         existingEl.attributes = {
-          ...(existingEl.attributes ?? {}),
+          ...existingEl.attributes,
           name: link.type,
           href: link.url,
         } as RcmlSocialElement['attributes']
@@ -745,11 +746,13 @@ export function overlayFontsInHead(
   const indexByFamily = new Map<string, number>()
 
   for (let i = 0; i < next.length; i++) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const child = next[i]!
 
     if ((child as { tagName: string }).tagName !== 'rc-font') continue
 
     const fontNode = child as unknown as RcmlFont
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     const name = (fontNode.attributes?.name as string | undefined) ?? ''
     const family = unwrapSingleQuotes(name)
 
@@ -759,6 +762,7 @@ export function overlayFontsInHead(
   }
 
   for (const font of urlFonts) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const safeHref = ensureSafeUrl(font.url!, `font ${font.fontFamily}`)
     const existingIdx = indexByFamily.get(font.fontFamily)
 
@@ -766,7 +770,7 @@ export function overlayFontsInHead(
       const existing = next[existingIdx] as unknown as RcmlFont
 
       existing.attributes = {
-        ...(existing.attributes ?? {}),
+        ...existing.attributes,
         name: wrapSingleQuotes(font.fontFamily),
         href: safeHref,
       } as RcmlFont['attributes']
@@ -869,7 +873,7 @@ export function extractColorsFromAttributes(
         : undefined
 
       if (colourType) {
-        const hex = (child as RcmlClass).attributes?.['background-color'] as
+        const hex = (child as RcmlClass).attributes['background-color'] as
           | string
           | undefined
 
@@ -911,7 +915,7 @@ export function extractImagesFromAttributes(
 
     if (!imageType) continue
 
-    const src = (child as RcmlClass).attributes?.src as string | undefined
+    const src = (child as RcmlClass).attributes.src as string | undefined
 
     if (typeof src === 'string' && src !== '') {
       out[imageType] = { type: imageType, url: src }
@@ -996,8 +1000,8 @@ export function extractLinksFromAttributes(
   if (!social) return out
 
   for (const element of social.children as RcmlSocialElement[]) {
-    const name = element.attributes?.name as string | undefined
-    const href = element.attributes?.href as string | undefined
+    const name = element.attributes.name as string | undefined
+    const href = element.attributes.href as string | undefined
 
     if (typeof name !== 'string' || typeof href !== 'string') continue
 
@@ -1030,8 +1034,8 @@ export function extractFontsFromHead(head: RcmlHead): EmailThemeFont[] {
     if ((child as { tagName: string }).tagName !== 'rc-font') continue
 
     const fontNode = child as unknown as RcmlFont
-    const name = fontNode.attributes?.name as string | undefined
-    const href = fontNode.attributes?.href as string | undefined
+    const name = fontNode.attributes.name as string | undefined
+    const href = fontNode.attributes.href as string | undefined
 
     if (typeof name !== 'string' || name === '') continue
 
@@ -1083,6 +1087,7 @@ function readBackgroundColor(child: AnyAttrChild): string | undefined {
  * attribute is missing or not a string.
  */
 function readClassName(cls: RcmlClass): string | undefined {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const name = cls.attributes?.name as string | undefined
 
   return typeof name === 'string' ? name : undefined
@@ -1095,6 +1100,7 @@ function readClassName(cls: RcmlClass): string | undefined {
  * default-fill them.
  */
 function readFontStyleAttributes(cls: RcmlClass): Partial<FontStyleAttributes> {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const a = (cls.attributes ?? {}) as Record<string, unknown>
   const take = (key: keyof FontStyleAttributes): string | undefined =>
     typeof a[key] === 'string' ? (a[key] as string) : undefined

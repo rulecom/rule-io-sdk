@@ -13,7 +13,8 @@ import {
   applyTheme,
 } from '@rulecom/rcml';
 
-import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
+import { emailThemeFromBrandStyle, resolveBrandTheme } from './brand-style-to-theme.js';
+import { RuleClientError } from './errors.js';
 import type { RuleBrandStyle } from './types.js';
 
 const NOW = '2026-04-30T00:00:00Z';
@@ -253,6 +254,93 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     expect(theme.brandStyleId).toBe(1);
     // All slots revert to defaults.
     expect(theme.colors[EmailThemeColorType.Primary]?.hex).toBe('#05CC87');
+  });
+});
+
+describe('resolveBrandTheme', () => {
+  const minimalStyle: RuleBrandStyle = {
+    id: 1,
+    account_id: 1,
+    name: 'Default',
+    is_default: true,
+    colours: [],
+    fonts: [],
+    images: [],
+    links: [],
+    created_at: NOW,
+    updated_at: NOW,
+  };
+
+  it('uses the override id when provided, returning source=override', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => ({ data: minimalStyle }),
+    };
+    const result = await resolveBrandTheme(client, 1);
+
+    expect(result.id).toBe(1);
+    expect(result.source).toBe('override');
+  });
+
+  it('throws RuleClientError for non-integer override id', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client, 1.5)).rejects.toThrow(RuleClientError);
+    await expect(resolveBrandTheme(client, -3)).rejects.toThrow(RuleClientError);
+  });
+
+  it('throws RuleClientError when override id is not found', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client, 99)).rejects.toThrow(RuleClientError);
+  });
+
+  it('picks the is_default entry when no override is given', async () => {
+    const defaultStyle = { ...minimalStyle, id: 2, is_default: true };
+    const client = {
+      listBrandStyles: async () => ({ data: [{ ...minimalStyle, id: 1, is_default: false }, defaultStyle] }),
+      getBrandStyle: async () => ({ data: defaultStyle }),
+    };
+    const result = await resolveBrandTheme(client);
+
+    expect(result.id).toBe(2);
+    expect(result.source).toBe('default');
+  });
+
+  it('falls back to first entry when no default is flagged', async () => {
+    const first = { ...minimalStyle, id: 10, is_default: false };
+    const client = {
+      listBrandStyles: async () => ({ data: [first, { ...minimalStyle, id: 11, is_default: false }] }),
+      getBrandStyle: async () => ({ data: first }),
+    };
+    const result = await resolveBrandTheme(client);
+
+    expect(result.id).toBe(10);
+    expect(result.source).toBe('fallback');
+  });
+
+  it('throws RuleClientError when no brand styles exist', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);
+  });
+
+  it('throws RuleClientError when selected brand style cannot be fetched', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [minimalStyle] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);
   });
 });
 

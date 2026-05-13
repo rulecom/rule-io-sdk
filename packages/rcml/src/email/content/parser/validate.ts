@@ -102,6 +102,7 @@ function visitBlock(
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (node === undefined) continue
     const nodePath = [...path, `${node.type}[${i}]`]
     const loc = node.position?.start
@@ -155,6 +156,7 @@ function visitInline(
   for (let i = 0; i < nodes.length; i++) {
     const node = nodes[i]
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (node === undefined) continue
     const nodePath = [...path, `${node.type}[${i}]`]
     const loc = node.position?.start

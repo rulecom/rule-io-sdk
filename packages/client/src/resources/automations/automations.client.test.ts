@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError } from '@rulecom/client';
+import { RuleApiError, RuleClientError } from '../../errors.js';
 
 import {
   createMockErrorResponse,
@@ -160,6 +160,58 @@ describe('AutomationsClient', () => {
         trigger: { type: 'TAG', id: 10 },
         sendout_type: 1,
       });
+    });
+
+    it('throws RuleApiError when the automation to update is not found (404)', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+      const client = createClient(fetchMock);
+
+      await expect(client.update(99, { name: 'X' })).rejects.toThrow(RuleApiError);
+    });
+
+    it('throws RuleApiError when get() returns a response with no data', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'X' })).rejects.toThrow(RuleApiError);
+    });
+
+    it('throws RuleClientError when existing automation has no trigger and update omits it', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'No-trigger', active: true, sendout_type: 1 },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
+    });
+
+    it('throws RuleClientError when existing automation has no sendout_type and update omits it', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: { id: 1, name: 'No-sendout', active: true, trigger: { type: 'TAG', id: 5 } },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
+    });
+
+    it('throws RuleClientError when existing automation has no active state and update omits it', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'No-active',
+            trigger: { type: 'TAG', id: 5 },
+            sendout_type: 1,
+          },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
     });
   });
 

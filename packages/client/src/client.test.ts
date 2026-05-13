@@ -18,8 +18,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RuleApiError } from '@rulecom/client';
-import { RuleClientError } from '@rulecom/client';
+import { RuleApiError } from './errors.js';
+import { RuleClientError } from './errors.js';
 import type { RcmlDocument } from '@rulecom/rcml';
 
 import {
@@ -428,6 +428,140 @@ describe('createAutomationEmail orchestration', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('cleans up automation + message + template when dynamic set creation fails', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automation
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+      .mockRejectedValueOnce(new Error('Dynamic set failed'))
+      .mockResolvedValueOnce(createMock204Response())                    // delete template
+      .mockResolvedValueOnce(createMock204Response())                    // delete message
+      .mockResolvedValueOnce(createMock204Response());                   // delete automation
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow('Dynamic set failed');
+
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it('swallows cleanup errors and re-throws the original error', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automation
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockRejectedValueOnce(new Error('Template failed'))
+      .mockRejectedValueOnce(new Error('Delete message failed'))        // cleanup fails
+      .mockRejectedValueOnce(new Error('Delete automation failed'));    // cleanup fails
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow('Template failed');
+  });
+
+  it('throws RuleApiError when brand style returns a response with no data', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        brandStyleId: 42,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when automation creation returns no id', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({ data: {} })); // no id
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when message creation returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automation
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))          // message (no id)
+      .mockResolvedValueOnce(createMock204Response());                   // delete automation
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when template creation returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automation
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))          // template (no id)
+      .mockResolvedValueOnce(createMock204Response())                    // delete message
+      .mockResolvedValueOnce(createMock204Response());                   // delete automation
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when dynamic set creation returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // automation
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))          // dynamic set (no id)
+      .mockResolvedValueOnce(createMock204Response())                    // delete template
+      .mockResolvedValueOnce(createMock204Response())                    // delete message
+      .mockResolvedValueOnce(createMock204Response());                   // delete automation
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createAutomationEmail({
+        name: 'Test',
+        subject: 'Test',
+        triggerType: 'segment',
+        triggerValue: '12345',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
 });
 
 describe('createCampaignEmail orchestration', () => {
@@ -456,6 +590,24 @@ describe('createCampaignEmail orchestration', () => {
         brandStyleId: 976,
       })
     ).rejects.toThrow(RuleClientError);
+  });
+
+  it('throws RuleApiError when brand style returns a response with no data', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({ name: 'Test', subject: 'Test', brandStyleId: 999 })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when campaign creation returns no id', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({ data: {} })); // campaign (no id)
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({ name: 'Test', subject: 'Test', template: MINIMAL_TEMPLATE })
+    ).rejects.toThrow(RuleApiError);
   });
 
   it('auto-fetches brand style and builds RCML when brandStyleId is provided', async () => {
@@ -551,6 +703,618 @@ describe('createCampaignEmail orchestration', () => {
         brandStyleId: 976,
       })
     ).rejects.toThrow('Template creation failed');
+  });
+
+  it('cleans up campaign + message + template when dynamic set creation fails', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+      .mockRejectedValueOnce(new Error('Dynamic set failed'))
+      .mockResolvedValueOnce(createMock204Response()) // delete template
+      .mockResolvedValueOnce(createMock204Response()) // delete message
+      .mockResolvedValueOnce(createMock204Response()); // delete campaign
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({
+        name: 'Test',
+        subject: 'Test',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow('Dynamic set failed');
+
+    // 7 calls total: create campaign/message/template, fail dynamic-set, delete 3
+    expect(fetchMock).toHaveBeenCalledTimes(7);
+  });
+
+  it('throws RuleApiError when dynamic set returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 300 } })) // template
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))         // dynamic set (no id)
+      .mockResolvedValueOnce(createMock204Response())                   // delete template
+      .mockResolvedValueOnce(createMock204Response())                   // delete message
+      .mockResolvedValueOnce(createMock204Response());                  // delete campaign
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({
+        name: 'Test',
+        subject: 'Test',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when message creation returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))         // message (no id)
+      .mockResolvedValueOnce(createMock204Response());                  // delete campaign
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({
+        name: 'Test',
+        subject: 'Test',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('throws RuleApiError when template creation returns no id', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockResolvedValueOnce(createMockResponse({ data: {} }))         // template (no id)
+      .mockResolvedValueOnce(createMock204Response())                   // delete message
+      .mockResolvedValueOnce(createMock204Response());                  // delete campaign
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({
+        name: 'Test',
+        subject: 'Test',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow(RuleApiError);
+  });
+
+  it('swallows cleanup errors and still re-throws the original error', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 100 } })) // campaign
+      .mockResolvedValueOnce(createMockResponse({ data: { id: 200 } })) // message
+      .mockRejectedValueOnce(new Error('Template failed'))
+      .mockRejectedValueOnce(new Error('Delete message failed'))       // cleanup fails
+      .mockRejectedValueOnce(new Error('Delete campaign failed'));      // cleanup fails
+    const client = makeClient(fetchMock);
+
+    await expect(
+      client.createCampaignEmail({
+        name: 'Test',
+        subject: 'Test',
+        template: MINIMAL_TEMPLATE,
+      })
+    ).rejects.toThrow('Template failed');
+  });
+});
+
+describe('RuleClient — deprecated subscriber delegations', () => {
+  let fetchMock: MockFetch;
+  let client: RuleClient;
+
+  beforeEach(() => {
+    fetchMock = createMockFetch();
+    client = makeClient(fetchMock);
+  });
+
+  it('getSubscriber delegates to subscribers.getByEmail', async () => {
+    const spy = vi.spyOn(client.subscribers, 'getByEmail').mockResolvedValueOnce(null);
+
+    await client.getSubscriber('a@b.c');
+    expect(spy).toHaveBeenCalledWith('a@b.c');
+  });
+
+  it('getSubscriberFields delegates to subscribers.getFields', async () => {
+    const spy = vi.spyOn(client.subscribers, 'getFields').mockResolvedValueOnce({});
+
+    await client.getSubscriberFields('a@b.c');
+    expect(spy).toHaveBeenCalledWith('a@b.c');
+  });
+
+  it('getSubscriberTags delegates to subscribers.getTagNames', async () => {
+    const spy = vi.spyOn(client.subscribers, 'getTagNames').mockResolvedValueOnce([]);
+
+    await client.getSubscriberTags('a@b.c');
+    expect(spy).toHaveBeenCalledWith('a@b.c');
+  });
+
+  it('removeSubscriberTags sends one DELETE per tag via v2', async () => {
+    fetchMock
+      .mockResolvedValueOnce(createMockResponse({ success: true }))
+      .mockResolvedValueOnce(createMockResponse({ success: true }));
+
+    const result = await client.removeSubscriberTags('a@b.c', ['tag1', 'tag2']);
+
+    expect(result.success).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]![0]).toContain('/api/v2/subscribers/');
+  });
+
+  it('deleteSubscriber DELETEs via v2', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+
+    await client.deleteSubscriber('old@example.com');
+    expect(fetchMock.mock.calls[0]![0]).toContain('/api/v2/subscribers/');
+  });
+
+  it('createSubscriberV3 delegates to subscribers.create', async () => {
+    const spy = vi.spyOn(client.subscribers, 'create').mockResolvedValueOnce({ data: { id: 1, email: 'a@b.c', status: 'ACTIVE' } });
+
+    await client.createSubscriberV3({ email: 'a@b.c' });
+    expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' });
+  });
+
+  it('deleteSubscriberV3 delegates to subscribers.delete', async () => {
+    const spy = vi.spyOn(client.subscribers, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteSubscriberV3('a@b.c', 'email');
+    expect(spy).toHaveBeenCalledWith('a@b.c', 'email');
+  });
+
+  it('blockSubscribers delegates to subscribers.block', async () => {
+    const spy = vi.spyOn(client.subscribers, 'block').mockResolvedValueOnce({ success: true });
+
+    await client.blockSubscribers([{ email: 'a@b.c' }]);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('unblockSubscribers delegates to subscribers.unblock', async () => {
+    const spy = vi.spyOn(client.subscribers, 'unblock').mockResolvedValueOnce({ success: true });
+
+    await client.unblockSubscribers([{ email: 'a@b.c' }]);
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('bulkAddTags delegates to subscribers.bulkAddTags', async () => {
+    const spy = vi.spyOn(client.subscribers, 'bulkAddTags').mockResolvedValueOnce({ success: true });
+
+    await client.bulkAddTags({ subscribers: [{ email: 'a@b.c' }], tags: ['t'] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('bulkRemoveTags delegates to subscribers.bulkRemoveTags', async () => {
+    const spy = vi.spyOn(client.subscribers, 'bulkRemoveTags').mockResolvedValueOnce({ success: true });
+
+    await client.bulkRemoveTags({ subscribers: [{ email: 'a@b.c' }], tags: ['t'] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('removeSubscriberTagV3 delegates to subscribers.removeTag', async () => {
+    const spy = vi.spyOn(client.subscribers, 'removeTag').mockResolvedValueOnce({ success: true });
+
+    await client.removeSubscriberTagV3('a@b.c', 'old-tag', 'email');
+    expect(spy).toHaveBeenCalledWith('a@b.c', 'old-tag', 'email');
+  });
+
+  it('addSubscriberTags sends automation flag in payload when triggerAutomation is truthy', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+    await client.addSubscriberTags('a@b.c', ['t'], 'force');
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+
+    expect(body.automation).toBe('force');
+  });
+
+  it('addSubscriberTags omits automation when triggerAutomation is false', async () => {
+    fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+    await client.addSubscriberTags('a@b.c', ['t'], false);
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+
+    expect(body.automation).toBeUndefined();
+  });
+});
+
+describe('RuleClient — deprecated tags/automation/message delegations', () => {
+  let fetchMock: MockFetch;
+  let client: RuleClient;
+
+  beforeEach(() => {
+    fetchMock = createMockFetch();
+    client = makeClient(fetchMock);
+  });
+
+  it('getTags delegates to tags.list', async () => {
+    const spy = vi.spyOn(client.tags, 'list').mockResolvedValueOnce({ tags: [] });
+
+    await client.getTags();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getTagIdByName delegates to tags.getByName and extracts id', async () => {
+    const spy = vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce({ id: 42, name: 'vip' });
+
+    const id = await client.getTagIdByName('vip');
+
+    expect(id).toBe(42);
+    expect(spy).toHaveBeenCalledWith('vip');
+  });
+
+  it('getTagIdByName returns null when tag not found', async () => {
+    vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce(null);
+    expect(await client.getTagIdByName('missing')).toBeNull();
+  });
+
+  it('getAutomation delegates to automations.get', async () => {
+    const spy = vi.spyOn(client.automations, 'get').mockResolvedValueOnce(null);
+
+    await client.getAutomation(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('updateAutomation delegates to automations.update', async () => {
+    const spy = vi.spyOn(client.automations, 'update').mockResolvedValueOnce({ data: { id: 1, name: 'A' } });
+
+    await client.updateAutomation(1, { name: 'A' });
+    expect(spy).toHaveBeenCalledWith(1, { name: 'A' });
+  });
+
+  it('deleteAutomation delegates to automations.delete', async () => {
+    const spy = vi.spyOn(client.automations, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteAutomation(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('listAutomations delegates to automations.list', async () => {
+    const spy = vi.spyOn(client.automations, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listAutomations();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('createMessage delegates to messages.create', async () => {
+    const spy = vi.spyOn(client.messages, 'create').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createMessage({ dispatcher_id: 1, dispatcher_type: 'automail', subject: 'S' });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getMessage delegates to messages.get', async () => {
+    const spy = vi.spyOn(client.messages, 'get').mockResolvedValueOnce(null);
+
+    await client.getMessage(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('updateMessage delegates to messages.update', async () => {
+    const spy = vi.spyOn(client.messages, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateMessage(1, { subject: 'New' });
+    expect(spy).toHaveBeenCalledWith(1, { subject: 'New' });
+  });
+
+  it('deleteMessage delegates to messages.delete', async () => {
+    const spy = vi.spyOn(client.messages, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteMessage(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('listMessages delegates to messages.list', async () => {
+    const spy = vi.spyOn(client.messages, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listMessages({ id: 1, dispatcher_type: 'automail' });
+    expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe('RuleClient — deprecated template/dynamic-set/campaign delegations', () => {
+  let fetchMock: MockFetch;
+  let client: RuleClient;
+
+  beforeEach(() => {
+    fetchMock = createMockFetch();
+    client = makeClient(fetchMock);
+  });
+
+  it('createTemplate delegates to templates.create', async () => {
+    const spy = vi.spyOn(client.templates, 'create').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createTemplate({ name: 'T', template: {} });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getTemplate delegates to templates.get', async () => {
+    const spy = vi.spyOn(client.templates, 'get').mockResolvedValueOnce(null);
+
+    await client.getTemplate(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('updateTemplate delegates to templates.update', async () => {
+    const spy = vi.spyOn(client.templates, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateTemplate(1, { name: 'New' });
+    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
+  });
+
+  it('deleteTemplate delegates to templates.delete', async () => {
+    const spy = vi.spyOn(client.templates, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteTemplate(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('listTemplates delegates to templates.list', async () => {
+    const spy = vi.spyOn(client.templates, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listTemplates();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('renderTemplate delegates to templates.render', async () => {
+    const spy = vi.spyOn(client.templates, 'render').mockResolvedValueOnce(null);
+
+    await client.renderTemplate(1);
+    expect(spy).toHaveBeenCalledWith(1, undefined);
+  });
+
+  it('createDynamicSet delegates to dynamicSets.create', async () => {
+    const spy = vi.spyOn(client.dynamicSets, 'create').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createDynamicSet({ message_id: 1, template_id: 2 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getDynamicSet delegates to dynamicSets.get', async () => {
+    const spy = vi.spyOn(client.dynamicSets, 'get').mockResolvedValueOnce(null);
+
+    await client.getDynamicSet(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('updateDynamicSet delegates to dynamicSets.update', async () => {
+    const spy = vi.spyOn(client.dynamicSets, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateDynamicSet(1, { template_id: 2 });
+    expect(spy).toHaveBeenCalledWith(1, { template_id: 2 });
+  });
+
+  it('deleteDynamicSet delegates to dynamicSets.delete', async () => {
+    const spy = vi.spyOn(client.dynamicSets, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteDynamicSet(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('listDynamicSets delegates to dynamicSets.list', async () => {
+    const spy = vi.spyOn(client.dynamicSets, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listDynamicSets({ message_id: 1 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('listCampaigns delegates to campaigns.list', async () => {
+    const spy = vi.spyOn(client.campaigns, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listCampaigns();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('createCampaign delegates to campaigns.create', async () => {
+    const spy = vi.spyOn(client.campaigns, 'create').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createCampaign({ name: 'C', message_type_id: 1, subject: 'S' });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getCampaign delegates to campaigns.get', async () => {
+    const spy = vi.spyOn(client.campaigns, 'get').mockResolvedValueOnce(null);
+
+    await client.getCampaign(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('updateCampaign delegates to campaigns.update', async () => {
+    const spy = vi.spyOn(client.campaigns, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateCampaign(1, { name: 'New' });
+    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
+  });
+
+  it('deleteCampaign delegates to campaigns.delete', async () => {
+    const spy = vi.spyOn(client.campaigns, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteCampaign(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('copyCampaign delegates to campaigns.copy', async () => {
+    const spy = vi.spyOn(client.campaigns, 'copy').mockResolvedValueOnce({ data: { id: 2 } });
+
+    await client.copyCampaign(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('scheduleCampaign delegates to campaigns.schedule', async () => {
+    const spy = vi.spyOn(client.campaigns, 'schedule').mockResolvedValueOnce({ success: true });
+
+    await client.scheduleCampaign(1, { start_date: '2024-01-01' });
+    expect(spy).toHaveBeenCalled();
+  });
+});
+
+describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports delegations', () => {
+  let fetchMock: MockFetch;
+  let client: RuleClient;
+
+  beforeEach(() => {
+    fetchMock = createMockFetch();
+    client = makeClient(fetchMock);
+  });
+
+  it('createSuppressions delegates to suppressions.create', async () => {
+    const spy = vi.spyOn(client.suppressions, 'create').mockResolvedValueOnce({ success: true });
+
+    await client.createSuppressions({ subscribers: [{ email: 'a@b.c' }] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('deleteSuppressions delegates to suppressions.delete', async () => {
+    const spy = vi.spyOn(client.suppressions, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteSuppressions({ subscribers: [{ email: 'a@b.c' }] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getBrandStyle delegates to brandStyles.get', async () => {
+    const spy = vi.spyOn(client.brandStyles, 'get').mockResolvedValueOnce(null);
+
+    await client.getBrandStyle(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('createBrandStyleFromDomain delegates to brandStyles.createFromDomain', async () => {
+    const spy = vi.spyOn(client.brandStyles, 'createFromDomain').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createBrandStyleFromDomain({ domain: 'example.com' });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('createBrandStyleManually delegates to brandStyles.createManually', async () => {
+    const spy = vi.spyOn(client.brandStyles, 'createManually').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createBrandStyleManually({ name: 'Manual', colours: [] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('updateBrandStyle delegates to brandStyles.update', async () => {
+    const spy = vi.spyOn(client.brandStyles, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateBrandStyle(1, { name: 'New' });
+    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
+  });
+
+  it('deleteBrandStyle delegates to brandStyles.delete', async () => {
+    const spy = vi.spyOn(client.brandStyles, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteBrandStyle(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('listApiKeys delegates to apiKeys.list', async () => {
+    const spy = vi.spyOn(client.apiKeys, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listApiKeys();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('createApiKey delegates to apiKeys.create', async () => {
+    const spy = vi.spyOn(client.apiKeys, 'create').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.createApiKey({ name: 'Key', permissions: [] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('updateApiKey delegates to apiKeys.update', async () => {
+    const spy = vi.spyOn(client.apiKeys, 'update').mockResolvedValueOnce({ data: { id: 1 } });
+
+    await client.updateApiKey(1, { name: 'Updated' });
+    expect(spy).toHaveBeenCalledWith(1, { name: 'Updated' });
+  });
+
+  it('deleteApiKey delegates to apiKeys.delete', async () => {
+    const spy = vi.spyOn(client.apiKeys, 'delete').mockResolvedValueOnce({ success: true });
+
+    await client.deleteApiKey(1);
+    expect(spy).toHaveBeenCalledWith(1);
+  });
+
+  it('exportDispatchers delegates to exports.dispatchers', async () => {
+    const spy = vi.spyOn(client.exports, 'dispatchers').mockResolvedValueOnce({ data: {} });
+
+    await client.exportDispatchers({ type: 'automail', id: 1 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('exportStatistics delegates to exports.statistics', async () => {
+    const spy = vi.spyOn(client.exports, 'statistics').mockResolvedValueOnce({ data: {} });
+
+    await client.exportStatistics({ type: 'automail', id: 1 });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('exportSubscribers delegates to exports.subscribers', async () => {
+    const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce({ data: {} });
+
+    await client.exportSubscribers({ type: 'subscriber' });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('listRecipientSubscribers delegates to recipients.subscribers.list', async () => {
+    const spy = vi.spyOn(client.recipients.subscribers, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listRecipientSubscribers();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('listRecipientTags delegates to recipients.tags.list', async () => {
+    const spy = vi.spyOn(client.recipients.tags, 'list').mockResolvedValueOnce({ data: [] });
+
+    await client.listRecipientTags();
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getCustomFieldData delegates to customFieldData.list', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'list').mockResolvedValueOnce({ groups: [] });
+
+    await client.getCustomFieldData(1);
+    expect(spy).toHaveBeenCalledWith(1, undefined);
+  });
+
+  it('createCustomFieldData delegates to customFieldData.create', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'create').mockResolvedValueOnce({ success: true });
+
+    await client.createCustomFieldData(1, { groups: [] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('updateCustomFieldData delegates to customFieldData.update', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'update').mockResolvedValueOnce({ success: true });
+
+    await client.updateCustomFieldData(1, { groups: [] });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getCustomFieldDataByGroup delegates to customFieldData.listByGroup', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'listByGroup').mockResolvedValueOnce({ groups: [] });
+
+    await client.getCustomFieldDataByGroup(1, 'Booking');
+    expect(spy).toHaveBeenCalledWith(1, 'Booking', undefined);
+  });
+
+  it('deleteCustomFieldDataByGroup delegates to customFieldData.deleteByGroup', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'deleteByGroup').mockResolvedValueOnce({ success: true });
+
+    await client.deleteCustomFieldDataByGroup(1, 'Booking');
+    expect(spy).toHaveBeenCalledWith(1, 'Booking');
+  });
+
+  it('searchCustomFieldData delegates to customFieldData.search', async () => {
+    const spy = vi.spyOn(client.customFieldData, 'search').mockResolvedValueOnce(null);
+
+    await client.searchCustomFieldData(1, { group: 'Booking', field: 'Name', value: 'A' });
+    expect(spy).toHaveBeenCalled();
+  });
+
+  it('getApiKey returns the api key string', () => {
+    expect(client.getApiKey()).toBe('test-key');
+  });
+
+  it('customField namespace is defined', () => {
+    expect(client.customField).toBeDefined();
   });
 });
 

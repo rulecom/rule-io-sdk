@@ -492,6 +492,42 @@ describe('findTemplateOwner', () => {
     expect(listMessages).toHaveBeenCalledWith({ id: 2, dispatcher_type: 'campaign' });
   });
 
+  it('reports string campaign status in the owner result', async () => {
+    const client = new RuleClient('test-key');
+
+    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
+      data: [{ id: 1, name: 'Promo', status: 'sent' } as never],
+    } as never);
+    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client, 'listMessages').mockResolvedValue({
+      data: [{ id: 101, subject: 'Hi', name: 'Hi' }],
+    } as never);
+    vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
+      data: [{ id: 1, message_id: 101, template_id: 42 }],
+    } as never);
+    const result = await findTemplateOwner(client, 42);
+
+    expect(result.owner).toMatchObject({ kind: 'campaign', status: 'sent' });
+  });
+
+  it('reports object-keyed campaign status in the owner result', async () => {
+    const client = new RuleClient('test-key');
+
+    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
+      data: [{ id: 1, name: 'Promo', status: { key: 'scheduled' } } as never],
+    } as never);
+    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client, 'listMessages').mockResolvedValue({
+      data: [{ id: 101, subject: 'Hi', name: 'Hi' }],
+    } as never);
+    vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
+      data: [{ id: 1, message_id: 101, template_id: 42 }],
+    } as never);
+    const result = await findTemplateOwner(client, 42);
+
+    expect(result.owner).toMatchObject({ kind: 'campaign', status: 'scheduled' });
+  });
+
   it('records a synthetic partial_error when a top-level listCampaigns call fails', async () => {
     const client = new RuleClient('test-key');
 

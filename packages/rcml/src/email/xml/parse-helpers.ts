@@ -194,7 +194,7 @@ function convertNode(
     return node
   }
 
-  const isLeaf = RCML_SCHEMA_SPEC[tagName as RcmlTagName]?.isLeaf === true
+  const isLeaf = RCML_SCHEMA_SPEC[tagName as RcmlTagName].isLeaf === true
 
   if (!isLeaf && Array.isArray(rawChildren)) {
     const children: unknown[] = []

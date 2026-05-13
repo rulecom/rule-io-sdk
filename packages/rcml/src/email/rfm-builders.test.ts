@@ -110,6 +110,7 @@ describe('nested composition — font inside link', () => {
       target: '_blank',
       noTracked: true,
     })
+
     expect(nested).toBe(
       ':link[:font[View in Browser]{text-decoration="underline"}]{href="[Link:WebBrowser]" target="_blank" no-tracked="true"}',
     )

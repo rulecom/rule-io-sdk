@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError } from '@rulecom/client';
-import { RuleClientError } from '@rulecom/client';
+import { RuleApiError } from '../../errors.js';
+import { RuleClientError } from '../../errors.js';
 
 import {
   createMock204Response,

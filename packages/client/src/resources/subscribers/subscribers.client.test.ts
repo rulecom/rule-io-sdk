@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError } from '@rulecom/client';
-import { RuleClientError } from '@rulecom/client';
+import { RuleApiError } from '../../errors.js';
+import { RuleClientError } from '../../errors.js';
 
 import {
   createMock204Response,
@@ -133,6 +133,21 @@ describe('SubscribersClient', () => {
       expect(fetchMock.mock.calls[2]![0]).toBe('https://app.rule.io/api/v3/custom-field-data/999');
     });
 
+    it('rethrows the API error when v3 create fails and v2 fallback also fails (404)', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Conflict' }, 409));
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not Found' }, 404));
+      const client = createClient(fetchMock);
+
+      await expect(client.sync({ email: 'missing@example.com' }, 'Booking')).rejects.toThrow(RuleApiError);
+    });
+
+    it('rethrows non-RuleApiError errors from v3 create', async () => {
+      fetchMock.mockRejectedValueOnce(new TypeError('Network failure'));
+      const client = createClient(fetchMock);
+
+      await expect(client.sync({ email: 'a@example.com' }, 'Booking')).rejects.toThrow(TypeError);
+    });
+
     it('throws RuleClientError when a field key contains a dot', async () => {
       const client = createClient(fetchMock);
 
@@ -188,7 +203,7 @@ describe('SubscribersClient', () => {
 
       const result = await client.getByEmail('a@b.c');
 
-      expect(result?.subscriber?.email).toBe('a@b.c');
+      expect(result?.subscriber.email).toBe('a@b.c');
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).toBe('https://app.rule.io/api/v2/subscribers/a%40b.c?identified_by=email');
@@ -504,6 +519,103 @@ describe('SubscribersClient', () => {
       const body = JSON.parse((init as RequestInit).body as string);
 
       expect(body.tags).toEqual(['old-campaign']);
+    });
+  });
+
+  describe('listSubscribersByTagIds', () => {
+    it('throws RuleClientError when tag_ids is empty', async () => {
+      const client = createClient(fetchMock);
+
+      await expect(client.listSubscribersByTagIds({ tag_ids: [] })).rejects.toThrow(RuleClientError);
+    });
+
+    it('returns only subscribers matching all supplied tag ids', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [
+            { id: 1, email: 'a@example.com', tags: [{ id: 10 }, { id: 20 }] },
+            { id: 2, email: 'b@example.com', tags: [{ id: 10 }] },
+            { id: 3, email: 'c@example.com', tags: [] },
+          ],
+          meta: { next: null },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.listSubscribersByTagIds({ tag_ids: [10, 20] });
+
+      expect(result.matched).toBe(1);
+      expect(result.subscribers[0]!.email).toBe('a@example.com');
+      expect(result.scanned).toBe(3);
+      expect(result.next_page).toBeNull();
+    });
+
+    it('parses next_page from meta.next URL', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [{ id: 1, email: 'a@example.com', tags: [{ id: 10 }] }],
+          meta: { next: 'https://app.rule.io/api/v2/subscribers?page=2&limit=10' },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.listSubscribersByTagIds({ tag_ids: [10], page: 1, limit: 10 });
+
+      expect(result.next_page).toBe(2);
+    });
+
+    it('returns next_page null when meta is absent', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: {} })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.listSubscribersByTagIds({ tag_ids: [10] });
+
+      expect(result.next_page).toBeNull();
+    });
+
+    it('returns next_page null when next URL has no page param', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          subscribers: [],
+          meta: { next: 'https://app.rule.io/api/v2/subscribers?limit=10' },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.listSubscribersByTagIds({ tag_ids: [10] });
+
+      expect(result.next_page).toBeNull();
+    });
+
+    it('returns next_page null when next is not a valid URL', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscribers: [], meta: { next: 'not-a-url' } })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.listSubscribersByTagIds({ tag_ids: [10] });
+
+      expect(result.next_page).toBeNull();
+    });
+  });
+
+  describe('getFields — non-404 error rethrow', () => {
+    it('rethrows non-404 errors from GET /subscriber/:email/fields', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse(500, 'Server error'));
+      const client = createClient(fetchMock);
+
+      await expect(client.getFields('a@example.com')).rejects.toThrow(RuleApiError);
+    });
+  });
+
+  describe('getTagNames — non-404 error rethrow', () => {
+    it('rethrows non-404 errors from GET /subscribers/:email/tags', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse(500, 'Server error'));
+      const client = createClient(fetchMock);
+
+      await expect(client.getTagNames('a@example.com')).rejects.toThrow(RuleApiError);
     });
   });
 });
