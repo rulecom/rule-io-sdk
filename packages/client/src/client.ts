@@ -80,7 +80,7 @@ import type {
   RuleCampaignUpdateRequest,
 } from './resources/campaigns/campaigns.types.js';
 import type {
-  RuleCustomFieldDataCreateRequest,
+  CreateCustomFieldDataRequestBody,
   RuleCustomFieldDataGroupParams,
   RuleCustomFieldDataListParams,
   RuleCustomFieldDataResponse,
@@ -119,10 +119,10 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriber,
-  RuleSubscriberResponse,
+  GetSubscriberV2Response,
   RuleSubscriberTagsV3Request,
-  RuleSubscriberV3CreateRequest,
-  RuleSubscriberV3Response,
+  CreateSubscriberV3Request,
+  CreateSubscriberV3Response,
 } from './resources/subscribers/subscribers.types.js';
 import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
 import type { RuleTagsResponse } from './resources/tags/tags.types.js';
@@ -139,6 +139,7 @@ import type {
   CreateCampaignEmailConfig,
   CreateCampaignEmailResult,
 } from './orchestration.types.js';
+import { CustomFieldClient } from './resources/custom-field/custom-field.client.js';
 
 type V2SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
 
@@ -236,6 +237,10 @@ export class RuleClient extends BaseResource {
     return this.lazy('customFieldData', () => new CustomFieldDataClient(this.transport));
   }
 
+  get customField(): CustomFieldClient {
+    return this.lazy('customField', () => new CustomFieldClient(this.transport));
+  }
+
   // ──────────────────────────────────────────────────────────────────────────
   // Deprecated flat API — back-compat layer.
   //
@@ -252,9 +257,9 @@ export class RuleClient extends BaseResource {
     return this.subscribers.sync(subscriber, fieldGroupPrefix);
   }
 
-  /** @deprecated Use `client.subscribers.get()` instead. */
-  getSubscriber(email: string): Promise<RuleSubscriberResponse | null> {
-    return this.subscribers.get(email);
+  /** @deprecated Use `client.subscribers.getByEmail()` instead. */
+  getSubscriber(email: string): Promise<GetSubscriberV2Response | null> {
+    return this.subscribers.getByEmail(email);
   }
 
   /** @deprecated Use `client.subscribers.getFields()` instead. */
@@ -325,8 +330,8 @@ export class RuleClient extends BaseResource {
 
   /** @deprecated Use `client.subscribers.create()` instead. */
   createSubscriberV3(
-    subscriber: RuleSubscriberV3CreateRequest
-  ): Promise<RuleSubscriberV3Response> {
+    subscriber: CreateSubscriberV3Request
+  ): Promise<CreateSubscriberV3Response> {
     return this.subscribers.create(subscriber);
   }
 
@@ -735,7 +740,7 @@ export class RuleClient extends BaseResource {
   /** @deprecated Use `client.customFieldData.create()` instead. */
   createCustomFieldData(
     subscriberId: number,
-    request: RuleCustomFieldDataCreateRequest
+    request: CreateCustomFieldDataRequestBody
   ): Promise<RuleApiResponse> {
     return this.customFieldData.create(subscriberId, request);
   }
