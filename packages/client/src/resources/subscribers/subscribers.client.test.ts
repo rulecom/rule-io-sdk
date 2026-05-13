@@ -27,7 +27,7 @@ describe('SubscribersClient', () => {
   describe('sync', () => {
     it('POSTs to v3 /subscribers, then writes fields and tags in parallel', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 123, email: 'test@example.com' })
+        createMockResponse({ data: { id: 123, email: 'test@example.com' } })
       );
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       fetchMock.mockResolvedValueOnce(createMock204Response());
@@ -73,7 +73,7 @@ describe('SubscribersClient', () => {
     });
 
     it('filters out undefined and empty-string fields', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 200, email: 'test@example.com' }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 200, email: 'test@example.com' } }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
@@ -93,7 +93,7 @@ describe('SubscribersClient', () => {
     });
 
     it('uses the provided prefix as the group name', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 300, email: 'test@example.com' }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 300, email: 'test@example.com' } }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
@@ -164,7 +164,7 @@ describe('SubscribersClient', () => {
     });
 
     it('trims whitespace from fieldGroupPrefix', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 400, email: 'test@example.com' }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 400, email: 'test@example.com' } }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
@@ -178,14 +178,14 @@ describe('SubscribersClient', () => {
   });
 
   // ── v2 reads ───────────────────────────────────────────────────────────────
-  describe('get', () => {
+  describe('getByEmail', () => {
     it('returns the subscriber payload on 200', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({ subscriber: { id: '123', email: 'a@b.c' } })
       );
       const client = createClient(fetchMock);
 
-      const result = await client.get('a@b.c');
+      const result = await client.getByEmail('a@b.c');
 
       expect(result?.subscriber?.email).toBe('a@b.c');
       const url = fetchMock.mock.calls[0]![0] as string;
@@ -197,14 +197,58 @@ describe('SubscribersClient', () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.get('missing@example.com')).toBeNull();
+      expect(await client.getByEmail('missing@example.com')).toBeNull();
     });
 
     it('rethrows non-404 errors', async () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 500));
       const client = createClient(fetchMock);
 
-      await expect(client.get('x@y.z')).rejects.toBeInstanceOf(RuleApiError);
+      await expect(client.getByEmail('x@y.z')).rejects.toBeInstanceOf(RuleApiError);
+    });
+  });
+
+  describe('getById', () => {
+    it('uses identified_by=id in the URL', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '42', email: 'a@b.c' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.getById(42);
+
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
+        'https://app.rule.io/api/v2/subscribers/42?identified_by=id'
+      );
+    });
+
+    it('returns null on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+      const client = createClient(fetchMock);
+
+      expect(await client.getById(999)).toBeNull();
+    });
+  });
+
+  describe('getByPhone', () => {
+    it('URL-encodes the phone number and uses identified_by=phone_number', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '7', email: 'a@b.c' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.getByPhone('+46123456789');
+
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
+        'https://app.rule.io/api/v2/subscribers/%2B46123456789?identified_by=phone_number'
+      );
+    });
+
+    it('returns null on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+      const client = createClient(fetchMock);
+
+      expect(await client.getByPhone('+00000000000')).toBeNull();
     });
   });
 
@@ -272,7 +316,7 @@ describe('SubscribersClient', () => {
   describe('create', () => {
     it('POSTs to v3 /subscribers with the request body', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 100, email: 'new@example.com', status: 'ACTIVE' })
+        createMockResponse({ data: { id: 100, email: 'new@example.com', status: 'ACTIVE' } })
       );
       const client = createClient(fetchMock);
 
@@ -282,7 +326,7 @@ describe('SubscribersClient', () => {
         language: 'sv',
       });
 
-      expect(result.id).toBe(100);
+      expect(result.data.id).toBe(100);
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/subscribers');

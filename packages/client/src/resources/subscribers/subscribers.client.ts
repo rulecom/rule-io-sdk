@@ -17,12 +17,12 @@ import type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriber,
+  GetSubscriberV2Response,
   RuleSubscriberFieldsResponse,
-  RuleSubscriberResponse,
   RuleSubscriberTagsResponse,
   RuleSubscriberTagsV3Request,
-  RuleSubscriberV3CreateRequest,
-  RuleSubscriberV3Response,
+  CreateSubscriberV3Request,
+  CreateSubscriberV3Response,
 } from './subscribers.types.js';
 
 export type SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
@@ -46,8 +46,8 @@ export class SubscribersClient extends BaseResource {
    * console.log(result.id);
    * ```
    */
-  create(subscriber: RuleSubscriberV3CreateRequest): Promise<RuleSubscriberV3Response> {
-    return this.transport.post<RuleSubscriberV3Response>('/subscribers', {
+  create(subscriber: CreateSubscriberV3Request): Promise<CreateSubscriberV3Response> {
+    return this.transport.post<CreateSubscriberV3Response>('/subscribers', {
       body: JSON.stringify(subscriber),
     });
   }
@@ -223,7 +223,7 @@ export class SubscribersClient extends BaseResource {
     await this.transport.fetchRaw(
       'PUT',
       `/subscribers/${encodeURIComponent(subscriber)}/tags?identified_by=${identifiedBy}`,
-      { body: JSON.stringify(request) }
+      { body: JSON.stringify(request), version: 'v3' },
     );
 
     return { success: true };
@@ -317,17 +317,17 @@ export class SubscribersClient extends BaseResource {
     let subscriberId: number | undefined;
 
     try {
-      const created = await this.transport.post<RuleSubscriberV3Response>('/subscribers', {
+      const created = await this.transport.post<CreateSubscriberV3Response>('/subscribers', {
         body: JSON.stringify({ email: subscriber.email }),
       });
 
-      subscriberId = created.id;
+      subscriberId = created.data.id;
     } catch (error) {
       if (error instanceof RuleApiError) {
-        const existing = await this.get(subscriber.email);
+        const existing = await this.getByEmail(subscriber.email);
 
         if (existing?.subscriber?.id) {
-          subscriberId = parseInt(existing.subscriber.id, 10);
+          subscriberId = existing.subscriber.id;
         } else {
           throw error;
         }
@@ -366,29 +366,52 @@ export class SubscribersClient extends BaseResource {
     return { success: true };
   }
 
+  // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
+
   /**
-   * Get subscriber details from Rule.io.
+   * Get subscriber by numeric ID.
    *
-   * @param email - Subscriber email address.
-   * @returns The subscriber payload, or `null` if no subscriber with that
-   *   email exists (HTTP 404).
+   * @returns The subscriber payload, or `null` if not found (HTTP 404).
    */
-  async get(email: string): Promise<RuleSubscriberResponse | null> {
+  getById(id: number): Promise<GetSubscriberV2Response | null> {
+    return this._getSubscriber(String(id), 'id');
+  }
+
+  /**
+   * Get subscriber by email address.
+   *
+   * @returns The subscriber payload, or `null` if not found (HTTP 404).
+   */
+  getByEmail(email: string): Promise<GetSubscriberV2Response | null> {
+    return this._getSubscriber(email, 'email');
+  }
+
+  /**
+   * Get subscriber by phone number. Make sure the value is URL-encoded if
+   * passed directly (e.g. `+46123456789` → `%2B46123456789`); this method
+   * handles encoding automatically.
+   *
+   * @returns The subscriber payload, or `null` if not found (HTTP 404).
+   */
+  getByPhone(phone: string): Promise<GetSubscriberV2Response | null> {
+    return this._getSubscriber(phone, 'phone_number');
+  }
+
+  private async _getSubscriber(
+    identifier: string,
+    identifiedBy: 'id' | 'email' | 'phone_number',
+  ): Promise<GetSubscriberV2Response | null> {
     try {
-      return await this.transport.get<RuleSubscriberResponse>(
-        `/subscribers/${encodeURIComponent(email)}?identified_by=email`,
+      return await this.transport.get<GetSubscriberV2Response>(
+        `/subscribers/${encodeURIComponent(identifier)}?identified_by=${identifiedBy}`,
         { version: 'v2' }
       );
     } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
+      if (error instanceof RuleApiError && error.isNotFound()) return null;
 
       throw error;
     }
   }
-
-  // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
 
   /**
    * Get a subscriber's custom-field values, flattened to a `Group.Field` map.
