@@ -8,6 +8,7 @@ export default defineConfig(() => ({
   plugins: [nxViteTsPaths(), nxCopyAssetsPlugin(['*.md'])],
   test: {
     name: 'integration',
+    setupFiles: ['./src/setup.ts'],
     watch: false,
     globals: true,
     environment: 'node',
