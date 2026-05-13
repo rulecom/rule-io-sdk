@@ -133,3 +133,47 @@ export interface RuleSubscriberTagsV3Request {
   automation?: 'send' | 'force' | 'reset' | null;
   sync_subscriber?: boolean;
 }
+
+// ── listSubscribersByTagIds ──────────────────────────────────────────────────
+
+/** Subscriber shape returned by the v2 `GET /subscribers` list endpoint. */
+export interface RuleSubscriberV2 {
+  id: number;
+  email: string | null;
+  phone_number: string | null;
+  language: string;
+  opted_in: boolean;
+  suppressed: boolean;
+  created_at: string;
+  updated_at: string;
+  tags?: Array<{ id: number; name: string }> | null;
+}
+
+/** Raw shape of `GET /api/v2/subscribers`. `meta.next` is a URL to the next
+ * page (includes `?page=N` query param) or null when exhausted. */
+export interface RuleSubscribersV2ListResponse extends RuleApiResponse {
+  subscribers?: RuleSubscriberV2[];
+  meta?: { next?: string | null };
+}
+
+/** Parameters for `listSubscribersByTagIds`. */
+export interface ListSubscribersByTagIdsParams {
+  /** Tag IDs the subscriber must ALL have (intersection). Must be non-empty. */
+  tag_ids: number[];
+  /** v2 uses `limit`, not `per_page`. Default 100, max ~1000. */
+  limit?: number;
+  page?: number;
+}
+
+/** Result shape for `listSubscribersByTagIds`. One page at a time — caller
+ * drives pagination by passing `next_page` back until it returns null. */
+export interface ListSubscribersByTagIdsResult {
+  /** Subscribers on this page that matched all required tag_ids. */
+  subscribers: RuleSubscriberV2[];
+  /** Count of subscribers that matched (equals `subscribers.length`). */
+  matched: number;
+  /** Count of subscribers scanned on this page before filtering. */
+  scanned: number;
+  /** Page number to request next. Null when exhausted. */
+  next_page: number | null;
+}

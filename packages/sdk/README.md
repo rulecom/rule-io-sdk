@@ -2,7 +2,7 @@
 
 A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build and send email campaigns, set up tag-triggered automations, manage subscribers, and create RCML templates — all from code.
 
-**Zero external runtime dependencies** | **Full TypeScript types** | **Node.js >= 20**
+**Full TypeScript types** | **Node.js >= 20**
 
 ## Table of Contents
 
@@ -528,9 +528,6 @@ const subscribers = await client.exportSubscribers({ date_from: '2024-01-01', da
 ```
 
 Export statistics supports token-based pagination via `next_page_token`.
-For records where `object.type === 'message'`, `object.name` is returned
-base64-encoded by Rule.io and automatically decoded by the SDK. Pass
-`decodeNames: false` to inspect the raw API response.
 
 ### Recipients
 
@@ -641,32 +638,30 @@ const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs
 
 ## Development
 
+This package is part of the [`rule-io-sdk` Nx monorepo](../../README.md). Build, test, and lint commands are run at the workspace level — see the root README's [Dev workflow](../../README.md#dev-workflow) section.
+
+For commands scoped to this package only:
+
 ```bash
-npm install
-npm run build        # Build with tsup (CJS + ESM)
-npm run test         # Run tests with Vitest
-npm run type-check   # TypeScript strict mode
-npm run dev          # Build in watch mode
-npm run test:watch   # Tests in watch mode
+npx nx build sdk          # build @rule-io/sdk and its workspace deps
+npx nx vitest:test sdk    # run this package's tests
+npx nx eslint:lint sdk    # lint this package
 ```
 
-### RCML Validation Script
+### RCML Validation
 
-Verify that the SDK produces valid templates by creating a campaign with all RCML elements:
+Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rule-io/cli`](../cli/README.md):
 
 ```bash
 echo "RULE_API_KEY=your-key" > .env
-npx tsx scripts/validate-rcml.ts                    # All elements
-npx tsx scripts/validate-rcml.ts --sections=1,4,7   # Specific sections
-npx tsx scripts/validate-rcml.ts --cleanup           # Clean up
+npx @rule-io/cli validate-rcml                  # All elements
+npx @rule-io/cli validate-rcml --sections 1,4,7 # Specific sections
+npx @rule-io/cli validate-rcml --cleanup        # Clean up
 ```
 
 ### Releasing
 
-1. Update `CHANGELOG.md` with the new version's changes
-2. Run `npm version <patch|minor|major>` (runs type-check + tests automatically)
-3. Push with tags: `git push && git push --tags`
-4. Publish: `npm publish`
+Releases are managed at the workspace level via `nx release`. See the [root README](../../README.md#release-process) for the full process.
 
 ### API Documentation
 

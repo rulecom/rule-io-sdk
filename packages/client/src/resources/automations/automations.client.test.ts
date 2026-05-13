@@ -120,7 +120,20 @@ describe('AutomationsClient', () => {
       });
     });
 
-    it('forwards a partial update body unchanged', async () => {
+    it('does a read-modify-write for a partial update (only name provided)', async () => {
+      // GET call: returns existing automation with all required fields
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            active: true,
+            trigger: { type: 'TAG', id: 10 },
+            sendout_type: { value: 1, key: 'CAMPAIGN', description: 'Campaign' },
+          },
+        })
+      );
+      // PUT call: returns updated automation
       fetchMock.mockResolvedValueOnce(
         createMockResponse({ data: { id: 1, name: 'Renamed' } })
       );
@@ -128,9 +141,25 @@ describe('AutomationsClient', () => {
 
       await client.update(1, { name: 'Renamed' });
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      // First call should be the GET
+      const [getUrl] = fetchMock.mock.calls[0]!;
 
-      expect(body).toEqual({ name: 'Renamed' });
+      expect((getUrl as string)).toContain('/editor/automail/1');
+      expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
+
+      // Second call should be the PUT with the merged full body
+      const [putUrl, putInit] = fetchMock.mock.calls[1]!;
+
+      expect(putUrl as string).toContain('/editor/automail/1');
+      expect((putInit as RequestInit).method).toBe('PUT');
+      const body = JSON.parse((putInit as RequestInit).body as string);
+
+      expect(body).toEqual({
+        name: 'Renamed',
+        active: true,
+        trigger: { type: 'TAG', id: 10 },
+        sendout_type: 1,
+      });
     });
   });
 

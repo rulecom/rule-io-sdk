@@ -35,6 +35,10 @@ export type {
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
+  RuleSubscriberV2,
+  RuleSubscribersV2ListResponse,
+  ListSubscribersByTagIdsParams,
+  ListSubscribersByTagIdsResult,
 } from './resources/subscribers/subscribers.types.js';
 
 // ── Tags ─────────────────────────────────────────────────────────────────────

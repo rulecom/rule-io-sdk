@@ -24,9 +24,9 @@ export interface CustomFieldMap {
 }
 
 /**
- * Footer-section configuration — localisation overrides and styling
- * defaults for the view-in-browser / unsubscribe links rendered in
- * vendor email footers.
+ * Footer-section configuration — localisation overrides for the default
+ * English link text produced by `footerSection()` in
+ * `@rule-io/rcml`'s brand-elements module.
  */
 export interface FooterConfig {
   /** "View in browser" link text (default: 'View in browser') */

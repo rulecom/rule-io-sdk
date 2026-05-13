@@ -11,6 +11,7 @@
 import { RuleApiError, RuleConfigError } from '@rule-io/core';
 
 import { BaseResource } from '../../core/base-resource.js';
+import { buildQueryString } from '../../core/query-string.js';
 import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
@@ -23,6 +24,9 @@ import type {
   RuleSubscriberTagsV3Request,
   CreateSubscriberV3Request,
   CreateSubscriberV3Response,
+  RuleSubscribersV2ListResponse,
+  ListSubscribersByTagIdsParams,
+  ListSubscribersByTagIdsResult,
 } from './subscribers.types.js';
 
 export type SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
@@ -369,6 +373,61 @@ export class SubscribersClient extends BaseResource {
   // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
 
   /**
+   * List all subscribers that have ALL the specified tag IDs (intersection
+   * filter). Paginates one page at a time — pass `next_page` back as `page`
+   * until it returns `null`.
+   *
+   * @param params - `tag_ids` (required, non-empty), optional `page`/`limit`.
+   * @returns `{ subscribers, matched, scanned, next_page }` for the page.
+   *
+   * @example
+   * ```typescript
+   * let page: number | null = 1;
+   * const all: RuleSubscriberV2[] = [];
+   * while (page) {
+   *   const res = await client.subscribers.listSubscribersByTagIds({
+   *     tag_ids: [42, 99],
+   *     page,
+   *     limit: 500,
+   *   });
+   *   all.push(...res.subscribers);
+   *   page = res.next_page;
+   * }
+   * ```
+   */
+  async listSubscribersByTagIds(
+    params: ListSubscribersByTagIdsParams
+  ): Promise<ListSubscribersByTagIdsResult> {
+    if (!params.tag_ids || params.tag_ids.length === 0) {
+      throw new RuleConfigError('tag_ids must not be empty');
+    }
+
+    const qs = buildQueryString({
+      page: params.page,
+      limit: params.limit,
+    });
+    const response = await this.transport.get<RuleSubscribersV2ListResponse>(
+      `/subscribers${qs}`,
+      { version: 'v2' }
+    );
+
+    const scanned = response.subscribers ?? [];
+    const required = params.tag_ids;
+    const matched = scanned.filter((sub) => {
+      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
+
+      return required.every((id) => subTagIds.has(id));
+    });
+
+    return {
+      subscribers: matched,
+      matched: matched.length,
+      scanned: scanned.length,
+      next_page: parseNextPage(response.meta?.next ?? null),
+    };
+  }
+
+  /**
    * Get subscriber by numeric ID.
    *
    * @returns The subscriber payload, or `null` if not found (HTTP 404).
@@ -469,5 +528,20 @@ export class SubscribersClient extends BaseResource {
 
       throw error;
     }
+  }
+}
+
+function parseNextPage(nextUrl: string | null): number | null {
+  if (!nextUrl) return null;
+
+  try {
+    const pageStr = new URL(nextUrl).searchParams.get('page');
+
+    if (!pageStr) return null;
+    const page = Number.parseInt(pageStr, 10);
+
+    return Number.isFinite(page) && page > 0 ? page : null;
+  } catch {
+    return null;
   }
 }

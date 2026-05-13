@@ -577,13 +577,23 @@ describe('Deprecated automail aliases', () => {
   it('getAutomail / updateAutomail / deleteAutomail / listAutomails all forward correctly', async () => {
     fetchMock
       .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'A' } }))
+      // updateAutomail with full body takes the fast path — no internal GET
       .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'Updated' } }))
       .mockResolvedValueOnce(createMock204Response())
       .mockResolvedValueOnce(createMockResponse({ data: [] }));
     const client = makeClient(fetchMock);
 
     expect((await client.getAutomail(1))?.data?.id).toBe(1);
-    expect((await client.updateAutomail(1, { name: 'Updated' })).data?.name).toBe('Updated');
+    expect(
+      (
+        await client.updateAutomail(1, {
+          name: 'Updated',
+          active: true,
+          trigger: { type: 'TAG', id: 42 },
+          sendout_type: 2,
+        })
+      ).data?.name
+    ).toBe('Updated');
     expect((await client.deleteAutomail(1)).success).toBe(true);
     expect((await client.listAutomails()).data).toEqual([]);
   });

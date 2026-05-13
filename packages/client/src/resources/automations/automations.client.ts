@@ -5,7 +5,7 @@
  * by the underlying API is hidden — consumers see only "Automation".
  */
 
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError, RuleConfigError } from '@rule-io/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
@@ -17,6 +17,7 @@ import type {
   RuleAutomationListResponse,
   RuleAutomationResponse,
   RuleAutomationUpdateRequest,
+  RuleSendoutType,
 } from './automations.types.js';
 
 export class AutomationsClient extends BaseResource {
@@ -81,12 +82,92 @@ export class AutomationsClient extends BaseResource {
    * });
    * ```
    */
-  update(
+  async update(
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
+    const toNumericSendout = (v: unknown): RuleSendoutType | undefined => {
+      if (typeof v === 'number') return v as RuleSendoutType;
+      if (v != null && typeof v === 'object' && 'value' in v) {
+        const val = (v as { value: unknown }).value;
+
+        if (typeof val === 'number') return val as RuleSendoutType;
+      }
+
+      return undefined;
+    };
+
+    const updateSendout = toNumericSendout(update.sendout_type);
+
+    // Fast path: when the caller already supplies every required field, skip
+    // the read and PUT directly to save one round-trip.
+    if (
+      update.name != null &&
+      update.active != null &&
+      update.trigger != null &&
+      updateSendout != null
+    ) {
+      return this.transport.put<RuleAutomationResponse>(`/editor/automail/${id}`, {
+        body: JSON.stringify({
+          name: update.name,
+          active: update.active,
+          trigger: update.trigger,
+          sendout_type: updateSendout,
+        }),
+      });
+    }
+
+    // Slow path: read-modify-write to satisfy the API's full-body PUT
+    // requirement when caller passes a partial update.
+    const existing = await this.get(id);
+
+    if (existing === null) {
+      throw new RuleApiError(`Automation ${id} not found`, 404);
+    }
+
+    if (!existing.data) {
+      const detail = existing.error ?? existing.message ?? 'response had no data';
+
+      throw new RuleApiError(
+        `Cannot update automation ${id}: unexpected response from get (${detail})`,
+        500
+      );
+    }
+
+    const current = existing.data;
+    const currentSendout = toNumericSendout(current.sendout_type);
+
+    const trigger = update.trigger ?? current.trigger;
+    const sendoutType = updateSendout ?? currentSendout;
+    const active = update.active ?? current.active;
+
+    if (!trigger) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no trigger and update did not provide one`
+      );
+    }
+
+    if (sendoutType == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no sendout_type and update did not provide one`
+      );
+    }
+
+    if (active == null) {
+      throw new RuleConfigError(
+        `Cannot update automation ${id}: existing record has no active state and update did not provide one`
+      );
+    }
+
+    const fullBody: RuleAutomationUpdateRequest = {
+      name: update.name ?? current.name,
+      active,
+      trigger,
+      sendout_type: sendoutType,
+    };
+
     return this.transport.put<RuleAutomationResponse>(`/editor/automail/${id}`, {
-      body: JSON.stringify(update),
+      body: JSON.stringify(fullBody),
     });
   }
 

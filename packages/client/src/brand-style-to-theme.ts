@@ -30,7 +30,7 @@ import type {
   EmailThemeSocialLinkType,
 } from '@rule-io/rcml';
 
-import { RuleConfigError } from '@rule-io/core';
+import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
 import type {
   RuleBrandStyle,
   RuleBrandStyleColour,
@@ -124,9 +124,17 @@ function mapLinks(brandLinks: RuleBrandStyleLink[]): EmailThemeSocialLink[] {
   for (const link of brandLinks) {
     const themeType = LINK_TYPE_TO_THEME_LINK[link.type];
 
-    if (themeType !== undefined) {
-      out.push({ type: themeType, url: link.link });
-    }
+    if (themeType === undefined) continue;
+
+    // Brand-style API can return blank or otherwise unsafe URLs.
+    // applyTheme would later throw EmailThemeApplyError on those, so
+    // drop them here instead — a partial brand style should still
+    // produce a usable theme.
+    const safeUrl = sanitizeUrl(link.link);
+
+    if (safeUrl === '') continue;
+
+    out.push({ type: themeType, url: safeUrl });
   }
 
   return out;
@@ -136,9 +144,17 @@ function mapImages(brandImages: RuleBrandStyleImage[]): EmailThemeImage[] {
   const out: EmailThemeImage[] = [];
 
   for (const image of brandImages) {
-    if (image.type === 'logo' && typeof image.public_path === 'string' && image.public_path !== '') {
-      out.push({ type: EmailThemeImageType.Logo, url: image.public_path });
-    }
+    if (image.type !== 'logo') continue;
+    if (typeof image.public_path !== 'string') continue;
+
+    // Same rationale as mapLinks: applyTheme rejects unsafe logo URLs
+    // (see apply-theme.test.ts), so filter at the source rather than
+    // surfacing a runtime error from a partial brand style.
+    const safeUrl = sanitizeUrl(image.public_path);
+
+    if (safeUrl === '') continue;
+
+    out.push({ type: EmailThemeImageType.Logo, url: safeUrl });
   }
 
   return out;
@@ -163,7 +179,7 @@ function mapFonts(
     const fontFamily = fontFamilyFrom(titleFont);
 
     if (fontFamily) {
-      fonts.push({ fontFamily, ...(titleFont.url ? { url: titleFont.url } : {}) });
+      fonts.push({ fontFamily, ...safeFontUrl(titleFont.url) });
     }
   }
 
@@ -188,7 +204,7 @@ function mapFonts(
     const fontFamily = fontFamilyFrom(bodyFont);
 
     if (fontFamily) {
-      fonts.push({ fontFamily, ...(bodyFont.url ? { url: bodyFont.url } : {}) });
+      fonts.push({ fontFamily, ...safeFontUrl(bodyFont.url) });
     }
   }
 
@@ -210,6 +226,20 @@ function mapFonts(
   }
 
   return { fonts, fontStyles };
+}
+
+/**
+ * Same rationale as {@link mapLinks}/{@link mapImages}: applyTheme rejects
+ * unsafe font URLs with `EmailThemeApplyError`, so filter at the bridge
+ * rather than surfacing a runtime error from a partial brand style.
+ * Returns either `{ url: safeUrl }` or `{}` so the caller can spread it.
+ */
+function safeFontUrl(url: string | null | undefined): { url?: string } {
+  if (typeof url !== 'string') return {};
+
+  const safe = sanitizeUrl(url);
+
+  return safe === '' ? {} : { url: safe };
 }
 
 function fontFamilyFrom(font: RuleBrandStyleFont): string | undefined {

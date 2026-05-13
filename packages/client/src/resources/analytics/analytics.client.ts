@@ -48,9 +48,14 @@ export class AnalyticsClient extends BaseResource {
    */
   async get(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
     const { objectType, objectIds, metrics } = validateAndExtract(params);
+    // The /analytics endpoint rejects any datetime form and accepts only bare
+    // dates, even though sibling v3 endpoints accept ISO-8601 / datetime forms.
+    // Strip any time portion so consumers using a shared date normalizer don't
+    // have to special-case this endpoint.
+    const stripTime = (d: string): string => d.split(/[ T]/)[0];
     const qs = buildQueryString({
-      date_from: params.date_from,
-      date_to: params.date_to,
+      date_from: stripTime(params.date_from),
+      date_to: stripTime(params.date_to),
       object_type: objectType,
       'object_ids[]': objectIds,
       'metrics[]': metrics,
