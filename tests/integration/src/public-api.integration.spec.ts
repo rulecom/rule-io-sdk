@@ -7,7 +7,7 @@ const packagesDir = join(workspaceRoot, 'packages');
 const publishablePackages: string[] = readdirSync(packagesDir)
   .filter((dir) => existsSync(join(packagesDir, dir, 'package.json')))
   .map((dir) => JSON.parse(readFileSync(join(packagesDir, dir, 'package.json'), 'utf-8')))
-  .filter((pkg) => pkg.publishConfig?.access === 'public' && pkg.name !== '@rulecom/cli')
+  .filter((pkg) => pkg.publishConfig?.access === 'public')
   .map((pkg) => pkg.name as string);
 
 describe('public package entrypoints', () => {

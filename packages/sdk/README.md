@@ -648,17 +648,6 @@ npx nx vitest:test sdk    # run this package's tests
 npx nx eslint:lint sdk    # lint this package
 ```
 
-### RCML Validation
-
-Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rulecom/cli`](../cli/README.md):
-
-```bash
-echo "RULE_API_KEY=your-key" > .env
-npx @rulecom/cli validate-rcml                  # All elements
-npx @rulecom/cli validate-rcml --sections 1,4,7 # Specific sections
-npx @rulecom/cli validate-rcml --cleanup        # Clean up
-```
-
 ### Releasing
 
 Releases are managed at the workspace level via `nx release`. See the [root README](../../README.md#release-process) for the full process.

@@ -6,8 +6,7 @@
  * Rule.io editor expects so generated documents render identically once
  * `applyTheme` decorates the head from a consumer-supplied theme.
  *
- * Consumed by the `@rulecom/vendor-*` packages and the `@rulecom/cli`
- * validate-rcml / deploy commands.
+ * Consumed by the `@rulecom/vendor-*` packages.
  *
  * @public
  */

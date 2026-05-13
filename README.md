@@ -14,7 +14,6 @@ Publishes the following packages under the `@rulecom/*` npm scope:
 | [`@rulecom/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
 | [`@rulecom/vendor-samfora`](packages/vendor-samfora) | Samfora preset — Swedish donation flows |
 | [`@rulecom/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
-| [`@rulecom/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
 ---
 
@@ -26,7 +25,6 @@ Most consumers install **one** package — npm pulls in everything else as trans
 |---|---|---|
 | Call the Rule.io HTTP API | `@rulecom/client` | The 90% case. Brings in `core` + `rcml` automatically. |
 | Compose custom RCML templates from primitives | `@rulecom/rcml` | Low-level builders only — pair with `@rulecom/client` to send. |
-| Run the CLI to deploy presets / validate RCML | `@rulecom/cli` | Installs the `rule-io` binary. |
 | Try everything in one install (prototypes, demos) | `@rulecom/sdk` | Meta-package re-exporting every library above. Larger `node_modules` — prefer the direct installs above for production. |
 | Ship a Shopify e-commerce integration | `@rulecom/client` + `@rulecom/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
 | Ship a Bookzen hospitality integration | `@rulecom/client` + `@rulecom/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
@@ -88,7 +86,6 @@ vendor-samfora  ← core, rcml
 vendor-shopify  ← core, rcml, templates
 
 sdk (meta)      ← core, rcml, client, vendor-{shopify,bookzen,samfora}
-cli             ← core, rcml, client, vendor-{shopify,bookzen,samfora}
 ```
 
 ---
@@ -99,15 +96,11 @@ Node `>=20` required (the Nx plugins used by this workspace rely on `node:util.s
 
 ```bash
 npm install                         # install + link workspace packages
-npx nx show projects                # sanity-check: 9 publishable packages + the workspace root
+npx nx show projects                # sanity-check: 8 publishable packages + the workspace root
 npm run build                       # build all publishable packages → dist/packages/<pkg>/
 npm run test                        # run every package's tests
 npm run lint                        # lint every package
 npm run graph                       # visualise the project graph in a browser
-
-# Run the CLI directly against source (no build step):
-npm run cli -- --help
-npm run deploy:shopify -- --activate
 ```
 
 Building a single package (and its deps, in topological order):
@@ -233,8 +226,7 @@ packages/
 ├── vendor-shopify/
 ├── vendor-bookzen/
 ├── vendor-samfora/
-├── sdk/                    # meta-package
-└── cli/                    # rule-io command-line tool
+└── sdk/                    # meta-package
 .github/workflows/          # CI
 nx.json                     # Nx config incl. `release`
 tsconfig.json               # path mappings for IDE autocompletion

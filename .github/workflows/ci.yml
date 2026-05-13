@@ -53,9 +53,6 @@ jobs:
             # published tarball and counts toward each consumer's install
             # footprint.
             case "$name" in
-              "@rulecom/cli")
-                allowed='["commander"]'
-                ;;
               "@rulecom/rcml")
                 # ajv: JSON-schema validator for RCML; prosemirror-model:
                 # ProseMirror doc nodes; remark-* / unified / vfile / mdast-*:
@@ -93,9 +90,4 @@ jobs:
             test -f "dist/packages/$pkg/src/index.d.ts" || { echo "Missing dist/packages/$pkg/src/index.d.ts"; exit 1; }
             test -f "dist/packages/$pkg/package.json"   || { echo "Missing dist/packages/$pkg/package.json"; exit 1; }
           done
-          test -f "dist/packages/cli/src/cli.js"   || { echo "Missing dist/packages/cli/src/cli.js"; exit 1; }
-          test -f "dist/packages/cli/src/cli.d.ts" || { echo "Missing dist/packages/cli/src/cli.d.ts"; exit 1; }
-          test -f "dist/packages/cli/package.json" || { echo "Missing dist/packages/cli/package.json"; exit 1; }
-          head -1 dist/packages/cli/src/cli.js | grep -q "^#!/usr/bin/env node" \
-            || { echo "CLI shebang missing from dist/packages/cli/src/cli.js"; exit 1; }
-          echo "All build outputs present for 8 packages."
+          echo "All build outputs present for 7 packages."
