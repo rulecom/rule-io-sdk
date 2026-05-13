@@ -16,7 +16,7 @@ import type { VendorTagSchema } from '@rule-io/core';
  * await client.syncSubscriber({
  *   email: 'guest@example.com',
  *   tags: [BOOKZEN_TAGS.accommodation],
- * });
+ * }, 'Booking');
  * ```
  */
 export const BOOKZEN_TAGS = {

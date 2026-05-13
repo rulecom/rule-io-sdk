@@ -31,7 +31,12 @@
           },
           {
             "input": "./packages/vendor-shopify/src/templates",
-            "glob": "*.xml",
+            "glob": "**/*.xml",
+            "output": "./src/templates"
+          },
+          {
+            "input": "./packages/vendor-shopify/src/templates",
+            "glob": "**/*.json",
             "output": "./src/templates"
           }
         ]

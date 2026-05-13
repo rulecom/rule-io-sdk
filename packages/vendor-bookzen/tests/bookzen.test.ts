@@ -6,22 +6,22 @@ import { describe, it, expect } from 'vitest';
 import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
-import { bookzenPreset, BOOKZEN_FIELDS, BOOKZEN_TAGS } from '../src/index.js';
-import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
+import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '../src/index.js';
+import { TEST_THEME } from './helpers.js';
 
 // ============================================================================
 // Shared fixtures
 // ============================================================================
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  [BOOKZEN_FIELDS.guestFirstName]: 100001,
-  [BOOKZEN_FIELDS.bookingRef]: 100002,
-  [BOOKZEN_FIELDS.serviceType]: 100003,
-  [BOOKZEN_FIELDS.checkInDate]: 100004,
-  [BOOKZEN_FIELDS.checkOutDate]: 100005,
-  [BOOKZEN_FIELDS.totalGuests]: 100006,
-  [BOOKZEN_FIELDS.totalPrice]: 100007,
-  [BOOKZEN_FIELDS.roomName]: 100008,
+  [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
+  [BOOKZEN_FIELD_SCHEMA.bookingRef]: 100002,
+  [BOOKZEN_FIELD_SCHEMA.serviceType]: 100003,
+  [BOOKZEN_FIELD_SCHEMA.checkInDate]: 100004,
+  [BOOKZEN_FIELD_SCHEMA.checkOutDate]: 100005,
+  [BOOKZEN_FIELD_SCHEMA.totalGuests]: 100006,
+  [BOOKZEN_FIELD_SCHEMA.totalPrice]: 100007,
+  [BOOKZEN_FIELD_SCHEMA.roomName]: 100008,
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
@@ -42,7 +42,7 @@ describe('bookzenPreset', () => {
   });
 
   it('exposes field and tag schemas', () => {
-    expect(bookzenPreset.fields).toBe(BOOKZEN_FIELDS);
+    expect(bookzenPreset.fields).toBe(BOOKZEN_FIELD_SCHEMA);
     expect(bookzenPreset.tags).toBe(BOOKZEN_TAGS);
   });
 
@@ -59,7 +59,7 @@ describe('bookzenPreset', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
-          [BOOKZEN_FIELDS.guestFirstName]: 100001,
+          [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
         },
       };
 
@@ -86,13 +86,13 @@ describe('bookzenPreset', () => {
     it('returns all fields with descriptions', () => {
       const fields = bookzenPreset.getRequiredFields();
 
-      expect(fields.length).toBe(Object.keys(BOOKZEN_FIELDS).length);
+      expect(fields.length).toBe(Object.keys(BOOKZEN_FIELD_SCHEMA).length);
 
       for (const field of fields) {
         expect(field.logicalName).toBeTruthy();
         expect(field.fieldName).toBeTruthy();
         expect(field.description).toBeTruthy();
-        expect(BOOKZEN_FIELDS[field.logicalName as keyof typeof BOOKZEN_FIELDS]).toBe(
+        expect(BOOKZEN_FIELD_SCHEMA[field.logicalName as keyof typeof BOOKZEN_FIELD_SCHEMA]).toBe(
           field.fieldName
         );
       }
@@ -104,110 +104,15 @@ describe('bookzenPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 5 automations', () => {
+    // The pre-built automation entries have been retired. Template
+    // authors now build contexts directly via the factory functions
+    // (createReservationConfirmationTemplate, etc.) and wire
+    // automations through @rule-io/client. See
+    // packages/templates/README.md for the authoring pattern.
+    it('returns an empty list (pre-built automations retired)', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
 
-      expect(automations).toHaveLength(5);
-    });
-
-    it('returns automations with unique IDs', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const ids = automations.map((a) => a.id);
-
-      expect(new Set(ids).size).toBe(ids.length);
-    });
-
-    it('returns automations with unique trigger tags', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const triggerTags = automations.map((a) => a.triggerTag);
-
-      expect(new Set(triggerTags).size).toBe(triggerTags.length);
-    });
-
-    it('all automations have trigger tags from BOOKZEN_TAGS', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set<string>(Object.values(BOOKZEN_TAGS));
-
-      for (const automation of automations) {
-        expect(validTags.has(automation.triggerTag)).toBe(true);
-      }
-    });
-
-    it('all automations produce valid RCML documents', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-
-      for (const automation of automations) {
-        const doc = automation.templateBuilder({
-          theme: TEST_THEME,
-          customFields: TEST_CUSTOM_FIELDS,
-          websiteUrl: 'https://myhotel.example.com',
-        });
-
-        assertValidRCMLDocument(doc);
-      }
-    });
-
-    it('templateBuilder honors TemplateConfigV2 overrides', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const confirmation = automations.find(
-        (a) => a.id === 'bookzen-reservation-confirmation'
-      )!;
-
-      const overriddenFields: CustomFieldMap = {
-        ...TEST_CUSTOM_FIELDS,
-        [BOOKZEN_FIELDS.bookingRef]: 999999,
-      };
-
-      const doc = confirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: overriddenFields,
-        websiteUrl: 'https://override.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      // Should use the overridden field ID, not the original
-      expect(json).toContain('[CustomField:999999]');
-      expect(json).not.toContain('[CustomField:100002]');
-    });
-
-    it('RCML contains Bookzen field placeholders', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const confirmation = automations.find(
-        (a) => a.id === 'bookzen-reservation-confirmation'
-      )!;
-
-      const doc = confirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myhotel.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      expect(json).toContain('[CustomField:100002]'); // bookingRef
-      expect(json).toContain('[CustomField:100004]'); // checkInDate
-    });
-
-    it('throws RuleConfigError for incomplete config', () => {
-      expect(() =>
-        bookzenPreset.getAutomations({
-          ...TEST_CONFIG,
-          customFields: {},
-        })
-      ).toThrow(RuleConfigError);
-    });
-
-    it('reminder has a delay', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const reminder = automations.find((a) => a.id === 'bookzen-reservation-reminder')!;
-
-      expect(reminder.delayInSeconds).toBe('86400');
-    });
-
-    it('feedback request has a delay', () => {
-      const automations = bookzenPreset.getAutomations(TEST_CONFIG);
-      const feedback = automations.find((a) => a.id === 'bookzen-feedback-request')!;
-
-      expect(feedback.delayInSeconds).toBe('172800');
+      expect(automations).toHaveLength(0);
     });
   });
 
@@ -216,17 +121,7 @@ describe('bookzenPreset', () => {
   // ============================================================================
 
   describe('getAutomation', () => {
-    it('returns a single automation by ID', () => {
-      const automation = bookzenPreset.getAutomation(
-        'bookzen-reservation-confirmation',
-        TEST_CONFIG
-      );
-
-      expect(automation).toBeDefined();
-      expect(automation!.id).toBe('bookzen-reservation-confirmation');
-    });
-
-    it('returns undefined for unknown ID', () => {
+    it('returns undefined for any ID (no automations defined)', () => {
       const automation = bookzenPreset.getAutomation('nonexistent', TEST_CONFIG);
 
       expect(automation).toBeUndefined();
@@ -240,7 +135,7 @@ describe('bookzenPreset', () => {
 
 describe('BOOKZEN_FIELDS', () => {
   it('all values are non-empty strings', () => {
-    for (const value of Object.values(BOOKZEN_FIELDS)) {
+    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
       expect(typeof value).toBe('string');
       expect(value.length).toBeGreaterThan(0);
     }
@@ -250,16 +145,16 @@ describe('BOOKZEN_FIELDS', () => {
     // Rule.io praxis: guest identity on the flat Subscriber.* group
     // (overwritten per sync); per-booking event data on the historical
     // Booking.* group (appended per sync).
-    expect(BOOKZEN_FIELDS.guestFirstName).toBe('Subscriber.FirstName');
+    expect(BOOKZEN_FIELD_SCHEMA.guestFirstName).toBe('Subscriber.FirstName');
 
     const bookingFields = [
-      BOOKZEN_FIELDS.bookingRef,
-      BOOKZEN_FIELDS.serviceType,
-      BOOKZEN_FIELDS.checkInDate,
-      BOOKZEN_FIELDS.checkOutDate,
-      BOOKZEN_FIELDS.totalGuests,
-      BOOKZEN_FIELDS.totalPrice,
-      BOOKZEN_FIELDS.roomName,
+      BOOKZEN_FIELD_SCHEMA.bookingRef,
+      BOOKZEN_FIELD_SCHEMA.serviceType,
+      BOOKZEN_FIELD_SCHEMA.checkInDate,
+      BOOKZEN_FIELD_SCHEMA.checkOutDate,
+      BOOKZEN_FIELD_SCHEMA.totalGuests,
+      BOOKZEN_FIELD_SCHEMA.totalPrice,
+      BOOKZEN_FIELD_SCHEMA.roomName,
     ];
 
     for (const value of bookingFields) {
@@ -268,7 +163,7 @@ describe('BOOKZEN_FIELDS', () => {
   });
 
   it('every field uses either a Subscriber.* or Booking.* prefix', () => {
-    for (const value of Object.values(BOOKZEN_FIELDS)) {
+    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
       expect(/^(Subscriber|Booking)\./.test(value)).toBe(true);
     }
   });

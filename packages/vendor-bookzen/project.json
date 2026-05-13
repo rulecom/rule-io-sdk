@@ -28,6 +28,16 @@
             "input": "./packages/vendor-bookzen",
             "glob": "*.md",
             "output": "./"
+          },
+          {
+            "input": "./packages/vendor-bookzen/src/templates",
+            "glob": "**/*.xml",
+            "output": "./src/templates"
+          },
+          {
+            "input": "./packages/vendor-bookzen/src/templates",
+            "glob": "**/*.json",
+            "output": "./src/templates"
           }
         ]
       }

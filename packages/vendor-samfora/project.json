@@ -28,6 +28,16 @@
             "input": "./packages/vendor-samfora",
             "glob": "*.md",
             "output": "./"
+          },
+          {
+            "input": "./packages/vendor-samfora/src/templates",
+            "glob": "**/*.xml",
+            "output": "./src/templates"
+          },
+          {
+            "input": "./packages/vendor-samfora/src/templates",
+            "glob": "**/*.json",
+            "output": "./src/templates"
           }
         ]
       }

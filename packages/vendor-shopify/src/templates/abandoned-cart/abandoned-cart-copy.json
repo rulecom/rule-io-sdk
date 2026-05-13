@@ -1,0 +1,15 @@
+{
+  "preheader": "You left something in your cart",
+  "greetingHeading": "Hi {{firstNameCustomField}}!",
+  "message": "You left some items in your cart.",
+  "reminder": "Complete your purchase before they're gone!",
+  "lineItemsHeading": "Your Cart",
+  "itemNameLine": "{{itemNameLoopValue}}",
+  "itemSkuLine": "SKU: {{itemSkuLoopValue}}",
+  "itemQtyLine": "Qty: {{itemQtyLoopValue}}",
+  "itemUnitPriceLine": "Price: {{itemUnitPriceLoopValue}}",
+  "totalRow": "Total: {{totalPriceCustomField}}",
+  "ctaButton": "Return to Cart",
+  "footerLinks": ":link[:font[View in Browser]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Unsubscribe]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

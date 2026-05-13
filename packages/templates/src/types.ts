@@ -1,47 +1,69 @@
 /**
- * Public type surface for `@rule-io/templates`.
+ * Public type surface for `@rule-io/templates` v3.
+ *
+ * See `docs/template-syntax.md` for the full syntax specification.
  *
  * @public
  */
 
+import type { TemplateRefSerializer } from './refs/types.js'
+
 /**
- * Evaluation context supplied to {@link renderTemplate}.
+ * Options accepted by {@link compileTemplate}.
  *
- * Values referenced by identifier inside `{{ expression }}`, `*ngIf`,
- * `*ngFor`, and `[attr]` bindings are looked up here (or on a scope
- * frame pushed by `*ngFor`). Function values are callable in
- * expressions.
+ * The compiler is pure and synchronous: it never reads from disk or
+ * the network. Callers assemble the full compilation context up front
+ * and pass it in.
  *
  * @public
  */
-export interface TemplateContext {
-  readonly [key: string]: unknown
+export interface CompileTemplateOptions<
+  TCopy = Record<string, unknown>,
+  TContext = Record<string, unknown>,
+> {
+  /**
+   * Raw template source — XML with `<?copy?>` PIs for localized text,
+   * `@{expr}` bindings inside attribute values, and `<?if?>` / `<?for?>`
+   * Processing-Instruction control-flow blocks (v3). No root element
+   * required; the source may contain a sequence of sibling elements
+   * and directives.
+   */
+  readonly template: string
+
+  /**
+   * Resolved message tree. Nested objects whose leaves are strings.
+   * Leaf strings may contain `{{paramName}}` placeholders that get
+   * substituted by the params supplied to a particular
+   * `<?copy key p1=expr …?>` PI.
+   */
+  readonly copy: TCopy
+
+  /**
+   * Context referenced by `@{…}` attribute bindings, by condition
+   * expressions (`<?if user.premium?>`), and by `<?copy?>` param
+   * values. Top-level keys of this object become the outermost scope
+   * frame — no prefix needed to reference them. `<?for?>` loop
+   * variables shadow same-named keys (standard lexical scoping).
+   * Plain serialisable object — no functions, classes, promises,
+   * getters or proxies.
+   */
+  readonly context: TContext
+
+  /**
+   * Optional custom serializer for `TemplateRef` values encountered
+   * at a renderable position (`<?copy?>` param, `@{…}` binding). If
+   * omitted, the default serializer emits Rule.io RFM placeholder
+   * strings (`defaultTemplateRefSerializer`).
+   */
+  readonly serializer?: TemplateRefSerializer
 }
 
 /**
- * Thrown by {@link renderTemplate} when the input XML is malformed, a
- * structural directive is misused, or an expression fails to evaluate.
- * `path` is an XPath-like slash-separated trail of tag names to the
- * offending node; useful for locating the problem in large templates.
+ * Result of a successful {@link compileTemplate} call.
  *
  * @public
  */
-export class TemplateRenderError extends Error {
-  readonly path: string
-  readonly source?: string
-  /**
-   * Original message without the ` (at <path>)` suffix appended by the
-   * constructor. Use this when re-wrapping an inner error with a new
-   * path so the suffix is not duplicated.
-   */
-  readonly originalMessage: string
-
-  constructor(message: string, path: string, source?: string) {
-    super(`${message} (at ${path})`)
-    this.name = 'TemplateRenderError'
-    this.path = path
-    this.originalMessage = message
-
-    if (source !== undefined) this.source = source
-  }
+export interface CompileTemplateResult {
+  /** The compiled XML string. */
+  readonly xml: string
 }

@@ -1,0 +1,101 @@
+<rcml>
+  <rc-head>
+    <rc-preview><?copy preheader?></rc-preview>
+  </rc-head>
+  <rc-body>
+    <!-- Logo -->
+    <?if logoUrl?>
+      <rc-section>
+        <rc-column padding="0 20px">
+          <rc-logo rc-class="rcml-logo-style rc-initial-logo" width="96px" padding="20px 0"/>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Hero banner (brand-color background) -->
+    <rc-section padding="20px 0" rc-class="rcml-brand-color">
+      <rc-column padding="0 20px">
+        <rc-heading rc-class="rcml-h1-style"><?copy heading?></rc-heading>
+      </rc-column>
+    </rc-section>
+
+    <!-- Divider -->
+    <rc-section padding="0">
+      <rc-column padding="0 20px"><rc-divider padding="10px 0"/></rc-column>
+    </rc-section>
+
+    <!-- Greeting + intro -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-text rc-class="rcml-p-style"><?copy greetingLine firstName=recipient.firstName?></rc-text>
+        <rc-text rc-class="rcml-p-style"><?copy intro?></rc-text>
+      </rc-column>
+    </rc-section>
+
+    <!-- Benefits section -->
+    <?if benefits?>
+      <rc-section padding="0">
+        <rc-column padding="0 20px"><rc-divider padding="10px 0"/></rc-column>
+      </rc-section>
+      <rc-section padding="20px 0">
+        <rc-column padding="0 20px">
+          <rc-heading rc-class="rcml-h3-style" align="center"><?copy benefitsHeading?></rc-heading>
+          <?for let benefit of benefits?>
+            <rc-text rc-class="rcml-p-style" align="center"><?copy benefitItem text=benefit?></rc-text>
+          <?endfor?>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Discount section -->
+    <?if discount?>
+      <rc-section padding="0">
+        <rc-column padding="0 20px"><rc-divider padding="10px 0"/></rc-column>
+      </rc-section>
+      <rc-section padding="20px 0" rc-class="rcml-brand-color">
+        <rc-column padding="0 20px">
+          <rc-heading rc-class="rcml-h2-style" align="center"><?copy discountHeading?></rc-heading>
+          <rc-text rc-class="rcml-p-style" align="center"><?copy discountMessage?></rc-text>
+          <rc-heading rc-class="rcml-h2-style" align="center"><?copy discountCodeLine code=discount.code?></rc-heading>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- CTA -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-button href="@{websiteUrl}" align="center" border="none" border-radius="8px" inner-padding="10px 16px" padding="0 0 20px 0" text-align="center" vertical-align="middle" rc-class="rcml-label-style"><?copy ctaButton?></rc-button>
+      </rc-column>
+    </rc-section>
+
+    <!-- Closing (optional) -->
+    <?if closing?>
+      <rc-section padding="10px 0">
+        <rc-column padding="0 20px">
+          <rc-text rc-class="rcml-p-style" align="center"><?copy closingLine text=closing?></rc-text>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Social icons (when theme.links populated) -->
+    <?if socialLinks?>
+      <rc-section padding="10px 0">
+        <rc-column padding="0 20px">
+          <rc-social align="center">
+            <?for let link of socialLinks?>
+              <rc-social-element name="@{link.type}" href="@{link.url}"/>
+            <?endfor?>
+          </rc-social>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Footer -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-text align="center" padding="0px 0px 10px 0px" font-size="@{footer.fontSize}" color="@{footer.textColor}" rc-class="rcml-p-style"><?copy footerLinks?></rc-text>
+        <rc-text align="center" padding="10px 0px 0px 0px" font-family="'Helvetica', sans-serif" line-height="120%" color="@{footer.textColor}" font-size="@{footer.fontSize}"><?copy certifiedByRule?></rc-text>
+      </rc-column>
+    </rc-section>
+  </rc-body>
+</rcml>

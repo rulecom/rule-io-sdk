@@ -19,6 +19,6 @@
     "vitest.config.mts",
     "src/**/*.test.ts",
     "src/**/*.spec.ts",
-    "tests/**/*"
+    "src/core/mock-fetch.ts"
   ]
 }

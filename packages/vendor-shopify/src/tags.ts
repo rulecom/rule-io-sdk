@@ -17,7 +17,7 @@ import type { VendorTagSchema } from '@rule-io/core';
  * await client.syncSubscriber({
  *   email: 'customer@example.com',
  *   tags: [SHOPIFY_TAGS.orderCompleted],
- * });
+ * }, 'Order');
  * ```
  */
 export const SHOPIFY_TAGS = {

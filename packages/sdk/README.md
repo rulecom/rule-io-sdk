@@ -159,33 +159,28 @@ The SDK offers three levels of template building, from highest to lowest abstrac
 
 ### Pre-Built Templates
 
-Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings). Some optional labels (e.g., line-item labels, footer link text) have English defaults — provide them explicitly for full localization control.
+Ready-to-use templates shaped as **factories** — each returns an `EmailTemplate` whose `render({ context, theme, copy? })` method produces an `RcmlDocument`. The caller builds a typed context using `customField` / `loopValue` from `@rule-io/templates`; the factory handles loading, compiling, theme projection, and theming. See [`packages/templates/README.md`](../templates/README.md) for the authoring pattern.
 
-**Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
+**Hospitality:** `createReservationConfirmationTemplate`, `createReservationCancellationTemplate`, `createReservationReminderTemplate`, `createFeedbackRequestTemplate`, `createReservationRequestTemplate`
 
-**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`
+**E-commerce:** `createAbandonedCartTemplate`, `createOrderConfirmationTemplate`, `createShippingUpdateTemplate`, `createOrderCancellationTemplate`, `createWelcomeTemplate`
 
 ```typescript
-import { createOrderConfirmationEmail } from '@rule-io/sdk';
+import { createOrderConfirmationTemplate } from '@rule-io/sdk';
+import { customField } from '@rule-io/templates';
 
-const email = createOrderConfirmationEmail({
-  brandStyle: myBrand,        // BrandStyleConfig (see Brand Styles above)
-  customFields: myFields,     // CustomFieldMap (see Brand Styles above)
-  websiteUrl: 'https://myshop.com',
-  text: {
-    preheader: 'Your order has been confirmed!',
-    greeting: 'Hi',
-    intro: 'Thank you for your order.',
-    detailsHeading: 'Order Summary',
-    orderRefLabel: 'Order',
-    totalLabel: 'Total',
-    ctaButton: 'View Order',
+const template = createOrderConfirmationTemplate();
+
+const email = template.render({
+  theme: myEmailTheme,
+  context: {
+    recipient: { firstName: customField('Subscriber', 'FirstName', 200001) },
+    order: { ref: customField('Order', 'Number', 200003) },
+    financial: { total: customField('Order', 'TotalPrice', 200005) },
+    websiteUrl: 'https://myshop.com',
+    footer: { fontSize: '10px', textColor: '#666666' },
   },
-  fieldNames: {
-    firstName: 'Order.CustomerName',
-    orderRef: 'Order.OrderRef',
-    totalPrice: 'Order.Total',
-  },
+  copy: { ctaButton: 'Track Order' },  // optional partial override
 });
 ```
 
@@ -319,42 +314,45 @@ const automations = bookzenPreset.getAutomations(config);
 
 ### Samfora (Donation)
 
-Swedish charitable-giving preset. Default email copy ships in Swedish.
-Three donation-confirmation variants are gated by donor-lifecycle tags
-(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
-second-time, and loyal donors see different wording.
+Swedish charitable-giving preset. Default email copy ships in Swedish; pass
+`copy: { ... }` at render time to localise.
 
 Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
 `Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
 new custom ones — those fields already exist on every account. Per-donation
 data lives on a historical `Donation.*` group.
 
+Six template factories ship for the donation lifecycle:
+
+- `createDonationConfirmationFirstTemplate` — first-time donor
+- `createDonationConfirmationSecondTemplate` — second one-time donation
+- `createDonationConfirmationReturningTemplate` — third or later one-time donation
+- `createMonthlyDonationConfirmationTemplate` — recurring monthly donation
+- `createSamforaWelcomeTemplate` — new donor account
+- `createAnnualTaxSummaryTemplate` — year-end gåvoskatteavdrag summary
+
 ```typescript
-import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
+import {
+  createDonationConfirmationFirstTemplate,
+  SAMFORA_FIELDS,
+} from '@rule-io/sdk';
+import { customField } from '@rule-io/templates';
 
-const config = {
-  brandStyle: myBrand,
-  customFields: {
-    // Required: standard Subscriber field for the greeting
-    [SAMFORA_FIELDS.donorFirstName]: 47736,
-    // Required: historical Donation.* group
-    [SAMFORA_FIELDS.donationAmount]: 200002,
-    [SAMFORA_FIELDS.donationDate]: 200003,
-    [SAMFORA_FIELDS.donationRef]: 200004,
-    [SAMFORA_FIELDS.causeName]: 200005,
-    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
-    [SAMFORA_FIELDS.taxYear]: 200007,
-    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
-    // Optional Subscriber extensions (not referenced by built-in
-    // templates but available for consumer extensions):
-    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
-    // donorCity, donorCountry, donorPhone, donorSource
-    // Optional Donation extras: donationCurrency, donationType
+const template = createDonationConfirmationFirstTemplate();
+const doc = template.render({
+  context: {
+    recipient: { firstName: customField('Subscriber', 'FirstName', 47736) },
+    donation: {
+      amount: customField('Donation', 'Amount', 200002),
+      date: customField('Donation', 'Date', 200003),
+      ref: customField('Donation', 'Reference', 200004),
+      causeName: customField('Donation', 'CauseName', 200005),
+    },
+    websiteUrl: 'https://samfora.org',
+    footer: { fontSize: '10px', textColor: '#666666' },
   },
-  websiteUrl: 'https://samfora.org',
-};
-
-const automations = samforaPreset.getAutomations(config);
+  theme: myEmailTheme,
+});
 ```
 
 Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.

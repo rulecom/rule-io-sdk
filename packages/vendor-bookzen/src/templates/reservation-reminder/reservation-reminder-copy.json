@@ -1,0 +1,14 @@
+{
+  "preheader": "Your stay is coming up!",
+  "greetingHeading": "Hi {{firstName}},",
+  "intro": "Just a friendly reminder that your stay is coming up soon!",
+  "detailsHeading": "Your Stay",
+  "dateRow": "Date: {{checkInDate}}",
+  "dateRangeRow": "Dates: {{checkInDate}} – {{checkOutDate}}",
+  "roomRow": "Room: {{roomName}}",
+  "practicalInfoHeading": "Good to Know",
+  "practicalInfoBody": "{{text}}",
+  "ctaButton": "View Details",
+  "footerLinks": ":link[:font[View in Browser]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Unsubscribe]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

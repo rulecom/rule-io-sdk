@@ -7,7 +7,7 @@ import type { CustomFieldMap } from '@rule-io/core';
 import type { VendorConsumerConfig } from '@rule-io/core';
 import { RuleConfigError } from '@rule-io/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
-import { TEST_THEME, assertValidRCMLDocument } from './helpers.js';
+import { TEST_THEME } from '../src/test-fixtures.js';
 
 // ============================================================================
 // Shared fixtures
@@ -137,210 +137,15 @@ describe('shopifyPreset', () => {
   // ============================================================================
 
   describe('getAutomations', () => {
-    it('returns 5 automations', () => {
+    // The pre-built automation entries have been retired. Template
+    // authors now build contexts directly via the factory functions
+    // (createOrderConfirmationTemplate, etc.) and wire automations
+    // through @rule-io/client. See packages/templates/README.md for
+    // the authoring pattern.
+    it('returns an empty list (pre-built automations retired)', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
 
-      expect(automations).toHaveLength(5);
-    });
-
-    it('returns automations with unique IDs', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const ids = automations.map((a) => a.id);
-
-      expect(new Set(ids).size).toBe(ids.length);
-    });
-
-    it('all automations have trigger tags from SHOPIFY_TAGS', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const validTags = new Set<string>(Object.values(SHOPIFY_TAGS));
-
-      for (const automation of automations) {
-        expect(validTags.has(automation.triggerTag)).toBe(true);
-      }
-    });
-
-    it('all automations produce valid RCML documents', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-
-      for (const automation of automations) {
-        const doc = automation.templateBuilder({
-          theme: TEST_THEME,
-          customFields: TEST_CUSTOM_FIELDS,
-          websiteUrl: 'https://myshop.example.com',
-        });
-
-        assertValidRCMLDocument(doc);
-      }
-    });
-
-    it('templateBuilder honors TemplateConfigV2 overrides', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const orderConfirmation = automations.find(
-        (a) => a.id === 'shopify-order-confirmation'
-      )!;
-
-      const overriddenFields: CustomFieldMap = {
-        ...TEST_CUSTOM_FIELDS,
-        [SHOPIFY_FIELDS.orderNumber]: 999999,
-      };
-
-      const doc = orderConfirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: overriddenFields,
-        websiteUrl: 'https://override.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      // Should use the overridden field ID, not the original
-      expect(json).toContain('[CustomField:999999]');
-      expect(json).not.toContain('[CustomField:200003]');
-    });
-
-    it('RCML contains Shopify field placeholders', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const orderConfirmation = automations.find(
-        (a) => a.id === 'shopify-order-confirmation'
-      )!;
-
-      const doc = orderConfirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myshop.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      // Should contain field ID placeholders
-      expect(json).toContain('[CustomField:200003]'); // orderNumber
-      expect(json).toContain('[CustomField:200005]'); // totalPrice
-    });
-
-    it('throws RuleConfigError for incomplete config', () => {
-      expect(() =>
-        shopifyPreset.getAutomations({
-          ...TEST_CONFIG,
-          customFields: {},
-        })
-      ).toThrow(RuleConfigError);
-    });
-
-    it('order confirmation contains rc-loop for line items', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const orderConfirmation = automations.find(
-        (a) => a.id === 'shopify-order-confirmation'
-      )!;
-
-      const doc = orderConfirmation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myshop.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      expect(json).toContain('rc-loop');
-      expect(json).toContain('custom-field');
-      expect(json).toContain('200014'); // Products field ID
-      expect(json).toContain('[LoopValue:name]'); // loop sub-field
-    });
-
-    it('shipping update contains rc-loop and receipt fields', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const shippingUpdate = automations.find(
-        (a) => a.id === 'shopify-shipping-update'
-      )!;
-
-      const doc = shippingUpdate.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myshop.example.com',
-      });
-      const json = JSON.stringify(doc);
-
-      // Loop
-      expect(json).toContain('rc-loop');
-      expect(json).toContain('200014'); // Products loop
-
-      // Receipt fields
-      expect(json).toContain('200008'); // Discount
-      expect(json).toContain('200006'); // TotalTax
-      expect(json).toContain('200005'); // TotalPrice
-
-      // Legal text
-      expect(json).toContain('official receipt');
-    });
-
-    it('order cancellation produces valid RCML with field placeholders', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const cancellation = automations.find(
-        (a) => a.id === 'shopify-order-cancellation'
-      )!;
-
-      expect(cancellation).toBeDefined();
-      expect(cancellation.triggerTag).toBe(SHOPIFY_TAGS.orderCancelled);
-
-      const doc = cancellation.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myshop.example.com',
-      });
-
-      assertValidRCMLDocument(doc);
-
-      const json = JSON.stringify(doc);
-
-      expect(json).toContain('[CustomField:200001]'); // firstName
-      expect(json).toContain('[CustomField:200003]'); // orderNumber
-    });
-
-    it('welcome automation uses newsletter trigger tag', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const welcome = automations.find((a) => a.id === 'shopify-welcome');
-
-      expect(welcome).toBeDefined();
-      expect(welcome!.triggerTag).toBe(SHOPIFY_TAGS.newsletter);
-      expect(welcome!.delayInSeconds).toBeUndefined();
-
-      const doc = welcome!.templateBuilder({
-        theme: TEST_THEME,
-        customFields: TEST_CUSTOM_FIELDS,
-        websiteUrl: 'https://myshop.example.com',
-      });
-
-      assertValidRCMLDocument(doc);
-
-      const json = JSON.stringify(doc);
-
-      expect(json).toContain('Welcome!');
-      expect(json).toContain('[CustomField:200001]'); // Subscriber.FirstName
-      expect(json).toContain('https://myshop.example.com');
-    });
-
-    it('welcome automation builds with the preset-required fields only', () => {
-      // shopifyPreset.validateConfig requires firstName + orderNumber +
-      // totalPrice — orderNumber and totalPrice are for the order-flow
-      // automations; the welcome template itself only uses firstName.
-      const minimal: VendorConsumerConfig = {
-        theme: TEST_THEME,
-        customFields: {
-          [SHOPIFY_FIELDS.firstName]: 1,
-          [SHOPIFY_FIELDS.orderNumber]: 2,
-          [SHOPIFY_FIELDS.totalPrice]: 3,
-        },
-        websiteUrl: 'https://myshop.example.com',
-      };
-      const welcome = shopifyPreset.getAutomations(minimal).find(
-        (a) => a.id === 'shopify-welcome'
-      )!;
-
-      expect(() => welcome.templateBuilder(minimal)).not.toThrow();
-    });
-
-    it('abandoned cart has delay and conditions', () => {
-      const automations = shopifyPreset.getAutomations(TEST_CONFIG);
-      const abandonedCart = automations.find((a) => a.id === 'shopify-abandoned-cart')!;
-
-      expect(abandonedCart.delayInSeconds).toBe('3600');
-      expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCompleted);
-      expect(abandonedCart.conditions?.notHasTag).toContain(SHOPIFY_TAGS.orderCancelled);
+      expect(automations).toHaveLength(0);
     });
   });
 
@@ -349,17 +154,7 @@ describe('shopifyPreset', () => {
   // ============================================================================
 
   describe('getAutomation', () => {
-    it('returns a single automation by ID', () => {
-      const automation = shopifyPreset.getAutomation(
-        'shopify-order-confirmation',
-        TEST_CONFIG
-      );
-
-      expect(automation).toBeDefined();
-      expect(automation!.id).toBe('shopify-order-confirmation');
-    });
-
-    it('returns undefined for unknown ID', () => {
+    it('returns undefined for any ID (no automations defined)', () => {
       const automation = shopifyPreset.getAutomation('nonexistent', TEST_CONFIG);
 
       expect(automation).toBeUndefined();

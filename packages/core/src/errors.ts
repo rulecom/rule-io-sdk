@@ -81,6 +81,13 @@ export class RuleApiError extends Error {
   }
 
   /**
+   * Check if this is a conflict error (resource already exists)
+   */
+  isConflict(): boolean {
+    return this.statusCode === 409;
+  }
+
+  /**
    * Check if this is a server error
    */
   isServerError(): boolean {
