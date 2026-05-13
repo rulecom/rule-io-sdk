@@ -4,7 +4,7 @@
  * defaults are applied.
  */
 
-import { RuleConfigError } from '@rulecom/core';
+import { RuleClientError } from './errors.js';
 
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
 
@@ -34,14 +34,14 @@ export interface ResolvedClientConfig {
  * Apply defaults and validate configuration. Accepts a string for the
  * historical "just an API key" constructor form.
  *
- * Throws {@link RuleConfigError} if `apiKey` is empty.
+ * Throws {@link RuleClientError} if `apiKey` is empty.
  */
 export function resolveConfig(input: RuleClientConfig | string): ResolvedClientConfig {
   const config: RuleClientConfig =
     typeof input === 'string' ? { apiKey: input } : input;
 
   if (!config.apiKey) {
-    throw new RuleConfigError('API key is required');
+    throw new RuleClientError('API key is required');
   }
 
   return {

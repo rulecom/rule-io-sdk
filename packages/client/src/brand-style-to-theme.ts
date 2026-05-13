@@ -30,7 +30,8 @@ import type {
   EmailThemeSocialLinkType,
 } from '@rulecom/rcml';
 
-import { RuleConfigError, sanitizeUrl } from '@rulecom/core';
+import { RuleClientError } from './errors.js';
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import type {
   RuleBrandStyle,
   RuleBrandStyleColour,
@@ -132,7 +133,7 @@ function mapLinks(brandLinks: RuleBrandStyleLink[]): EmailThemeSocialLink[] {
     // produce a usable theme.
     const safeUrl = sanitizeUrl(link.link);
 
-    if (safeUrl === '') continue;
+    if (safeUrl === 'about:blank') continue;
 
     out.push({ type: themeType, url: safeUrl });
   }
@@ -152,7 +153,7 @@ function mapImages(brandImages: RuleBrandStyleImage[]): EmailThemeImage[] {
     // surfacing a runtime error from a partial brand style.
     const safeUrl = sanitizeUrl(image.public_path);
 
-    if (safeUrl === '') continue;
+    if (safeUrl === 'about:blank') continue;
 
     out.push({ type: EmailThemeImageType.Logo, url: safeUrl });
   }
@@ -239,7 +240,7 @@ function safeFontUrl(url: string | null | undefined): { url?: string } {
 
   const safe = sanitizeUrl(url);
 
-  return safe === '' ? {} : { url: safe };
+  return safe === 'about:blank' ? {} : { url: safe };
 }
 
 function fontFamilyFrom(font: RuleBrandStyleFont): string | undefined {
@@ -310,7 +311,7 @@ export async function resolveBrandTheme(
 ): Promise<ResolvedBrandTheme> {
   if (overrideId !== undefined) {
     if (!Number.isInteger(overrideId) || overrideId <= 0) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         `Invalid brand style id ${String(overrideId)}: expected a positive integer.`,
       );
     }
@@ -318,7 +319,7 @@ export async function resolveBrandTheme(
     const resp = await client.getBrandStyle(overrideId);
 
     if (!resp?.data) {
-      throw new RuleConfigError(`Brand style ${String(overrideId)} not found`);
+      throw new RuleClientError(`Brand style ${String(overrideId)} not found`);
     }
 
     return {
@@ -333,7 +334,7 @@ export async function resolveBrandTheme(
   const styles: RuleBrandStyleListItem[] = listResp.data ?? [];
 
   if (styles.length === 0) {
-    throw new RuleConfigError('No brand styles available in the account');
+    throw new RuleClientError('No brand styles available in the account');
   }
 
   const preferred = styles.find((s) => s.is_default) ?? styles[0]!;
@@ -341,7 +342,7 @@ export async function resolveBrandTheme(
   const resp = await client.getBrandStyle(preferred.id);
 
   if (!resp?.data) {
-    throw new RuleConfigError(`Brand style ${String(preferred.id)} not found`);
+    throw new RuleClientError(`Brand style ${String(preferred.id)} not found`);
   }
 
   return {

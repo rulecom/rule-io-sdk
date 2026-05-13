@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RuleConfigError } from '@rulecom/core';
+import { RuleClientError } from '@rulecom/client';
 
 import { resolveConfig } from './config.js';
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
@@ -35,9 +35,9 @@ describe('resolveConfig', () => {
     });
   });
 
-  it('throws RuleConfigError when apiKey is empty', () => {
-    expect(() => resolveConfig('')).toThrow(RuleConfigError);
-    expect(() => resolveConfig({ apiKey: '' })).toThrow(RuleConfigError);
+  it('throws RuleClientError when apiKey is empty', () => {
+    expect(() => resolveConfig('')).toThrow(RuleClientError);
+    expect(() => resolveConfig({ apiKey: '' })).toThrow(RuleClientError);
   });
 
 });

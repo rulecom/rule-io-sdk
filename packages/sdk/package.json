@@ -1,7 +1,7 @@
 {
   "name": "@rulecom/sdk",
   "version": "0.3.0",
-  "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders — meta-package re-exporting @rulecom/core, @rulecom/rcml, @rulecom/client, and the vendor presets.",
+  "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders — meta-package re-exporting @rulecom/rcml, @rulecom/client, and the vendor presets.",
   "type": "module",
   "main": "./src/index.js",
   "types": "./src/index.d.ts",
@@ -32,7 +32,6 @@
     "directory": "packages/sdk"
   },
   "dependencies": {
-    "@rulecom/core": "0.3.0",
     "@rulecom/rcml": "0.3.0",
     "@rulecom/client": "0.3.0",
     "@rulecom/vendor": "0.3.0",

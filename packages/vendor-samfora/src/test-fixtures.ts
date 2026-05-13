@@ -7,8 +7,8 @@
  */
 
 import { expect } from 'vitest';
-import type { EmailTheme } from '@rulecom/core';
-import { EmailThemeColorType, EmailThemeImageType } from '@rulecom/core';
+import type { EmailTheme } from '@rulecom/rcml';
+import { EmailThemeColorType, EmailThemeImageType } from '@rulecom/rcml';
 import type { RcmlDocument } from '@rulecom/rcml';
 import { createEmailTheme } from '@rulecom/rcml';
 

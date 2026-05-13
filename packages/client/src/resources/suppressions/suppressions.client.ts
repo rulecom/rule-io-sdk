@@ -6,7 +6,7 @@
  * and optionally invokes a `callback_url` when complete.
  */
 
-import { RuleConfigError } from '@rulecom/core';
+import { RuleClientError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import type { RuleApiResponse } from '../../shared.types.js';
@@ -26,7 +26,7 @@ export class SuppressionsClient extends BaseResource {
    * @param request - Suppression request with subscriber identifiers and
    *   optional `message_types` filter / `callback_url`.
    * @returns A success response (actual processing happens asynchronously).
-   * @throws {RuleConfigError} If the `subscribers` array is empty or contains
+   * @throws {RuleClientError} If the `subscribers` array is empty or contains
    *   more than 1000 items.
    *
    * @example
@@ -66,7 +66,7 @@ export class SuppressionsClient extends BaseResource {
    * @param request - Unsuppression request with subscriber identifiers and
    *   optional filters.
    * @returns A success response (actual processing happens asynchronously).
-   * @throws {RuleConfigError} If the `subscribers` array is empty or contains
+   * @throws {RuleClientError} If the `subscribers` array is empty or contains
    *   more than 1000 items.
    *
    * @example
@@ -96,10 +96,10 @@ export class SuppressionsClient extends BaseResource {
 
 function validateRequest(request: RuleSuppressionRequest): void {
   if (!request.subscribers.length) {
-    throw new RuleConfigError('subscribers array must not be empty');
+    throw new RuleClientError('subscribers array must not be empty');
   }
 
   if (request.subscribers.length > MAX_SUBSCRIBERS_PER_REQUEST) {
-    throw new RuleConfigError('subscribers array must not exceed 1000 items');
+    throw new RuleClientError('subscribers array must not exceed 1000 items');
   }
 }

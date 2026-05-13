@@ -30,7 +30,6 @@
     "directory": "packages/vendor-shopify"
   },
   "dependencies": {
-    "@rulecom/core": "0.3.0",
     "@rulecom/rcml": "0.3.0",
     "@rulecom/templates": "0.6.0",
     "@rulecom/vendor": "0.3.0"

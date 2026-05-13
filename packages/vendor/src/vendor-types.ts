@@ -11,12 +11,118 @@
  * @module vendors
  */
 
-import type {
-  AutomationConfigV2,
-  TemplateConfigV2,
-  FooterConfig,
-  RCMLDocumentRoot,
-} from '@rulecom/core'
+import type { EmailTheme, RCMLDocumentRoot } from '@rulecom/rcml'
+
+// ─── Errors ───────────────────────────────────────────────────────────────────
+
+/**
+ * Error thrown by a vendor preset when its `VendorConsumerConfig` is missing
+ * required custom field mappings — i.e. the integration is not fully set up.
+ */
+export class VendorPresetError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'VendorPresetError';
+  }
+}
+
+// ─── Shared data shapes ───────────────────────────────────────────────────────
+
+/**
+ * Maps Rule.io custom field paths (strings like `'Order.CustomerName'`) to
+ * their account-specific numeric field IDs.
+ *
+ * @example
+ * ```typescript
+ * const customFields: CustomFieldMap = {
+ *   'Order.CustomerName': 169233,
+ *   'Order.OrderRef': 169234,
+ * };
+ * ```
+ */
+export interface CustomFieldMap {
+  [fieldName: string]: number
+}
+
+/**
+ * Footer-section localisation overrides.
+ */
+export interface FooterConfig {
+  /** "View in browser" link text (default: 'View in browser') */
+  viewInBrowserText?: string
+  /** Unsubscribe link text (default: 'Unsubscribe') */
+  unsubscribeText?: string
+  /** Footer background color (default: '#f3f3f3') */
+  backgroundColor?: string
+  /** Footer text color (default: '#666666') */
+  textColor?: string
+  /** Footer text size (default: '10px') */
+  fontSize?: string
+}
+
+// ─── Automation contract ──────────────────────────────────────────────────────
+
+/**
+ * Configuration for building templates.
+ *
+ * The `theme` field is an {@link EmailTheme} applied to rcml documents via
+ * `applyTheme`. Consumers convert their brand-style source (Rule.io API
+ * response, hand-rolled config) to an `EmailTheme` before passing it in.
+ * `@rulecom/client` ships `emailThemeFromBrandStyle` for the API-response case.
+ */
+export interface TemplateConfigV2 {
+  /** Typed email theme applied to the built RCML document. */
+  theme: EmailTheme
+  /** Custom field ID mapping */
+  customFields: CustomFieldMap
+  /** Website base URL */
+  websiteUrl: string
+}
+
+/**
+ * Full automation configuration.
+ *
+ * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level so the
+ * contract doesn't depend on `@rulecom/rcml`; concrete implementations return
+ * a full `RcmlDocument` (a subtype), which TypeScript accepts by
+ * function-return covariance.
+ *
+ * @example
+ * ```typescript
+ * import { RuleTags, createAbandonedCartEmail } from '@rulecom/sdk';
+ * import type { AutomationConfigV2 } from '@rulecom/sdk';
+ *
+ * const automation: AutomationConfigV2 = {
+ *   id: 'abandoned-cart',
+ *   triggerTag: RuleTags.CART_IN_PROGRESS,
+ *   subject: 'You left something behind!',
+ *   templateBuilder: (config) => createAbandonedCartEmail({ ...config }),
+ * };
+ * ```
+ */
+export interface AutomationConfigV2 {
+  /** Unique identifier for this automation */
+  id: string
+  /** Display name in Rule.io */
+  name: string
+  /** Description of what this automation does */
+  description: string
+  /** Tag that triggers this automation */
+  triggerTag: string
+  /** Delay before sending (seconds as string) */
+  delayInSeconds?: string
+  /** Optional conditions for execution */
+  conditions?: {
+    hasTag?: string[]
+    notHasTag?: string[]
+  }
+  /** Email subject */
+  subject: string
+  /** Preview text shown in inbox */
+  preheader?: string
+  /** Function to build the RCML template */
+  templateBuilder: (config: TemplateConfigV2) => RCMLDocumentRoot
+}
 
 // ─── Schema types ────────────────────────────────────────────────────────────
 
@@ -114,6 +220,42 @@ export interface VendorAutomation {
 }
 
 // ─── Shared utilities ────────────────────────────────────────────────────────
+
+// ─── Automation lookup helpers ───────────────────────────────────────────────
+
+/**
+ * Get an automation by ID from a list of resolved automations.
+ *
+ * @example
+ * ```typescript
+ * const automations = shopifyPreset.getAutomations(config);
+ * const cart = getAutomationById('abandoned-cart', automations);
+ * ```
+ */
+export function getAutomationById(
+  id: string,
+  automations: AutomationConfigV2[],
+): AutomationConfigV2 | undefined {
+  return automations.find((a) => a.id === id)
+}
+
+/**
+ * Get an automation by trigger tag from a list of resolved automations.
+ *
+ * @example
+ * ```typescript
+ * const automations = shopifyPreset.getAutomations(config);
+ * const cart = getAutomationByTrigger('CartInProgress', automations);
+ * ```
+ */
+export function getAutomationByTrigger(
+  tag: string,
+  automations: AutomationConfigV2[],
+): AutomationConfigV2 | undefined {
+  return automations.find((a) => a.triggerTag === tag)
+}
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
 
 /**
  * Resolve vendor automations into standard `AutomationConfigV2` objects.

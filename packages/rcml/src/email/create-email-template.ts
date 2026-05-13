@@ -30,7 +30,7 @@
  * @public
  */
 
-import type { EmailTheme } from '@rulecom/core'
+import type { EmailTheme } from './theme-types.js'
 import {
   compileTemplate,
   loadCopy,

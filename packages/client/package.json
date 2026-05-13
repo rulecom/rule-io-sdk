@@ -24,7 +24,7 @@
     "directory": "packages/client"
   },
   "dependencies": {
-    "@rulecom/core": "0.3.0",
+    "@braintree/sanitize-url": "^7.1.2",
     "@rulecom/rcml": "0.3.0"
   },
   "engines": {

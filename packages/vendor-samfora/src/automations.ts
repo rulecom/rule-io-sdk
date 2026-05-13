@@ -12,12 +12,9 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type {
-  CustomFieldMap,
-  EmailTheme,
-  FooterConfig,
-} from '@rulecom/core';
-import { RuleConfigError } from '@rulecom/core';
+import type { CustomFieldMap, FooterConfig } from '@rulecom/vendor';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { EmailTheme } from '@rulecom/rcml';
 import type { VendorAutomation, VendorConsumerConfig } from '@rulecom/vendor';
 import type {
   Json,
@@ -389,7 +386,7 @@ function footerSection(config: FooterConfig): RcmlSection {
 
 /**
  * Require every `fieldNames` logical→rule-io mapping to be present in
- * `customFields`. Throws `RuleConfigError` listing the missing entries.
+ * `customFields`. Throws `VendorPresetError` listing the missing entries.
  */
 function validateRequiredFields(
   customFields: CustomFieldMap,
@@ -405,7 +402,7 @@ function validateRequiredFields(
   }
 
   if (missing.length > 0) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `${templateName}: missing customFields entries for ${missing.join(', ')}`,
     );
   }
@@ -467,7 +464,7 @@ function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string): Plac
   const id = customFields[fieldName];
 
   if (id === undefined) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `samfora: missing customFields entry for "${fieldName}"`,
     );
   }

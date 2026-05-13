@@ -5,7 +5,7 @@
  * HTML body (or null on 404).
  */
 
-import { RuleApiError } from '@rulecom/core';
+import { RuleApiError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';

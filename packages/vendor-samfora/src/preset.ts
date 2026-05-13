@@ -28,15 +28,14 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/vendor';
+import type { AutomationConfigV2, VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/vendor';
 import { resolveVendorAutomations } from '@rulecom/vendor';
-import type { AutomationConfigV2 } from '@rulecom/core';
 import type { SamforaFieldSchema, SamforaFieldNames } from './fields.js';
 import type { SamforaTagSchema } from './tags.js';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
 import { createSamforaAutomations } from './automations.js';
-import { RuleConfigError } from '@rulecom/core';
+import { VendorPresetError } from '@rulecom/vendor';
 
 const FIELD_DESCRIPTIONS: Record<SamforaFieldNames, string> = {
   // Subscriber (standard Rule.io fields)
@@ -104,7 +103,7 @@ function validateSamforaConfig(config: VendorConsumerConfig): void {
   }
 
   if (missingFields.length > 0) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `samforaPreset: missing customFields entries for: ${missingFields.join(', ')}`,
     );
   }

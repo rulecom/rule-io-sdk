@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rulecom/core';
+import { RuleApiError } from '@rulecom/client';
+import { RuleClientError } from '@rulecom/client';
 
 import {
   createMock204Response,
@@ -60,7 +61,7 @@ describe('SuppressionsClient', () => {
     it('rejects an empty subscribers array without calling fetch', async () => {
       const client = createClient(fetchMock);
 
-      await expect(client.create({ subscribers: [] })).rejects.toThrow(RuleConfigError);
+      await expect(client.create({ subscribers: [] })).rejects.toThrow(RuleClientError);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
@@ -122,7 +123,7 @@ describe('SuppressionsClient', () => {
     it('rejects an empty subscribers array', async () => {
       const client = createClient(fetchMock);
 
-      await expect(client.delete({ subscribers: [] })).rejects.toThrow(RuleConfigError);
+      await expect(client.delete({ subscribers: [] })).rejects.toThrow(RuleClientError);
     });
 
     it('rejects more than 1000 subscribers', async () => {

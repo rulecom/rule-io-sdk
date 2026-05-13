@@ -7,7 +7,7 @@
  *   - both must be non-empty arrays when `object_type` is provided
  */
 
-import { RuleConfigError } from '@rulecom/core';
+import { RuleClientError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
@@ -28,7 +28,7 @@ export class AnalyticsClient extends BaseResource {
    * @param params - Analytics query parameters. Either a date-range-only
    *   query or a full query with `object_type`, `object_ids`, and `metrics`.
    * @returns Analytics response with per-object metric data.
-   * @throws {RuleConfigError} If `object_ids`/`metrics` are passed without
+   * @throws {RuleClientError} If `object_ids`/`metrics` are passed without
    *   `object_type`, or either is an empty array when `object_type` is set.
    *
    * @example
@@ -79,7 +79,7 @@ function validateAndExtract(params: RuleAnalyticsParams): ExtractedQuery {
     const p = params as unknown as Record<string, unknown>;
 
     if (p.object_ids != null || p.metrics != null) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'object_ids and metrics require object_type to be provided'
       );
     }
@@ -90,13 +90,13 @@ function validateAndExtract(params: RuleAnalyticsParams): ExtractedQuery {
   const full = params as RuleAnalyticsFullQuery;
 
   if (!Array.isArray(full.object_ids) || full.object_ids.length === 0) {
-    throw new RuleConfigError(
+    throw new RuleClientError(
       'object_ids must be a non-empty array when object_type is provided'
     );
   }
 
   if (!Array.isArray(full.metrics) || full.metrics.length === 0) {
-    throw new RuleConfigError(
+    throw new RuleClientError(
       'metrics must be a non-empty array when object_type is provided'
     );
   }

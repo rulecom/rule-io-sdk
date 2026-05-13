@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rulecom/core';
-import { RuleConfigError } from '@rulecom/core';
-import type { VendorConsumerConfig } from '@rulecom/vendor';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/vendor';
 import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '../src/index.js';
 import { TEST_THEME } from './helpers.js';
 
@@ -55,7 +54,7 @@ describe('bookzenPreset', () => {
       expect(() => bookzenPreset.validateConfig(TEST_CONFIG)).not.toThrow();
     });
 
-    it('throws RuleConfigError when fields are missing', () => {
+    it('throws VendorPresetError when fields are missing', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
@@ -63,7 +62,7 @@ describe('bookzenPreset', () => {
         },
       };
 
-      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(RuleConfigError);
+      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(VendorPresetError);
     });
 
     it('error message lists the missing fields', () => {

@@ -18,7 +18,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rulecom/core';
+import { RuleApiError } from '@rulecom/client';
+import { RuleClientError } from '@rulecom/client';
 import type { RcmlDocument } from '@rulecom/rcml';
 
 import {
@@ -301,7 +302,7 @@ describe('createAutomationEmail orchestration', () => {
         triggerValue: 'Newsletter',
         subject: 'Test',
       })
-    ).rejects.toThrow(RuleConfigError);
+    ).rejects.toThrow(RuleClientError);
   });
 
   it('rejects when both template and brandStyleId are provided', async () => {
@@ -316,7 +317,7 @@ describe('createAutomationEmail orchestration', () => {
         template: MINIMAL_TEMPLATE,
         brandStyleId: 976,
       })
-    ).rejects.toThrow(RuleConfigError);
+    ).rejects.toThrow(RuleClientError);
   });
 
   it('auto-fetches the brand style and builds RCML when brandStyleId is provided', async () => {
@@ -441,7 +442,7 @@ describe('createCampaignEmail orchestration', () => {
 
     await expect(
       client.createCampaignEmail({ name: 'Test', subject: 'Test' })
-    ).rejects.toThrow(RuleConfigError);
+    ).rejects.toThrow(RuleClientError);
   });
 
   it('rejects when both template and brandStyleId are provided', async () => {
@@ -454,7 +455,7 @@ describe('createCampaignEmail orchestration', () => {
         template: MINIMAL_TEMPLATE,
         brandStyleId: 976,
       })
-    ).rejects.toThrow(RuleConfigError);
+    ).rejects.toThrow(RuleClientError);
   });
 
   it('auto-fetches brand style and builds RCML when brandStyleId is provided', async () => {

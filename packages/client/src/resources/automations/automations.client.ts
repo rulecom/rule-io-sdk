@@ -5,7 +5,7 @@
  * by the underlying API is hidden — consumers see only "Automation".
  */
 
-import { RuleApiError, RuleConfigError } from '@rulecom/core';
+import { RuleApiError, RuleClientError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
@@ -142,19 +142,19 @@ export class AutomationsClient extends BaseResource {
     const active = update.active ?? current.active;
 
     if (!trigger) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         `Cannot update automation ${id}: existing record has no trigger and update did not provide one`
       );
     }
 
     if (sendoutType == null) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         `Cannot update automation ${id}: existing record has no sendout_type and update did not provide one`
       );
     }
 
     if (active == null) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         `Cannot update automation ${id}: existing record has no active state and update did not provide one`
       );
     }

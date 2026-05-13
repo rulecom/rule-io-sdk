@@ -2,7 +2,6 @@
  * @rulecom/sdk — meta-package re-exporting the full Rule.io TypeScript SDK.
  *
  * This package is an umbrella over the split packages:
- * - `@rulecom/core`   — shared error classes
  * - `@rulecom/rcml`   — RCML email template builders and types
  * - `@rulecom/client` — HTTP API wrapper for the Rule.io endpoints
  * - `@rulecom/vendor-shopify`, `@rulecom/vendor-bookzen`, `@rulecom/vendor-samfora`
@@ -13,7 +12,6 @@
  * @packageDocumentation
  */
 
-export * from '@rulecom/core';
 export * from '@rulecom/rcml';
 export * from '@rulecom/client';
 export * from '@rulecom/vendor';

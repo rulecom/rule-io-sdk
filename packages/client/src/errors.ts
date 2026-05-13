@@ -1,5 +1,5 @@
 /**
- * Rule.io SDK Error Classes
+ * Rule.io HTTP API Error Classes
  */
 
 /**
@@ -96,11 +96,12 @@ export class RuleApiError extends Error {
 }
 
 /**
- * Error thrown when the client is not configured properly
+ * Error thrown when the client is called incorrectly — missing credentials,
+ * invalid method arguments, or unsatisfied preconditions.
  */
-export class RuleConfigError extends Error {
+export class RuleClientError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
-    this.name = 'RuleConfigError';
+    this.name = 'RuleClientError';
   }
 }

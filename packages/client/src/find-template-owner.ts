@@ -13,7 +13,7 @@
  * @public
  */
 
-import { RuleApiError } from '@rulecom/core';
+import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
 import type { RuleAutomation, RuleCampaign, RuleMessage } from './types.js';
 

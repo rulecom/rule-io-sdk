@@ -1,4 +1,4 @@
-import { RuleApiError } from '@rulecom/core';
+import { RuleApiError } from '@rulecom/client';
 import type {
   CreateCustomFieldDataRequestBody,
   CustomFieldGroupDataEntry,

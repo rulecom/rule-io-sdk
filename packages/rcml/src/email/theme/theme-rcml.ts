@@ -12,7 +12,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { sanitizeUrl } from '@rulecom/core'
+import { sanitizeUrl } from '@braintree/sanitize-url'
 
 import type {
   RcmlAttributes,
@@ -1136,10 +1136,9 @@ function newId(): string {
 
 /**
  * Sanitise a URL that came from an outside source (brand style, theme
- * patch). Delegates to `sanitizeUrl` from `@rulecom/core`, which
- * whitelists `http:` / `https:` / `mailto:`. An empty / rejected URL
- * triggers {@link EmailThemeApplyError} with `context` in the message
- * so the caller can see which slot failed.
+ * patch). Delegates to `sanitizeUrl` from `@braintree/sanitize-url`.
+ * An unsafe or rejected URL triggers {@link EmailThemeApplyError} with
+ * `context` in the message so the caller can see which slot failed.
  *
  * @param url     - The URL to sanitise.
  * @param context - Short label for the slot this URL belongs to (e.g.
@@ -1152,7 +1151,7 @@ function newId(): string {
 function ensureSafeUrl(url: string, context: string): string {
   const safe = sanitizeUrl(url)
 
-  if (!safe) {
+  if (!safe || safe === 'about:blank') {
     throw new EmailThemeApplyError(`applyTheme: invalid or unsafe URL for ${context}`)
   }
 

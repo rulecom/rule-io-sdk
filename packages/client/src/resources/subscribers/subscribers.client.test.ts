@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rulecom/core';
+import { RuleApiError } from '@rulecom/client';
+import { RuleClientError } from '@rulecom/client';
 
 import {
   createMock204Response,
@@ -132,7 +133,7 @@ describe('SubscribersClient', () => {
       expect(fetchMock.mock.calls[2]![0]).toBe('https://app.rule.io/api/v3/custom-field-data/999');
     });
 
-    it('throws RuleConfigError when a field key contains a dot', async () => {
+    it('throws RuleClientError when a field key contains a dot', async () => {
       const client = createClient(fetchMock);
 
       await expect(
@@ -141,25 +142,25 @@ describe('SubscribersClient', () => {
           fields: { 'Booking.FirstName': 'Anna' },
           tags: ['test'],
         }, 'Booking')
-      ).rejects.toThrow(RuleConfigError);
+      ).rejects.toThrow(RuleClientError);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('throws RuleConfigError when fieldGroupPrefix is empty', async () => {
+    it('throws RuleClientError when fieldGroupPrefix is empty', async () => {
       const client = createClient(fetchMock);
 
       await expect(
         client.sync({ email: 'test@example.com' }, '')
-      ).rejects.toThrow(RuleConfigError);
+      ).rejects.toThrow(RuleClientError);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('throws RuleConfigError when fieldGroupPrefix contains a dot', async () => {
+    it('throws RuleClientError when fieldGroupPrefix contains a dot', async () => {
       const client = createClient(fetchMock);
 
       await expect(
         client.sync({ email: 'test@example.com' }, 'A.B')
-      ).rejects.toThrow(RuleConfigError);
+      ).rejects.toThrow(RuleClientError);
       expect(fetchMock).not.toHaveBeenCalled();
     });
 
