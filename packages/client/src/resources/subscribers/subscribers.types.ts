@@ -1,8 +1,9 @@
 /**
  * Subscriber types — both the legacy v2 shapes (used by `subscribers.sync`,
- * `subscribers.get`, `subscribers.getFields`, `subscribers.getTagNames`) and
- * the v3 shapes (used by `create`, `delete`, `addTags`, `removeTag`, bulk
- * operations, block/unblock).
+ * `subscribers.getByEmail`, `subscribers.getById`, `subscribers.getByPhone`,
+ * `subscribers.getFields`, `subscribers.getTagNames`) and the v3 shapes (used
+ * by `create`, `delete`, `addTags`, `removeTag`, bulk operations,
+ * block/unblock).
  */
 
 import type { RuleApiResponse } from '../../shared.types.js';
@@ -26,11 +27,27 @@ export interface RuleSubscriber {
   tags?: string[];
 }
 
-export interface RuleSubscriberResponse extends RuleApiResponse {
-  subscriber?: {
-    id: string;
+export interface SubscriberSegmentV2 {
+  id: number;
+  name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  sync_at?: string;
+}
+
+export interface GetSubscriberV2Response extends RuleApiResponse {
+  subscriber: {
+    id: number;
     email: string;
+    phone_number?: string;
+    language?: string;
+    opted_in?: boolean;
+    created_at?: string;
+    updated_at?: string;
     tags?: Array<{ id: number; name: string }>;
+    suppressed?: unknown[];
+    syncAtSegments?: SubscriberSegmentV2[];
   };
 }
 
@@ -65,29 +82,28 @@ export interface RuleSubscriberV3 {
 }
 
 /** Request body for creating a subscriber via the v3 API. */
-export interface RuleSubscriberV3CreateRequest {
-  email?: string;
-  phone_number?: string;
+export interface CreateSubscriberV3Request {
+  email?: string | null;
+  phone_number?: string | null;
   custom_identifier?: string;
   status?: 'ACTIVE' | 'BLOCKED' | 'PENDING';
   language?: string;
 }
 
-/**
- * Response from the v3 subscriber create endpoint.
- *
- * Note: The API returns subscriber fields directly at the top level,
- * not nested inside a `data` property.
- *
- * Note: The API returns `phone` in responses but accepts `phone_number` in requests.
- * This matches the Rule.io API naming convention.
- */
-export interface RuleSubscriberV3Response extends RuleApiResponse {
-  id?: number;
-  email?: string | null;
-  phone?: string | null;
-  status?: string;
-  language?: string;
+/** Response from the v3 subscriber create endpoint. */
+export interface CreateSubscriberV3Response {
+  data: {
+    id: number;
+    email: string | null;
+    phone: string | null;
+    has_next_item?: boolean;
+    custom_identifier?: string | null;
+    account_id?: number;
+    created_at?: string;
+    updated_at?: string;
+    status?: string;
+    language?: string;
+  };
 }
 
 /**

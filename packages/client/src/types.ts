@@ -26,11 +26,12 @@ export type {
   RuleSubscriber,
   RuleSubscriberFields,
   RuleSubscriberFieldsResponse,
-  RuleSubscriberResponse,
+  GetSubscriberV2Response,
+  SubscriberSegmentV2,
   RuleSubscriberTagsResponse,
   RuleSubscriberV3,
-  RuleSubscriberV3CreateRequest,
-  RuleSubscriberV3Response,
+  CreateSubscriberV3Request,
+  CreateSubscriberV3Response,
   RuleBulkSubscriberIdentifier,
   RuleBulkTagsRequest,
   RuleSubscriberTagsV3Request,
@@ -182,7 +183,7 @@ export type {
 
 // ── Custom field data (deprecated by Rule.io) ────────────────────────────────
 export type {
-  RuleCustomFieldDataCreateRequest,
+  CreateCustomFieldDataRequestBody,
   RuleCustomFieldDataGroupParams,
   RuleCustomFieldDataListParams,
   RuleCustomFieldDataRecord,
@@ -190,7 +191,9 @@ export type {
   RuleCustomFieldDataSearchParams,
   RuleCustomFieldDataSingleResponse,
   RuleCustomFieldDataUpdateRequest,
-  RuleCustomFieldDataValue,
+  CustomFieldValue,
+  CustomFieldDataEntry,
+  CustomFieldGroupDataEntry,
   RuleCustomFieldValue,
 } from './resources/custom-field-data/custom-field-data.types.js';
 

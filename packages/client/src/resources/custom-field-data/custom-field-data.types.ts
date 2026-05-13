@@ -12,7 +12,7 @@ import type { RuleApiResponse } from '../../shared.types.js';
  *
  * @deprecated Custom Field Data API is deprecated by Rule.io.
  */
-export type RuleCustomFieldDataValue =
+export type CustomFieldValue =
   | string
   | string[]
   | Record<string, unknown>
@@ -27,7 +27,7 @@ export interface RuleCustomFieldValue {
   field_id: number;
   field_name: string;
   field_type: 'text' | 'datetime' | 'date' | 'time' | 'multiple' | 'json';
-  field_value: RuleCustomFieldDataValue;
+  field_value: CustomFieldValue;
 }
 
 /**
@@ -86,22 +86,31 @@ export interface RuleCustomFieldDataGroupParams {
   fields?: string[];
 }
 
+export interface CustomFieldDataEntry {
+  field: number | string;
+  create_if_not_exists?: boolean;
+  value: CustomFieldValue;
+}
+
+/**
+ * A single group entry in a create-custom-field-data request.
+ *
+ * @deprecated Custom Field Data API is deprecated by Rule.io.
+ */
+export interface CustomFieldGroupDataEntry {
+  group: number | string;
+  create_if_not_exists?: boolean;
+  historical?: boolean;
+  values: Array<CustomFieldDataEntry>;
+}
+
 /**
  * Request body for creating custom field data for a subscriber.
  *
  * @deprecated Custom Field Data API is deprecated by Rule.io.
  */
-export interface RuleCustomFieldDataCreateRequest {
-  groups: Array<{
-    group: number | string;
-    create_if_not_exists?: boolean;
-    historical?: boolean;
-    values: Array<{
-      field: number | string;
-      create_if_not_exists?: boolean;
-      value: RuleCustomFieldDataValue;
-    }>;
-  }>;
+export interface CreateCustomFieldDataRequestBody {
+  groups: Array<CustomFieldGroupDataEntry>;
 }
 
 /**
@@ -119,7 +128,7 @@ export interface RuleCustomFieldDataUpdateRequest {
   values: Array<{
     field: number | string;
     create_if_not_exists?: boolean;
-    value: RuleCustomFieldDataValue;
+    value: CustomFieldValue;
   }>;
 }
 
