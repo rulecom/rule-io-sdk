@@ -13,7 +13,7 @@ import { buildQueryString } from '../../core/query-string.js';
 import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
-  RuleCustomFieldDataCreateRequest,
+  CreateCustomFieldDataRequestBody,
   RuleCustomFieldDataGroupParams,
   RuleCustomFieldDataListParams,
   RuleCustomFieldDataResponse,
@@ -66,7 +66,7 @@ export class CustomFieldDataClient extends BaseResource {
    * @deprecated Custom Field Data API is deprecated by Rule.io.
    *
    * @param subscriberId - The subscriber's numeric ID.
-   * @param request - The field data to create, grouped by field group.
+   * @param body - The field data to create, grouped by field group.
    * @returns A success response (HTTP 201 on success).
    *
    * @example
@@ -80,14 +80,15 @@ export class CustomFieldDataClient extends BaseResource {
    * });
    * ```
    */
-  create(
+  async create(
     subscriberId: number,
-    request: RuleCustomFieldDataCreateRequest
+    body: CreateCustomFieldDataRequestBody
   ): Promise<RuleApiResponse> {
-    return this.transport.post<RuleApiResponse>(
-      `/custom-field-data/${subscriberId}`,
-      { body: JSON.stringify(request) }
-    );
+    await this.transport.fetchRaw('POST', `/custom-field-data/${subscriberId}`, {
+      body: JSON.stringify(body),
+    });
+
+    return { success: true };
   }
 
   /**
