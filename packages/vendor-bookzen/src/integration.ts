@@ -1,11 +1,11 @@
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from '@rulecom/core';
 import type {
   CreateCustomFieldDataRequestBody,
   CustomFieldGroupDataEntry,
   CreateSubscriberV3Response,
   GetSubscriberV2Response, RuleApiResponse,
   RuleClient
-} from '@rule-io/client';
+} from '@rulecom/client';
 import {
   BOOKZEN_BOOKING_FIELD_SCHEMA,
   BOOKZEN_FIELD_SCHEMA,

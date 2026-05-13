@@ -4,7 +4,7 @@
  * defaults are applied.
  */
 
-import { RuleConfigError } from '@rule-io/core';
+import { RuleConfigError } from '@rulecom/core';
 
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
 

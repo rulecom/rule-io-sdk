@@ -8,23 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### BREAKING CHANGES
-- **Published package name changed from `rule-io-sdk` to `@rule-io/sdk`.**
+- **Published package name changed from `rule-io-sdk` to `@rulecom/sdk`.**
   Existing consumers must run
-  `npm uninstall rule-io-sdk && npm install @rule-io/sdk` and update import
-  specifiers (`from 'rule-io-sdk'` → `from '@rule-io/sdk'`).
-- **CommonJS output dropped.** `@rule-io/sdk` is now ESM-only (`type: "module"`);
+  `npm uninstall rule-io-sdk && npm install @rulecom/sdk` and update import
+  specifiers (`from 'rule-io-sdk'` → `from '@rulecom/sdk'`).
+- **CommonJS output dropped.** `@rulecom/sdk` is now ESM-only (`type: "module"`);
   the `exports` map provides only an `import` condition. Consumers on CommonJS
   must either migrate to ESM or use dynamic `import()`. No dual-build planned.
 - **Minimum Node.js version bumped from `>=18` to `>=20`.** The Nx plugins used
   by the workspace (`@nx/vitest`) rely on `node:util.styleText`, added in
   Node 20.12 / 22.
-- **SDK split into a meta-package over six focused siblings** — `@rule-io/core`,
-  `@rule-io/rcml`, `@rule-io/client`, `@rule-io/vendor-shopify`,
-  `@rule-io/vendor-bookzen`, `@rule-io/vendor-samfora`. Existing
-  `import { X } from '@rule-io/sdk'` keeps working via transitive re-exports;
-  new consumers can install only the subset they need (e.g. `@rule-io/client`
-  alone, or a single `@rule-io/vendor-*`).
-- **New sibling package: `@rule-io/cli`** — `npx @rule-io/cli` / `rule-io`
+- **SDK split into a meta-package over six focused siblings** — `@rulecom/core`,
+  `@rulecom/rcml`, `@rulecom/client`, `@rulecom/vendor-shopify`,
+  `@rulecom/vendor-bookzen`, `@rulecom/vendor-samfora`. Existing
+  `import { X } from '@rulecom/sdk'` keeps working via transitive re-exports;
+  new consumers can install only the subset they need (e.g. `@rulecom/client`
+  alone, or a single `@rulecom/vendor-*`).
+- **New sibling package: `@rulecom/cli`** — `npx @rulecom/cli` / `rule-io`
   binary replacing the previous `scripts/` utilities. See
   [packages/cli/README.md](../cli/README.md).
 

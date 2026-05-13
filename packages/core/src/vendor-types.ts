@@ -3,7 +3,7 @@
  * the Rule.io platform.
  *
  * Provides a two-layer abstraction:
- * - **Vendor Preset** (shipped by a `@rule-io/vendor-*` package): field
+ * - **Vendor Preset** (shipped by a `@rulecom/vendor-*` package): field
  *   names, tags, automation flows, default text.
  * - **Consumer Config** (provided at runtime): brand style, field IDs,
  *   URLs.
@@ -167,7 +167,7 @@ export interface VendorFieldInfo {
  *
  * @example
  * ```typescript
- * import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
+ * import { shopifyPreset, SHOPIFY_FIELDS } from '@rulecom/sdk';
  *
  * shopifyPreset.validateConfig(config);
  * const automations = shopifyPreset.getAutomations(config);

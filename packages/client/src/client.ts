@@ -23,7 +23,7 @@
  *    Look up IDs via `client.tags.list()`.
  */
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleConfigError } from '@rulecom/core';
 
 import { BaseResource } from './core/base-resource.js';
 import { HttpTransport } from './core/transport.js';

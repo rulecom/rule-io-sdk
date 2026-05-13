@@ -1,5 +1,5 @@
 {
-  "name": "@rule-io/client",
+  "name": "@rulecom/client",
   "version": "0.3.0",
   "description": "HTTP API client for the Rule.io email marketing platform.",
   "type": "module",
@@ -24,8 +24,8 @@
     "directory": "packages/client"
   },
   "dependencies": {
-    "@rule-io/core": "0.3.0",
-    "@rule-io/rcml": "0.3.0"
+    "@rulecom/core": "0.3.0",
+    "@rulecom/rcml": "0.3.0"
   },
   "engines": {
     "node": ">=20"

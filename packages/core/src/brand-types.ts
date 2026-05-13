@@ -1,9 +1,9 @@
 /**
  * Brand-style configuration POJOs shared across the Rule.io SDK.
  *
- * Plain data shapes — no runtime logic. Live in `@rule-io/core` so
+ * Plain data shapes — no runtime logic. Live in `@rulecom/core` so
  * vendor-contract types ({@link AutomationConfigV2}, {@link VendorPreset})
- * can reference them without pulling `@rule-io/rcml` into the dep graph.
+ * can reference them without pulling `@rulecom/rcml` into the dep graph.
  */
 
 /**
@@ -26,7 +26,7 @@ export interface CustomFieldMap {
 /**
  * Footer-section configuration — localisation overrides for the default
  * English link text produced by `footerSection()` in
- * `@rule-io/rcml`'s brand-elements module.
+ * `@rulecom/rcml`'s brand-elements module.
  */
 export interface FooterConfig {
   /** "View in browser" link text (default: 'View in browser') */

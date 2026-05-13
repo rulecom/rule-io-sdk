@@ -16,8 +16,8 @@ import type {
   RuleDynamicSetResponse,
   RuleMessageResponse,
   RuleTemplateResponse,
-} from '@rule-io/client';
-import type { RcmlDocument } from '@rule-io/rcml';
+} from '@rulecom/client';
+import type { RcmlDocument } from '@rulecom/rcml';
 import { createClient } from '../shared/client.js';
 
 interface EmailSnapshot {

@@ -4,7 +4,7 @@
  *
  * These types describe *how* a vendor preset declares an automation
  * (trigger, subject, template-builder callback, etc.). They intentionally
- * live in `@rule-io/core` rather than `@rule-io/rcml` so vendor packages
+ * live in `@rulecom/core` rather than `@rulecom/rcml` so vendor packages
  * don't have to depend on rcml just for the contract shape.
  *
  * @module automation-configs-v2
@@ -20,7 +20,7 @@ import type { EmailTheme } from './theme-types.js'
  * The `theme` field is an {@link EmailTheme} — the typed theme
  * abstraction applied to rcml documents via `applyTheme`. Consumers
  * convert their brand-style source (Rule.io API response, hand-rolled
- * config) to an `EmailTheme` before passing it in. `@rule-io/client`
+ * config) to an `EmailTheme` before passing it in. `@rulecom/client`
  * ships `emailThemeFromBrandStyle` for the API-response case.
  */
 export interface TemplateConfigV2 {
@@ -36,14 +36,14 @@ export interface TemplateConfigV2 {
  * Full automation configuration.
  *
  * `templateBuilder` returns {@link RCMLDocumentRoot} at the type level so the
- * contract doesn't depend on `@rule-io/rcml`; concrete implementations in
- * `@rule-io/rcml` / vendor packages return a full `RcmlDocument` (a subtype),
+ * contract doesn't depend on `@rulecom/rcml`; concrete implementations in
+ * `@rulecom/rcml` / vendor packages return a full `RcmlDocument` (a subtype),
  * which TypeScript accepts by function-return covariance.
  *
  * @example
  * ```typescript
- * import { RuleTags, createAbandonedCartEmail } from '@rule-io/sdk';
- * import type { AutomationConfigV2 } from '@rule-io/sdk';
+ * import { RuleTags, createAbandonedCartEmail } from '@rulecom/sdk';
+ * import type { AutomationConfigV2 } from '@rulecom/sdk';
  *
  * const abandonedCartAutomation: AutomationConfigV2 = {
  *   id: 'abandoned-cart',

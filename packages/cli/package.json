@@ -1,5 +1,5 @@
 {
-  "name": "@rule-io/cli",
+  "name": "@rulecom/cli",
   "version": "0.3.0",
   "description": "Command-line tools for the Rule.io SDK — deploy vendor presets, validate RCML, inspect automations.",
   "type": "module",
@@ -27,12 +27,12 @@
     "directory": "packages/cli"
   },
   "dependencies": {
-    "@rule-io/client": "0.3.0",
-    "@rule-io/core": "0.3.0",
-    "@rule-io/rcml": "0.3.0",
-    "@rule-io/vendor-shopify": "0.3.0",
-    "@rule-io/vendor-bookzen": "0.3.0",
-    "@rule-io/vendor-samfora": "0.3.0",
+    "@rulecom/client": "0.3.0",
+    "@rulecom/core": "0.3.0",
+    "@rulecom/rcml": "0.3.0",
+    "@rulecom/vendor-shopify": "0.3.0",
+    "@rulecom/vendor-bookzen": "0.3.0",
+    "@rulecom/vendor-samfora": "0.3.0",
     "commander": "^12.1.0"
   },
   "engines": {

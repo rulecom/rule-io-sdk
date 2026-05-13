@@ -5,13 +5,13 @@ import {
   BOOKZEN_SUBSCRIBER_FIELD_VALUES_SEED,
   BOOKZEN_BOOKING_FIELD_VALUES_SEED,
   RuleClient
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 import type {
   SeededBookzenSubscriber,
   BookzenSubscriberFieldName,
   BookzenBookingFieldName,
   BookzenFieldName,
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 
 
 describe('integrate with Bookzen', () => {

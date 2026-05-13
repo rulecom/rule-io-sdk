@@ -2,7 +2,7 @@
   "name": "rule-io-sdk",
   "version": "0.0.0",
   "private": true,
-  "description": "Rule.io SDK monorepo — publishable packages under @rule-io/*",
+  "description": "Rule.io SDK monorepo — publishable packages under @rulecom/*",
   "workspaces": [
     "packages/*"
   ],

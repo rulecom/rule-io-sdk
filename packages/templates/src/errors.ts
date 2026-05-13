@@ -1,5 +1,5 @@
 /**
- * Error surface for `@rule-io/templates`.
+ * Error surface for `@rulecom/templates`.
  *
  * @public
  */

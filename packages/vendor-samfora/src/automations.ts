@@ -18,8 +18,8 @@ import type {
   FooterConfig,
   VendorAutomation,
   VendorConsumerConfig,
-} from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+} from '@rulecom/core';
+import { RuleConfigError } from '@rulecom/core';
 import type {
   Json,
   RcmlBodyChild,
@@ -29,8 +29,8 @@ import type {
   RcmlHeading,
   RcmlSection,
   RcmlText,
-} from '@rule-io/rcml';
-import { applyTheme } from '@rule-io/rcml';
+} from '@rulecom/rcml';
+import { applyTheme } from '@rulecom/rcml';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
 

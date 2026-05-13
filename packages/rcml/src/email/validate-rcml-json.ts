@@ -3,7 +3,7 @@
  * typed node/mark tree model.
  *
  * This file contains **only public exports**. Every symbol here is part of
- * the `@rule-io/rcml` contract and is marked `@public` in its JSDoc. The
+ * the `@rulecom/rcml` contract and is marked `@public` in its JSDoc. The
  * AJV validator and visitor helpers live under `./content/json-validator/`.
  */
 

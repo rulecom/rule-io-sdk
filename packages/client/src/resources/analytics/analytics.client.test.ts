@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleConfigError } from '@rulecom/core';
 
 import {
   createMockErrorResponse,

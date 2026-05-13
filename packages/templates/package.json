@@ -1,5 +1,5 @@
 {
-  "name": "@rule-io/templates",
+  "name": "@rulecom/templates",
   "version": "0.6.0",
   "description": "Minimal XML template compiler used by Rule.io vendor email-template packages. v1.4 uses XML Processing Instructions for directives, a flat data scope, and Transloco-style `t('key', { param: expr })` message calls.",
   "type": "module",

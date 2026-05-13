@@ -4,11 +4,11 @@
  */
 
 import type { Command } from 'commander';
-import { type RuleClient } from '@rule-io/client';
-import { type RcmlDocument } from '@rule-io/rcml';
-import { resolveBrandTheme } from '@rule-io/client';
-import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
-import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rule-io/vendor-samfora';
+import { type RuleClient } from '@rulecom/client';
+import { type RcmlDocument } from '@rulecom/rcml';
+import { resolveBrandTheme } from '@rulecom/client';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/core';
+import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '@rulecom/vendor-samfora';
 import { createClient } from '../shared/client.js';
 
 const V2_BASE = 'https://app.rule.io/api/v2';

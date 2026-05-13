@@ -1,9 +1,9 @@
 /**
  * Reservation-confirmation template factory.
  *
- * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * Caller assembles {@link ReservationConfirmationTemplateContext}
- * with `customField` from `@rule-io/templates`; the factory handles
+ * with `customField` from `@rulecom/templates`; the factory handles
  * loading, compile, theme projection, xmlToRcml, and applyTheme.
  */
 
@@ -11,8 +11,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/rcml'
+import type { CustomFieldRef } from '@rulecom/templates'
 
 /**
  * Typed data context consumed by `reservation-confirmation.xml`.

@@ -1,11 +1,11 @@
 /**
- * Theme type surface for `@rule-io/rcml` — re-exports the canonical
- * definitions from `@rule-io/core`. The types live in core so base-layer
+ * Theme type surface for `@rulecom/rcml` — re-exports the canonical
+ * definitions from `@rulecom/core`. The types live in core so base-layer
  * types like `VendorConsumerConfig` can reference {@link EmailTheme}
  * without creating a core → rcml dependency cycle.
  *
  * The `applyTheme` / `createEmailTheme` / `getTheme` runtime that
- * operates on these types stays in `@rule-io/rcml`.
+ * operates on these types stays in `@rulecom/rcml`.
  *
  * @public
  */
@@ -20,9 +20,9 @@ export type {
   EmailThemePatch,
   EmailThemeSocialLink,
   EmailThemeSocialLinkType,
-} from '@rule-io/core'
+} from '@rulecom/core'
 export {
   EmailThemeColorType,
   EmailThemeFontStyleType,
   EmailThemeImageType,
-} from '@rule-io/core'
+} from '@rulecom/core'

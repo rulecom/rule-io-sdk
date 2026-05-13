@@ -7,7 +7,7 @@
  * consumers in a follow-up change.
  */
 
-import type { RcmlDocument, RcmlSection, RcmlLoop, RcmlSwitch } from '@rule-io/rcml';
+import type { RcmlDocument, RcmlSection, RcmlLoop, RcmlSwitch } from '@rulecom/rcml';
 
 import type { RuleSendoutType } from './resources/automations/automations.types.js';
 import type {

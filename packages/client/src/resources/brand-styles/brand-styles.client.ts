@@ -5,7 +5,7 @@
  * or manual), update (PATCH), and delete.
  */
 
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from '@rulecom/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import type { RuleApiResponse } from '../../shared.types.js';

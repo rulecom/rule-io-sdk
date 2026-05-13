@@ -1,15 +1,15 @@
-# @rule-io/cli
+# @rulecom/cli
 
 Command-line tools for the [Rule.io](https://rule.io) SDK. Deploy vendor preset automations, validate RCML templates, and inspect your Rule.io account without writing code.
 
 ```bash
-npx @rule-io/cli --help
+npx @rulecom/cli --help
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @rule-io/cli
+npm install -g @rulecom/cli
 rule-io --help
 ```
 
@@ -118,4 +118,4 @@ npm run deploy:shopify -- --activate
 npx tsx packages/cli/src/cli.ts inspect
 ```
 
-See the [main `@rule-io/sdk` README](../sdk/README.md) for the full SDK documentation and the [root README](../../README.md) for release instructions.
+See the [main `@rulecom/sdk` README](../sdk/README.md) for the full SDK documentation and the [root README](../../README.md) for release instructions.

@@ -2,10 +2,10 @@
  * Public type definitions for the email-theme abstraction.
  *
  * Defines the typed theme rcml documents carry, independent of the Rule.io
- * brand-style API shape. Lives in `@rule-io/core` so `VendorConsumerConfig`
+ * brand-style API shape. Lives in `@rulecom/core` so `VendorConsumerConfig`
  * and other base-layer types can reference {@link EmailTheme} without
- * circularly depending on `@rule-io/rcml`. The `applyTheme` / factory
- * runtime stays in `@rule-io/rcml` and is re-exported from there.
+ * circularly depending on `@rulecom/rcml`. The `applyTheme` / factory
+ * runtime stays in `@rulecom/rcml` and is re-exported from there.
  *
  * @public
  */

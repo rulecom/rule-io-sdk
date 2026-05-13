@@ -12,7 +12,7 @@
 
 import { randomUUID } from 'node:crypto'
 
-import { sanitizeUrl } from '@rule-io/core'
+import { sanitizeUrl } from '@rulecom/core'
 
 import type {
   RcmlAttributes,
@@ -1136,7 +1136,7 @@ function newId(): string {
 
 /**
  * Sanitise a URL that came from an outside source (brand style, theme
- * patch). Delegates to `sanitizeUrl` from `@rule-io/core`, which
+ * patch). Delegates to `sanitizeUrl` from `@rulecom/core`, which
  * whitelists `http:` / `https:` / `mailto:`. An empty / rejected URL
  * triggers {@link EmailThemeApplyError} with `context` in the message
  * so the caller can see which slot failed.

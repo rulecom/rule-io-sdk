@@ -16,11 +16,11 @@
  */
 
 import type { Command } from 'commander';
-import { type RuleClient } from '@rule-io/client';
-import { type RcmlDocument } from '@rule-io/rcml';
-import { resolveBrandTheme } from '@rule-io/client';
-import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
-import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
+import { type RuleClient } from '@rulecom/client';
+import { type RcmlDocument } from '@rulecom/rcml';
+import { resolveBrandTheme } from '@rulecom/client';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/core';
+import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rulecom/vendor-shopify';
 import { createClient } from '../shared/client.js';
 
 const SEED_EMAIL = 'shopify-seed@rule.se';

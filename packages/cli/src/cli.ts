@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * @rule-io/cli entry point.
+ * @rulecom/cli entry point.
  *
  * Registers each subcommand against a top-level `rule-io` program, loads
  * environment variables from `.env` in the current working directory, then

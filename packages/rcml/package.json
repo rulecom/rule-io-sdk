@@ -1,5 +1,5 @@
 {
-  "name": "@rule-io/rcml",
+  "name": "@rulecom/rcml",
   "version": "0.3.0",
   "description": "RCML email template builders and type definitions for the Rule.io SDK.",
   "type": "module",
@@ -24,7 +24,7 @@
     "directory": "packages/rcml"
   },
   "dependencies": {
-    "@rule-io/core": "0.3.0",
+    "@rulecom/core": "0.3.0",
     "@types/mdast": "^4.0.4",
     "@types/unist": "^3.0.3",
     "ajv": "^8.17.1",

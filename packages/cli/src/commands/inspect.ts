@@ -9,7 +9,7 @@
  */
 
 import type { Command } from 'commander';
-import { SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rule-io/vendor-shopify';
+import { SHOPIFY_FIELDS, SHOPIFY_TAGS } from '@rulecom/vendor-shopify';
 import { createClient } from '../shared/client.js';
 
 interface Options {

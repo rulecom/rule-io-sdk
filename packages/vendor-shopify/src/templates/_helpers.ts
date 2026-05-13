@@ -16,8 +16,8 @@
  * @internal
  */
 
-import { RuleConfigError } from '@rule-io/core'
-import type { CustomFieldMap } from '@rule-io/core'
+import { RuleConfigError } from '@rulecom/core'
+import type { CustomFieldMap } from '@rulecom/core'
 
 export interface TemplateHelpers {
   field: (logicalName: string) => string

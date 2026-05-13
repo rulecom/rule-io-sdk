@@ -25,9 +25,9 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Command } from 'commander';
-import { RuleClient, RULE_API_V2_BASE_URL } from '@rule-io/client';
-import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement } from '@rule-io/rcml';
-import { resolveBrandTheme } from '@rule-io/client';
+import { RuleClient, RULE_API_V2_BASE_URL } from '@rulecom/client';
+import { createSocialElement, createSocialChildElement, createSwitchElement, createCaseElement } from '@rulecom/rcml';
+import { resolveBrandTheme } from '@rulecom/client';
 import {
   brandButton,
   brandHeading,
@@ -42,12 +42,12 @@ import {
   placeholder,
   textNode,
 } from './validate-rcml-builders.js';
-import { EmailThemeColorType, type EmailTheme } from '@rule-io/core';
+import { EmailThemeColorType, type EmailTheme } from '@rulecom/core';
 import type {
   Json,
   RcmlBodyChild,
   RcmlColumnChild,
-} from '@rule-io/rcml';
+} from '@rulecom/rcml';
 
 // ---------------------------------------------------------------------------
 // Run-time config (populated in registerValidateRcml → run())

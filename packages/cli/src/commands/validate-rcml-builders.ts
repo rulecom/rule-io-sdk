@@ -5,7 +5,7 @@
  * so the showcase template renders identically once `applyTheme`
  * decorates the head from a consumer-supplied theme.
  *
- * Originally lived in `@rule-io/rcml`'s `brand-elements.ts`. After every
+ * Originally lived in `@rulecom/rcml`'s `brand-elements.ts`. After every
  * vendor template migrated to the XML / `createEmailTemplate` pattern,
  * this CLI showcase was the only consumer left, so the helpers were
  * inlined here and the rcml export retired.
@@ -13,8 +13,8 @@
 
 import { randomUUID } from 'node:crypto'
 
-import type { EmailTheme, FooterConfig } from '@rule-io/core'
-import { RuleConfigError, sanitizeUrl } from '@rule-io/core'
+import type { EmailTheme, FooterConfig } from '@rulecom/core'
+import { RuleConfigError, sanitizeUrl } from '@rulecom/core'
 
 import {
   applyTheme,
@@ -28,7 +28,7 @@ import {
   type RcmlLoop,
   type RcmlSection,
   type RcmlText,
-} from '@rule-io/rcml'
+} from '@rulecom/rcml'
 
 // ─── Inline nodes ───────────────────────────────────────────────────────────
 

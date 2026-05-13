@@ -21,13 +21,13 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 ## Installation
 
 ```bash
-npm install @rule-io/sdk
+npm install @rulecom/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { RuleClient } from '@rule-io/sdk';
+import { RuleClient } from '@rulecom/sdk';
 
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
@@ -92,8 +92,8 @@ You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders. Use `resolvePreferredBrandStyle()` so each account's preferred style (the one flagged `is_default`) is respected — never hardcode brand style IDs, since a customer's preferred style can change and list order is not guaranteed:
 
 ```typescript
-import { resolvePreferredBrandStyle } from '@rule-io/sdk';
-import type { CustomFieldMap } from '@rule-io/sdk';
+import { resolvePreferredBrandStyle } from '@rulecom/sdk';
+import type { CustomFieldMap } from '@rulecom/sdk';
 
 // Preferred path: discover the account's default brand style.
 const { id: brandStyleId, brandStyle: myBrand, source } =
@@ -159,15 +159,15 @@ The SDK offers three levels of template building, from highest to lowest abstrac
 
 ### Pre-Built Templates
 
-Ready-to-use templates shaped as **factories** — each returns an `EmailTemplate` whose `render({ context, theme, copy? })` method produces an `RcmlDocument`. The caller builds a typed context using `customField` / `loopValue` from `@rule-io/templates`; the factory handles loading, compiling, theme projection, and theming. See [`packages/templates/README.md`](../templates/README.md) for the authoring pattern.
+Ready-to-use templates shaped as **factories** — each returns an `EmailTemplate` whose `render({ context, theme, copy? })` method produces an `RcmlDocument`. The caller builds a typed context using `customField` / `loopValue` from `@rulecom/templates`; the factory handles loading, compiling, theme projection, and theming. See [`packages/templates/README.md`](../templates/README.md) for the authoring pattern.
 
 **Hospitality:** `createReservationConfirmationTemplate`, `createReservationCancellationTemplate`, `createReservationReminderTemplate`, `createFeedbackRequestTemplate`, `createReservationRequestTemplate`
 
 **E-commerce:** `createAbandonedCartTemplate`, `createOrderConfirmationTemplate`, `createShippingUpdateTemplate`, `createOrderCancellationTemplate`, `createWelcomeTemplate`
 
 ```typescript
-import { createOrderConfirmationTemplate } from '@rule-io/sdk';
-import { customField } from '@rule-io/templates';
+import { createOrderConfirmationTemplate } from '@rulecom/sdk';
+import { customField } from '@rulecom/templates';
 
 const template = createOrderConfirmationTemplate();
 
@@ -201,7 +201,7 @@ import {
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 
 const template = createBrandTemplate({
   brandStyle: myBrand,
@@ -238,7 +238,7 @@ import {
   createText,
   createButton,
   createLogo,
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 
 const template = createRCMLDocument({
   preheader: 'Your order is confirmed!',
@@ -276,7 +276,7 @@ Pre-configured integrations that bundle field names, tags, and automation flows 
 ### Shopify
 
 ```typescript
-import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
+import { shopifyPreset, SHOPIFY_FIELDS } from '@rulecom/sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -297,7 +297,7 @@ const single = shopifyPreset.getAutomation('shopify-order-confirmation', config)
 ### Bookzen (Hospitality)
 
 ```typescript
-import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
+import { bookzenPreset, BOOKZEN_FIELDS } from '@rulecom/sdk';
 
 const config = {
   brandStyle: myBrand,
@@ -335,8 +335,8 @@ Six template factories ship for the donation lifecycle:
 import {
   createDonationConfirmationFirstTemplate,
   SAMFORA_FIELDS,
-} from '@rule-io/sdk';
-import { customField } from '@rule-io/templates';
+} from '@rulecom/sdk';
+import { customField } from '@rulecom/templates';
 
 const template = createDonationConfirmationFirstTemplate();
 const doc = template.render({
@@ -461,7 +461,7 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
-import { createRCMLDocument, createCenteredSection, createText } from '@rule-io/sdk';
+import { createRCMLDocument, createCenteredSection, createText } from '@rulecom/sdk';
 
 const rcmlDocument = createRCMLDocument({
   sections: [createCenteredSection({ children: [createText('Hello!')] })],
@@ -549,7 +549,7 @@ await client.deleteAccount(account.data!.id!);
 ### Brand Styles
 
 ```typescript
-import { resolvePreferredBrandStyle } from '@rule-io/sdk';
+import { resolvePreferredBrandStyle } from '@rulecom/sdk';
 
 // Preferred: resolve the account's default brand style (is_default: true)
 // and receive a ready-to-use BrandStyleConfig in a single call.
@@ -605,7 +605,7 @@ Also: `updateCustomFieldData`, `getCustomFieldDataByGroup`, `searchCustomFieldDa
 ## Error Handling
 
 ```typescript
-import { RuleApiError, RuleConfigError } from '@rule-io/sdk';
+import { RuleApiError, RuleConfigError } from '@rulecom/sdk';
 
 try {
   await client.createSubscriberV3({ email: 'user@example.com' });
@@ -626,7 +626,7 @@ RCML element builders (`createButton`, `createImage`, `createVideo`) sanitize UR
 For custom raw HTML templates outside of RCML:
 
 ```typescript
-import { escapeHtml, sanitizeUrl } from '@rule-io/sdk';
+import { escapeHtml, sanitizeUrl } from '@rulecom/sdk';
 
 const safeName = escapeHtml(userInput);       // For raw HTML interpolation
 const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs
@@ -643,20 +643,20 @@ This package is part of the [`rule-io-sdk` Nx monorepo](../../README.md). Build,
 For commands scoped to this package only:
 
 ```bash
-npx nx build sdk          # build @rule-io/sdk and its workspace deps
+npx nx build sdk          # build @rulecom/sdk and its workspace deps
 npx nx vitest:test sdk    # run this package's tests
 npx nx eslint:lint sdk    # lint this package
 ```
 
 ### RCML Validation
 
-Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rule-io/cli`](../cli/README.md):
+Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rulecom/cli`](../cli/README.md):
 
 ```bash
 echo "RULE_API_KEY=your-key" > .env
-npx @rule-io/cli validate-rcml                  # All elements
-npx @rule-io/cli validate-rcml --sections 1,4,7 # Specific sections
-npx @rule-io/cli validate-rcml --cleanup        # Clean up
+npx @rulecom/cli validate-rcml                  # All elements
+npx @rulecom/cli validate-rcml --sections 1,4,7 # Specific sections
+npx @rulecom/cli validate-rcml --cleanup        # Clean up
 ```
 
 ### Releasing

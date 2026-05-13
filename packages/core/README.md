@@ -1,6 +1,6 @@
-# @rule-io/core
+# @rulecom/core
 
-Shared types and utilities used across the `@rule-io/*` package family:
+Shared types and utilities used across the `@rulecom/*` package family:
 
 - **Error classes** — `RuleApiError`, `RuleConfigError`.
 - **Brand & theme types** — `EmailTheme` and friends (`EmailThemeColor`, `EmailThemeFont`, `EmailThemeImage`, …), `CustomFieldMap`, `FooterConfig`.
@@ -8,13 +8,13 @@ Shared types and utilities used across the `@rule-io/*` package family:
 - **Vendor-preset interface** — `VendorPreset`, `VendorConsumerConfig`, `VendorAutomation`, plus `resolveVendorAutomations`.
 - **Sanitisation helpers** — `escapeHtml`, `sanitizeUrl`, `formatDateForRule`.
 
-Most consumers don't depend on this package directly — it's pulled in transitively by `@rule-io/client`, `@rule-io/rcml`, and every `@rule-io/vendor-*` preset. Import from it explicitly when you need any of the above:
+Most consumers don't depend on this package directly — it's pulled in transitively by `@rulecom/client`, `@rulecom/rcml`, and every `@rulecom/vendor-*` preset. Import from it explicitly when you need any of the above:
 
 ```ts
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleConfigError } from '@rulecom/core';
 
 try {
-  // ... call into @rule-io/client, @rule-io/rcml, etc.
+  // ... call into @rulecom/client, @rulecom/rcml, etc.
 } catch (err) {
   if (err instanceof RuleApiError) {
     // HTTP error from the Rule.io API
@@ -24,4 +24,4 @@ try {
 }
 ```
 
-See the [main `@rule-io/sdk` README](../sdk/README.md) for the full SDK documentation.
+See the [main `@rulecom/sdk` README](../sdk/README.md) for the full SDK documentation.

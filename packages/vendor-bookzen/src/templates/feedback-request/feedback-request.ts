@@ -1,7 +1,7 @@
 /**
  * Feedback-request template factory.
  *
- * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * Works for post-stay, post-purchase, or any review request.
  */
 
@@ -9,8 +9,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/rcml'
+import type { CustomFieldRef } from '@rulecom/templates'
 
 export interface FeedbackRequestTemplateContext {
   recipient: {

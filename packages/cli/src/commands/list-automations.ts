@@ -4,8 +4,8 @@
  */
 
 import type { Command } from 'commander';
-import { type RuleClient } from '@rule-io/client';
-import type { RuleAutomation } from '@rule-io/client';
+import { type RuleClient } from '@rulecom/client';
+import type { RuleAutomation } from '@rulecom/client';
 import { createClient } from '../shared/client.js';
 
 type ListedAutomation = RuleAutomation & {

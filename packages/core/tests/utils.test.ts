@@ -1,7 +1,7 @@
 /**
  * Tests for the small HTML / URL / date utilities in `packages/core/src/utils.ts`.
- * Originally lived under `@rule-io/rcml` alongside the legacy element builders;
- * relocated to `@rule-io/core` with the rest of rcml's cleanup since these
+ * Originally lived under `@rulecom/rcml` alongside the legacy element builders;
+ * relocated to `@rulecom/core` with the rest of rcml's cleanup since these
  * helpers are dependency-free and shared by multiple packages.
  */
 

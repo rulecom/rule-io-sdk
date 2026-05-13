@@ -13,7 +13,7 @@
  * larger rcml refactor.
  */
 
-import type { RCMLDocumentRoot } from '@rule-io/core'
+import type { RCMLDocumentRoot } from '@rulecom/core'
 import type { z } from 'zod'
 import { type RCML_SCHEMA_SPEC } from './schema/index.js'
 import type { RcmlTagName } from './schema/tag-names.js'
@@ -66,7 +66,7 @@ export type AttrsFor<T extends RcmlTagName> = {
 
 /**
  * `<rcml>` document root. Extends {@link RCMLDocumentRoot} from
- * `@rule-io/core` so vendor-contract `templateBuilder` return types stay
+ * `@rulecom/core` so vendor-contract `templateBuilder` return types stay
  * compatible.
  * @public
  */

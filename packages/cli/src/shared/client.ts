@@ -5,7 +5,7 @@
  * accepts an explicit override from a subcommand's `--api-key` flag.
  */
 
-import { RuleClient } from '@rule-io/client';
+import { RuleClient } from '@rulecom/client';
 import { requireEnv } from './env.js';
 
 export interface ClientOptions {

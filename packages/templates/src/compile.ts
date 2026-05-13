@@ -1,5 +1,5 @@
 /**
- * Top-level orchestrator for `@rule-io/templates`.
+ * Top-level orchestrator for `@rulecom/templates`.
  *
  * Invokes the compile phases from spec §9:
  * 1. tokenise template

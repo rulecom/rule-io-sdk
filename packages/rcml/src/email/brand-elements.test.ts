@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { RuleConfigError, type CustomFieldMap } from '@rule-io/core';
+import { RuleConfigError, type CustomFieldMap } from '@rulecom/core';
 
 import { validateRequiredFields } from './brand-elements.js';
 

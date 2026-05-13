@@ -13,8 +13,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/rcml'
+import type { CustomFieldRef } from '@rulecom/templates'
 
 export interface AnnualTaxSummaryTemplateContext {
   recipient: {

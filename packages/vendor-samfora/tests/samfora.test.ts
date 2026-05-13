@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
-import type { RcmlDocument } from '@rule-io/rcml';
+import type { CustomFieldMap } from '@rulecom/core';
+import type { VendorConsumerConfig } from '@rulecom/core';
+import { RuleConfigError } from '@rulecom/core';
+import type { RcmlDocument } from '@rulecom/rcml';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '../src/index.js';
 import { TEST_THEME, themeWithoutLogo, assertValidRCMLDocument, docToString } from './helpers.js';
 

@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+import type { CustomFieldMap } from '@rulecom/core';
+import type { VendorConsumerConfig } from '@rulecom/core';
+import { RuleConfigError } from '@rulecom/core';
 import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '../src/index.js';
 import { TEST_THEME } from './helpers.js';
 
@@ -107,7 +107,7 @@ describe('bookzenPreset', () => {
     // The pre-built automation entries have been retired. Template
     // authors now build contexts directly via the factory functions
     // (createReservationConfirmationTemplate, etc.) and wire
-    // automations through @rule-io/client. See
+    // automations through @rulecom/client. See
     // packages/templates/README.md for the authoring pattern.
     it('returns an empty list (pre-built automations retired)', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);

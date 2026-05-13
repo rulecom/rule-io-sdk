@@ -18,8 +18,8 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
-import type { RcmlDocument } from '@rule-io/rcml';
+import { RuleApiError, RuleConfigError } from '@rulecom/core';
+import type { RcmlDocument } from '@rulecom/rcml';
 
 import {
   createMock204Response,

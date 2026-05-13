@@ -5,7 +5,7 @@
  * by the underlying API is hidden — consumers see only "Automation".
  */
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleConfigError } from '@rulecom/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';

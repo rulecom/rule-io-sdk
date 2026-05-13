@@ -1,5 +1,5 @@
 /**
- * Public type surface for `@rule-io/templates` v3.
+ * Public type surface for `@rulecom/templates` v3.
  *
  * See `docs/template-syntax.md` for the full syntax specification.
  *

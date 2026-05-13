@@ -6,15 +6,15 @@
  * Rule.io editor expects so generated documents render identically once
  * `applyTheme` decorates the head from a consumer-supplied theme.
  *
- * Consumed by the `@rule-io/vendor-*` packages and the `@rule-io/cli`
+ * Consumed by the `@rulecom/vendor-*` packages and the `@rulecom/cli`
  * validate-rcml / deploy commands.
  *
  * @public
  */
 
 import { randomUUID } from 'node:crypto'
-import type { EmailTheme, FooterConfig, CustomFieldMap } from '@rule-io/core'
-import { EmailThemeColorType, RuleConfigError, sanitizeUrl } from '@rule-io/core'
+import type { EmailTheme, FooterConfig, CustomFieldMap } from '@rulecom/core'
+import { EmailThemeColorType, RuleConfigError, sanitizeUrl } from '@rulecom/core'
 
 import { applyTheme } from './apply-theme.js'
 import type {

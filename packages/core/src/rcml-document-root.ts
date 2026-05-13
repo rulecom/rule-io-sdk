@@ -2,13 +2,13 @@
  * Minimal structural shape of an RCML document root.
  *
  * The full `RcmlDocument` tree (with `rc-head` / `rc-body` children and the
- * deep block/inline node hierarchy) lives in `@rule-io/rcml`'s `types.ts`.
+ * deep block/inline node hierarchy) lives in `@rulecom/rcml`'s `types.ts`.
  * Core only knows the root tag literal so vendor-contract types
  * ({@link AutomationConfigV2.templateBuilder}, {@link VendorAutomation.templateBuilder})
  * can reference a document return type without dragging the full RCML tree
- * into `@rule-io/core`.
+ * into `@rulecom/core`.
  *
- * `@rule-io/rcml`'s `RcmlDocument` extends this interface, so any function
+ * `@rulecom/rcml`'s `RcmlDocument` extends this interface, so any function
  * that returns `RcmlDocument` is structurally assignable to a position
  * expecting `RCMLDocumentRoot`.
  */

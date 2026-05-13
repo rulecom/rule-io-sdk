@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RuleApiError, RuleConfigError } from '../src/errors.js';
 
-describe('@rule-io/core errors', () => {
+describe('@rulecom/core errors', () => {
   it('RuleApiError is an Error subclass carrying statusCode', () => {
     const err = new RuleApiError('boom', 400);
 

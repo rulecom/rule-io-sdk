@@ -3,9 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+import type { CustomFieldMap } from '@rulecom/core';
+import type { VendorConsumerConfig } from '@rulecom/core';
+import { RuleConfigError } from '@rulecom/core';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
 import { TEST_THEME } from '../src/test-fixtures.js';
 
@@ -140,7 +140,7 @@ describe('shopifyPreset', () => {
     // The pre-built automation entries have been retired. Template
     // authors now build contexts directly via the factory functions
     // (createOrderConfirmationTemplate, etc.) and wire automations
-    // through @rule-io/client. See packages/templates/README.md for
+    // through @rulecom/client. See packages/templates/README.md for
     // the authoring pattern.
     it('returns an empty list (pre-built automations retired)', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);

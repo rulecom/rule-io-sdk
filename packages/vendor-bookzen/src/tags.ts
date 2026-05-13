@@ -4,14 +4,14 @@
  * Standard tags used by Bookzen hospitality integrations with Rule.io.
  */
 
-import type { VendorTagSchema } from '@rule-io/core';
+import type { VendorTagSchema } from '@rulecom/core';
 
 /**
  * Bookzen tags for Rule.io automations.
  *
  * @example
  * ```typescript
- * import { BOOKZEN_TAGS } from '@rule-io/sdk';
+ * import { BOOKZEN_TAGS } from '@rulecom/sdk';
  *
  * await client.syncSubscriber({
  *   email: 'guest@example.com',

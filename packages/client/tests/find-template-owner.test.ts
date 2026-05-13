@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from '@rulecom/core';
 import { RuleClient } from '../src/client.js';
 import { findTemplateOwner } from '../src/find-template-owner.js';
 

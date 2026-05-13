@@ -1,10 +1,10 @@
 /**
  * Abandoned-cart template factory.
  *
- * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * The caller owns context assembly (building the typed
  * {@link AbandonedCartTemplateContext} with `customField` / `loopValue`
- * from `@rule-io/templates`); the reusable factory handles loading
+ * from `@rulecom/templates`); the reusable factory handles loading
  * the XML + JSON copy, merging copy overrides, projecting
  * `theme.images.logo` / `theme.links` into context, compiling,
  * parsing to RCML, and applying the theme.
@@ -22,8 +22,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef, LoopValueRef } from '@rule-io/templates'
+} from '@rulecom/rcml'
+import type { CustomFieldRef, LoopValueRef } from '@rulecom/templates'
 
 /**
  * Typed data context consumed by `abandoned-cart.xml`.
@@ -81,7 +81,7 @@ export interface AbandonedCartTemplateContext {
  * carry the full English text as literal strings, plus `{{slot}}`
  * substitutions for custom-field and loop-value refs supplied at
  * render time (built via `customField` / `loopValue` from
- * `@rule-io/templates`; the compiler serializes them to RFM
+ * `@rulecom/templates`; the compiler serializes them to RFM
  * placeholder strings automatically).
  *
  * Footer-link labels and styling live inline in the `footerLinks`
@@ -136,7 +136,7 @@ export type AbandonedCartTemplate =
 /**
  * Return a renderer bound to the abandoned-cart XML. Call
  * `render({ context, theme, copy? })` to produce the themed
- * {@link import('@rule-io/rcml').RcmlDocument}. Copy overrides apply
+ * {@link import('@rulecom/rcml').RcmlDocument}. Copy overrides apply
  * per-render, not per-factory — the same template instance can render
  * multiple locales/brand voices.
  */

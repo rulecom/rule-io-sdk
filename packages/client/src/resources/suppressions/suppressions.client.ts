@@ -6,7 +6,7 @@
  * and optionally invokes a `callback_url` when complete.
  */
 
-import { RuleConfigError } from '@rule-io/core';
+import { RuleConfigError } from '@rulecom/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import type { RuleApiResponse } from '../../shared.types.js';

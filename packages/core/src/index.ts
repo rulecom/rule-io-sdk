@@ -2,7 +2,7 @@
 export { RuleApiError, RuleConfigError } from './errors.js';
 export type { RuleValidationErrors } from './errors.js';
 
-// Opaque RCML document-root type — `@rule-io/rcml`'s RcmlDocument extends this.
+// Opaque RCML document-root type — `@rulecom/rcml`'s RcmlDocument extends this.
 export type { RCMLDocumentRoot } from './rcml-document-root.js';
 
 // Custom-field / footer POJOs shared across the SDK.

@@ -4,7 +4,7 @@
  * Wraps the v2 `/tags` endpoints — no v3 equivalent exists.
  */
 
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from '@rulecom/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import type { RuleApiResponse } from '../../shared.types.js';

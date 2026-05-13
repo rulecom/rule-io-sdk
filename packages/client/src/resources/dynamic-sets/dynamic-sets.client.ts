@@ -5,7 +5,7 @@
  * message with a template.
  */
 
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from '@rulecom/core';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';

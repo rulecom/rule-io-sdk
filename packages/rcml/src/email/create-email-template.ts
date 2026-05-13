@@ -5,7 +5,7 @@
  * Captures four template-agnostic concerns:
  *
  * 1. Load the XML template + JSON copy at construction (via
- *    `loadTemplate` / `loadCopy` from `@rule-io/templates`).
+ *    `loadTemplate` / `loadCopy` from `@rulecom/templates`).
  * 2. Merge the caller-supplied copy override into the default copy.
  * 3. Project theme-driven context fields into the compile context so
  *    the XML's structural guards can see them:
@@ -30,13 +30,13 @@
  * @public
  */
 
-import type { EmailTheme } from '@rule-io/core'
+import type { EmailTheme } from '@rulecom/core'
 import {
   compileTemplate,
   loadCopy,
   loadTemplate,
   type TemplateRefSerializer,
-} from '@rule-io/templates'
+} from '@rulecom/templates'
 
 import { applyTheme } from './apply-theme.js'
 import type { RcmlDocument } from './rcml-types.js'
@@ -64,7 +64,7 @@ export interface EmailTemplateRenderArgs<TCopy, TContext> {
   readonly copy?: Partial<TCopy>
   /**
    * Optional custom `TemplateRef` serializer. Defaults to the RFM
-   * serializer shipped with `@rule-io/templates`.
+   * serializer shipped with `@rulecom/templates`.
    */
   readonly serializer?: TemplateRefSerializer
 }

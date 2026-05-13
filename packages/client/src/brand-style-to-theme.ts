@@ -20,7 +20,7 @@ import {
   EmailThemeFontStyleType,
   EmailThemeImageType,
   createEmailTheme,
-} from '@rule-io/rcml';
+} from '@rulecom/rcml';
 import type {
   EmailThemeColor,
   EmailThemeFont,
@@ -28,9 +28,9 @@ import type {
   EmailThemeImage,
   EmailThemeSocialLink,
   EmailThemeSocialLinkType,
-} from '@rule-io/rcml';
+} from '@rulecom/rcml';
 
-import { RuleConfigError, sanitizeUrl } from '@rule-io/core';
+import { RuleConfigError, sanitizeUrl } from '@rulecom/core';
 import type {
   RuleBrandStyle,
   RuleBrandStyleColour,

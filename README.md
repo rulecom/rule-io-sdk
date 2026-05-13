@@ -2,19 +2,19 @@
 
 Nx monorepo for the Rule.io TypeScript SDK. Detailed usage docs live in [`packages/sdk`](packages/sdk/README.md) and the per-package READMEs; this README covers package selection, contributor workflow, and the release process.
 
-Publishes the following packages under the `@rule-io/*` npm scope:
+Publishes the following packages under the `@rulecom/*` npm scope:
 
 | Package | Purpose |
 |---|---|
-| [`@rule-io/core`](packages/core) | Shared types and utilities — error classes, brand/theme types, automation-config contract, vendor-preset interface, HTML/URL helpers |
-| [`@rule-io/templates`](packages/templates) | Angular-like XML template engine; consumed by `@rule-io/vendor-shopify` |
-| [`@rule-io/rcml`](packages/rcml) | RCML email-template builders, types, and validators |
-| [`@rule-io/client`](packages/client) | HTTP wrapper around the Rule.io v2/v3 API |
-| [`@rule-io/vendor-shopify`](packages/vendor-shopify) | Shopify preset — e-commerce automation flows |
-| [`@rule-io/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
-| [`@rule-io/vendor-samfora`](packages/vendor-samfora) | Samfora preset — Swedish donation flows |
-| [`@rule-io/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
-| [`@rule-io/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
+| [`@rulecom/core`](packages/core) | Shared types and utilities — error classes, brand/theme types, automation-config contract, vendor-preset interface, HTML/URL helpers |
+| [`@rulecom/templates`](packages/templates) | Angular-like XML template engine; consumed by `@rulecom/vendor-shopify` |
+| [`@rulecom/rcml`](packages/rcml) | RCML email-template builders, types, and validators |
+| [`@rulecom/client`](packages/client) | HTTP wrapper around the Rule.io v2/v3 API |
+| [`@rulecom/vendor-shopify`](packages/vendor-shopify) | Shopify preset — e-commerce automation flows |
+| [`@rulecom/vendor-bookzen`](packages/vendor-bookzen) | Bookzen preset — hospitality automation flows |
+| [`@rulecom/vendor-samfora`](packages/vendor-samfora) | Samfora preset — Swedish donation flows |
+| [`@rulecom/sdk`](packages/sdk) | Meta-package re-exporting the library packages above |
+| [`@rulecom/cli`](packages/cli) | `rule-io` command-line tool — deploy presets, validate RCML, inspect accounts |
 
 ---
 
@@ -24,24 +24,24 @@ Most consumers install **one** package — npm pulls in everything else as trans
 
 | If you want to… | Install | Notes |
 |---|---|---|
-| Call the Rule.io HTTP API | `@rule-io/client` | The 90% case. Brings in `core` + `rcml` automatically. |
-| Compose custom RCML templates from primitives | `@rule-io/rcml` | Low-level builders only — pair with `@rule-io/client` to send. |
-| Run the CLI to deploy presets / validate RCML | `@rule-io/cli` | Installs the `rule-io` binary. |
-| Try everything in one install (prototypes, demos) | `@rule-io/sdk` | Meta-package re-exporting every library above. Larger `node_modules` — prefer the direct installs above for production. |
-| Ship a Shopify e-commerce integration | `@rule-io/client` + `@rule-io/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
-| Ship a Bookzen hospitality integration | `@rule-io/client` + `@rule-io/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
-| Ship a Samfora donation integration | `@rule-io/client` + `@rule-io/vendor-samfora` | Swedish donation-platform flows. |
+| Call the Rule.io HTTP API | `@rulecom/client` | The 90% case. Brings in `core` + `rcml` automatically. |
+| Compose custom RCML templates from primitives | `@rulecom/rcml` | Low-level builders only — pair with `@rulecom/client` to send. |
+| Run the CLI to deploy presets / validate RCML | `@rulecom/cli` | Installs the `rule-io` binary. |
+| Try everything in one install (prototypes, demos) | `@rulecom/sdk` | Meta-package re-exporting every library above. Larger `node_modules` — prefer the direct installs above for production. |
+| Ship a Shopify e-commerce integration | `@rulecom/client` + `@rulecom/vendor-shopify` | Order confirmation, shipping, abandoned cart, cancellation, welcome. |
+| Ship a Bookzen hospitality integration | `@rulecom/client` + `@rulecom/vendor-bookzen` | Reservation confirmation, cancellation, reminder, feedback, request. |
+| Ship a Samfora donation integration | `@rulecom/client` + `@rulecom/vendor-samfora` | Swedish donation-platform flows. |
 
 ### Examples
 
 Just calling the API:
 
 ```bash
-npm install @rule-io/client
+npm install @rulecom/client
 ```
 
 ```ts
-import { RuleClient } from '@rule-io/client';
+import { RuleClient } from '@rulecom/client';
 
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
@@ -50,25 +50,25 @@ await client.addSubscriberTagsV3('user@example.com', { tags: ['welcome'] });
 Shipping a Shopify integration:
 
 ```bash
-npm install @rule-io/client @rule-io/vendor-shopify
+npm install @rulecom/client @rulecom/vendor-shopify
 ```
 
 ```ts
-import { RuleClient } from '@rule-io/client';
-import { createOrderConfirmationEmail } from '@rule-io/vendor-shopify';
+import { RuleClient } from '@rulecom/client';
+import { createOrderConfirmationEmail } from '@rulecom/vendor-shopify';
 ```
 
 Kitchen sink for prototyping:
 
 ```bash
-npm install @rule-io/sdk
+npm install @rulecom/sdk
 ```
 
 ```ts
-import { RuleClient, createOrderConfirmationEmail } from '@rule-io/sdk';
+import { RuleClient, createOrderConfirmationEmail } from '@rulecom/sdk';
 ```
 
-> `@rule-io/core` and `@rule-io/templates` are infrastructure packages — they almost never appear in a consumer's `package.json`. They arrive as transitive dependencies of the libraries above.
+> `@rulecom/core` and `@rulecom/templates` are infrastructure packages — they almost never appear in a consumer's `package.json`. They arrive as transitive dependencies of the libraries above.
 
 ---
 
@@ -113,7 +113,7 @@ npm run deploy:shopify -- --activate
 Building a single package (and its deps, in topological order):
 
 ```bash
-npx nx build @rule-io/vendor-shopify    # builds core, rcml, vendor-shopify
+npx nx build @rulecom/vendor-shopify    # builds core, rcml, vendor-shopify
 ```
 
 ---
@@ -126,7 +126,7 @@ Releases are driven by [`nx release`](https://nx.dev/features/manage-releases) �
 
 1. **Clean working tree + on `main`**: `git status` shows nothing; no unpushed commits.
 2. **Node 20+** in your shell (`node --version`).
-3. **npm authenticated** with a token that has publish rights on the `@rule-io` scope. Either:
+3. **npm authenticated** with a token that has publish rights on the `@rulecom` scope. Either:
    - `npm login` — interactive, writes `~/.npmrc`.
    - `NPM_CONFIG_TOKEN=<token> npx nx release publish` — one-shot, no persisted state (preferred for CI).
 4. **Commits since the last release follow the [Conventional Commits](https://www.conventionalcommits.org/) spec** (`feat:`, `fix:`, `refactor:`, `chore:`, …). `nx release` reads them to decide the semver bump per package.
@@ -187,7 +187,7 @@ git push --follow-tags
   - `BREAKING CHANGE:` footer / `!` suffix → major bump
   - `chore:`, `docs:`, `test:`, `style:`, `ci:` → no bump by default
 - **Scope your commits** when a change is package-specific: `fix(vendor-shopify): …`, `feat(rcml): …`. Unscoped changes are attributed to all affected packages.
-- **Cross-package dep bumps** — when `@rule-io/client@0.4.0` releases, Nx automatically bumps the `@rule-io/client` dependency in `@rule-io/sdk`'s dist package.json to match. The `@rule-io/sdk` meta-package follows suit via its own semver rules; typically release `@rule-io/sdk` in the same `nx release` invocation so the meta stays aligned.
+- **Cross-package dep bumps** — when `@rulecom/client@0.4.0` releases, Nx automatically bumps the `@rulecom/client` dependency in `@rulecom/sdk`'s dist package.json to match. The `@rulecom/sdk` meta-package follows suit via its own semver rules; typically release `@rulecom/sdk` in the same `nx release` invocation so the meta stays aligned.
 
 ### What gets published
 
@@ -218,7 +218,7 @@ git push --delete origin <tag>
 git revert <release-sha> && git push
 ```
 
-If a broken version is live on npm, **unpublish within 72 hours** (`npm unpublish @rule-io/<pkg>@<version>`) or publish a patch release with the fix.
+If a broken version is live on npm, **unpublish within 72 hours** (`npm unpublish @rulecom/<pkg>@<version>`) or publish a patch release with the fix.
 
 ---
 

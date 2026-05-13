@@ -10,11 +10,11 @@
 //  */
 //
 // import type { Command } from 'commander';
-// import { type RuleClient } from '@rule-io/client';
-// import { type RcmlDocument } from '@rule-io/rcml';
-// import { resolveBrandTheme } from '@rule-io/client';
-// import type { CustomFieldMap, VendorConsumerConfig } from '@rule-io/core';
-// import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '@rule-io/vendor-bookzen';
+// import { type RuleClient } from '@rulecom/client';
+// import { type RcmlDocument } from '@rulecom/rcml';
+// import { resolveBrandTheme } from '@rulecom/client';
+// import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/core';
+// import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '@rulecom/vendor-bookzen';
 // import { createClient } from '../shared/client.js';
 //
 // const V2_BASE = 'https://app.rule.io/api/v2';

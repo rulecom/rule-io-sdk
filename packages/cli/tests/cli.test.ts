@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { loadEnv, requireEnv } from '../src/shared/env.js';
 
-describe('@rule-io/cli shared env', () => {
+describe('@rulecom/cli shared env', () => {
   it('loadEnv is a no-op when .env is absent', () => {
     expect(() => loadEnv('/tmp/__definitely-not-a-real-dir-for-rule-io-cli-tests__')).not.toThrow();
   });

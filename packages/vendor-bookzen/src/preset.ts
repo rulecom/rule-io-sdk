@@ -5,7 +5,7 @@
 //  *
 //  * @example
 //  * ```typescript
-//  * import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
+//  * import { bookzenPreset, BOOKZEN_FIELDS } from '@rulecom/sdk';
 //  *
 //  * const config = {
 //  *   brandStyle: myBrandStyle,
@@ -22,15 +22,15 @@
 //  * ```
 //  */
 //
-// import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
-// import { resolveVendorAutomations } from '@rule-io/core';
-// import type { AutomationConfigV2 } from '@rule-io/core';
+// import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/core';
+// import { resolveVendorAutomations } from '@rulecom/core';
+// import type { AutomationConfigV2 } from '@rulecom/core';
 // import type { BookzenFieldSchema, BookzenFieldName } from './fields.js';
 // import type { BookzenTagSchema } from './tags.js';
 // import { BOOKZEN_FIELD_SCHEMA } from './fields.js';
 // import { BOOKZEN_TAGS } from './tags.js';
 // import { createBookzenAutomations } from './automations.js';
-// import { RuleConfigError } from '@rule-io/core';
+// import { RuleConfigError } from '@rulecom/core';
 //
 // const FIELD_DESCRIPTIONS: Record<BookzenFieldName, string> = {
 //   guestFirstName: 'Guest first name',
