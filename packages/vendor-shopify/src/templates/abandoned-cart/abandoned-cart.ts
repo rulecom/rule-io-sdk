@@ -4,7 +4,7 @@
  * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * The caller owns context assembly (building the typed
  * {@link AbandonedCartTemplateContext} with `customField` / `loopValue`
- * from `@rulecom/templates`); the reusable factory handles loading
+ * from `@rulecom/template-engine`); the reusable factory handles loading
  * the XML + JSON copy, merging copy overrides, projecting
  * `theme.images.logo` / `theme.links` into context, compiling,
  * parsing to RCML, and applying the theme.
@@ -23,7 +23,7 @@ import {
   type EmailTemplate,
   type EmailTemplateRenderArgs,
 } from '@rulecom/rcml'
-import type { CustomFieldRef, LoopValueRef } from '@rulecom/templates'
+import type { CustomFieldRef, LoopValueRef } from '@rulecom/template-engine'
 
 /**
  * Typed data context consumed by `abandoned-cart.xml`.
@@ -81,7 +81,7 @@ export interface AbandonedCartTemplateContext {
  * carry the full English text as literal strings, plus `{{slot}}`
  * substitutions for custom-field and loop-value refs supplied at
  * render time (built via `customField` / `loopValue` from
- * `@rulecom/templates`; the compiler serializes them to RFM
+ * `@rulecom/template-engine`; the compiler serializes them to RFM
  * placeholder strings automatically).
  *
  * Footer-link labels and styling live inline in the `footerLinks`

@@ -4,7 +4,7 @@
  * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * The caller owns context assembly (building the typed
  * {@link ShippingUpdateTemplateContext} with `customField` /
- * `loopValue` from `@rulecom/templates`); the factory handles
+ * `loopValue` from `@rulecom/template-engine`); the factory handles
  * loading, compile, theme projection, xmlToRcml, and applyTheme.
  *
  * Context is fully structural: optional sections are controlled by
@@ -18,7 +18,7 @@ import {
   type EmailTemplate,
   type EmailTemplateRenderArgs,
 } from '@rulecom/rcml'
-import type { CustomFieldRef, LoopValueRef } from '@rulecom/templates'
+import type { CustomFieldRef, LoopValueRef } from '@rulecom/template-engine'
 
 /**
  * Typed data context consumed by `shipping-update.xml`.

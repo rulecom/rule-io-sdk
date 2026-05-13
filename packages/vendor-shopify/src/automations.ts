@@ -3,7 +3,7 @@
  *
  * Placeholder. The pre-built shopify automations have been retired —
  * downstream code now builds template contexts explicitly (via
- * `customField` / `loopValue` from `@rulecom/templates`) and calls
+ * `customField` / `loopValue` from `@rulecom/template-engine`) and calls
  * the template factories (`createOrderConfirmationTemplate`,
  * `createShippingUpdateTemplate`, `createOrderCancellationTemplate`,
  * `createAbandonedCartTemplate`, `createWelcomeTemplate`) directly

@@ -1,5 +1,5 @@
 /**
- * Top-level orchestrator for `@rulecom/templates`.
+ * Top-level orchestrator for `@rulecom/template-engine`.
  *
  * Invokes the compile phases from spec §9:
  * 1. tokenise template

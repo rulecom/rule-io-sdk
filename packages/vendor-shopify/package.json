@@ -31,7 +31,7 @@
   },
   "dependencies": {
     "@rulecom/rcml": "0.3.0",
-    "@rulecom/templates": "0.6.0",
+    "@rulecom/template-engine": "0.6.0",
     "@rulecom/vendor": "0.3.0"
   },
   "engines": {

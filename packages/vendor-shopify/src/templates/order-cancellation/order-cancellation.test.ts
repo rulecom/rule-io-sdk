@@ -9,7 +9,7 @@
 
 import { describe, expect, it } from 'vitest'
 
-import { customField } from '@rulecom/templates'
+import { customField } from '@rulecom/template-engine'
 
 import {
   TEST_THEME,

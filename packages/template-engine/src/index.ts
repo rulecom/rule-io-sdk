@@ -1,5 +1,5 @@
 /**
- * `@rulecom/templates` — minimal XML template compiler.
+ * `@rulecom/template-engine` — minimal XML template compiler.
  *
  * See `docs/template-syntax.md` for the v3 specification and
  * `docs/typed-template-refs.md` for the TemplateRef rationale.

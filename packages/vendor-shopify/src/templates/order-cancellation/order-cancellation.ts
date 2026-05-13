@@ -4,7 +4,7 @@
  * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * The caller owns context assembly (building the typed
  * {@link OrderCancellationTemplateContext} with `customField` from
- * `@rulecom/templates`); the reusable factory handles loading the XML
+ * `@rulecom/template-engine`); the reusable factory handles loading the XML
  * + JSON copy, merging copy overrides, projecting
  * `theme.images.logo` / `theme.links` into context, compiling,
  * parsing to RCML, and applying the theme.
@@ -19,7 +19,7 @@ import {
   type EmailTemplate,
   type EmailTemplateRenderArgs,
 } from '@rulecom/rcml'
-import type { CustomFieldRef } from '@rulecom/templates'
+import type { CustomFieldRef } from '@rulecom/template-engine'
 
 /**
  * Typed data context consumed by `order-cancellation.xml`.

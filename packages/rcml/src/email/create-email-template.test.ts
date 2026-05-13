@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { customField, type TemplateRefSerializer } from '@rulecom/templates'
+import { customField, type TemplateRefSerializer } from '@rulecom/template-engine'
 
 import { createEmailTemplate } from './create-email-template.js'
 import { createEmailTheme } from './create-theme.js'

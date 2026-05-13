@@ -1,7 +1,7 @@
 {
-  "name": "templates",
+  "name": "template-engine",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/templates/src",
+  "sourceRoot": "packages/template-engine/src",
   "projectType": "library",
   "release": {
     "version": {
@@ -20,12 +20,12 @@
         "{options.outputPath}"
       ],
       "options": {
-        "outputPath": "dist/packages/templates",
-        "main": "packages/templates/src/index.ts",
-        "tsConfig": "packages/templates/tsconfig.lib.json",
+        "outputPath": "dist/packages/template-engine",
+        "main": "packages/template-engine/src/index.ts",
+        "tsConfig": "packages/template-engine/tsconfig.lib.json",
         "assets": [
           {
-            "input": "./packages/templates",
+            "input": "./packages/template-engine",
             "glob": "*.md",
             "output": "./"
           }
