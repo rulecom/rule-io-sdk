@@ -10,6 +10,7 @@
  * @public
  */
 
+import { TemplateRefBase } from './types.js'
 import type {
   CustomFieldRef,
   LoopValueRef,
@@ -23,11 +24,7 @@ import type {
  * serializer before falling back to JSON.
  */
 export function isTemplateRef(value: unknown): value is TemplateRef {
-  if (typeof value !== 'object' || value === null) return false
-  if (!('kind' in value)) return false
-  const kind = (value as { kind: unknown }).kind
-
-  return kind === 'custom-field' || kind === 'loop-value'
+  return value instanceof TemplateRefBase
 }
 
 /**

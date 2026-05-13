@@ -13,6 +13,17 @@
  */
 
 /**
+ * Abstract base for all template reference kinds. Extend to add new
+ * variants; the `kind` discriminator drives exhaustive dispatch in
+ * {@link serializeRef}.
+ *
+ * @public
+ */
+export abstract class TemplateRefBase {
+  abstract readonly kind: 'custom-field' | 'loop-value'
+}
+
+/**
  * Reference to a backend-resolved custom field (e.g. `Subscriber.FirstName`).
  *
  * `group` + `name` identify the field logically. `id` is the backend's
@@ -22,11 +33,16 @@
  *
  * @public
  */
-export interface CustomFieldRef {
-  readonly kind: 'custom-field'
-  readonly group: string
-  readonly name: string
-  readonly id?: string | number
+export class CustomFieldRef extends TemplateRefBase {
+  readonly kind = 'custom-field' as const
+
+  constructor(
+    readonly group: string,
+    readonly name: string,
+    readonly id?: number,
+  ) {
+    super()
+  }
 }
 
 /**
@@ -35,9 +51,12 @@ export interface CustomFieldRef {
  *
  * @public
  */
-export interface LoopValueRef {
-  readonly kind: 'loop-value'
-  readonly key: string
+export class LoopValueRef extends TemplateRefBase {
+  readonly kind = 'loop-value' as const
+
+  constructor(readonly key: string) {
+    super()
+  }
 }
 
 /**

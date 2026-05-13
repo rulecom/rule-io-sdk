@@ -8,7 +8,7 @@
  * @public
  */
 
-import type { CustomFieldRef, LoopValueRef } from './types.js'
+import { CustomFieldRef, LoopValueRef } from './types.js'
 
 /**
  * Build a {@link CustomFieldRef}.
@@ -23,9 +23,7 @@ export function customField(
   name: string,
   id?: string | number,
 ): CustomFieldRef {
-  return id === undefined
-    ? { kind: 'custom-field', group, name }
-    : { kind: 'custom-field', group, name, id }
+  return new CustomFieldRef(group, name, id !== undefined ? Number(id) : undefined)
 }
 
 /**
@@ -35,5 +33,5 @@ export function customField(
  *   (e.g. `name`, `sku`, `quantity`).
  */
 export function loopValue(key: string): LoopValueRef {
-  return { kind: 'loop-value', key }
+  return new LoopValueRef(key)
 }

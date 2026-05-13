@@ -24,12 +24,8 @@ export type {
   CompileTemplateOptions,
   CompileTemplateResult,
 } from './types.js'
-export type {
-  CustomFieldRef,
-  LoopValueRef,
-  TemplateRef,
-  TemplateRefSerializer,
-} from './refs/types.js'
+export { CustomFieldRef, LoopValueRef, TemplateRefBase } from './refs/types.js'
+export type { TemplateRef, TemplateRefSerializer } from './refs/types.js'
 export { customField, loopValue } from './refs/factories.js'
 export {
   defaultTemplateRefSerializer,

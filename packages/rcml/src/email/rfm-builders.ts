@@ -30,6 +30,7 @@ export function createCustomField(opts: {
   id: number
 }): string {
   const fullName = opts.group ? `${opts.group}.${opts.name}` : opts.name
+
   return `::placeholder{type="CustomField" name="${fullName}" value="${opts.id}" original="[CustomField:${opts.id}]"}`
 }
 
@@ -43,8 +44,9 @@ export function createLoopValue(opts: {
   key: string
   index?: string
 }): string {
-  const index = opts.index ?? opts.key
-  return `::loop-value{original="[LoopValue:${opts.key}]" value="${opts.key}" index="${index}"}`
+  const index = opts.index ?? opts.key;
+
+  return `::loop-value{original="[LoopValue:${opts.key}]" value="${opts.key}" index="${index}"}`;
 }
 
 /**
@@ -59,10 +61,13 @@ export function createLink(opts: {
   target?: string
   noTracked?: boolean
 }): string {
-  const attrs: string[] = [`href="${opts.href}"`]
-  if (opts.target !== undefined) attrs.push(`target="${opts.target}"`)
-  if (opts.noTracked) attrs.push(`no-tracked="true"`)
-  return `:link[${opts.label}]{${attrs.join(' ')}}`
+  const attrs: string[] = [`href="${opts.href}"`];
+
+  if (opts.target !== undefined) attrs.push(`target="${opts.target}"`);
+
+  if (opts.noTracked) attrs.push(`no-tracked="true"`);
+
+  return `:link[${opts.label}]{${attrs.join(' ')}}`;
 }
 
 /**
@@ -85,17 +90,24 @@ export function createFont(opts: {
   textTransform?: string
 }): string {
   const attrs: string[] = []
-  if (opts.fontSize !== undefined) attrs.push(`font-size="${opts.fontSize}"`)
-  if (opts.color !== undefined) attrs.push(`color="${opts.color}"`)
-  if (opts.textDecoration !== undefined)
-    attrs.push(`text-decoration="${opts.textDecoration}"`)
-  if (opts.fontFamily !== undefined) attrs.push(`font-family="${opts.fontFamily}"`)
-  if (opts.fontWeight !== undefined) attrs.push(`font-weight="${opts.fontWeight}"`)
-  if (opts.fontStyle !== undefined) attrs.push(`font-style="${opts.fontStyle}"`)
-  if (opts.letterSpacing !== undefined)
-    attrs.push(`letter-spacing="${opts.letterSpacing}"`)
-  if (opts.lineHeight !== undefined) attrs.push(`line-height="${opts.lineHeight}"`)
-  if (opts.textTransform !== undefined)
-    attrs.push(`text-transform="${opts.textTransform}"`)
-  return `:font[${opts.content}]{${attrs.join(' ')}}`
+
+  if (opts.fontSize !== undefined) attrs.push(`font-size="${opts.fontSize}"`);
+
+  if (opts.color !== undefined) attrs.push(`color="${opts.color}"`);
+
+  if (opts.textDecoration !== undefined) attrs.push(`text-decoration="${opts.textDecoration}"`);
+
+  if (opts.fontFamily !== undefined) attrs.push(`font-family="${opts.fontFamily}"`);
+
+  if (opts.fontWeight !== undefined) attrs.push(`font-weight="${opts.fontWeight}"`);
+
+  if (opts.fontStyle !== undefined) attrs.push(`font-style="${opts.fontStyle}"`);
+
+  if (opts.letterSpacing !== undefined) attrs.push(`letter-spacing="${opts.letterSpacing}"`);
+
+  if (opts.lineHeight !== undefined) attrs.push(`line-height="${opts.lineHeight}"`);
+
+  if (opts.textTransform !== undefined) attrs.push(`text-transform="${opts.textTransform}"`);
+
+  return `:font[${opts.content}]{${attrs.join(' ')}}`;
 }
