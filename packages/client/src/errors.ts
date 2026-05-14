@@ -50,8 +50,10 @@ export class RuleApiError extends Error {
    * Two input forms are accepted:
    *  - integer seconds (per RFC 7231 / Rule.io's published docs)
    *  - `YYYY-MM-DD HH:MM:SS` without a timezone (the form Rule.io v3 actually
-   *    emits on real 429s). The delta to `now` is computed against the
-   *    response `Date` header so the server's tz offset cancels.
+   *    emits on real 429s). The timestamp is interpreted as `Europe/Stockholm`
+   *    (CET/CEST). The delta is computed by converting the response `Date`
+   *    header to the same timezone so the fixed offset cancels; a DST
+   *    transition within the retry window could still cause ±3600 s error.
    *
    * RFC 7231 HTTP-date is not yet supported (TODO). Field is `undefined`
    * when the header is absent or can't be parsed.

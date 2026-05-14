@@ -172,13 +172,15 @@ export class HttpTransport {
 
   private async mapErrorResponse(response: Response, version: ApiVersion): Promise<RuleApiError> {
     if (response.status === 429) {
-      const retryAfter = response.headers.get('Retry-After') || '60';
-
-      this.log('Rate limited. Retry after', retryAfter, 'seconds');
-
       const error = new RuleApiError('Rate limited by Rule.io API', 429);
 
       if (version === 'v3') applyRateLimitHeaders(error, response.headers);
+
+      if (error.retryAfterSeconds !== undefined) {
+        this.log('Rate limited. Retry after', error.retryAfterSeconds, 'seconds');
+      } else {
+        this.log('Rate limited.');
+      }
 
       return error;
     }
