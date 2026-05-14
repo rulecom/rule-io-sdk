@@ -87,8 +87,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Checkout the release commit that Job 1 just pushed.
-          ref: main
+          # Checkout the exact release tag so a concurrent push to main cannot
+          # cause the build/publish to use a different commit than was versioned.
+          ref: v${{ needs.prepare.outputs.version }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
