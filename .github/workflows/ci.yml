@@ -54,15 +54,19 @@ jobs:
             # footprint.
             case "$name" in
               "@rulecom/rcml")
-                # ajv: JSON-schema validator for RCML; prosemirror-model:
-                # ProseMirror doc nodes; remark-* / unified / vfile / mdast-*:
-                # markdown→RCML pipeline; fast-xml-parser: RCML XML
-                # round-trip; zod: runtime schema for create-rcml-element.
-                allowed='["@types/mdast","@types/unist","ajv","fast-xml-parser","mdast-util-directive","prosemirror-model","remark-directive","remark-parse","unified","vfile","zod"]'
+                # sanitize-url: URL sanitisation used in RCML elements; ajv:
+                # JSON-schema validator; prosemirror-model: doc nodes;
+                # remark-* / unified / vfile / mdast-*: markdown→RCML pipeline;
+                # fast-xml-parser: RCML XML round-trip; zod: runtime schema.
+                allowed='["@braintree/sanitize-url","@types/mdast","@types/unist","ajv","fast-xml-parser","mdast-util-directive","prosemirror-model","remark-directive","remark-parse","unified","vfile","zod"]'
                 ;;
-              "@rulecom/templates")
-                # fast-xml-parser: XML parsing for the Angular-like template engine.
-                allowed='["fast-xml-parser"]'
+              "@rulecom/client")
+                # sanitize-url: URL sanitisation used when constructing API requests.
+                allowed='["@braintree/sanitize-url"]'
+                ;;
+              "@rulecom/template-engine")
+                # No external runtime deps — only @rulecom/rcml (internal).
+                allowed='[]'
                 ;;
               *)
                 allowed='[]'
@@ -85,9 +89,9 @@ jobs:
 
       - name: Verify build outputs for every package
         run: |
-          for pkg in core rcml client vendor-shopify vendor-bookzen vendor-samfora sdk; do
+          for pkg in rcml client template-engine vendor vendor-shopify vendor-bookzen vendor-samfora sdk; do
             test -f "dist/packages/$pkg/src/index.js"   || { echo "Missing dist/packages/$pkg/src/index.js"; exit 1; }
             test -f "dist/packages/$pkg/src/index.d.ts" || { echo "Missing dist/packages/$pkg/src/index.d.ts"; exit 1; }
             test -f "dist/packages/$pkg/package.json"   || { echo "Missing dist/packages/$pkg/package.json"; exit 1; }
           done
-          echo "All build outputs present for 7 packages."
+          echo "All build outputs present for 8 packages."

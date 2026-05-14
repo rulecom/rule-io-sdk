@@ -15,10 +15,6 @@
     "graph": "nx graph",
     "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
     "release:dry": "nx release --dry-run",
-    "release:first:version": "nx release version --first-release --specifier=0.4.0-beta.0 --git-commit=false --git-tag=false",
-    "release:first:changelog": "nx release changelog 0.4.0-beta.0 --git-commit=false --git-tag=false",
-    "release:first:finalize": "git add -A && git commit -m 'chore(release): v0.4.0-beta.0' && git tag v0.4.0-beta.0",
-    "release:first:publish": "nx release publish",
     "release": "nx release",
     "local-registry": "nx run rule-io-sdk:local-registry"
   },

@@ -1,0 +1,109 @@
+name: Release
+
+# Only fire after the CI workflow passes on main — this ensures lint, tests,
+# and build are green before we touch any version numbers.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 1: bump versions, generate changelog, commit + tag + push
+  # ────────────────────────────────────────────────────────────────────────────
+  prepare:
+    name: Version & Changelog
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # needed to push the release commit back to main
+    outputs:
+      released: ${{ steps.bump.outputs.released }}
+      version: ${{ steps.bump.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history is required for conventional-commits version calculation.
+          fetch-depth: 0
+          # Use GITHUB_TOKEN; if main has push protection rules that block the
+          # Actions bot, replace with a fine-grained PAT stored as RELEASE_TOKEN.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version & generate changelog
+        id: bump
+        run: |
+          OLD_VERSION=$(node -p "require('./package.json').version")
+
+          npx nx release version --no-interactive --git-commit=false --git-tag=false
+
+          NEW_VERSION=$(node -p "require('./package.json').version")
+          echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+          if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+            echo "No releasable commits since v${OLD_VERSION} — skipping release."
+            echo "released=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          npx nx release changelog "$NEW_VERSION" --no-interactive --git-commit=false --git-tag=false
+
+          git add -A
+          git commit -m "chore(release): v${NEW_VERSION} [skip ci]"
+          git tag "v${NEW_VERSION}"
+          git push --follow-tags
+
+          echo "released=true" >> "$GITHUB_OUTPUT"
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Job 2: build + publish to npm (requires manual approval via environment)
+  # ────────────────────────────────────────────────────────────────────────────
+  publish:
+    name: Publish to npm
+    needs: prepare
+    if: needs.prepare.outputs.released == 'true'
+    runs-on: ubuntu-latest
+    environment: npm-production   # configure required reviewers here in GitHub
+    permissions:
+      contents: read
+      id-token: write   # required for npm provenance attestation
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Checkout the release commit that Job 1 just pushed.
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        # dist/ is gitignored — must rebuild from the released source.
+        run: npx nx run-many -t build --projects=client,rcml,sdk
+
+      - name: Publish
+        run: npx nx release publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
