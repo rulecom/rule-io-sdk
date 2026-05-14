@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@rulecom/vendor-samfora",
   "version": "0.4.0-beta.0",
   "description": "Samfora preset for the Rule.io SDK \u2014 Swedish donation-platform automation flows.",

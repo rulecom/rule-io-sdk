@@ -1,4 +1,5 @@
 {
+  "private": true,
   "name": "@rulecom/vendor-bookzen",
   "version": "0.4.0-beta.0",
   "description": "Bookzen preset for the Rule.io SDK \u2014 hospitality automation flows (reservation confirmation, cancellation, reminder, feedback, request).",
