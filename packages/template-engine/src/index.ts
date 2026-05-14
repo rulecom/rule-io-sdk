@@ -32,3 +32,9 @@ export {
   isTemplateRef,
   serializeRef,
 } from './refs/serializer.js'
+export {
+  createEmailTemplate,
+  type EmailTemplate,
+  type EmailTemplateRenderArgs,
+  type CreateEmailTemplateOptions,
+} from './create-email-template.js'

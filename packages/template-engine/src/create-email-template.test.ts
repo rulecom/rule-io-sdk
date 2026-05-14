@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { customField, type TemplateRefSerializer } from '@rulecom/template-engine'
-
+import { customField } from './refs/factories.js'
+import type { TemplateRefSerializer } from './refs/types.js'
 import { createEmailTemplate } from './create-email-template.js'
-import { createEmailTheme } from './create-theme.js'
-import { EmailThemeImageType } from './theme-types.js'
-import type { EmailTheme } from './theme-types.js'
+import { createEmailTheme, EmailThemeImageType } from '@rulecom/rcml'
+import type { EmailTheme } from '@rulecom/rcml'
 
 interface FixtureCopy {
   greeting: string

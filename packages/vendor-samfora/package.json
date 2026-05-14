@@ -1,6 +1,6 @@
 {
   "name": "@rulecom/vendor-samfora",
-  "version": "0.3.0",
+  "version": "0.4.0-beta.0",
   "description": "Samfora preset for the Rule.io SDK \u2014 Swedish donation-platform automation flows.",
   "type": "module",
   "main": "./src/index.js",
@@ -31,9 +31,9 @@
     "directory": "packages/vendor-samfora"
   },
   "dependencies": {
-    "@rulecom/rcml": "0.3.0",
-    "@rulecom/template-engine": "0.6.0",
-    "@rulecom/vendor": "0.3.0"
+    "@rulecom/rcml": "0.4.0-beta.0",
+    "@rulecom/template-engine": "0.4.0-beta.0",
+    "@rulecom/vendor": "0.4.0-beta.0"
   },
   "engines": {
     "node": ">=20"

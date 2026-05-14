@@ -13,7 +13,7 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rulecom/rcml'
+} from '@rulecom/template-engine'
 import type { CustomFieldRef } from '@rulecom/template-engine'
 
 export interface ReservationReminderTemplateContext {

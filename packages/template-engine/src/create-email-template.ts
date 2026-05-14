@@ -30,17 +30,13 @@
  * @public
  */
 
-import type { EmailTheme } from './theme-types.js'
-import {
-  compileTemplate,
-  loadCopy,
-  loadTemplate,
-  type TemplateRefSerializer,
-} from '@rulecom/template-engine'
+import type { EmailTheme, RcmlDocument } from '@rulecom/rcml'
+import { applyTheme, xmlToRcml } from '@rulecom/rcml'
 
-import { applyTheme } from './apply-theme.js'
-import type { RcmlDocument } from './rcml-types.js'
-import { xmlToRcml } from './xml-to-rcml.js'
+import { compileTemplate } from './compile.js'
+import { loadCopy } from './load-copy.js'
+import { loadTemplate } from './load-template.js'
+import type { TemplateRefSerializer } from './refs/types.js'
 
 /**
  * Arguments to the renderer returned by {@link createEmailTemplate}.
