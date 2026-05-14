@@ -1,3 +1,14 @@
+## 0.4.0-beta.1 (2026-05-14)
+
+### 🩹 Fixes
+
+- **deps:** resolve npm audit vulnerabilities ([d2b9d41](https://github.com/rulecom/rule-io-sdk/commit/d2b9d41))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 # Changelog
 
 ## 0.4.0-beta.0 (2026-05-14)
