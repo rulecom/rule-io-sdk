@@ -176,11 +176,19 @@ export class HttpTransport {
 
       this.log('Rate limited. Retry after', retryAfter, 'seconds');
 
-      return new RuleApiError('Rate limited by Rule.io API', 429);
+      const error = new RuleApiError('Rate limited by Rule.io API', 429);
+
+      if (version === 'v3') applyRateLimitHeaders(error, response.headers);
+
+      return error;
     }
 
     if (response.status === 401) {
-      return new RuleApiError('Invalid Rule.io API key', 401);
+      const error = new RuleApiError('Invalid Rule.io API key', 401);
+
+      if (version === 'v3') applyRateLimitHeaders(error, response.headers);
+
+      return error;
     }
 
     let message = version === 'v3' ? 'Rule.io v3 API error' : 'Rule.io API error';
@@ -216,8 +224,69 @@ export class HttpTransport {
 
     if (validationErrors) error.validationErrors = validationErrors;
 
+    if (version === 'v3') applyRateLimitHeaders(error, response.headers);
+
     return error;
   }
+}
+
+const NON_NEGATIVE_INT = /^\s*\d+\s*$/;
+
+function readNonNegativeInt(headers: Headers, name: string): number | undefined {
+  const raw = headers.get(name);
+
+  return raw !== null && NON_NEGATIVE_INT.test(raw) ? Number.parseInt(raw, 10) : undefined;
+}
+
+// Maps Rule.io v3's rate-limit headers onto a RuleApiError. The headers Rule.io
+// actually emits diverge from the names in their public docs:
+//
+//   docs claim            | live v3 header          | semantics
+//   --------------------- | ----------------------- | --------------------------------
+//   X-RateLimit-Limit     | RequestsCount-Allowed   | max requests per window
+//   X-RateLimit-Remaining | RequestsCount-Current   | requests **used** (not remaining!)
+//   Retry-After           | Retry-After             | seconds to wait (likely 429-only)
+//   (undocumented)        | X-ErrorPercent-Limit    | the 49% trigger ceiling
+//   (undocumented)        | X-ErrorPercent-Current  | observed error rate
+//
+// We read the live names but prefer the documented ones if Rule.io ever ships
+// them. `rateLimitRemaining` is computed (`Allowed − Current`) when only the
+// live pair is available.
+//
+// Only the integer-seconds form of Retry-After is parsed; the HTTP-date form
+// (RFC 7231) is ignored. TODO: HTTP-date if Rule.io ever adopts it.
+function applyRateLimitHeaders(error: RuleApiError, headers: Headers): RuleApiError {
+  const retryAfter = readNonNegativeInt(headers, 'Retry-After');
+
+  if (retryAfter !== undefined) error.retryAfterSeconds = retryAfter;
+
+  const documentedLimit = readNonNegativeInt(headers, 'X-RateLimit-Limit');
+  const liveAllowed = readNonNegativeInt(headers, 'RequestsCount-Allowed');
+  const liveCurrent = readNonNegativeInt(headers, 'RequestsCount-Current');
+
+  if (documentedLimit !== undefined) {
+    error.rateLimitLimit = documentedLimit;
+  } else if (liveAllowed !== undefined) {
+    error.rateLimitLimit = liveAllowed;
+  }
+
+  const documentedRemaining = readNonNegativeInt(headers, 'X-RateLimit-Remaining');
+
+  if (documentedRemaining !== undefined) {
+    error.rateLimitRemaining = documentedRemaining;
+  } else if (liveAllowed !== undefined && liveCurrent !== undefined) {
+    error.rateLimitRemaining = Math.max(0, liveAllowed - liveCurrent);
+  }
+
+  const errorPercentLimit = readNonNegativeInt(headers, 'X-ErrorPercent-Limit');
+
+  if (errorPercentLimit !== undefined) error.errorPercentLimit = errorPercentLimit;
+
+  const errorPercentCurrent = readNonNegativeInt(headers, 'X-ErrorPercent-Current');
+
+  if (errorPercentCurrent !== undefined) error.errorPercentCurrent = errorPercentCurrent;
+
+  return error;
 }
 
 function normalizeValidationErrors(

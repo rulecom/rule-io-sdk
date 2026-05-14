@@ -57,6 +57,28 @@ describe('RuleApiError', () => {
     err.validationErrors = { email: ['invalid format'] };
     expect(err.validationErrors).toEqual({ email: ['invalid format'] });
   });
+
+  it('rate-limit + error-percent fields are optional and writable', () => {
+    const err = new RuleApiError('rate limited', 429);
+
+    expect(err.retryAfterSeconds).toBeUndefined();
+    expect(err.rateLimitLimit).toBeUndefined();
+    expect(err.rateLimitRemaining).toBeUndefined();
+    expect(err.errorPercentLimit).toBeUndefined();
+    expect(err.errorPercentCurrent).toBeUndefined();
+
+    err.retryAfterSeconds = 30;
+    err.rateLimitLimit = 2000;
+    err.rateLimitRemaining = 0;
+    err.errorPercentLimit = 49;
+    err.errorPercentCurrent = 50;
+
+    expect(err.retryAfterSeconds).toBe(30);
+    expect(err.rateLimitLimit).toBe(2000);
+    expect(err.rateLimitRemaining).toBe(0);
+    expect(err.errorPercentLimit).toBe(49);
+    expect(err.errorPercentCurrent).toBe(50);
+  });
 });
 
 describe('RuleClientError', () => {
