@@ -121,21 +121,21 @@ Merging to `main` triggers CI. npm publishing is **gated by GitHub Environment a
 
 ### Merge strategy
 
-Always use **rebase merge** when landing `develop` → `main`.
+Always use **merge commit** when landing `develop` → `main`.
 
 `nx release version` calculates the version bump by reading Conventional Commits directly from the git log. The merge strategy determines what Nx sees:
 
 | Strategy | What Nx Release sees | Risk |
 |---|---|---|
-| **Rebase merge** ✓ | Every `feat:`, `fix:`, `BREAKING CHANGE:` intact | None — correct bump every time |
+| **Merge commit** ✓ | Every `feat:`, `fix:`, `BREAKING CHANGE:` intact (Nx traverses through merge commits) | None — correct bump every time |
+| Rebase merge | Every commit intact, but new SHAs on `main` mean `develop` requires a `reset --hard` to re-sync | Extra friction keeping `develop` in sync |
 | Squash merge | One commit with the squash message | Minor bump if message is `feat:` — **no release** if message is `chore:` or generic. Also leaves `develop` with ghost commits that conflict on the next PR. |
-| Merge commit | Individual commits (Nx traverses through merge commits) | Works, but leaves a noisier linear history |
 
 After each merge to `main`, fast-forward `develop`:
 
 ```bash
 git fetch origin main
-git rebase origin/main
+git merge origin/main
 ```
 
 ### Versioning rules
