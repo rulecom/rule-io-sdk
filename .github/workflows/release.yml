@@ -51,7 +51,7 @@ jobs:
         run: |
           OLD_VERSION=$(node -p "require('./packages/sdk/package.json').version")
 
-          npx nx release version --no-interactive --git-commit=false --git-tag=false
+          npx nx release version --git-commit=false --git-tag=false
 
           NEW_VERSION=$(node -p "require('./packages/sdk/package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
@@ -62,7 +62,7 @@ jobs:
             exit 0
           fi
 
-          npx nx release changelog "$NEW_VERSION" --no-interactive --git-commit=false --git-tag=false
+          npx nx release changelog "$NEW_VERSION" --git-commit=false --git-tag=false
 
           git add -A
           git commit -m "chore(release): v${NEW_VERSION} [skip ci]"
@@ -105,6 +105,7 @@ jobs:
         run: npx nx run-many -t build --projects=client,rcml,sdk
 
       - name: Publish
-        run: npx nx release publish
+        # TODO: remove --first-release after the first npm publish succeeds
+        run: npx nx release publish --first-release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
