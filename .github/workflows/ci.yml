@@ -16,7 +16,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths-ignore:
       - '**/*.md'
       - '.claude/**'
