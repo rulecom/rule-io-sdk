@@ -1,0 +1,41 @@
+{
+  "name": "@rulecom/template-engine",
+  "version": "0.4.0-beta.0",
+  "description": "Minimal XML template compiler used by Rule.io vendor email-template packages. v1.4 uses XML Processing Instructions for directives, a flat data scope, and Transloco-style `t('key', { param: expr })` message calls.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "keywords": [
+    "rule.io",
+    "sdk",
+    "templates",
+    "xml",
+    "processing-instruction"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rulecom/rule-io-sdk.git",
+    "directory": "packages/template-engine"
+  },
+  "dependencies": {
+    "@rulecom/rcml": "0.4.0-beta.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -15,6 +15,9 @@
       "cache": true,
       "dependsOn": ["^build"],
       "inputs": ["default", "^default"]
+    },
+    "nx-release-publish": {
+      "dependsOn": []
     }
   },
   "analytics": false,
@@ -35,16 +38,26 @@
     }
   ],
   "release": {
-    "projects": ["packages/*"],
-    "projectsRelationship": "independent",
+    "projects": ["client", "rcml", "sdk"],
+    "projectsRelationship": "fixed",
     "version": {
-      "preVersionCommand": "npx nx run-many -t build",
+      "preVersionCommand": "npx nx run-many -t build --projects=client,rcml,sdk",
       "specifierSource": "conventional-commits",
       "currentVersionResolver": "git-tag",
-      "fallbackCurrentVersionResolver": "disk"
+      "fallbackCurrentVersionResolver": "disk",
+      "manifestRootsToUpdate": ["{projectRoot}", "dist/{projectRoot}"],
+      "versionActionsOptions": {
+        "skipLockFileUpdate": true
+      }
     },
     "changelog": {
-      "workspaceChangelog": false,
+      "workspaceChangelog": {
+        "file": "CHANGELOG.md",
+        "renderOptions": {
+          "authors": true,
+          "commitReferences": true
+        }
+      },
       "projectChangelogs": {
         "file": "{projectRoot}/CHANGELOG.md",
         "renderOptions": {
@@ -52,6 +65,9 @@
           "commitReferences": true
         }
       }
+    },
+    "publish": {
+      "tag": "beta"
     }
   }
 }

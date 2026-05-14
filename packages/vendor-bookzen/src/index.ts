@@ -1,28 +1,19 @@
-/**
- * Bookzen Vendor Preset
- *
- * Reference hospitality integration for Rule.io.
- */
-
 export { bookzenPreset } from './preset.js';
-export { BOOKZEN_FIELDS } from './fields.js';
-export { BOOKZEN_TAGS } from './tags.js';
-export type { BookzenFieldSchema, BookzenFieldNames } from './fields.js';
-export type { BookzenTagSchema, BookzenTagNames } from './tags.js';
-
-// Hospitality email templates (moved from @rule-io/rcml — re-exported so the
-// @rule-io/sdk meta-package keeps surfacing them for external consumers).
 export {
-  createReservationConfirmationEmail,
-  createReservationCancellationEmail,
-  createReservationReminderEmail,
-  createFeedbackRequestEmail,
-  createReservationRequestEmail,
-} from './hospitality-templates.js';
+  BookzenIntegration,
+  BOOKZEN_SUBSCRIBER_SEED,
+  BOOKZEN_SUBSCRIBER_FIELD_VALUES_SEED,
+  BOOKZEN_BOOKING_FIELD_VALUES_SEED,
+  BOOKZEN_FIELD_VALUES_SEED,
+} from './integration.js';
+export type { SeededBookzenSubscriber } from './integration.js';
+export { BOOKZEN_FIELD_SCHEMA, BOOKZEN_SUBSCRIBER_FIELD_SCHEMA, BOOKZEN_BOOKING_FIELD_SCHEMA } from './fields.js';
 export type {
-  ReservationTemplateConfig,
-  ReservationCancellationConfig,
-  ReservationReminderConfig,
-  FeedbackRequestConfig,
-  ReservationRequestConfig,
-} from './hospitality-templates.js';
+  BookzenFieldName,
+  BookzenFieldSchema,
+  BookzenSubscriberFieldName,
+  BookzenBookingFieldName,
+} from './fields.js';
+export { BOOKZEN_TAGS } from './tags.js';
+export type { BookzenTagNames, BookzenTagSchema } from './tags.js';
+export type { ResolvedVendorField, VendorFieldDefinition } from './types.js';

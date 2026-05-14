@@ -11,11 +11,16 @@ export default defineConfig(() => ({
     watch: false,
     globals: true,
     environment: 'node',
-    include: ['{src,tests}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
+    include: ['src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     reporters: ['default'],
     coverage: {
       reportsDirectory: '../../coverage/packages/client',
       provider: 'v8' as const,
+      exclude: [
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        '**/mock-fetch.ts',
+      ],
     },
   },
 }));

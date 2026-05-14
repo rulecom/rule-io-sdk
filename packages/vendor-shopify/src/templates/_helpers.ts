@@ -8,7 +8,7 @@
  * inline inside text content and have the RFM parser pick up the emitted
  * atoms during `xmlToRcml`.
  *
- * Both helpers throw `RuleConfigError` (via the caller's validation
+ * Both helpers throw `VendorPresetError` (via the caller's validation
  * layer) when a logical name has no mapping; templates are expected to
  * gate references behind `*ngIf` checks against `fieldNames.X`, so
  * errors here only surface for unexpected config gaps.
@@ -16,8 +16,8 @@
  * @internal
  */
 
-import { RuleConfigError } from '@rule-io/core'
-import type { CustomFieldMap } from '@rule-io/core'
+import { VendorPresetError } from '@rulecom/vendor'
+import type { CustomFieldMap } from '@rulecom/vendor'
 
 export interface TemplateHelpers {
   field: (logicalName: string) => string
@@ -32,7 +32,7 @@ export function makeTemplateHelpers(
     const fieldName = fieldNames[logicalName]
 
     if (fieldName === undefined) {
-      throw new RuleConfigError(
+      throw new VendorPresetError(
         `template references unknown field '${logicalName}' (not in fieldNames map)`,
       )
     }
@@ -40,7 +40,7 @@ export function makeTemplateHelpers(
     const id = customFields[fieldName]
 
     if (id === undefined) {
-      throw new RuleConfigError(
+      throw new VendorPresetError(
         `template references field '${logicalName}' (mapped to '${fieldName}') but it is not in customFields`,
       )
     }

@@ -1,101 +1,64 @@
-/**
- * Bookzen Vendor Preset
- *
- * Reference hospitality preset for Bookzen integrations with Rule.io.
- *
- * @example
- * ```typescript
- * import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
- *
- * const config = {
- *   brandStyle: myBrandStyle,
- *   customFields: {
- *     [BOOKZEN_FIELDS.guestFirstName]: 100001,
- *     [BOOKZEN_FIELDS.bookingRef]: 100002,
- *     // ...
- *   },
- *   websiteUrl: 'https://myhotel.com',
- * };
- *
- * bookzenPreset.validateConfig(config);
- * const automations = bookzenPreset.getAutomations(config);
- * ```
- */
-
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
-import { resolveVendorAutomations } from '@rule-io/core';
-import type { AutomationConfigV2 } from '@rule-io/core';
-import type { BookzenFieldSchema, BookzenFieldNames } from './fields.js';
+import type { VendorConsumerConfig, VendorFieldInfo, AutomationConfigV2 } from '@rulecom/vendor';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { BookzenFieldSchema } from './fields.js';
 import type { BookzenTagSchema } from './tags.js';
-import { BOOKZEN_FIELDS } from './fields.js';
+import { BOOKZEN_FIELD_SCHEMA } from './fields.js';
 import { BOOKZEN_TAGS } from './tags.js';
-import { createBookzenAutomations } from './automations.js';
-import { RuleConfigError } from '@rule-io/core';
 
-const FIELD_DESCRIPTIONS: Record<BookzenFieldNames, string> = {
-  guestFirstName: 'Guest first name',
-  bookingRef: 'Booking reference number',
-  serviceType: 'Service type (accommodation, restaurant, experience)',
-  checkInDate: 'Check-in or arrival date',
-  checkOutDate: 'Check-out or departure date',
-  totalGuests: 'Total number of guests',
-  totalPrice: 'Total booking price',
-  roomName: 'Room or table name',
-};
+function fieldPath(groupName: string, fieldName: string): string {
+  return `${groupName}.${fieldName}`;
+}
 
 function validateBookzenConfig(config: VendorConsumerConfig): void {
   const missingFields: string[] = [];
 
-  for (const [logicalName, fieldName] of Object.entries(BOOKZEN_FIELDS)) {
-    if (config.customFields[fieldName] === undefined) {
-      missingFields.push(`${logicalName} ("${fieldName}")`);
+  for (const [logicalName, def] of Object.entries(BOOKZEN_FIELD_SCHEMA)) {
+    const path = fieldPath(def.groupName, def.fieldName);
+
+    if (config.customFields[path] === undefined) {
+      missingFields.push(`${logicalName} ("${path}")`);
     }
   }
 
   if (missingFields.length > 0) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `bookzenPreset: missing customFields entries for: ${missingFields.join(', ')}`
     );
   }
 }
 
-function resolveAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
-  return resolveVendorAutomations(createBookzenAutomations(), config);
-}
-
-/**
- * Bookzen vendor preset for Rule.io.
- *
- * Provides pre-configured automations for hospitality flows:
- * reservation confirmation, cancellation, reminder, feedback request,
- * and reservation request (pending approval).
- */
-export const bookzenPreset: VendorPreset<BookzenFieldSchema, BookzenTagSchema> = {
+export const bookzenPreset: {
+  readonly vendor: string;
+  readonly displayName: string;
+  readonly vertical: string;
+  readonly fields: BookzenFieldSchema;
+  readonly tags: BookzenTagSchema;
+  getAutomations(config: VendorConsumerConfig): AutomationConfigV2[];
+  getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined;
+  validateConfig(config: VendorConsumerConfig): void;
+  getRequiredFields(): readonly VendorFieldInfo[];
+} = {
   vendor: 'bookzen',
   displayName: 'Bookzen',
   vertical: 'hospitality',
-  fields: BOOKZEN_FIELDS,
+  fields: BOOKZEN_FIELD_SCHEMA,
   tags: BOOKZEN_TAGS,
 
-  getAutomations(config: VendorConsumerConfig): AutomationConfigV2[] {
-    validateBookzenConfig(config);
-
-    return resolveAutomations(config);
+  getAutomations(_config: VendorConsumerConfig): AutomationConfigV2[] {
+    return [];
   },
 
-  getAutomation(id: string, config: VendorConsumerConfig): AutomationConfigV2 | undefined {
-    validateBookzenConfig(config);
-
-    return resolveAutomations(config).find((a) => a.id === id);
+  getAutomation(_id: string, _config: VendorConsumerConfig): AutomationConfigV2 | undefined {
+    return undefined;
   },
 
   validateConfig: validateBookzenConfig,
 
   getRequiredFields(): readonly VendorFieldInfo[] {
-    return Object.entries(BOOKZEN_FIELDS).map(([logicalName, fieldName]) => ({
+    return Object.entries(BOOKZEN_FIELD_SCHEMA).map(([logicalName, def]) => ({
       logicalName,
-      fieldName,
-      description: FIELD_DESCRIPTIONS[logicalName as BookzenFieldNames],
+      fieldName: fieldPath(def.groupName, def.fieldName),
+      description: def.description,
     }));
   },
 };

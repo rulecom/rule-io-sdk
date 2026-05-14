@@ -6,10 +6,10 @@
  */
 
 import { expect } from 'vitest';
-import type { EmailTheme } from '@rule-io/core';
-import { EmailThemeColorType, EmailThemeImageType } from '@rule-io/core';
-import type { RcmlDocument } from '@rule-io/rcml';
-import { createEmailTheme } from '@rule-io/rcml';
+import type { EmailTheme } from '@rulecom/rcml';
+import { EmailThemeColorType, EmailThemeImageType } from '@rulecom/rcml';
+import type { RcmlDocument } from '@rulecom/rcml';
+import { createEmailTheme } from '@rulecom/rcml';
 
 // ============================================================================
 // Shared theme fixture

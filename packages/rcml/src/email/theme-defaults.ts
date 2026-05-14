@@ -73,6 +73,7 @@ export function getConfiguredSocialLinks(
   const result: EmailThemeSocialLink[] = []
 
   for (const link of Object.values(links)) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (link === undefined) continue
     if (link.url === DEFAULT_LINKS_MAP[link.type].url) continue
     result.push(link)
@@ -152,6 +153,7 @@ export const DEFAULT_FALLBACK_FONT_FAMILIES_MAP: Record<DefaultFontFamily, strin
  */
 export function getFallbackFontFamily(fontFamily: string): string {
   return (
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     DEFAULT_FALLBACK_FONT_FAMILIES_MAP[fontFamily as DefaultFontFamily] ??
     DEFAULT_FALLBACK_FONT_FAMILIES_MAP[DefaultFontFamily.Helvetica]
   )

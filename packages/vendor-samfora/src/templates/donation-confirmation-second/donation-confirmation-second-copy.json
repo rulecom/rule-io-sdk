@@ -1,0 +1,15 @@
+{
+  "preheader": "Tack för att du ger igen!",
+  "greetingHeading": "Tack för att du ger igen, {{firstName}}",
+  "intro": "Det betyder mycket att du väljer att ge en gång till. Din gåva är mottagen och går oavkortat till det ändamål du valt.",
+  "detailsHeading": "Gåvans detaljer",
+  "amountRow": "Belopp: {{amount}}",
+  "amountRowWithCurrency": "Belopp: {{amount}} {{currency}}",
+  "causeRow": "Ändamål: {{causeName}}",
+  "dateRow": "Datum: {{date}}",
+  "referenceRow": "Referens: {{ref}}",
+  "ctaButton": "Se mitt konto",
+  "signOff": "Tack för att du fortsätter göra skillnad.",
+  "footerLinks": ":link[:font[Öppna i webbläsare]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Avregistrera]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

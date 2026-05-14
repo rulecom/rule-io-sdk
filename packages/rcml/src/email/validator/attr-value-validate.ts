@@ -54,6 +54,7 @@ function visit(node: unknown, path: string, issues: EmailTemplateValidationIssue
     // elsewhere but refuses `spec.attrs[name]` for a `string` name.
     const spec: RcmlNodeSpec | undefined = RCML_SCHEMA_SPEC[tagName]
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (spec && isPlainObject(n.attributes)) {
       for (const [name, value] of Object.entries(n.attributes)) {
         const attrSpec = spec.attrs[name] as RcmlAttrSpec | undefined

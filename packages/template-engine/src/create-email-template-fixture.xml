@@ -1,0 +1,30 @@
+<rcml>
+  <rc-head>
+    <rc-attributes/>
+  </rc-head>
+  <rc-body>
+    <rc-section>
+      <rc-column>
+        <rc-heading rc-class="rcml-h1-style"><?copy greeting name=name?></rc-heading>
+      </rc-column>
+    </rc-section>
+    <?if logoUrl?>
+      <rc-section>
+        <rc-column>
+          <rc-logo rc-class="rcml-logo-style rc-initial-logo" src="@{logoUrl}"/>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+    <?if socialLinks?>
+      <rc-section>
+        <rc-column>
+          <rc-social align="center">
+            <?for let link of socialLinks?>
+              <rc-social-element name="@{link.type}" href="@{link.url}"/>
+            <?endfor?>
+          </rc-social>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+  </rc-body>
+</rcml>

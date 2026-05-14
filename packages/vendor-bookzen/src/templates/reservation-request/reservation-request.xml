@@ -1,0 +1,59 @@
+<rcml>
+  <rc-head>
+    <rc-preview><?copy preheader?></rc-preview>
+  </rc-head>
+  <rc-body>
+    <!-- Logo -->
+    <?if logoUrl?>
+      <rc-section>
+        <rc-column padding="0 20px">
+          <rc-logo rc-class="rcml-logo-style rc-initial-logo" width="96px" padding="20px 0"/>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Greeting + message -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-heading rc-class="rcml-h1-style"><?copy greetingHeading firstName=recipient.firstName?></rc-heading>
+        <rc-text rc-class="rcml-p-style"><?copy message?></rc-text>
+      </rc-column>
+    </rc-section>
+
+    <!-- Request details box -->
+    <rc-section padding="20px 0" rc-class="rcml-brand-color">
+      <rc-column padding="0 20px">
+        <rc-heading rc-class="rcml-h2-style"><?copy detailsHeading?></rc-heading>
+        <rc-text rc-class="rcml-p-style"><?copy referenceRow bookingRef=reservation.bookingRef?></rc-text>
+        <?if reservation.checkOutDate?>
+          <rc-text rc-class="rcml-p-style"><?copy dateRangeRow checkInDate=reservation.checkInDate checkOutDate=reservation.checkOutDate?></rc-text>
+        <?endif?>
+        <?if !reservation.checkOutDate?>
+          <rc-text rc-class="rcml-p-style"><?copy dateRow checkInDate=reservation.checkInDate?></rc-text>
+        <?endif?>
+        <rc-text rc-class="rcml-p-style"><?copy guestsRow totalGuests=reservation.totalGuests?></rc-text>
+      </rc-column>
+    </rc-section>
+
+    <!-- Social icons -->
+    <?if socialLinks?>
+      <rc-section padding="10px 0">
+        <rc-column padding="0 20px">
+          <rc-social align="center">
+            <?for let link of socialLinks?>
+              <rc-social-element name="@{link.type}" href="@{link.url}"/>
+            <?endfor?>
+          </rc-social>
+        </rc-column>
+      </rc-section>
+    <?endif?>
+
+    <!-- Footer -->
+    <rc-section padding="20px 0">
+      <rc-column padding="0 20px">
+        <rc-text align="center" padding="0px 0px 10px 0px" font-size="@{footer.fontSize}" color="@{footer.textColor}" rc-class="rcml-p-style"><?copy footerLinks?></rc-text>
+        <rc-text align="center" padding="10px 0px 0px 0px" font-family="'Helvetica', sans-serif" line-height="120%" color="@{footer.textColor}" font-size="@{footer.fontSize}"><?copy certifiedByRule?></rc-text>
+      </rc-column>
+    </rc-section>
+  </rc-body>
+</rcml>

@@ -247,7 +247,7 @@ describe('applyTheme — partial patch', () => {
       colors: [{ type: EmailThemeColorType.Primary, hex: '#FF0000' }],
     })
 
-    expect(findAttrChild<{ attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
+    expect(findAttrChild<{ tagName: string; attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
     expect(headFontCount(patched)).toBe(beforeFontCount)
     expect(JSON.stringify(findAttrChild<RcmlSocial>(patched, 'rc-social'))).toBe(beforeSocial)
     // Background colour patch is absent, so rc-body keeps its prior bg.
@@ -322,7 +322,7 @@ describe('applyTheme — partial patch', () => {
     })
 
     // Primary changed
-    expect(findAttrChild<{ attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
+    expect(findAttrChild<{ tagName: string; attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
     // Secondary slot not in the patch → brand-color class untouched.
     const brandColorClass = findAttrChild<RcmlClass>(
       patched,
@@ -402,19 +402,19 @@ describe('applyTheme — doc-state matrix', () => {
     })
 
     expect(getAttrsNode(patched)).toBeDefined()
-    expect(findAttrChild<{ attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
+    expect(findAttrChild<{ tagName: string; attributes: Record<string, string> }>(patched, 'rc-button')?.attributes['background-color']).toBe('#FF0000')
   })
 
   it('doc with default theme: patch updates existing nodes; ids preserved', () => {
     const themed = applyTheme(minimalDoc(), createEmailTheme())
-    const buttonBefore = findAttrChild<{ id: string }>(themed, 'rc-button')
+    const buttonBefore = findAttrChild<{ tagName: string; id: string }>(themed, 'rc-button')
 
     expect(buttonBefore?.id).toBeDefined()
 
     const patched = applyTheme(themed, {
       colors: [{ type: EmailThemeColorType.Primary, hex: '#00FF00' }],
     })
-    const buttonAfter = findAttrChild<{ id: string; attributes: Record<string, string> }>(
+    const buttonAfter = findAttrChild<{ tagName: string; id: string; attributes: Record<string, string> }>(
       patched,
       'rc-button'
     )

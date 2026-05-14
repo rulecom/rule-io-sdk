@@ -1,8 +1,12 @@
 /**
  * Rule.io API Client
  *
- * A TypeScript client for the Rule.io email marketing API.
- * Supports both v2 (Subscriber) and v3 (Editor) APIs.
+ * Public entry point for the SDK. The root `RuleClient` is a thin composition
+ * root: it owns the shared `HttpTransport` and exposes one lazy namespace
+ * getter per API resource (subscribers, tags, automations, …). Every
+ * previously-public flat method on `RuleClient` is preserved here as a
+ * `@deprecated` wrapper that delegates to the namespaced API. This keeps
+ * existing call sites compiling while providing a clear migration path.
  *
  * ## API Quirks (Important!)
  *
@@ -16,819 +20,293 @@
  * 3. **Template names must be unique**: Add timestamp to avoid conflicts.
  *
  * 4. **Tag ID required**: Triggers use tag ID (number), not tag name.
- *    Look up IDs via GET /api/v2/tags.
- *
- * @see .claude/RULE_IO_SETUP_GUIDE.md for complete setup instructions
+ *    Look up IDs via `client.tags.list()`.
  */
 
-import { randomUUID } from 'node:crypto';
-import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
-import { RuleApiError, RuleConfigError, type RuleValidationErrors } from '@rule-io/core';
-import { applyTheme } from '@rule-io/rcml';
-import type { RcmlBodyChild, RcmlDocument, RcmlHead } from '@rule-io/rcml';
-import {
-  findTemplateOwner as findTemplateOwnerImpl,
-  type FindTemplateOwnerOptions,
-  type FindTemplateOwnerResult,
-} from './find-template-owner.js';
+import { RuleApiError, RuleClientError } from './errors.js';
+
+import { BaseResource } from './core/base-resource.js';
+import { HttpTransport } from './core/transport.js';
+import { resolveConfig, type ResolvedClientConfig, type RuleClientConfig } from './config.js';
+
+import { AnalyticsClient } from './resources/analytics/analytics.client.js';
+import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
+import { AutomationsClient } from './resources/automations/automations.client.js';
+import { BrandStylesClient } from './resources/brand-styles/brand-styles.client.js';
+import { CampaignsClient } from './resources/campaigns/campaigns.client.js';
+import { CustomFieldDataClient } from './resources/custom-field-data/custom-field-data.client.js';
+import { DynamicSetsClient } from './resources/dynamic-sets/dynamic-sets.client.js';
+import { ExportsClient } from './resources/exports/exports.client.js';
+import { MessagesClient } from './resources/messages/messages.client.js';
+import { RecipientsClient } from './resources/recipients/recipients.client.js';
+import { SubscribersClient } from './resources/subscribers/subscribers.client.js';
+import { SuppressionsClient } from './resources/suppressions/suppressions.client.js';
+import { TagsClient } from './resources/tags/tags.client.js';
+import { TemplatesClient } from './resources/templates/templates.client.js';
+
+import { buildDefaultBrandedTemplate } from './default-branded-template.js';
+
+import type { RuleApiResponse } from './shared.types.js';
 import type {
-  RuleApiResponse,
-  RuleSubscriber,
-  RuleSubscriberResponse,
-  RuleSubscriberFieldsResponse,
-  RuleSubscriberTagsResponse,
-  RuleSubscribersV2ListResponse,
-  ListSubscribersByTagIdsParams,
-  ListSubscribersByTagIdsResult,
-  RuleTagsResponse,
+  RuleAnalyticsParams,
+  RuleAnalyticsResponse,
+} from './resources/analytics/analytics.types.js';
+import type {
+  RuleApiKeyCreateRequest,
+  RuleApiKeyListResponse,
+  RuleApiKeyResponse,
+  RuleApiKeyUpdateRequest,
+} from './resources/api-keys/api-keys.types.js';
+import type {
   RuleAutomationCreateRequest,
-  RuleAutomationUpdateRequest,
-  RuleAutomationResponse,
-  RuleSendoutType,
   RuleAutomationListParams,
   RuleAutomationListResponse,
-  RuleMessageCreateRequest,
-  RuleMessageResponse,
-  RuleMessageListParams,
-  RuleMessageListResponse,
-  RuleTemplateCreateRequest,
-  RuleTemplateResponse,
-  RuleTemplateListParams,
-  RuleTemplateListResponse,
-  RuleDynamicSetCreateRequest,
-  RuleDynamicSetUpdateRequest,
-  RuleDynamicSetResponse,
-  RuleDynamicSetListParams,
-  RuleDynamicSetListResponse,
-  RuleRenderTemplateParams,
+  RuleAutomationResponse,
+  RuleAutomationUpdateRequest,
+} from './resources/automations/automations.types.js';
+import type {
+  RuleBrandStyleCreateRequest,
+  RuleBrandStyleFromDomainRequest,
+  RuleBrandStyleListResponse,
+  RuleBrandStyleResponse,
+  RuleBrandStyleUpdateRequest,
+} from './resources/brand-styles/brand-styles.types.js';
+import type {
   RuleCampaignCreateRequest,
-  RuleCampaignUpdateRequest,
-  RuleCampaignResponse,
   RuleCampaignListParams,
   RuleCampaignListResponse,
+  RuleCampaignResponse,
   RuleCampaignScheduleRequest,
-  RuleClientConfig,
-  CreateAutomationEmailConfig,
-  CreateAutomationEmailResult,
-  CreateCampaignEmailConfig,
-  CreateCampaignEmailResult,
-  RuleCustomFieldDataListParams,
-  RuleCustomFieldDataCreateRequest,
-  RuleCustomFieldDataUpdateRequest,
+  RuleCampaignUpdateRequest,
+} from './resources/campaigns/campaigns.types.js';
+import type {
+  CreateCustomFieldDataRequestBody,
   RuleCustomFieldDataGroupParams,
-  RuleCustomFieldDataSearchParams,
+  RuleCustomFieldDataListParams,
   RuleCustomFieldDataResponse,
+  RuleCustomFieldDataSearchParams,
   RuleCustomFieldDataSingleResponse,
-  RuleSuppressionRequest,
-  RuleSubscriberV3CreateRequest,
-  RuleSubscriberV3Response,
-  RuleBulkSubscriberIdentifier,
-  RuleBulkTagsRequest,
-  RuleSubscriberTagsV3Request,
+  RuleCustomFieldDataUpdateRequest,
+} from './resources/custom-field-data/custom-field-data.types.js';
+import type {
+  RuleDynamicSetCreateRequest,
+  RuleDynamicSetListParams,
+  RuleDynamicSetListResponse,
+  RuleDynamicSetResponse,
+  RuleDynamicSetUpdateRequest,
+} from './resources/dynamic-sets/dynamic-sets.types.js';
+import type {
   RuleExportDispatcherParams,
   RuleExportDispatcherResponse,
   RuleExportStatisticsParams,
   RuleExportStatisticsResponse,
   RuleExportSubscriberParams,
   RuleExportSubscriberResponse,
-  RuleAnalyticsParams,
-  RuleAnalyticsResponse,
-  RuleRecipientsListParams,
-  RuleSegmentListResponse,
+} from './resources/exports/exports.types.js';
+import type {
+  RuleMessageCreateRequest,
+  RuleMessageListParams,
+  RuleMessageListResponse,
+  RuleMessageResponse,
+} from './resources/messages/messages.types.js';
+import type {
   RuleRecipientSubscriberListResponse,
   RuleRecipientTagListResponse,
-  RuleAccountCreateRequest,
-  RuleAccountGetParams,
-  RuleAccountResponse,
-  RuleAccountCreateResponse,
-  RuleAccountListResponse,
-  RuleBrandStyle,
-  RuleBrandStyleFromDomainRequest,
-  RuleBrandStyleCreateRequest,
-  RuleBrandStyleUpdateRequest,
-  RuleBrandStyleResponse,
-  RuleBrandStyleListResponse,
-  RuleApiKeyCreateRequest,
-  RuleApiKeyUpdateRequest,
-  RuleApiKeyResponse,
-  RuleApiKeyListResponse,
-} from './types.js';
-import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
+  RuleRecipientsListParams,
+  RuleSegmentListResponse,
+} from './resources/recipients/recipients.types.js';
+import type {
+  RuleBulkSubscriberIdentifier,
+  RuleBulkTagsRequest,
+  RuleSubscriber,
+  GetSubscriberV2Response,
+  RuleSubscriberTagsV3Request,
+  CreateSubscriberV3Request,
+  CreateSubscriberV3Response,
+} from './resources/subscribers/subscribers.types.js';
+import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
+import type { RuleTagsResponse } from './resources/tags/tags.types.js';
+import type {
+  RuleRenderTemplateParams,
+  RuleTemplateCreateRequest,
+  RuleTemplateListParams,
+  RuleTemplateListResponse,
+  RuleTemplateResponse,
+} from './resources/templates/templates.types.js';
+import type {
+  CreateAutomationEmailConfig,
+  CreateAutomationEmailResult,
+  CreateCampaignEmailConfig,
+  CreateCampaignEmailResult,
+} from './orchestration.types.js';
+import { CustomFieldClient } from './resources/custom-field/custom-field.client.js';
 
-// ─── Default branded template builder ───────────────────────────────────────
-// These helpers replace the retired `brand-template.ts` for the auto-build
-// path used by `createAutomationEmail` / `createCampaignEmail`. The produced
-// document is handed to `applyTheme`, which decorates the empty head with
-// brand-style + fonts + social + colour attributes derived from the brand
-// style. The body sections below keep their original hardcoded class names
-// (`rcml-h1-style`, `rcml-p-style`, `rcml-label-style`) and default copy
-// (`Replace this title`, `Click me!`, `Certified by Rule`) so the
-// editor-compatibility contract is unchanged.
-
-function genId(): string {
-  return randomUUID();
-}
-
-function buildLogoSection(logoUrl: string): RcmlBodyChild {
-  return {
-    tagName: 'rc-section',
-    id: genId(),
-    children: [
-      {
-        tagName: 'rc-column',
-        id: genId(),
-        attributes: { padding: '0 20px' },
-        children: [
-          {
-            tagName: 'rc-logo',
-            id: genId(),
-            attributes: {
-              'rc-class': 'rcml-logo-style rc-initial-logo',
-              src: logoUrl,
-              width: '96px',
-              padding: '20px 0',
-            },
-          },
-        ],
-      },
-    ],
-  } as RcmlBodyChild;
-}
-
-function buildDefaultContentSection(): RcmlBodyChild {
-  return {
-    tagName: 'rc-section',
-    id: genId(),
-    attributes: { padding: '20px 0' },
-    children: [
-      {
-        tagName: 'rc-column',
-        id: genId(),
-        attributes: { padding: '0 20px' },
-        children: [
-          {
-            tagName: 'rc-image',
-            id: genId(),
-            attributes: {
-              padding: '0 0 20px 0',
-              src: 'https://app.rule.io/img/editor/image.png',
-            },
-          },
-          {
-            tagName: 'rc-heading',
-            id: genId(),
-            attributes: { 'rc-class': 'rcml-h1-style' },
-            content: {
-              type: 'doc',
-              content: [
-                { type: 'paragraph', content: [{ type: 'text', text: 'Replace this title' }] },
-              ],
-            },
-          },
-          {
-            tagName: 'rc-text',
-            id: genId(),
-            attributes: { 'rc-class': 'rcml-p-style' },
-            content: {
-              type: 'doc',
-              content: [
-                {
-                  type: 'paragraph',
-                  content: [
-                    {
-                      type: 'text',
-                      text: 'Click into this box to change the font settings. Edit this text to include additional information and a description of the image.',
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-          {
-            tagName: 'rc-button',
-            id: genId(),
-            attributes: {
-              align: 'center',
-              border: 'none',
-              'border-radius': '8px',
-              'inner-padding': '10px 16px',
-              padding: '0 0 20px 0',
-              'padding-bottom': '20px',
-              'text-align': 'center',
-              'vertical-align': 'middle',
-              'rc-class': 'rcml-label-style',
-            },
-            content: {
-              type: 'doc',
-              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Click me!' }] }],
-            },
-          },
-        ],
-      },
-    ],
-  } as RcmlBodyChild;
-}
-
-function buildFooterSection(): RcmlBodyChild {
-  const textColor = '#666666';
-  const fontSize = '10px';
-
-  return {
-    tagName: 'rc-section',
-    id: genId(),
-    attributes: { padding: '20px 0px 20px 0px' },
-    children: [
-      {
-        tagName: 'rc-column',
-        id: genId(),
-        attributes: { padding: '0 20px' },
-        children: [
-          {
-            tagName: 'rc-text',
-            id: genId(),
-            attributes: {
-              align: 'center',
-              padding: '0px 0px 10px 0px',
-              'rc-class': 'rcml-p-style',
-            },
-            content: {
-              type: 'doc',
-              content: [
-                {
-                  type: 'paragraph',
-                  content: [
-                    {
-                      type: 'text',
-                      text: 'View in browser',
-                      marks: [
-                        {
-                          type: 'font',
-                          attrs: {
-                            'font-size': fontSize,
-                            'text-decoration': 'underline',
-                            color: textColor,
-                          },
-                        },
-                        {
-                          type: 'link',
-                          attrs: {
-                            href: '[Link:WebBrowser]',
-                            target: '_blank',
-                            'no-tracked': 'true',
-                          },
-                        },
-                      ],
-                    },
-                    { type: 'text', text: ' ' },
-                    {
-                      type: 'text',
-                      text: '|',
-                      marks: [
-                        { type: 'font', attrs: { 'font-size': fontSize, color: textColor } },
-                      ],
-                    },
-                    { type: 'text', text: ' ' },
-                    {
-                      type: 'text',
-                      text: 'Unsubscribe',
-                      marks: [
-                        {
-                          type: 'font',
-                          attrs: {
-                            'font-size': fontSize,
-                            'text-decoration': 'underline',
-                            color: textColor,
-                          },
-                        },
-                        {
-                          type: 'link',
-                          attrs: {
-                            href: '[Link:Unsubscribe]',
-                            target: '_blank',
-                            'no-tracked': 'true',
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          },
-          {
-            tagName: 'rc-text',
-            id: genId(),
-            attributes: {
-              align: 'center',
-              padding: '10px 0px 0px 0px',
-              'font-family': "'Helvetica', sans-serif",
-              'font-style': 'normal',
-              'line-height': '120%',
-              'letter-spacing': '0em',
-              color: textColor,
-              'font-weight': '400',
-              'text-decoration': 'none',
-              'font-size': fontSize,
-            },
-            content: {
-              type: 'doc',
-              content: [
-                { type: 'paragraph', content: [{ type: 'text', text: 'Certified by Rule' }] },
-              ],
-            },
-          },
-        ],
-      },
-    ],
-  } as RcmlBodyChild;
-}
+type V2SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
 
 /**
- * Build a fully themed RCML document for the default "here is your brand,
- * here is a placeholder content section" flow. Called from both
- * `createAutomationEmail` and `createCampaignEmail` when the caller provides
- * a `brandStyleId` (and therefore no explicit `template`).
- *
- * Pipeline:
- *   brand style → `emailThemeFromBrandStyle` → `EmailTheme`
- *   skeleton doc (logo/content/footer body) + preview head if preheader
- *   `applyTheme(skeleton, theme)` → returns the decorated document
- */
-function buildDefaultBrandedTemplate(
-  brandStyle: RuleBrandStyle,
-  options: { preheader?: string; sections?: readonly RcmlBodyChild[] } = {}
-): RcmlDocument {
-  const theme = emailThemeFromBrandStyle(brandStyle);
-  const logoUrl = theme.images.logo?.url;
-  const userSections = options.sections ?? [];
-  const bodyChildren: RcmlBodyChild[] = [
-    ...(logoUrl ? [buildLogoSection(logoUrl)] : []),
-    ...(userSections.length > 0 ? userSections : [buildDefaultContentSection()]),
-    buildFooterSection(),
-  ];
-
-  const head: RcmlHead = {
-    tagName: 'rc-head',
-    id: genId(),
-    children: options.preheader
-      ? [{ tagName: 'rc-preview', id: genId(), content: options.preheader }]
-      : [],
-  };
-
-  const baseDoc: RcmlDocument = {
-    tagName: 'rcml',
-    id: genId(),
-    children: [
-      head,
-      { tagName: 'rc-body', id: genId(), children: bodyChildren },
-    ],
-  };
-
-  return applyTheme(baseDoc, theme);
-}
-
-/** Scalar query-param value. */
-type QueryParamValue = string | number | boolean | null | undefined;
-
-/** Query-param bag accepted by `buildQueryString`. Array values emit one entry per element. */
-type QueryParamValues = Record<string, QueryParamValue | QueryParamValue[]>;
-
-/**
- * Rule.io API Client
- *
- * Provides methods for interacting with Rule.io's v2 and v3 APIs.
+ * Rule.io API Client.
  *
  * @example
  * ```typescript
- * const client = new RuleClient({ apiKey: 'your-api-key' });
+ * const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
  *
- * // Sync a subscriber
- * await client.syncSubscriber({
- *   email: 'customer@example.com',
- *   fields: { FirstName: 'Anna' },
- *   tags: ['OrderCompleted'],
- * });
+ * // Namespaced (recommended) API:
+ * await client.subscribers.create({ email: 'a@b.c', status: 'ACTIVE' });
+ * await client.automations.list({ active: true });
+ * await client.brandStyles.get(42);
+ * await client.recipients.segments.list();
  *
- * // Add tags with automation trigger
- * await client.addSubscriberTags('customer@example.com', ['accommodation'], 'force');
+ * // Flat API (deprecated, kept for back-compat):
+ * await client.createAutomation({ name: 'Welcome' });
+ * await client.syncSubscriber({ email: 'a@b.c', tags: ['Newsletter'] }, 'Booking');
  * ```
  */
-
-function parseNextPage(nextUrl: string | null): number | null {
-  if (!nextUrl) return null;
-
-  try {
-    const pageStr = new URL(nextUrl).searchParams.get('page');
-
-    if (!pageStr) return null;
-    const page = Number.parseInt(pageStr, 10);
-
-    return Number.isFinite(page) && page > 0 ? page : null;
-  } catch {
-    return null;
-  }
-}
-
-export class RuleClient {
-  private config: Required<RuleClientConfig>;
+export class RuleClient extends BaseResource {
+  private readonly resolvedConfig: ResolvedClientConfig;
 
   constructor(config: RuleClientConfig | string) {
-    // Support simple string constructor for backwards compatibility
-    if (typeof config === 'string') {
-      this.config = {
-        apiKey: config,
-        baseUrlV2: RULE_API_V2_BASE_URL,
-        baseUrlV3: RULE_API_V3_BASE_URL,
-        fetch: globalThis.fetch,
-        debug: false,
-        fieldGroupPrefix: 'Booking',
-      };
-    } else {
-      this.config = {
-        apiKey: config.apiKey,
-        baseUrlV2: config.baseUrlV2 ?? RULE_API_V2_BASE_URL,
-        baseUrlV3: config.baseUrlV3 ?? RULE_API_V3_BASE_URL,
-        fetch: config.fetch ?? globalThis.fetch,
-        debug: config.debug ?? false,
-        fieldGroupPrefix: config.fieldGroupPrefix ?? 'Booking',
-      };
-    }
+    const resolved = resolveConfig(config);
 
-    if (!this.config.apiKey) {
-      throw new RuleConfigError('API key is required');
-    }
-
-    const prefix = this.config.fieldGroupPrefix.trim();
-
-    if (!prefix) {
-      throw new RuleConfigError('fieldGroupPrefix must not be empty');
-    }
-
-    if (prefix.includes('.')) {
-      throw new RuleConfigError('fieldGroupPrefix must not contain dots');
-    }
-
-    this.config.fieldGroupPrefix = prefix;
+    super(new HttpTransport(resolved));
+    this.resolvedConfig = resolved;
   }
 
-  /**
-   * Get the API key (useful for passing to other functions)
-   */
+  /** Get the API key (useful for passing to other functions). */
   getApiKey(): string {
-    return this.config.apiKey;
+    return this.resolvedConfig.apiKey;
   }
 
-  // ==========================================================================
-  // Private Helpers
-  // ==========================================================================
+  // ── Namespaced API (lazy singletons) ───────────────────────────────────────
 
-  private getAuthHeaders(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.config.apiKey}`,
-      'Content-Type': 'application/json',
-    };
+  get subscribers(): SubscribersClient {
+    return this.lazy(
+      'subscribers',
+      () => new SubscribersClient(this.transport)
+    );
   }
 
-  private getAuthHeadersV3(): Record<string, string> {
-    return {
-      Authorization: `Bearer ${this.config.apiKey}`,
-      'Content-Type': 'application/json;charset=utf-8',
-    };
+  get tags(): TagsClient {
+    return this.lazy('tags', () => new TagsClient(this.transport));
   }
 
-  private log(...args: unknown[]): void {
-    if (this.config.debug) {
-      console.log('[RuleClient]', ...args);
-    }
+  get automations(): AutomationsClient {
+    return this.lazy('automations', () => new AutomationsClient(this.transport));
   }
 
-  private async request<T extends RuleApiResponse>(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<T> {
-    const url = `${this.config.baseUrlV2}${endpoint}`;
-
-    this.log('Request:', options.method, url);
-
-    try {
-      const response = await this.config.fetch(url, {
-        ...options,
-        headers: {
-          ...this.getAuthHeaders(),
-          ...options.headers,
-        },
-      });
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') || '60';
-
-        this.log('Rate limited. Retry after', retryAfter, 'seconds');
-        throw new RuleApiError('Rate limited by Rule.io API', 429);
-      }
-
-      if (response.status === 401) {
-        throw new RuleApiError('Invalid Rule.io API key', 401);
-      }
-
-      if (!response.ok) {
-        let message = 'Rule.io API error';
-
-        try {
-          const errorData = (await response.json()) as { error?: string; message?: string };
-
-          if (errorData?.error || errorData?.message) {
-            message = errorData.error || errorData.message || message;
-          }
-        } catch {
-          // Response body is not valid JSON
-        }
-
-        throw new RuleApiError(message, response.status);
-      }
-
-      const data = (await response.json()) as T;
-
-      this.log('Response:', data);
-
-      return data;
-    } catch (error) {
-      if (error instanceof RuleApiError) {
-        throw error;
-      }
-
-      this.log('Rule.io API request failed:', error);
-      throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
-    }
+  get messages(): MessagesClient {
+    return this.lazy('messages', () => new MessagesClient(this.transport));
   }
 
-  private async fetchV3(endpoint: string, options: RequestInit): Promise<Response> {
-    const url = `${this.config.baseUrlV3}${endpoint}`;
-
-    this.log('Request V3:', options.method, url);
-
-    try {
-      const response = await this.config.fetch(url, {
-        ...options,
-        headers: {
-          ...this.getAuthHeadersV3(),
-          ...options.headers,
-        },
-      });
-
-      if (response.status === 429) {
-        const retryAfter = response.headers.get('Retry-After') || '60';
-
-        this.log('Rate limited. Retry after', retryAfter, 'seconds');
-        throw new RuleApiError('Rate limited by Rule.io API', 429);
-      }
-
-      if (response.status === 401) {
-        throw new RuleApiError('Invalid Rule.io API key', 401);
-      }
-
-      if (!response.ok) {
-        let message = 'Rule.io v3 API error';
-        let validationErrors: RuleValidationErrors | undefined;
-
-        try {
-          const text = await response.text();
-
-          this.log('Error response body:', text);
-
-          if (text) {
-            const errorData = JSON.parse(text) as {
-              error?: string;
-              message?: string;
-              errors?: Record<string, unknown>;
-            };
-
-            // Extract field-level validation errors (e.g. { errors: { field: ["msg"] } })
-            if (
-              errorData?.errors &&
-              typeof errorData.errors === 'object' &&
-              !Array.isArray(errorData.errors)
-            ) {
-              // Normalize each field value into string[] to satisfy RuleValidationErrors.
-              // The API may return a bare string instead of an array for some fields.
-              const normalized: RuleValidationErrors = {};
-
-              for (const [field, value] of Object.entries(errorData.errors)) {
-                if (Array.isArray(value)) {
-                  normalized[field] = value.map((v) => String(v));
-                } else if (typeof value === 'string') {
-                  normalized[field] = [value];
-                }
-                // Skip non-string, non-array values
-              }
-
-              validationErrors = normalized;
-
-              const fieldMessages = Object.entries(normalized)
-                .map(([field, messages]) =>
-                  messages.map((msg) => `${field}: ${msg}`).join('; ')
-                )
-                .join('; ');
-
-              if (fieldMessages) {
-                message = fieldMessages;
-              }
-            } else if (errorData?.error || errorData?.message) {
-              message = errorData.error || errorData.message || message;
-            }
-          }
-        } catch {
-          // Response body is not valid JSON
-        }
-
-        const error = new RuleApiError(message, response.status);
-
-        if (validationErrors) {
-          error.validationErrors = validationErrors;
-        }
-
-        throw error;
-      }
-
-      return response;
-    } catch (error) {
-      if (error instanceof RuleApiError) {
-        throw error;
-      }
-
-      this.log('Rule.io v3 API request failed:', error);
-      throw new RuleApiError(error instanceof Error ? error.message : 'Network error', 0);
-    }
+  get templates(): TemplatesClient {
+    return this.lazy('templates', () => new TemplatesClient(this.transport));
   }
 
-  private async requestV3<T extends RuleApiResponse>(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<T> {
-    const response = await this.fetchV3(endpoint, options);
-
-    if (response.status === 204) {
-      this.log('Response V3: 204 No Content');
-
-      return { success: true } as T;
-    }
-
-    const data = (await response.json()) as T;
-
-    this.log('Response V3:', data);
-
-    return data;
+  get dynamicSets(): DynamicSetsClient {
+    return this.lazy('dynamicSets', () => new DynamicSetsClient(this.transport));
   }
 
-  private async requestV3Text(
-    endpoint: string,
-    options: RequestInit
-  ): Promise<string> {
-    const response = await this.fetchV3(endpoint, options);
-    const text = await response.text();
-
-    this.log('Response V3 (text):', text.slice(0, 200));
-
-    return text;
+  get campaigns(): CampaignsClient {
+    return this.lazy('campaigns', () => new CampaignsClient(this.transport));
   }
 
-  private static buildQueryString(
-    params: QueryParamValues
-  ): string {
-    const pairs: string[] = [];
-
-    for (const [k, v] of Object.entries(params)) {
-      if (v === undefined || v === null) continue;
-
-      if (Array.isArray(v)) {
-        for (const item of v) {
-          if (item !== undefined && item !== null) {
-            pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(item))}`);
-          }
-        }
-      } else {
-        pairs.push(`${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`);
-      }
-    }
-
-    return pairs.length === 0 ? '' : `?${pairs.join('&')}`;
+  get suppressions(): SuppressionsClient {
+    return this.lazy('suppressions', () => new SuppressionsClient(this.transport));
   }
 
-  // ==========================================================================
-  // v2 Subscriber API
-  // ==========================================================================
+  get brandStyles(): BrandStylesClient {
+    return this.lazy('brandStyles', () => new BrandStylesClient(this.transport));
+  }
 
-  /**
-   * Create or update a subscriber in Rule.io
-   *
-   * @deprecated Use {@link createSubscriberV3} instead. v3 supports more identifier types.
-   * @param subscriber - Subscriber data including email, fields, and tags
-   * @returns API response with subscriber data
-   *
-   * @example
-   * ```typescript
-   * await client.syncSubscriber({
-   *   email: 'customer@example.com',
-   *   fields: {
-   *     FirstName: 'Anna',
-   *     OrderRef: 'ORD-456',
-   *   },
-   *   tags: ['OrderCompleted', 'Newsletter'],
-   * });
-   * ```
-   */
-  async syncSubscriber(subscriber: RuleSubscriber): Promise<RuleSubscriberResponse> {
-    // Filter out undefined/null/empty string fields
-    // Rule.io requires fields in format "Group.FieldName"
-    const prefix = this.config.fieldGroupPrefix;
+  get apiKeys(): ApiKeysClient {
+    return this.lazy('apiKeys', () => new ApiKeysClient(this.transport));
+  }
 
-    if (subscriber.fields) {
-      const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
+  get exports(): ExportsClient {
+    return this.lazy('exports', () => new ExportsClient(this.transport));
+  }
 
-      if (dottedKey) {
-        throw new RuleConfigError(
-          `Field key "${dottedKey}" contains a dot. Pass bare field names (e.g. "${dottedKey.split('.').pop()}") — the SDK adds the group prefix automatically.`
-        );
-      }
-    }
+  get analytics(): AnalyticsClient {
+    return this.lazy('analytics', () => new AnalyticsClient(this.transport));
+  }
 
-    const fields = subscriber.fields
-      ? Object.entries(subscriber.fields)
-          .filter(([, value]) => value !== undefined && value !== null && value !== '')
-          .map(([key, value]) => ({
-            key: `${prefix}.${key}`,
-            value: String(value),
-          }))
-      : [];
+  get recipients(): RecipientsClient {
+    return this.lazy('recipients', () => new RecipientsClient(this.transport));
+  }
 
-    // Rule.io API v2 requires:
-    // - tags at top level (not inside subscribers)
-    // - subscribers as an object (not an array)
-    const payload = {
-      update_on_duplicate: true,
-      tags: subscriber.tags || [],
-      subscribers: {
-        email: subscriber.email,
-        fields,
-      },
-    };
+  get customFieldData(): CustomFieldDataClient {
+    return this.lazy('customFieldData', () => new CustomFieldDataClient(this.transport));
+  }
 
-    return this.request<RuleSubscriberResponse>('/subscribers', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
+  get customField(): CustomFieldClient {
+    return this.lazy('customField', () => new CustomFieldClient(this.transport));
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Deprecated flat API — back-compat layer.
+  //
+  // Each method delegates to the corresponding namespaced client. v2-only
+  // wrappers that overlap with v3 namespace methods (e.g. `addSubscriberTags`
+  // is v2; `subscribers.addTags` is v3) keep their own thin v2 implementation
+  // so the observable HTTP behavior of the deprecated method is unchanged.
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // ── Subscribers — v2 ──────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.subscribers.sync()` instead. */
+  syncSubscriber(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleApiResponse> {
+    return this.subscribers.sync(subscriber, fieldGroupPrefix);
+  }
+
+  /** @deprecated Use `client.subscribers.getByEmail()` instead. */
+  getSubscriber(email: string): Promise<GetSubscriberV2Response | null> {
+    return this.subscribers.getByEmail(email);
+  }
+
+  /** @deprecated Use `client.subscribers.getFields()` instead. */
+  getSubscriberFields(email: string): Promise<Record<string, string | null>> {
+    return this.subscribers.getFields(email);
+  }
+
+  /** @deprecated Use `client.subscribers.getTagNames()` instead. */
+  getSubscriberTags(email: string): Promise<string[]> {
+    return this.subscribers.getTagNames(email);
   }
 
   /**
-   * Add tags to a subscriber and optionally trigger automations
+   * Add tags to a subscriber via the v2 endpoint.
    *
-   * @deprecated Use {@link addSubscriberTagsV3} instead. v3 supports more identifier types.
-   * @param email - Subscriber email address
-   * @param tags - Tags to add
-   * @param triggerAutomation - How to handle automations: 'force' (always trigger),
-   *                           'reset' (re-trigger with delay reset), or false (don't trigger)
-   *
-   * @example
-   * ```typescript
-   * // Add tags and trigger automation
-   * await client.addSubscriberTags('customer@example.com', ['OrderCompleted'], 'force');
-   *
-   * // Add tags without triggering automation
-   * await client.addSubscriberTags('customer@example.com', ['vip'], false);
-   * ```
+   * @deprecated Use `client.subscribers.addTags()` (v3) instead.
    */
-  async addSubscriberTags(
+  addSubscriberTags(
     email: string,
     tags: string[],
     triggerAutomation: 'force' | 'reset' | false = 'force'
   ): Promise<RuleApiResponse> {
     const payload: Record<string, unknown> = { tags };
 
-    if (triggerAutomation) {
-      payload.automation = triggerAutomation;
-    }
+    if (triggerAutomation) payload.automation = triggerAutomation;
 
-    return this.request<RuleApiResponse>(
+    return this.transport.post<RuleApiResponse>(
       `/subscribers/${encodeURIComponent(email)}/tags?identified_by=email`,
-      {
-        method: 'POST',
-        body: JSON.stringify(payload),
-      }
+      { version: 'v2', body: JSON.stringify(payload) }
     );
   }
 
   /**
-   * Remove tags from a subscriber
+   * Remove tags from a subscriber via the v2 endpoint (one DELETE per tag).
    *
-   * @deprecated Use {@link removeSubscriberTagV3} for single-tag removal (loop for multiple), or {@link bulkRemoveTags} for bulk operations. v3 supports more identifier types.
-   * @param email - Subscriber email address
-   * @param tags - Tags to remove
+   * @deprecated Use `client.subscribers.removeTag()` for single-tag removal,
+   * or `client.subscribers.bulkRemoveTags()` for bulk operations (both v3).
    */
-  async removeSubscriberTags(email: string, tags: string[]): Promise<RuleApiResponse> {
+  async removeSubscriberTags(
+    email: string,
+    tags: string[]
+  ): Promise<RuleApiResponse> {
     const results = await Promise.all(
       tags.map((tag) =>
-        this.request<RuleApiResponse>(
+        this.transport.delete<RuleApiResponse>(
           `/subscribers/${encodeURIComponent(email)}/tags/${encodeURIComponent(tag)}?identified_by=email`,
-          { method: 'DELETE' }
+          { version: 'v2' }
         )
       )
     );
@@ -837,2052 +315,523 @@ export class RuleClient {
   }
 
   /**
-   * Get subscriber details from Rule.io
+   * Delete a subscriber via the v2 endpoint.
    *
-   * @param email - Subscriber email address
-   * @returns Subscriber data or null if not found
+   * @deprecated Use `client.subscribers.delete()` (v3) instead.
    */
-  async getSubscriber(email: string): Promise<RuleSubscriberResponse | null> {
-    try {
-      return await this.request<RuleSubscriberResponse>(
-        `/subscribers/${encodeURIComponent(email)}?identified_by=email`,
-        { method: 'GET' }
-      );
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a subscriber from Rule.io
-   *
-   * @deprecated Use {@link deleteSubscriberV3} instead. v3 supports more identifier types.
-   * @param email - Subscriber email address
-   */
-  async deleteSubscriber(email: string): Promise<RuleApiResponse> {
-    return this.request<RuleApiResponse>(
+  deleteSubscriber(email: string): Promise<RuleApiResponse> {
+    return this.transport.delete<RuleApiResponse>(
       `/subscribers/${encodeURIComponent(email)}?identified_by=email`,
-      { method: 'DELETE' }
+      { version: 'v2' }
     );
   }
 
-  /**
-   * Get subscriber's tags from Rule.io
-   *
-   * @param email - Subscriber email address
-   * @returns Array of tag names
-   */
-  async getSubscriberTags(email: string): Promise<string[]> {
-    try {
-      const response = await this.request<RuleSubscriberTagsResponse>(
-        `/subscribers/${encodeURIComponent(email)}/tags?identified_by=email`,
-        { method: 'GET' }
-      );
+  // ── Subscribers — v3 ──────────────────────────────────────────────────────
 
-      return response.tags?.map((t) => t.name) || [];
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return [];
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.subscribers.create()` instead. */
+  createSubscriberV3(
+    subscriber: CreateSubscriberV3Request
+  ): Promise<CreateSubscriberV3Response> {
+    return this.subscribers.create(subscriber);
   }
 
-  /**
-   * Get subscriber's custom fields from Rule.io
-   *
-   * Note: Uses /subscriber/ (singular) endpoint, not /subscribers/
-   *
-   * @param email - Subscriber email address
-   * @returns Map of field keys to values (e.g., { "Group.FirstName": "Anna" })
-   */
-  async getSubscriberFields(email: string): Promise<Record<string, string | null>> {
-    try {
-      const response = await this.request<RuleSubscriberFieldsResponse>(
-        `/subscriber/${encodeURIComponent(email)}/fields?identified_by=email`,
-        { method: 'GET' }
-      );
-
-      // Flatten groups into a simple key-value map
-      const fields: Record<string, string | null> = {};
-
-      for (const group of response.groups || []) {
-        for (const field of group.fields) {
-          fields[`${group.name}.${field.name}`] = field.value;
-        }
-      }
-
-      return fields;
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return {};
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.subscribers.delete()` instead. */
+  deleteSubscriberV3(
+    subscriber: string | number,
+    identifiedBy: V2SubscriberIdentifierBy = 'email'
+  ): Promise<RuleApiResponse> {
+    return this.subscribers.delete(subscriber, identifiedBy);
   }
 
-  /**
-   * List subscribers filtered by tag intersection.
-   *
-   * Returns one page at a time. Subscribers are filtered client-side (Rule.io
-   * ignores server-side tag filters as of 2026-04), so this method requires
-   * scanning the entire list. Caller drives pagination by passing `next_page`
-   * back until it returns null.
-   *
-   * @param params - Pagination and filter parameters
-   * @returns Paginated result with matched subscribers and next page cursor
-   * @throws RuleConfigError if tag_ids is empty
-   *
-   * @example
-   * ```typescript
-   * // Collect all subscribers with tag IDs 42 AND 99
-   * const all: RuleSubscriberV2[] = [];
-   * let page: number | null = 1;
-   * while (page !== null) {
-   *   const res = await client.listSubscribersByTagIds({
-   *     tag_ids: [42, 99],
-   *     page,
-   *     limit: 500,
-   *   });
-   *   all.push(...res.subscribers);
-   *   page = res.next_page;
-   * }
-   * ```
-   */
-  async listSubscribersByTagIds(
-    params: ListSubscribersByTagIdsParams
-  ): Promise<ListSubscribersByTagIdsResult> {
-    if (!params.tag_ids || params.tag_ids.length === 0) {
-      throw new RuleConfigError('tag_ids must not be empty');
-    }
-
-    const qs = RuleClient.buildQueryString({
-      page: params.page,
-      limit: params.limit,
-    });
-    const response = await this.request<RuleSubscribersV2ListResponse>(
-      `/subscribers${qs}`,
-      { method: 'GET' }
-    );
-
-    const scanned = response.subscribers ?? [];
-    const required = params.tag_ids;
-    const matched = scanned.filter((sub) => {
-      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
-
-      return required.every((id) => subTagIds.has(id));
-    });
-
-    return {
-      subscribers: matched,
-      matched: matched.length,
-      scanned: scanned.length,
-      next_page: parseNextPage(response.meta?.next ?? null),
-    };
+  /** @deprecated Use `client.subscribers.block()` instead. */
+  blockSubscribers(
+    subscribers: RuleBulkSubscriberIdentifier[],
+    callbackUrl?: string
+  ): Promise<RuleApiResponse> {
+    return this.subscribers.block(subscribers, callbackUrl);
   }
 
-  // ==========================================================================
-  // v2 Tags API
-  // ==========================================================================
-
-  /**
-   * Get all tags from Rule.io
-   *
-   * @returns List of tags with their IDs
-   */
-  async getTags(): Promise<RuleTagsResponse> {
-    return this.request<RuleTagsResponse>('/tags', { method: 'GET' });
+  /** @deprecated Use `client.subscribers.unblock()` instead. */
+  unblockSubscribers(
+    subscribers: RuleBulkSubscriberIdentifier[],
+    callbackUrl?: string
+  ): Promise<RuleApiResponse> {
+    return this.subscribers.unblock(subscribers, callbackUrl);
   }
 
-  /**
-   * Get a tag ID by name
-   *
-   * @param name - Tag name (e.g., "order-confirmed")
-   * @returns Tag ID or null if not found
-   */
+  /** @deprecated Use `client.subscribers.bulkAddTags()` instead. */
+  bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+    return this.subscribers.bulkAddTags(request);
+  }
+
+  /** @deprecated Use `client.subscribers.bulkRemoveTags()` instead. */
+  bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+    return this.subscribers.bulkRemoveTags(request);
+  }
+
+  /** @deprecated Use `client.subscribers.addTags()` instead. */
+  addSubscriberTagsV3(
+    subscriber: string | number,
+    request: RuleSubscriberTagsV3Request,
+    identifiedBy: V2SubscriberIdentifierBy = 'email'
+  ): Promise<RuleApiResponse> {
+    return this.subscribers.addTags(subscriber, request, identifiedBy);
+  }
+
+  /** @deprecated Use `client.subscribers.removeTag()` instead. */
+  removeSubscriberTagV3(
+    subscriber: string | number,
+    tag: string | number,
+    identifiedBy: V2SubscriberIdentifierBy = 'email'
+  ): Promise<RuleApiResponse> {
+    return this.subscribers.removeTag(subscriber, tag, identifiedBy);
+  }
+
+  // ── Tags ──────────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.tags.list()` instead. */
+  getTags(): Promise<RuleTagsResponse> {
+    return this.tags.list();
+  }
+
+  /** @deprecated Use `client.tags.getByName()` instead. */
   async getTagIdByName(name: string): Promise<number | null> {
-    const response = await this.getTags();
-    const tag = response.tags?.find((t) => t.name === name);
+    const tag = await this.tags.getByName(name);
 
     return tag?.id ?? null;
   }
 
-  // ==========================================================================
-  // v3 Editor API - Automation (formerly "Automail")
-  // ==========================================================================
+  // ── Automations (incl. legacy `Automail` aliases) ─────────────────────────
 
-  /**
-   * Create an automation workflow in Rule.io.
-   * Trigger and sendout_type can be set directly on creation.
-   *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Automail/operation/AutomailCreate
-   */
-  async createAutomation(automation: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
-    return this.requestV3<RuleAutomationResponse>('/editor/automail', {
-      method: 'POST',
-      body: JSON.stringify(automation),
-    });
+  /** @deprecated Use `client.automations.create()` instead. */
+  createAutomation(req: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
+    return this.automations.create(req);
   }
 
-  /**
-   * Get an automation by ID.
-   */
-  async getAutomation(id: number): Promise<RuleAutomationResponse | null> {
-    try {
-      return await this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.automations.get()` instead. */
+  getAutomation(id: number): Promise<RuleAutomationResponse | null> {
+    return this.automations.get(id);
   }
 
-  /**
-   * Update an automation. Accepts a partial input — any field omitted is
-   * preserved from the current automation.
-   *
-   * IMPORTANT: Rule.io's `PUT /editor/automail/{id}` rejects partial bodies —
-   * it requires `name`, `active`, `trigger`, and `sendout_type` together.
-   * This method performs read-modify-write internally so callers can pass only
-   * the fields they want to change. When the input already includes all four
-   * required fields, the GET is skipped and the PUT runs directly.
-   *
-   * IMPORTANT: The trigger.type must be uppercase ("TAG" or "SEGMENT").
-   * The API error messages incorrectly suggest lowercase, but uppercase is required.
-   *
-   * @param id - Automation ID
-   * @param update - Partial update request (all fields optional)
-   * @throws RuleApiError(404) if no automation exists with the given id
-   * @throws RuleConfigError if the existing automation lacks `trigger`,
-   *   `sendout_type`, or `active` and the update does not provide one (the
-   *   PUT body would be incomplete and the API would reject it)
-   *
-   * @example
-   * ```typescript
-   * // Partial update — only change the name
-   * await client.updateAutomation(123, { name: 'New Name' });
-   *
-   * // Full update
-   * await client.updateAutomation(123, {
-   *   name: 'New Name',
-   *   active: true,
-   *   trigger: { type: 'TAG', id: 42 },
-   *   sendout_type: 2,
-   * });
-   * ```
-   */
-  async updateAutomation(
+  /** @deprecated Use `client.automations.update()` instead. */
+  updateAutomation(
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
-    // Coerce sendout_type to its numeric request form, accepting either the
-    // numeric value or the response wrapper `{ value, key, description }`.
-    // A consumer round-tripping a getAutomation() response into update can
-    // legitimately pass the object form; both paths must handle it.
-    const toNumericSendout = (
-      v: unknown
-    ): RuleSendoutType | undefined => {
-      if (typeof v === 'number') return v as RuleSendoutType;
-
-      if (v != null && typeof v === 'object' && 'value' in v) {
-        const val = (v as { value: unknown }).value;
-
-        if (typeof val === 'number') return val as RuleSendoutType;
-      }
-
-      return undefined;
-    };
-
-    const updateSendout = toNumericSendout(update.sendout_type);
-
-    // Fast path: when the caller already supplies every field the API requires,
-    // skip the read and PUT directly. Saves one round-trip for full-body
-    // updates like clone-email and the deploy CLIs once they pass full bodies.
-    // Guard with `!= null` (not `!== undefined`) so a JS caller passing
-    // `{ trigger: null }` falls through to the slow path's nullish handling
-    // instead of sending a `null` field straight to the API. `sendout_type`
-    // accepts either form (number or response-wrapper object) — it was
-    // coerced to a number by `toNumericSendout` above, and the coerced
-    // value is what we PUT.
-    if (
-      update.name != null &&
-      update.active != null &&
-      update.trigger != null &&
-      updateSendout != null
-    ) {
-      return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          name: update.name,
-          active: update.active,
-          trigger: update.trigger,
-          sendout_type: updateSendout,
-        }),
-      });
-    }
-
-    const existing = await this.getAutomation(id);
-
-    // getAutomation() returns null only on HTTP 404 — anything else with
-    // missing `data` is a malformed/error envelope on a 2xx response, and
-    // we should surface that distinctly instead of remapping to 404.
-    if (existing === null) {
-      throw new RuleApiError(`Automation ${id} not found`, 404);
-    }
-
-    if (!existing.data) {
-      const detail = existing.error ?? existing.message ?? 'response had no data';
-
-      throw new RuleApiError(
-        `Cannot update automation ${id}: unexpected response from getAutomation (${detail})`,
-        500
-      );
-    }
-
-    const current = existing.data;
-
-    const currentSendout = toNumericSendout(current.sendout_type);
-
-    const trigger = update.trigger ?? current.trigger;
-    const sendoutType = updateSendout ?? currentSendout;
-    // Don't fall back to a boolean default for `active` — the API requires it
-    // in the PUT body, and silently defaulting to `false` could deactivate an
-    // automation when the caller only meant to rename it.
-    const active = update.active ?? current.active;
-
-    if (!trigger) {
-      throw new RuleConfigError(
-        `Cannot update automation ${id}: existing record has no trigger and update did not provide one`
-      );
-    }
-
-    if (sendoutType == null) {
-      throw new RuleConfigError(
-        `Cannot update automation ${id}: existing record has no sendout_type and update did not provide one`
-      );
-    }
-
-    if (active == null) {
-      throw new RuleConfigError(
-        `Cannot update automation ${id}: existing record has no active state and update did not provide one`
-      );
-    }
-
-    const fullBody: RuleAutomationUpdateRequest = {
-      name: update.name ?? current.name,
-      active,
-      trigger,
-      sendout_type: sendoutType,
-    };
-
-    return this.requestV3<RuleAutomationResponse>(`/editor/automail/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(fullBody),
-    });
+    return this.automations.update(id, update);
   }
 
-  /**
-   * Delete an automation.
-   */
-  async deleteAutomation(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/automail/${id}`, {
-      method: 'DELETE',
-    });
+  /** @deprecated Use `client.automations.delete()` instead. */
+  deleteAutomation(id: number): Promise<RuleApiResponse> {
+    return this.automations.delete(id);
   }
 
-  /**
-   * List automations with optional filtering and pagination.
-   *
-   * @param params - Optional query parameters for filtering and pagination
-   * @returns List of automations
-   *
-   * @example
-   * ```typescript
-   * // List all automations
-   * const all = await client.listAutomations();
-   *
-   * // List active email automations, page 2
-   * const filtered = await client.listAutomations({
-   *   active: true,
-   *   message_type: 1,
-   *   page: 2,
-   *   per_page: 20,
-   * });
-   * ```
-   */
-  async listAutomations(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
-    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
-
-    return this.requestV3<RuleAutomationListResponse>(`/editor/automail${qs}`, {
-      method: 'GET',
-    });
+  /** @deprecated Use `client.automations.list()` instead. */
+  listAutomations(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
+    return this.automations.list(params);
   }
 
-  // --- Deprecated aliases (backward compatibility) ---
-
-  /**
-   * @deprecated Use {@link createAutomation} instead.
-   */
-  async createAutomail(automail: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
-    return this.createAutomation(automail);
+  /** @deprecated Use `client.automations.create()` instead. */
+  createAutomail(req: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
+    return this.automations.create(req);
   }
 
-  /**
-   * @deprecated Use {@link getAutomation} instead.
-   */
-  async getAutomail(id: number): Promise<RuleAutomationResponse | null> {
-    return this.getAutomation(id);
+  /** @deprecated Use `client.automations.get()` instead. */
+  getAutomail(id: number): Promise<RuleAutomationResponse | null> {
+    return this.automations.get(id);
   }
 
-  /**
-   * @deprecated Use {@link updateAutomation} instead.
-   */
-  async updateAutomail(
+  /** @deprecated Use `client.automations.update()` instead. */
+  updateAutomail(
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
-    return this.updateAutomation(id, update);
+    return this.automations.update(id, update);
   }
 
-  /**
-   * @deprecated Use {@link deleteAutomation} instead.
-   */
-  async deleteAutomail(id: number): Promise<RuleApiResponse> {
-    return this.deleteAutomation(id);
+  /** @deprecated Use `client.automations.delete()` instead. */
+  deleteAutomail(id: number): Promise<RuleApiResponse> {
+    return this.automations.delete(id);
   }
 
-  /**
-   * @deprecated Use {@link listAutomations} instead.
-   */
-  async listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
-    return this.listAutomations(params);
+  /** @deprecated Use `client.automations.list()` instead. */
+  listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
+    return this.automations.list(params);
   }
 
-  // ==========================================================================
-  // v3 Editor API - Message
-  // ==========================================================================
+  // ── Messages ──────────────────────────────────────────────────────────────
 
-  /**
-   * Create a message for an automation
-   *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Message
-   */
-  async createMessage(message: RuleMessageCreateRequest): Promise<RuleMessageResponse> {
-    return this.requestV3<RuleMessageResponse>('/editor/message', {
-      method: 'POST',
-      body: JSON.stringify(message),
-    });
+  /** @deprecated Use `client.messages.create()` instead. */
+  createMessage(req: RuleMessageCreateRequest): Promise<RuleMessageResponse> {
+    return this.messages.create(req);
   }
 
-  /**
-   * Get a message by ID
-   */
-  async getMessage(id: number): Promise<RuleMessageResponse | null> {
-    try {
-      return await this.requestV3<RuleMessageResponse>(`/editor/message/${id}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.messages.get()` instead. */
+  getMessage(id: number): Promise<RuleMessageResponse | null> {
+    return this.messages.get(id);
   }
 
-  /**
-   * Update a message
-   */
-  async updateMessage(
+  /** @deprecated Use `client.messages.update()` instead. */
+  updateMessage(
     id: number,
     message: Partial<RuleMessageCreateRequest>
   ): Promise<RuleMessageResponse> {
-    return this.requestV3<RuleMessageResponse>(`/editor/message/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(message),
-    });
+    return this.messages.update(id, message);
   }
 
-  /**
-   * Delete a message
-   */
-  async deleteMessage(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/message/${id}`, {
-      method: 'DELETE',
-    });
+  /** @deprecated Use `client.messages.delete()` instead. */
+  deleteMessage(id: number): Promise<RuleApiResponse> {
+    return this.messages.delete(id);
   }
 
-  /**
-   * List messages for a dispatcher (automail or campaign).
-   *
-   * Both `id` and `dispatcher_type` are required by the API.
-   *
-   * @param params - Dispatcher ID and type
-   * @returns List of messages for the dispatcher
-   *
-   * @example
-   * ```typescript
-   * const messages = await client.listMessages({
-   *   id: 123,
-   *   dispatcher_type: 'automail',
-   * });
-   * ```
-   */
-  async listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
-    const qs = RuleClient.buildQueryString({ ...params });
-
-    return this.requestV3<RuleMessageListResponse>(`/editor/message${qs}`, {
-      method: 'GET',
-    });
+  /** @deprecated Use `client.messages.list()` instead. */
+  listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
+    return this.messages.list(params);
   }
 
-  // ==========================================================================
-  // v3 Editor API - Template
-  // ==========================================================================
+  // ── Templates ─────────────────────────────────────────────────────────────
 
-  /**
-   * Create a template with RCML content
-   *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Template
-   */
-  async createTemplate(template: RuleTemplateCreateRequest): Promise<RuleTemplateResponse> {
-    return this.requestV3<RuleTemplateResponse>('/editor/template', {
-      method: 'POST',
-      body: JSON.stringify(template),
-    });
+  /** @deprecated Use `client.templates.create()` instead. */
+  createTemplate(req: RuleTemplateCreateRequest): Promise<RuleTemplateResponse> {
+    return this.templates.create(req);
   }
 
-  /**
-   * Get a template by ID
-   */
-  async getTemplate(id: number): Promise<RuleTemplateResponse | null> {
-    try {
-      return await this.requestV3<RuleTemplateResponse>(`/editor/template/${id}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.templates.get()` instead. */
+  getTemplate(id: number): Promise<RuleTemplateResponse | null> {
+    return this.templates.get(id);
   }
 
-  /**
-   * Update a template
-   */
-  async updateTemplate(
+  /** @deprecated Use `client.templates.update()` instead. */
+  updateTemplate(
     id: number,
     template: Partial<RuleTemplateCreateRequest>
   ): Promise<RuleTemplateResponse> {
-    return this.requestV3<RuleTemplateResponse>(`/editor/template/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(template),
-    });
+    return this.templates.update(id, template);
   }
 
-  /**
-   * Delete a template
-   */
-  async deleteTemplate(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/template/${id}`, {
-      method: 'DELETE',
-    });
+  /** @deprecated Use `client.templates.delete()` instead. */
+  deleteTemplate(id: number): Promise<RuleApiResponse> {
+    return this.templates.delete(id);
   }
 
-  /**
-   * List templates with optional pagination.
-   *
-   * @param params - Optional pagination parameters
-   * @returns List of templates
-   *
-   * @example
-   * ```typescript
-   * const templates = await client.listTemplates({ page: 1, per_page: 50 });
-   * ```
-   */
-  async listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
-    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
-
-    return this.requestV3<RuleTemplateListResponse>(`/editor/template${qs}`, {
-      method: 'GET',
-    });
+  /** @deprecated Use `client.templates.list()` instead. */
+  listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
+    return this.templates.list(params);
   }
 
-  /**
-   * Render a template to HTML.
-   *
-   * Optionally pass a subscriber_id to substitute merge tags with the subscriber's
-   * field values (e.g., `{{Booking.FirstName}}` becomes their actual name).
-   *
-   * @param id - Template ID
-   * @param params - Optional parameters (subscriber_id for merge tag substitution)
-   * @returns Rendered HTML string, or null if the template is not found
-   *
-   * @example
-   * ```typescript
-   * const html = await client.renderTemplate(42);
-   *
-   * // With subscriber data for merge tag substitution
-   * const personalized = await client.renderTemplate(42, { subscriber_id: 1001 });
-   * ```
-   */
-  async renderTemplate(
+  /** @deprecated Use `client.templates.render()` instead. */
+  renderTemplate(
     id: number,
     params?: RuleRenderTemplateParams
   ): Promise<string | null> {
-    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
-
-    try {
-      return await this.requestV3Text(`/editor/template/${id}/render${qs}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+    return this.templates.render(id, params);
   }
 
-  // ==========================================================================
-  // v3 Editor API - Dynamic Set
-  // ==========================================================================
+  // ── Dynamic sets ──────────────────────────────────────────────────────────
 
-  /**
-   * Create a dynamic set to connect a message with a template
-   *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Dynamic-Set
-   */
-  async createDynamicSet(dynamicSet: RuleDynamicSetCreateRequest): Promise<RuleDynamicSetResponse> {
-    return this.requestV3<RuleDynamicSetResponse>('/editor/dynamic-set', {
-      method: 'POST',
-      body: JSON.stringify(dynamicSet),
-    });
+  /** @deprecated Use `client.dynamicSets.create()` instead. */
+  createDynamicSet(req: RuleDynamicSetCreateRequest): Promise<RuleDynamicSetResponse> {
+    return this.dynamicSets.create(req);
   }
 
-  /**
-   * Get a dynamic set by ID
-   */
-  async getDynamicSet(id: number): Promise<RuleDynamicSetResponse | null> {
-    try {
-      return await this.requestV3<RuleDynamicSetResponse>(`/editor/dynamic-set/${id}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+  /** @deprecated Use `client.dynamicSets.get()` instead. */
+  getDynamicSet(id: number): Promise<RuleDynamicSetResponse | null> {
+    return this.dynamicSets.get(id);
   }
 
-  /**
-   * Delete a dynamic set
-   */
-  async deleteDynamicSet(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/dynamic-set/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * List dynamic sets for a message.
-   *
-   * The `message_id` is required — the API returns all dynamic sets for that message.
-   *
-   * @param params - Query parameters with required message_id
-   * @returns List of dynamic sets
-   *
-   * @example
-   * ```typescript
-   * const sets = await client.listDynamicSets({ message_id: 456 });
-   * ```
-   */
-  async listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
-    const qs = RuleClient.buildQueryString({ ...params });
-
-    return this.requestV3<RuleDynamicSetListResponse>(`/editor/dynamic-set${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Update a dynamic set.
-   *
-   * Note: If a duplicate active dynamic set with the same trigger already exists
-   * and this one has `active: true`, the API may automatically deactivate it.
-   *
-   * @param id - Dynamic set ID
-   * @param update - Update request body
-   * @returns Updated dynamic set
-   *
-   * @example
-   * ```typescript
-   * await client.updateDynamicSet(789, {
-   *   message_id: 456,
-   *   template_id: 101,
-   *   active: true,
-   * });
-   * ```
-   */
-  async updateDynamicSet(
+  /** @deprecated Use `client.dynamicSets.update()` instead. */
+  updateDynamicSet(
     id: number,
     update: RuleDynamicSetUpdateRequest
   ): Promise<RuleDynamicSetResponse> {
-    return this.requestV3<RuleDynamicSetResponse>(`/editor/dynamic-set/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(update),
-    });
+    return this.dynamicSets.update(id, update);
   }
 
-  // ==========================================================================
-  // v3 Custom Field Data API (Deprecated)
-  // ==========================================================================
+  /** @deprecated Use `client.dynamicSets.delete()` instead. */
+  deleteDynamicSet(id: number): Promise<RuleApiResponse> {
+    return this.dynamicSets.delete(id);
+  }
 
-  /**
-   * Get custom field data for a subscriber.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param params - Optional pagination and group filters
-   * @returns Custom field data records for the subscriber
-   *
-   * @example
-   * ```typescript
-   * const data = await client.getCustomFieldData(42);
-   * const filtered = await client.getCustomFieldData(42, {
-   *   page: 1,
-   *   per_page: 10,
-   *   groups_id: [1, 2],
-   * });
-   * ```
-   */
-  async getCustomFieldData(
+  /** @deprecated Use `client.dynamicSets.list()` instead. */
+  listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
+    return this.dynamicSets.list(params);
+  }
+
+  // ── Campaigns ─────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.campaigns.list()` instead. */
+  listCampaigns(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
+    return this.campaigns.list(params);
+  }
+
+  /** @deprecated Use `client.campaigns.create()` instead. */
+  createCampaign(req: RuleCampaignCreateRequest): Promise<RuleCampaignResponse> {
+    return this.campaigns.create(req);
+  }
+
+  /** @deprecated Use `client.campaigns.get()` instead. */
+  getCampaign(id: number): Promise<RuleCampaignResponse | null> {
+    return this.campaigns.get(id);
+  }
+
+  /** @deprecated Use `client.campaigns.update()` instead. */
+  updateCampaign(
+    id: number,
+    update: Partial<RuleCampaignUpdateRequest>
+  ): Promise<RuleCampaignResponse> {
+    return this.campaigns.update(id, update);
+  }
+
+  /** @deprecated Use `client.campaigns.delete()` instead. */
+  deleteCampaign(id: number): Promise<RuleApiResponse> {
+    return this.campaigns.delete(id);
+  }
+
+  /** @deprecated Use `client.campaigns.copy()` instead. */
+  copyCampaign(id: number): Promise<RuleCampaignResponse> {
+    return this.campaigns.copy(id);
+  }
+
+  /** @deprecated Use `client.campaigns.schedule()` instead. */
+  scheduleCampaign(
+    id: number,
+    schedule: RuleCampaignScheduleRequest
+  ): Promise<RuleApiResponse> {
+    return this.campaigns.schedule(id, schedule);
+  }
+
+  // ── Suppressions ──────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.suppressions.create()` instead. */
+  createSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
+    return this.suppressions.create(request);
+  }
+
+  /** @deprecated Use `client.suppressions.delete()` instead. */
+  deleteSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
+    return this.suppressions.delete(request);
+  }
+
+  // ── Brand styles ──────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.brandStyles.list()` instead. */
+  listBrandStyles(): Promise<RuleBrandStyleListResponse> {
+    return this.brandStyles.list();
+  }
+
+  /** @deprecated Use `client.brandStyles.get()` instead. */
+  getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null> {
+    return this.brandStyles.get(brandStyleId);
+  }
+
+  /** @deprecated Use `client.brandStyles.createFromDomain()` instead. */
+  createBrandStyleFromDomain(
+    request: RuleBrandStyleFromDomainRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.brandStyles.createFromDomain(request);
+  }
+
+  /** @deprecated Use `client.brandStyles.createManually()` instead. */
+  createBrandStyleManually(
+    request: RuleBrandStyleCreateRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.brandStyles.createManually(request);
+  }
+
+  /** @deprecated Use `client.brandStyles.update()` instead. */
+  updateBrandStyle(
+    brandStyleId: number,
+    request: RuleBrandStyleUpdateRequest
+  ): Promise<RuleBrandStyleResponse> {
+    return this.brandStyles.update(brandStyleId, request);
+  }
+
+  /** @deprecated Use `client.brandStyles.delete()` instead. */
+  deleteBrandStyle(brandStyleId: number): Promise<RuleApiResponse> {
+    return this.brandStyles.delete(brandStyleId);
+  }
+
+  // ── API keys ──────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.apiKeys.list()` instead. */
+  listApiKeys(): Promise<RuleApiKeyListResponse> {
+    return this.apiKeys.list();
+  }
+
+  /** @deprecated Use `client.apiKeys.create()` instead. */
+  createApiKey(request: RuleApiKeyCreateRequest): Promise<RuleApiKeyResponse> {
+    return this.apiKeys.create(request);
+  }
+
+  /** @deprecated Use `client.apiKeys.update()` instead. */
+  updateApiKey(
+    apiKeyId: number,
+    request: RuleApiKeyUpdateRequest
+  ): Promise<RuleApiKeyResponse> {
+    return this.apiKeys.update(apiKeyId, request);
+  }
+
+  /** @deprecated Use `client.apiKeys.delete()` instead. */
+  deleteApiKey(apiKeyId: number): Promise<RuleApiResponse> {
+    return this.apiKeys.delete(apiKeyId);
+  }
+
+  // ── Exports ───────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.exports.dispatchers()` instead. */
+  exportDispatchers(
+    params: RuleExportDispatcherParams
+  ): Promise<RuleExportDispatcherResponse> {
+    return this.exports.dispatchers(params);
+  }
+
+  /** @deprecated Use `client.exports.statistics()` instead. */
+  exportStatistics(
+    params: RuleExportStatisticsParams
+  ): Promise<RuleExportStatisticsResponse> {
+    return this.exports.statistics(params);
+  }
+
+  /** @deprecated Use `client.exports.subscribers()` instead. */
+  exportSubscribers(
+    params: RuleExportSubscriberParams
+  ): Promise<RuleExportSubscriberResponse> {
+    return this.exports.subscribers(params);
+  }
+
+  // ── Analytics ─────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.analytics.get()` instead. */
+  getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
+    return this.analytics.get(params);
+  }
+
+  // ── Recipients ────────────────────────────────────────────────────────────
+
+  /** @deprecated Use `client.recipients.segments.list()` instead. */
+  listSegments(params?: RuleRecipientsListParams): Promise<RuleSegmentListResponse> {
+    return this.recipients.segments.list(params);
+  }
+
+  /** @deprecated Use `client.recipients.subscribers.list()` instead. */
+  listRecipientSubscribers(
+    params?: RuleRecipientsListParams
+  ): Promise<RuleRecipientSubscriberListResponse> {
+    return this.recipients.subscribers.list(params);
+  }
+
+  /** @deprecated Use `client.recipients.tags.list()` instead. */
+  listRecipientTags(
+    params?: RuleRecipientsListParams
+  ): Promise<RuleRecipientTagListResponse> {
+    return this.recipients.tags.list(params);
+  }
+
+  // ── Custom field data (deprecated by Rule.io) ─────────────────────────────
+
+  /** @deprecated Use `client.customFieldData.list()` instead. */
+  getCustomFieldData(
     subscriberId: number,
     params?: RuleCustomFieldDataListParams
   ): Promise<RuleCustomFieldDataResponse> {
-    const qs = params
-      ? RuleClient.buildQueryString({
-          page: params.page,
-          per_page: params.per_page,
-          'groups_id[]': params.groups_id,
-          'groups_name[]': params.groups_name,
-        })
-      : '';
-
-    return this.requestV3<RuleCustomFieldDataResponse>(
-      `/custom-field-data/${subscriberId}${qs}`,
-      { method: 'GET' }
-    );
+    return this.customFieldData.list(subscriberId, params);
   }
 
-  /**
-   * Create custom field data for a subscriber.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param request - The field data to create, grouped by field group
-   * @returns API response (201 on success)
-   *
-   * @example
-   * ```typescript
-   * await client.createCustomFieldData(42, {
-   *   groups: [{
-   *     group: 'Order',
-   *     create_if_not_exists: true,
-   *     values: [{ field: 'Ref', create_if_not_exists: true, value: 'ORD-123' }],
-   *   }],
-   * });
-   * ```
-   */
-  async createCustomFieldData(
+  /** @deprecated Use `client.customFieldData.create()` instead. */
+  createCustomFieldData(
     subscriberId: number,
-    request: RuleCustomFieldDataCreateRequest
+    request: CreateCustomFieldDataRequestBody
   ): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(
-      `/custom-field-data/${subscriberId}`,
-      { method: 'POST', body: JSON.stringify(request) }
-    );
+    return this.customFieldData.create(subscriberId, request);
   }
 
-  /**
-   * Update custom field data for a subscriber.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param request - The identifier for the record to update and new values
-   * @returns API response (204 on success)
-   *
-   * @example
-   * ```typescript
-   * await client.updateCustomFieldData(42, {
-   *   identifier: { group: 'Order', field: 'Ref', value: 'ORD-123' },
-   *   values: [{ field: 'Status', value: 'shipped' }],
-   * });
-   * ```
-   */
-  async updateCustomFieldData(
+  /** @deprecated Use `client.customFieldData.update()` instead. */
+  updateCustomFieldData(
     subscriberId: number,
     request: RuleCustomFieldDataUpdateRequest
   ): Promise<RuleApiResponse> {
-    await this.fetchV3(`/custom-field-data/${subscriberId}`, {
-      method: 'PUT',
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
+    return this.customFieldData.update(subscriberId, request);
   }
 
-  /**
-   * Get custom field data for a subscriber filtered by group.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param group - Group ID (number) or group name (string)
-   * @param params - Optional pagination and field filters
-   * @returns Custom field data records in the specified group
-   *
-   * @example
-   * ```typescript
-   * const data = await client.getCustomFieldDataByGroup(42, 'Order');
-   * const byId = await client.getCustomFieldDataByGroup(42, 5, {
-   *   page: 1,
-   *   per_page: 10,
-   *   fields: ['Ref', 'Status'],
-   * });
-   * ```
-   */
-  async getCustomFieldDataByGroup(
+  /** @deprecated Use `client.customFieldData.listByGroup()` instead. */
+  getCustomFieldDataByGroup(
     subscriberId: number,
     group: number | string,
     params?: RuleCustomFieldDataGroupParams
   ): Promise<RuleCustomFieldDataResponse> {
-    const qs = params
-      ? RuleClient.buildQueryString({
-          page: params.page,
-          per_page: params.per_page,
-          'fields[]': params.fields,
-        })
-      : '';
-
-    return this.requestV3<RuleCustomFieldDataResponse>(
-      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`,
-      { method: 'GET' }
-    );
+    return this.customFieldData.listByGroup(subscriberId, group, params);
   }
 
-  /**
-   * Delete all custom field data for a subscriber in a specific group.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param group - Group ID (number) or group name (string)
-   * @returns API response
-   *
-   * @example
-   * ```typescript
-   * await client.deleteCustomFieldDataByGroup(42, 'Order');
-   * await client.deleteCustomFieldDataByGroup(42, 5);
-   * ```
-   */
-  async deleteCustomFieldDataByGroup(
+  /** @deprecated Use `client.customFieldData.deleteByGroup()` instead. */
+  deleteCustomFieldDataByGroup(
     subscriberId: number,
     group: number | string
   ): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(
-      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}`,
-      { method: 'DELETE' }
-    );
+    return this.customFieldData.deleteByGroup(subscriberId, group);
   }
 
-  /**
-   * Search custom field data for a subscriber by identifier.
-   *
-   * @deprecated Custom Field Data API is deprecated by Rule.io.
-   * @param subscriberId - The subscriber's numeric ID
-   * @param params - Search parameters (data_id, group, field, value)
-   * @returns A single matching record, or null if not found
-   *
-   * @example
-   * ```typescript
-   * const record = await client.searchCustomFieldData(42, {
-   *   group: 'Order',
-   *   field: 'Ref',
-   *   value: 'ORD-123',
-   * });
-   * if (record) {
-   *   console.log(record.data?.values);
-   * }
-   * ```
-   */
-  async searchCustomFieldData(
+  /** @deprecated Use `client.customFieldData.search()` instead. */
+  searchCustomFieldData(
     subscriberId: number,
     params: RuleCustomFieldDataSearchParams
   ): Promise<RuleCustomFieldDataSingleResponse | null> {
-    const qs = RuleClient.buildQueryString({
-      data_id: params.data_id,
-      group: params.group,
-      field: params.field,
-      value: params.value,
-    });
-
-    try {
-      return await this.requestV3<RuleCustomFieldDataSingleResponse>(
-        `/custom-field-data/${subscriberId}/search${qs}`,
-        { method: 'GET' }
-      );
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
+    return this.customFieldData.search(subscriberId, params);
   }
 
-  // ==========================================================================
-  // v3 Editor API - Campaign
-  // ==========================================================================
-
-  /**
-   * List campaigns with optional filtering and pagination.
-   *
-   * @param params - Optional query parameters for filtering and pagination
-   * @returns List of campaigns
-   *
-   * @example
-   * ```typescript
-   * // List all campaigns
-   * const all = await client.listCampaigns();
-   *
-   * // List email campaigns, page 2
-   * const filtered = await client.listCampaigns({
-   *   message_type: 1,
-   *   page: 2,
-   *   per_page: 20,
-   * });
-   * ```
-   */
-  async listCampaigns(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
-    const qs = params ? RuleClient.buildQueryString({ ...params }) : '';
-
-    return this.requestV3<RuleCampaignListResponse>(`/editor/campaign${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a campaign (one-off email send) in Rule.io.
-   *
-   * @param campaign - Campaign creation request
-   * @returns Created campaign data
-   *
-   * @example
-   * ```typescript
-   * const result = await client.createCampaign({
-   *   message_type: 1, // email
-   *   sendout_type: 1, // marketing
-   *   tags: [{ id: 42, negative: false }],
-   * });
-   * console.log(result.data?.id);
-   * ```
-   */
-  async createCampaign(campaign: RuleCampaignCreateRequest): Promise<RuleCampaignResponse> {
-    return this.requestV3<RuleCampaignResponse>('/editor/campaign', {
-      method: 'POST',
-      body: JSON.stringify(campaign),
-    });
-  }
-
-  /**
-   * Get a campaign by ID.
-   *
-   * @param id - Campaign ID
-   * @returns Campaign data or null if not found
-   *
-   * @example
-   * ```typescript
-   * const campaign = await client.getCampaign(123);
-   * if (campaign) {
-   *   console.log(campaign.data?.name);
-   * }
-   * ```
-   */
-  async getCampaign(id: number): Promise<RuleCampaignResponse | null> {
-    try {
-      return await this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Update a campaign. Supports partial updates — only include the fields
-   * you want to change.
-   *
-   * @param id - Campaign ID
-   * @param update - Partial update request (all fields optional)
-   * @returns Updated campaign data
-   *
-   * @example
-   * ```typescript
-   * // Partial update — only change the name
-   * await client.updateCampaign(123, { name: 'Spring Sale' });
-   *
-   * // Full update with recipients
-   * await client.updateCampaign(123, {
-   *   name: 'Spring Sale',
-   *   sendout_type: 1,
-   *   tags: [{ id: 42, negative: false }],
-   *   segments: [],
-   *   subscribers: [],
-   * });
-   * ```
-   */
-  async updateCampaign(
-    id: number,
-    update: Partial<RuleCampaignUpdateRequest>
-  ): Promise<RuleCampaignResponse> {
-    return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(update),
-    });
-  }
-
-  /**
-   * Delete a campaign.
-   *
-   * @param id - Campaign ID
-   * @returns API response
-   *
-   * @example
-   * ```typescript
-   * await client.deleteCampaign(123);
-   * ```
-   */
-  async deleteCampaign(id: number): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  /**
-   * Copy (duplicate) a campaign.
-   *
-   * @param id - Campaign ID to copy
-   * @returns The newly created campaign copy
-   *
-   * @example
-   * ```typescript
-   * const copy = await client.copyCampaign(123);
-   * console.log(copy.data?.id); // new campaign ID
-   * ```
-   */
-  async copyCampaign(id: number): Promise<RuleCampaignResponse> {
-    return this.requestV3<RuleCampaignResponse>(`/editor/campaign/${id}/copy`, {
-      method: 'POST',
-    });
-  }
-
-  /**
-   * Schedule, send immediately, or cancel the schedule of a campaign.
-   *
-   * - `type: 'now'` sends the campaign immediately
-   * - `type: 'schedule'` with a `datetime` schedules it for later
-   * - `type: null` cancels a previously scheduled send
-   *
-   * @param id - Campaign ID
-   * @param schedule - Schedule configuration
-   * @returns API response
-   *
-   * @example
-   * ```typescript
-   * // Send now
-   * await client.scheduleCampaign(123, { type: 'now' });
-   *
-   * // Schedule for later
-   * await client.scheduleCampaign(123, {
-   *   type: 'schedule',
-   *   datetime: '2025-06-15 10:00:00',
-   * });
-   *
-   * // Cancel schedule
-   * await client.scheduleCampaign(123, { type: null });
-   * ```
-   */
-  async scheduleCampaign(
-    id: number,
-    schedule: RuleCampaignScheduleRequest
-  ): Promise<RuleApiResponse> {
-    return this.requestV3<RuleApiResponse>(`/editor/campaign/${id}/schedule`, {
-      method: 'POST',
-      body: JSON.stringify(schedule),
-    });
-  }
-
-  // ==========================================================================
-  // v3 Suppressions API
-  // ==========================================================================
-
-  /**
-   * Create suppressions to prevent subscribers from receiving marketing sendouts.
-   *
-   * The request is processed asynchronously by the Rule.io API. Already-suppressed
-   * subscribers are silently skipped (idempotent). A maximum of 1000 subscribers
-   * can be included per request.
-   *
-   * @param request - Suppression request with subscriber identifiers and optional filters
-   * @returns A success response (actual processing happens asynchronously)
-   *
-   * @example
-   * ```typescript
-   * // Suppress all channels for two subscribers
-   * await client.createSuppressions({
-   *   subscribers: [
-   *     { email: 'user1@example.com' },
-   *     { email: 'user2@example.com' },
-   *   ],
-   * });
-   *
-   * // Suppress only email channel with a callback
-   * await client.createSuppressions({
-   *   subscribers: [{ email: 'user@example.com' }],
-   *   message_types: ['email'],
-   *   callback_url: 'https://example.com/webhook/suppression-done',
-   * });
-   * ```
-   */
-  async createSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
-    if (!request.subscribers?.length) {
-      throw new RuleConfigError('subscribers array must not be empty');
-    }
-
-    if (request.subscribers.length > 1000) {
-      throw new RuleConfigError('subscribers array must not exceed 1000 items');
-    }
-
-    await this.fetchV3('/suppressions/', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Delete suppressions to allow subscribers to receive marketing sendouts again.
-   *
-   * The request is processed asynchronously by the Rule.io API. If `message_types`
-   * is omitted, all channel suppressions are removed for the specified subscribers.
-   *
-   * @param request - Unsuppression request with subscriber identifiers and optional filters
-   * @returns A success response (actual processing happens asynchronously)
-   *
-   * @example
-   * ```typescript
-   * // Remove all suppressions for a subscriber
-   * await client.deleteSuppressions({
-   *   subscribers: [{ email: 'user@example.com' }],
-   * });
-   *
-   * // Remove only text_message suppression with a callback
-   * await client.deleteSuppressions({
-   *   subscribers: [{ email: 'user@example.com' }],
-   *   message_types: ['text_message'],
-   *   callback_url: 'https://example.com/webhook/unsuppression-done',
-   * });
-   * ```
-   */
-  async deleteSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
-    if (!request.subscribers?.length) {
-      throw new RuleConfigError('subscribers array must not be empty');
-    }
-
-    if (request.subscribers.length > 1000) {
-      throw new RuleConfigError('subscribers array must not exceed 1000 items');
-    }
-
-    await this.fetchV3('/suppressions/', {
-      method: 'DELETE',
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
-  }
-
-  // ==========================================================================
-  // v3 Subscriber API
-  // ==========================================================================
-
-  /**
-   * ## v3 Subscriber Methods
-   *
-   * The v3 subscriber endpoints extend the v2 subscriber API with new
-   * capabilities including block/unblock management, bulk tag operations,
-   * and flexible identifier options (`identified_by`).
-   *
-   * **Overlap with v2:** Several v3 methods mirror existing v2 helpers.
-   * Where they overlap, the v3 versions use a `V3` suffix to avoid
-   * naming collisions:
-   *
-   * | v2 method               | v3 equivalent             |
-   * |-------------------------|---------------------------|
-   * | `syncSubscriber()`      | `createSubscriberV3()`    |
-   * | `deleteSubscriber()`    | `deleteSubscriberV3()`    |
-   * | `addSubscriberTags()`   | `addSubscriberTagsV3()`   |
-   * | `removeSubscriberTag()` | `removeSubscriberTagV3()` |
-   *
-   * **v3-only operations** (no v2 equivalent):
-   * - `blockSubscribers()` / `unblockSubscribers()` — manage subscriber
-   *   block status
-   * - `bulkAddTags()` / `bulkRemoveTags()` — tag operations across
-   *   multiple subscribers in a single request
-   *
-   * **Key behavioral differences from v2:**
-   * - Bulk operations are asynchronous and return `204 No Content` rather
-   *   than an immediate resource payload.
-   * - Some v3 delete operations use `DELETE` with a JSON request body.
-   * - The `identifiedBy` parameter defaults to `'email'` but supports
-   *   `'phone_number'`, `'id'`, and `'custom_identifier'`.
-   *
-   * The v2 methods remain available for backward compatibility. Choose v3
-   * when you need the additional capabilities listed above.
-   */
-
-  /**
-   * Create a subscriber via the v3 API.
-   *
-   * @param subscriber - Subscriber data (email, phone_number, status, etc.)
-   * @returns API response with the created subscriber data
-   *
-   * @example
-   * ```typescript
-   * const result = await client.createSubscriberV3({
-   *   email: 'customer@example.com',
-   *   status: 'ACTIVE',
-   *   language: 'sv',
-   * });
-   * console.log(result.id);
-   * ```
-   */
-  async createSubscriberV3(
-    subscriber: RuleSubscriberV3CreateRequest
-  ): Promise<RuleSubscriberV3Response> {
-    return this.requestV3<RuleSubscriberV3Response>('/subscribers', {
-      method: 'POST',
-      body: JSON.stringify(subscriber),
-    });
-  }
-
-  /**
-   * Delete a subscriber via the v3 API.
-   *
-   * Returns `{ success: true }` on successful deletion (HTTP 204).
-   *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
-   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
-   * @returns API response indicating success
-   *
-   * @example
-   * ```typescript
-   * // Delete by email (default)
-   * await client.deleteSubscriberV3('customer@example.com');
-   *
-   * // Delete by ID
-   * await client.deleteSubscriberV3(12345, 'id');
-   * ```
-   */
-  async deleteSubscriberV3(
-    subscriber: string | number,
-    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
-  ): Promise<RuleApiResponse> {
-    const idParam = `?identified_by=${identifiedBy}`;
-
-    await this.fetchV3(`/subscribers/${encodeURIComponent(subscriber)}${idParam}`, {
-      method: 'DELETE',
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Block multiple subscribers in bulk via the v3 API.
-   *
-   * This is an asynchronous operation (HTTP 204). The block is processed
-   * in the background by Rule.io.
-   *
-   * @param subscribers - Array of subscriber identifiers to block
-   * @param callbackUrl - Optional webhook URL to notify when the async operation completes
-   * @returns API response indicating the request was accepted
-   *
-   * @example
-   * ```typescript
-   * await client.blockSubscribers([
-   *   { email: 'spam@example.com' },
-   *   { id: 456 },
-   * ]);
-   * ```
-   */
-  async blockSubscribers(
-    subscribers: RuleBulkSubscriberIdentifier[],
-    callbackUrl?: string
-  ): Promise<RuleApiResponse> {
-    const payload: Record<string, unknown> = { subscribers };
-
-    if (callbackUrl) payload.callback_url = callbackUrl;
-    await this.fetchV3('/subscribers/block', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Unblock multiple subscribers in bulk via the v3 API.
-   *
-   * This is an asynchronous operation (HTTP 204). The unblock is processed
-   * in the background by Rule.io.
-   *
-   * @param subscribers - Array of subscriber identifiers to unblock
-   * @param callbackUrl - Optional webhook URL to notify when the async operation completes
-   * @returns API response indicating the request was accepted
-   *
-   * @example
-   * ```typescript
-   * await client.unblockSubscribers([
-   *   { email: 'restored@example.com' },
-   *   { phone_number: '+46701234567' },
-   * ]);
-   * ```
-   */
-  async unblockSubscribers(
-    subscribers: RuleBulkSubscriberIdentifier[],
-    callbackUrl?: string
-  ): Promise<RuleApiResponse> {
-    const payload: Record<string, unknown> = { subscribers };
-
-    if (callbackUrl) payload.callback_url = callbackUrl;
-    await this.fetchV3('/subscribers/unblock', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Add tags to multiple subscribers in bulk via the v3 API.
-   *
-   * This is an asynchronous operation (HTTP 204). Tags are applied
-   * in the background by Rule.io.
-   *
-   * @param request - Subscribers and tags to apply
-   * @returns API response indicating the request was accepted
-   *
-   * @example
-   * ```typescript
-   * await client.bulkAddTags({
-   *   subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
-   *   tags: ['newsletter', 'promo-2024'],
-   * });
-   * ```
-   */
-  async bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
-    await this.fetchV3('/subscribers/tags', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Remove tags from multiple subscribers in bulk via the v3 API.
-   *
-   * This is an asynchronous operation (HTTP 204). Tags are removed
-   * in the background by Rule.io.
-   *
-   * Note: This sends a DELETE request with a JSON body.
-   *
-   * @param request - Subscribers and tags to remove
-   * @returns API response indicating the request was accepted
-   *
-   * @example
-   * ```typescript
-   * await client.bulkRemoveTags({
-   *   subscribers: [{ email: 'a@example.com' }],
-   *   tags: ['old-campaign'],
-   * });
-   * ```
-   */
-  async bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
-    await this.fetchV3('/subscribers/tags', {
-      method: 'DELETE',
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
-  }
-
-  /**
-   * Add tags to a single subscriber via the v3 API.
-   *
-   * Supports automation triggering and optional subscriber sync.
-   *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
-   * @param request - Tags to add and optional automation/sync settings
-   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
-   * @returns API response indicating success
-   *
-   * @example
-   * ```typescript
-   * await client.addSubscriberTagsV3('customer@example.com', {
-   *   tags: ['vip', 'returning'],
-   *   automation: 'force',
-   * });
-   * ```
-   */
-  async addSubscriberTagsV3(
-    subscriber: string | number,
-    request: RuleSubscriberTagsV3Request,
-    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
-  ): Promise<RuleApiResponse> {
-    const idParam = `?identified_by=${identifiedBy}`;
-
-    await this.fetchV3(
-      `/subscribers/${encodeURIComponent(subscriber)}/tags${idParam}`,
-      {
-        method: 'PUT',
-        body: JSON.stringify(request),
-      }
-    );
-
-    return { success: true };
-  }
-
-  /**
-   * Remove a single tag from a subscriber via the v3 API.
-   *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier)
-   * @param tag - Tag name or ID to remove
-   * @param identifiedBy - How the subscriber parameter should be interpreted (default: 'email')
-   * @returns API response indicating success
-   *
-   * @example
-   * ```typescript
-   * await client.removeSubscriberTagV3('customer@example.com', 'old-promo');
-   * ```
-   */
-  async removeSubscriberTagV3(
-    subscriber: string | number,
-    tag: string | number,
-    identifiedBy: 'id' | 'email' | 'phone_number' | 'custom_identifier' = 'email'
-  ): Promise<RuleApiResponse> {
-    const idParam = `?identified_by=${identifiedBy}`;
-
-    await this.fetchV3(
-      `/subscribers/${encodeURIComponent(subscriber)}/tags/${encodeURIComponent(String(tag))}${idParam}`,
-      {
-        method: 'DELETE',
-      }
-    );
-
-    return { success: true };
-  }
-
-  // ==========================================================================
-  // v3 Brand Styles API
-  // ==========================================================================
-
-  /**
-   * List all brand styles for the account.
-   *
-   * @returns List of brand style summary items
-   *
-   * @example
-   * ```typescript
-   * const result = await client.listBrandStyles();
-   * console.log(result.data); // [{ id: 1, name: 'My Brand', ... }]
-   * ```
-   */
-  async listBrandStyles(): Promise<RuleBrandStyleListResponse> {
-    return this.requestV3<RuleBrandStyleListResponse>('/brand-styles', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Get a brand style by ID.
-   *
-   * @param brandStyleId - Brand style ID
-   * @returns Full brand style detail, or null if not found
-   *
-   * @example
-   * ```typescript
-   * const style = await client.getBrandStyle(42);
-   * if (style) {
-   *   console.log(style.data?.colours);
-   * }
-   * ```
-   */
-  async getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null> {
-    try {
-      return await this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${brandStyleId}`, {
-        method: 'GET',
-      });
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Create a brand style from a domain. The API will fetch brand assets
-   * (colors, fonts, logos, social links) from the given domain.
-   *
-   * Note: Returns 409 if a brand style for this domain already exists,
-   * and 424 if the domain could not be fetched.
-   *
-   * @param request - Request with the domain to fetch brand assets from
-   * @returns The created brand style
-   *
-   * @example
-   * ```typescript
-   * const style = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-   * console.log(style.data?.colours);
-   * ```
-   */
-  async createBrandStyleFromDomain(
-    request: RuleBrandStyleFromDomainRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/from-domain', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Create a brand style manually with custom values.
-   *
-   * @param request - Brand style data (name, colours, fonts, links, images)
-   * @returns The created brand style
-   *
-   * @example
-   * ```typescript
-   * const style = await client.createBrandStyleManually({
-   *   name: 'My Brand',
-   *   colours: [{ type: 'brand', hex: '#FF5733', brightness: 50 }],
-   *   links: [{ type: 'website', link: 'https://example.com' }],
-   * });
-   * ```
-   */
-  async createBrandStyleManually(
-    request: RuleBrandStyleCreateRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.requestV3<RuleBrandStyleResponse>('/brand-styles/manually', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Update an existing brand style (partial update via PATCH).
-   *
-   * @param brandStyleId - Brand style ID
-   * @param request - Fields to update
-   * @returns The updated brand style
-   *
-   * @example
-   * ```typescript
-   * const updated = await client.updateBrandStyle(42, {
-   *   name: 'Updated Brand',
-   *   colours: [{ type: 'brand', hex: '#00FF00', brightness: 70 }],
-   * });
-   * ```
-   */
-  async updateBrandStyle(
-    brandStyleId: number,
-    request: RuleBrandStyleUpdateRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.requestV3<RuleBrandStyleResponse>(`/brand-styles/${brandStyleId}`, {
-      method: 'PATCH',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Delete a brand style.
-   *
-   * Note: Returns 403 if this is the last brand style on the account
-   * (at least one must remain).
-   *
-   * @param brandStyleId - Brand style ID
-   * @returns Success response
-   *
-   * @example
-   * ```typescript
-   * await client.deleteBrandStyle(42);
-   * ```
-   */
-  async deleteBrandStyle(brandStyleId: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/brand-styles/${brandStyleId}`, {
-      method: 'DELETE',
-    });
-
-    return { success: true };
-  }
-
-  // ==========================================================================
-  // v3 API Keys API
-  // ==========================================================================
-
-  /**
-   * List all API keys for the account.
-   *
-   * @returns List of API keys
-   *
-   * @example
-   * ```typescript
-   * const result = await client.listApiKeys();
-   * console.log(result.data); // [{ id: 1, name: 'Production', key: '...' }]
-   * ```
-   */
-  async listApiKeys(): Promise<RuleApiKeyListResponse> {
-    return this.requestV3<RuleApiKeyListResponse>('/api-keys', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a new API key.
-   *
-   * @param request - Request with a name for the key (max 255 characters)
-   * @returns The created API key (including the key value)
-   *
-   * @example
-   * ```typescript
-   * const result = await client.createApiKey({ name: 'Production Key' });
-   * console.log(result.data?.key); // The generated API key
-   * ```
-   */
-  async createApiKey(request: RuleApiKeyCreateRequest): Promise<RuleApiKeyResponse> {
-    return this.requestV3<RuleApiKeyResponse>('/api-keys', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Update an API key's name.
-   *
-   * @param apiKeyId - API key ID
-   * @param request - Request with the new name (max 255 characters)
-   * @returns The updated API key
-   *
-   * @example
-   * ```typescript
-   * const result = await client.updateApiKey(5, { name: 'Staging Key' });
-   * ```
-   */
-  async updateApiKey(
-    apiKeyId: number,
-    request: RuleApiKeyUpdateRequest
-  ): Promise<RuleApiKeyResponse> {
-    return this.requestV3<RuleApiKeyResponse>(`/api-keys/${apiKeyId}`, {
-      method: 'PUT',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Delete an API key.
-   *
-   * @param apiKeyId - API key ID
-   * @returns Success response
-   *
-   * @example
-   * ```typescript
-   * await client.deleteApiKey(5);
-   * ```
-   */
-  async deleteApiKey(apiKeyId: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/api-keys/${apiKeyId}`, {
-      method: 'DELETE',
-    });
-
-    return { success: true };
-  }
-
-  // ==========================================================================
-  // v3 Export API
-  // ==========================================================================
-
-  /**
-   * Export dispatchers for a given date range.
-   *
-   * Note: The API enforces a maximum 1-day range between `date_from` and `date_to`.
-   *
-   * @param params - Date range (both required)
-   * @returns List of dispatcher records
-   *
-   * @example
-   * ```typescript
-   * const result = await client.exportDispatchers({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-02',
-   * });
-   * console.log(result.data); // RuleExportDispatcherRecord[]
-   * ```
-   */
-  async exportDispatchers(
-    params: RuleExportDispatcherParams
-  ): Promise<RuleExportDispatcherResponse> {
-    const qs = RuleClient.buildQueryString({ ...params });
-
-    return this.requestV3<RuleExportDispatcherResponse>(`/export/dispatcher${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Export statistics for a given date range with optional type filters.
-   *
-   * Uses token-based pagination: if the response includes a `next_page_token`,
-   * pass it in the next call to retrieve the following page.
-   *
-   * @param params - Date range (required), optional statistic_types filter, optional next_page_token
-   * @returns List of statistic records and optional next_page_token
-   *
-   * @example
-   * ```typescript
-   * // First page
-   * let result = await client.exportStatistics({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-31',
-   *   statistic_types: ['open', 'link'],
-   * });
-   *
-   * // Subsequent pages
-   * while (result.next_page_token) {
-   *   result = await client.exportStatistics({
-   *     date_from: '2024-01-01',
-   *     date_to: '2024-01-31',
-   *     next_page_token: result.next_page_token,
-   *   });
-   * }
-   * ```
-   */
-  async exportStatistics(
-    params: RuleExportStatisticsParams
-  ): Promise<RuleExportStatisticsResponse> {
-    const qs = RuleClient.buildQueryString({
-      date_from: params.date_from,
-      date_to: params.date_to,
-      'statistic_types[]': params.statistic_types,
-      next_page_token: params.next_page_token || undefined,
-    });
-
-    return this.requestV3<RuleExportStatisticsResponse>(
-      `/export/statistics${qs}`,
-      { method: 'GET' }
-    );
-  }
-
-  /**
-   * Export subscribers for a given date range.
-   *
-   * @param params - Date range (both required)
-   * @returns List of subscriber records
-   *
-   * @example
-   * ```typescript
-   * const result = await client.exportSubscribers({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-31',
-   * });
-   * console.log(result.data); // RuleExportSubscriberRecord[]
-   * ```
-   */
-  async exportSubscribers(
-    params: RuleExportSubscriberParams
-  ): Promise<RuleExportSubscriberResponse> {
-    const qs = RuleClient.buildQueryString({ ...params });
-
-    return this.requestV3<RuleExportSubscriberResponse>(`/export/subscriber${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  // ==========================================================================
-  // v3 Analytics API
-  // ==========================================================================
-
-  /**
-   * Retrieve analytics (dispatcher statistics) for one or more objects.
-   *
-   * Returns metric values (opens, clicks, bounces, etc.) for the specified
-   * objects within the given date range.
-   *
-   * @param params - Analytics query parameters
-   * @returns Analytics response with per-object metric data
-   *
-   * @example
-   * ```typescript
-   * const stats = await client.getAnalytics({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-31',
-   *   object_type: 'CAMPAIGN',
-   *   object_ids: ['123', '456'],
-   *   metrics: ['sent', 'open_uniq', 'click_uniq'],
-   * });
-   *
-   * for (const stat of stats.data ?? []) {
-   *   console.log(`Object ${stat.id}:`, stat.metrics);
-   * }
-   * ```
-   */
-  async getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
-    const hasObjectType = 'object_type' in params && !!params.object_type;
-
-    if (!hasObjectType) {
-      const p = params as unknown as Record<string, unknown>;
-
-      if (p.object_ids != null || p.metrics != null) {
-        throw new RuleConfigError(
-          'object_ids and metrics require object_type to be provided'
-        );
-      }
-    }
-
-    let objectType: string | undefined;
-    let objectIds: string[] | undefined;
-    let metrics: string[] | undefined;
-
-    if (hasObjectType && 'object_type' in params) {
-      if (!Array.isArray(params.object_ids) || params.object_ids.length === 0) {
-        throw new RuleConfigError(
-          'object_ids must be a non-empty array when object_type is provided'
-        );
-      }
-
-      if (!Array.isArray(params.metrics) || params.metrics.length === 0) {
-        throw new RuleConfigError(
-          'metrics must be a non-empty array when object_type is provided'
-        );
-      }
-
-      objectType = params.object_type;
-      objectIds = params.object_ids;
-      metrics = params.metrics;
-    }
-
-    // The /analytics endpoint rejects any datetime form (e.g. ISO-8601 or
-    // space-separated `YYYY-MM-DD HH:mm:ss`) and accepts only bare dates,
-    // even though sibling v3 endpoints (e.g. exportStatistics) accept both.
-    // Strip any time portion so consumers using a shared date normalizer
-    // don't have to special-case this endpoint.
-    const stripTime = (d: string): string => d.split(/[ T]/)[0];
-
-    const qs = RuleClient.buildQueryString({
-      date_from: stripTime(params.date_from),
-      date_to: stripTime(params.date_to),
-      object_type: objectType,
-      'object_ids[]': objectIds,
-      'metrics[]': metrics,
-      message_type: params.message_type,
-    });
-
-    return this.requestV3<RuleAnalyticsResponse>(`/analytics${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  // ==========================================================================
-  // v3 Recipients API
-  // ==========================================================================
-
-  /**
-   * List available segments for recipient targeting.
-   *
-   * @param params - Optional pagination query parameters
-   * @returns List of segments
-   *
-   * @example
-   * ```typescript
-   * const result = await client.listSegments();
-   * for (const segment of result.data ?? []) {
-   *   console.log(segment.id, segment.name);
-   * }
-   * ```
-   */
-  async listSegments(params?: RuleRecipientsListParams): Promise<RuleSegmentListResponse> {
-    const qs = RuleClient.buildQueryString({
-      page: params?.page,
-      per_page: params?.per_page,
-    });
-
-    return this.requestV3<RuleSegmentListResponse>(`/editor/recipients/segments${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * List subscribers available for recipient targeting.
-   *
-   * @param params - Optional pagination query parameters
-   * @returns List of subscribers
-   *
-   * @example
-   * ```typescript
-   * const result = await client.listRecipientSubscribers({ per_page: 50 });
-   * for (const subscriber of result.data ?? []) {
-   *   console.log(subscriber.id, subscriber.email);
-   * }
-   * ```
-   */
-  async listRecipientSubscribers(params?: RuleRecipientsListParams): Promise<RuleRecipientSubscriberListResponse> {
-    const qs = RuleClient.buildQueryString({
-      page: params?.page,
-      per_page: params?.per_page,
-    });
-
-    return this.requestV3<RuleRecipientSubscriberListResponse>(`/editor/recipients/subscribers${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * List tags available for recipient targeting.
-   *
-   * @param params - Optional pagination query parameters
-   * @returns List of tags
-   *
-   * @example
-   * ```typescript
-   * const result = await client.listRecipientTags();
-   * for (const tag of result.data ?? []) {
-   *   console.log(tag.id, tag.name);
-   * }
-   * ```
-   */
-  async listRecipientTags(params?: RuleRecipientsListParams): Promise<RuleRecipientTagListResponse> {
-    const qs = RuleClient.buildQueryString({
-      page: params?.page,
-      per_page: params?.per_page,
-    });
-
-    return this.requestV3<RuleRecipientTagListResponse>(`/editor/recipients/tags${qs}`, {
-      method: 'GET',
-    });
-  }
-
-  // ==========================================================================
-  // High-Level Helpers
-  // ==========================================================================
+  // ──────────────────────────────────────────────────────────────────────────
+  // Orchestration helpers — kept here as deprecated for back-compat. These
+  // span multiple namespaces and will move to consumers in a follow-up.
+  // ──────────────────────────────────────────────────────────────────────────
 
   /**
    * Create a complete automation email workflow:
-   * 1. Create automation
-   * 2. Create message (email metadata)
-   * 3. Create template (RCML content)
-   * 4. Create dynamic set (connect message and template)
+   *   automation → message → template → dynamic-set
    *
-   * If any step fails, previously created resources are cleaned up.
+   * Cleans up previously-created resources if any step fails.
    *
-   * @param config - Configuration for the automation email
-   * @returns IDs of all created resources
-   *
-   * @example
-   * ```typescript
-   * // Option 1: Provide a full RCML template
-   * const result = await client.createAutomationEmail({
-   *   name: 'Abandoned Cart',
-   *   triggerType: 'tag',
-   *   triggerValue: 'CartInProgress',
-   *   subject: 'You left something behind!',
-   *   template: createAbandonedCartEmail(config),
-   * });
-   *
-   * // Option 2: Let the SDK build editor-compatible RCML from a brand style
-   * const result = await client.createAutomationEmail({
-   *   name: 'Welcome Email',
-   *   triggerType: 'tag',
-   *   triggerValue: 'Newsletter',
-   *   subject: 'Welcome!',
-   *   brandStyleId: 976,
-   *   sections: [mySection],
-   * });
-   * ```
+   * @deprecated Will be relocated to consumers in a follow-up. Inline the
+   * orchestration in your call site using the namespaced clients.
    */
   async createAutomationEmail(
     config: CreateAutomationEmailConfig
   ): Promise<CreateAutomationEmailResult> {
-    // Validate: must provide template or brandStyleId, not both
     if (!config.template && !config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createAutomationEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
 
     if (config.template && config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createAutomationEmail: provide either "template" or "brandStyleId", not both.'
       );
     }
 
-    // If brandStyleId provided, auto-fetch and build RCML
     let resolvedTemplate = config.template;
 
     if (!resolvedTemplate && config.brandStyleId) {
-      this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
-      const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+      this.transport.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
+      const brandStyleResponse = await this.brandStyles.get(config.brandStyleId);
 
       if (!brandStyleResponse?.data) {
-        throw new RuleApiError(
-          `Brand style ${config.brandStyleId} not found.`,
-          404
-        );
+        throw new RuleApiError(`Brand style ${config.brandStyleId} not found.`, 404);
       }
 
       resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse.data, {
         preheader: config.preheader,
         sections: config.sections,
       });
-      this.log('Built editor-compatible RCML from brand style', config.brandStyleId);
+      this.transport.log('Built editor-compatible RCML from brand style', config.brandStyleId);
     }
 
     const createdResources: { type: 'automail' | 'message' | 'template'; id: number }[] = [];
 
     try {
-      // Step 0: Resolve trigger ID
-      // Note: trigger.type must be uppercase ("TAG" or "SEGMENT")
-      if ((config.triggerType === 'tag' || config.triggerType === 'segment') && !config.triggerValue) {
-        throw new RuleConfigError(
+      if (
+        (config.triggerType === 'tag' || config.triggerType === 'segment') &&
+        !config.triggerValue
+      ) {
+        throw new RuleClientError(
           `triggerValue is required when triggerType is "${config.triggerType}".`
         );
       }
@@ -2890,16 +839,16 @@ export class RuleClient {
       let trigger: { type: 'TAG' | 'SEGMENT'; id: number } | undefined;
 
       if (config.triggerType === 'tag' && config.triggerValue) {
-        const tagId = await this.getTagIdByName(config.triggerValue);
+        const tag = await this.tags.getByName(config.triggerValue);
 
-        if (!tagId) {
+        if (!tag) {
           throw new RuleApiError(
             `Tag "${config.triggerValue}" not found. Create it first or check the tag name.`,
             404
           );
         }
 
-        trigger = { type: 'TAG', id: tagId };
+        trigger = { type: 'TAG', id: tag.id };
       } else if (config.triggerType === 'segment' && config.triggerValue) {
         const segmentId = parseInt(config.triggerValue, 10);
 
@@ -2912,16 +861,15 @@ export class RuleClient {
 
         trigger = { type: 'SEGMENT', id: segmentId };
       } else if (config.triggerType === 'event') {
-        throw new RuleConfigError(
+        throw new RuleClientError(
           'triggerType "event" is not yet supported by createAutomationEmail(). Use "tag" or "segment".'
         );
       }
 
-      // Step 1: Create automation (trigger and sendout_type set on creation)
-      const automationResponse = await this.createAutomation({
+      const automationResponse = await this.automations.create({
         name: config.name,
         description: config.description,
-        sendout_type: config.sendoutType || 2, // Default to transactional
+        sendout_type: config.sendoutType || 2,
         ...(trigger ? { trigger } : {}),
       });
 
@@ -2933,13 +881,9 @@ export class RuleClient {
 
       createdResources.push({ type: 'automail', id: automationId });
 
-      // Step 2: Create message
-      const messageResponse = await this.createMessage({
-        dispatcher: {
-          id: automationId,
-          type: 'automail',
-        },
-        type: 1, // email
+      const messageResponse = await this.messages.create({
+        dispatcher: { id: automationId, type: 'automail' },
+        type: 1,
         subject: config.subject,
         preheader: config.preheader,
         from_name: config.fromName,
@@ -2959,12 +903,12 @@ export class RuleClient {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      // Step 3: Create template (name must be unique, so add timestamp)
-      const templateResponse = await this.createTemplate({
+      const templateResponse = await this.templates.create({
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {
@@ -2975,8 +919,7 @@ export class RuleClient {
 
       createdResources.push({ type: 'template', id: templateId });
 
-      // Step 4: Create dynamic set
-      const dynamicSetResponse = await this.createDynamicSet({
+      const dynamicSetResponse = await this.dynamicSets.create({
         message_id: messageId,
         template_id: templateId,
       });
@@ -2989,28 +932,27 @@ export class RuleClient {
 
       return {
         automationId,
-        automailId: automationId, // Deprecated alias
+        automailId: automationId,
         messageId,
         templateId,
         dynamicSetId,
       };
     } catch (error) {
-      // Cleanup on failure
       for (const resource of createdResources.reverse()) {
         try {
           switch (resource.type) {
             case 'automail':
-              await this.deleteAutomation(resource.id);
+              await this.automations.delete(resource.id);
               break;
             case 'message':
-              await this.deleteMessage(resource.id);
+              await this.messages.delete(resource.id);
               break;
             case 'template':
-              await this.deleteTemplate(resource.id);
+              await this.templates.delete(resource.id);
               break;
           }
         } catch (cleanupError) {
-          this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
+          this.transport.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
         }
       }
 
@@ -3019,36 +961,24 @@ export class RuleClient {
   }
 
   /**
-   * Create a complete campaign email in one call.
+   * Create a complete campaign email in one call:
+   *   campaign → message → template → dynamic-set
    *
-   * Orchestrates campaign → message → template → dynamic-set with automatic
-   * cleanup on failure — just like {@link createAutomationEmail}.
+   * Cleans up on failure.
    *
-   * @param config - Campaign email configuration
-   * @returns IDs of all created resources
-   *
-   * @example
-   * ```typescript
-   * const result = await client.createCampaignEmail({
-   *   name: 'April Newsletter',
-   *   subject: 'What\'s new this month',
-   *   sendoutType: 1,
-   *   brandStyleId: 976,
-   *   tags: [{ id: 42, negative: false }],
-   * });
-   * ```
+   * @deprecated Will be relocated to consumers in a follow-up.
    */
   async createCampaignEmail(
     config: CreateCampaignEmailConfig
   ): Promise<CreateCampaignEmailResult> {
     if (!config.template && !config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createCampaignEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
 
     if (config.template && config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createCampaignEmail: provide either "template" or "brandStyleId", not both.'
       );
     }
@@ -3056,27 +986,24 @@ export class RuleClient {
     let resolvedTemplate = config.template;
 
     if (!resolvedTemplate && config.brandStyleId) {
-      this.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
-      const brandStyleResponse = await this.getBrandStyle(config.brandStyleId);
+      this.transport.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
+      const brandStyleResponse = await this.brandStyles.get(config.brandStyleId);
 
       if (!brandStyleResponse?.data) {
-        throw new RuleApiError(
-          `Brand style ${config.brandStyleId} not found.`,
-          404
-        );
+        throw new RuleApiError(`Brand style ${config.brandStyleId} not found.`, 404);
       }
 
       resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse.data, {
         preheader: config.preheader,
         sections: config.sections,
       });
-      this.log('Built editor-compatible RCML from brand style', config.brandStyleId);
+      this.transport.log('Built editor-compatible RCML from brand style', config.brandStyleId);
     }
 
     const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
 
     try {
-      const campaignResponse = await this.createCampaign({
+      const campaignResponse = await this.campaigns.create({
         name: config.name,
         message_type: 1,
         sendout_type: config.sendoutType || 1,
@@ -3093,7 +1020,7 @@ export class RuleClient {
 
       createdResources.push({ type: 'campaign', id: campaignId });
 
-      const messageResponse = await this.createMessage({
+      const messageResponse = await this.messages.create({
         dispatcher: { id: campaignId, type: 'campaign' },
         type: 1,
         subject: config.subject,
@@ -3111,11 +1038,12 @@ export class RuleClient {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      const templateResponse = await this.createTemplate({
+      const templateResponse = await this.templates.create({
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {
@@ -3126,7 +1054,7 @@ export class RuleClient {
 
       createdResources.push({ type: 'template', id: templateId });
 
-      const dynamicSetResponse = await this.createDynamicSet({
+      const dynamicSetResponse = await this.dynamicSets.create({
         message_id: messageId,
         template_id: templateId,
       });
@@ -3146,187 +1074,21 @@ export class RuleClient {
         try {
           switch (resource.type) {
             case 'campaign':
-              await this.deleteCampaign(resource.id);
+              await this.campaigns.delete(resource.id);
               break;
             case 'message':
-              await this.deleteMessage(resource.id);
+              await this.messages.delete(resource.id);
               break;
             case 'template':
-              await this.deleteTemplate(resource.id);
+              await this.templates.delete(resource.id);
               break;
           }
         } catch (cleanupError) {
-          this.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
+          this.transport.log(`Failed to cleanup ${resource.type} ${resource.id}:`, cleanupError);
         }
       }
 
       throw error;
     }
-  }
-
-  // ==========================================================================
-  // v3 Account API
-  // ==========================================================================
-
-  /**
-   * List all accounts visible to the authenticated user.
-   *
-   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
-   *
-   * @returns List of accounts (simplified representation without nested relations)
-   *
-   * @example
-   * ```typescript
-   * const response = await client.listAccounts();
-   * for (const account of response.data ?? []) {
-   *   console.log(account.id, account.name);
-   * }
-   * ```
-   */
-  async listAccounts(): Promise<RuleAccountListResponse> {
-    return this.requestV3<RuleAccountListResponse>('/accounts', {
-      method: 'GET',
-    });
-  }
-
-  /**
-   * Create a new account.
-   *
-   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
-   *
-   * @param request - Account name and language code
-   * @returns The created account (simplified representation)
-   *
-   * @example
-   * ```typescript
-   * const response = await client.createAccount({
-   *   name: 'My New Account',
-   *   language: 'en',
-   * });
-   * console.log('Created account:', response.data?.id);
-   * ```
-   */
-  async createAccount(request: RuleAccountCreateRequest): Promise<RuleAccountCreateResponse> {
-    return this.requestV3<RuleAccountCreateResponse>('/accounts', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
-  }
-
-  /**
-   * Get a single account by ID.
-   *
-   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
-   *
-   * Pass `'show'` as the accountId to retrieve the currently authenticated account.
-   * Use the `includes` parameter to load related data such as Sitoo credentials.
-   *
-   * @param accountId - Numeric account ID or `'show'` for the current account
-   * @param params - Optional query parameters (e.g. `{ includes: ['sitoo_credentials'] }`)
-   * @returns The account with optional nested relations, or `null` if not found
-   *
-   * @example
-   * ```typescript
-   * // Get current account
-   * const me = await client.getAccount('show');
-   *
-   * // Get account with Sitoo credentials
-   * const account = await client.getAccount(42, {
-   *   includes: ['sitoo_credentials'],
-   * });
-   * ```
-   */
-  async getAccount(
-    accountId: number | 'show',
-    params?: RuleAccountGetParams
-  ): Promise<RuleAccountResponse | null> {
-    const qs = params?.includes?.length
-      ? RuleClient.buildQueryString({ 'includes[]': params.includes })
-      : '';
-    const endpoint = `/accounts/${accountId}${qs}`;
-
-    try {
-      const response = await this.fetchV3(endpoint, {
-        method: 'GET',
-      });
-      const data = (await response.json()) as RuleAccountResponse;
-
-      this.log('getAccount response received (body omitted for security)');
-
-      return data;
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return null;
-      }
-
-      throw error;
-    }
-  }
-
-  /**
-   * Delete an account.
-   *
-   * **Requires Super Admin privileges.** Regular API keys will receive a 403.
-   *
-   * This request queues account deletion asynchronously; deletion is not immediate
-   * and may take time to complete. Once processed, this is a destructive operation
-   * that cannot be undone.
-   *
-   * @param accountId - Numeric account ID to delete
-   * @returns API response indicating the deletion request was accepted successfully
-   *
-   * @example
-   * ```typescript
-   * await client.deleteAccount(42);
-   * ```
-   */
-  async deleteAccount(accountId: number): Promise<RuleApiResponse> {
-    await this.fetchV3(`/accounts/${accountId}`, {
-      method: 'DELETE',
-    });
-
-    return { success: true };
-  }
-
-  // ==========================================================================
-  // Cross-cutting helpers
-  // ==========================================================================
-
-  /**
-   * Find the campaign or automation that owns a given template.
-   *
-   * Rule.io has no direct template→owner endpoint, so this scans dispatchers
-   * (campaigns first, then automations), resolves each one's messages, and
-   * checks dynamic-set `template_id` for a match. Scans run concurrently and
-   * short-circuit on the first match.
-   *
-   * Each template has at most one owner (the 1:1 invariant), so a campaign
-   * match short-circuits the automations pass entirely.
-   *
-   * @param templateId - Template ID to look up.
-   * @param options - Concurrency cap and optional abort signal.
-   * @returns Owner record + scan stats + per-dispatcher errors that occurred
-   *   without aborting the whole scan.
-   *
-   * @example
-   * ```typescript
-   * const { owner, scanned, partial_errors } = await client.findTemplateOwner(2363);
-   * if (owner) {
-   *   console.log(`Used by ${owner.kind} "${owner.name}" (id ${owner.id})`);
-   * } else {
-   *   console.log('Template is orphaned');
-   * }
-   * ```
-   *
-   * @remarks
-   * Cost note: this is O(N) over campaigns + automations, with up to two
-   * follow-up calls per dispatcher (`listMessages`, `listDynamicSets`).
-   * Use sparingly on large accounts; consider caching results.
-   */
-  async findTemplateOwner(
-    templateId: number,
-    options?: FindTemplateOwnerOptions
-  ): Promise<FindTemplateOwnerResult> {
-    return findTemplateOwnerImpl(this, templateId, options);
   }
 }

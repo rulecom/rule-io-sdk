@@ -14,6 +14,7 @@ import type { Mark, FontMark, LinkMark } from '../json-validator/types.js'
 export function renderWithMarks(text: string, marks: Mark[]): string {
   const [outermost, ...inner] = marks
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (!outermost) return text
 
   return renderMark(renderWithMarks(text, inner), outermost)

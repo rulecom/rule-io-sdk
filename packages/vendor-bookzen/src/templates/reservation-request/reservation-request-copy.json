@@ -1,0 +1,12 @@
+{
+  "preheader": "We received your reservation request",
+  "greetingHeading": "Hi {{firstName}},",
+  "message": "We have received your reservation request and will get back to you shortly.",
+  "detailsHeading": "Request Details",
+  "referenceRow": "Reference: {{bookingRef}}",
+  "dateRow": "Date: {{checkInDate}}",
+  "dateRangeRow": "Dates: {{checkInDate}} – {{checkOutDate}}",
+  "guestsRow": "Guests: {{totalGuests}}",
+  "footerLinks": ":link[:font[View in Browser]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Unsubscribe]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

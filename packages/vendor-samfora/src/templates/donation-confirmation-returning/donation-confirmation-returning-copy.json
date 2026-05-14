@@ -1,0 +1,15 @@
+{
+  "preheader": "Ännu en gåva som gör skillnad",
+  "greetingHeading": "Ännu en gåva som gör skillnad, {{firstName}}",
+  "intro": "Tack för ditt fortsatta stöd. Din gåva har mottagits och går direkt till det ändamål du valt.",
+  "detailsHeading": "Gåvans detaljer",
+  "amountRow": "Belopp: {{amount}}",
+  "amountRowWithCurrency": "Belopp: {{amount}} {{currency}}",
+  "causeRow": "Ändamål: {{causeName}}",
+  "dateRow": "Datum: {{date}}",
+  "referenceRow": "Referens: {{ref}}",
+  "ctaButton": "Se mitt konto",
+  "signOff": "Det är tack vare givare som du som vi kan fortsätta vårt arbete.",
+  "footerLinks": ":link[:font[Öppna i webbläsare]{text-decoration=\"underline\"}]{href=\"[Link:WebBrowser]\" target=\"_blank\" no-tracked=\"true\"} | :link[:font[Avregistrera]{text-decoration=\"underline\"}]{href=\"[Link:Unsubscribe]\" target=\"_blank\" no-tracked=\"true\"}",
+  "certifiedByRule": "Certified by Rule"
+}

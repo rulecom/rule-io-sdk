@@ -11,7 +11,6 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 - [Brand Styles](#brand-styles)
 - [Sending Emails](#sending-emails)
 - [Building Custom Templates](#building-custom-templates)
-- [Vendor Presets](#vendor-presets)
 - [Managing Subscribers](#managing-subscribers)
 - [API Reference](#api-reference)
 - [Error Handling](#error-handling)
@@ -21,13 +20,13 @@ A TypeScript SDK for the [Rule.io](https://rule.io) email marketing API. Build a
 ## Installation
 
 ```bash
-npm install @rule-io/sdk
+npm install @rulecom/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { RuleClient } from '@rule-io/sdk';
+import { RuleClient } from '@rulecom/sdk';
 
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
@@ -63,7 +62,7 @@ const client = new RuleClient({
 });
 ```
 
-Throws `RuleConfigError` if the API key is missing, or `RuleApiError` with status 401 if the key is invalid.
+Throws `RuleClientError` if the API key is missing, or `RuleApiError` with status 401 if the key is invalid.
 
 ---
 
@@ -92,8 +91,8 @@ You can also manage brand styles in the Rule.io UI under **Settings → Brand**.
 When building templates, convert a brand style API response into the `BrandStyleConfig` used by template builders. Use `resolvePreferredBrandStyle()` so each account's preferred style (the one flagged `is_default`) is respected — never hardcode brand style IDs, since a customer's preferred style can change and list order is not guaranteed:
 
 ```typescript
-import { resolvePreferredBrandStyle } from '@rule-io/sdk';
-import type { CustomFieldMap } from '@rule-io/sdk';
+import { resolvePreferredBrandStyle } from '@rulecom/sdk';
+import type { CustomFieldMap } from '@rulecom/sdk';
 
 // Preferred path: discover the account's default brand style.
 const { id: brandStyleId, brandStyle: myBrand, source } =
@@ -155,41 +154,9 @@ Both helpers accept either `brandStyleId` (auto-builds a branded template) or `t
 
 ## Building Custom Templates
 
-The SDK offers three levels of template building, from highest to lowest abstraction.
+The SDK offers two levels of template building, from highest to lowest abstraction.
 
-### Pre-Built Templates
-
-Ready-to-use templates for common use cases. All require consumer-provided configuration (brand style, text, field mappings). Some optional labels (e.g., line-item labels, footer link text) have English defaults — provide them explicitly for full localization control.
-
-**Hospitality:** `createReservationConfirmationEmail`, `createReservationCancellationEmail`, `createReservationReminderEmail`, `createFeedbackRequestEmail`, `createReservationRequestEmail`
-
-**E-commerce:** `createOrderConfirmationEmail`, `createShippingUpdateEmail`, `createAbandonedCartEmail`, `createOrderCancellationEmail`
-
-```typescript
-import { createOrderConfirmationEmail } from '@rule-io/sdk';
-
-const email = createOrderConfirmationEmail({
-  brandStyle: myBrand,        // BrandStyleConfig (see Brand Styles above)
-  customFields: myFields,     // CustomFieldMap (see Brand Styles above)
-  websiteUrl: 'https://myshop.com',
-  text: {
-    preheader: 'Your order has been confirmed!',
-    greeting: 'Hi',
-    intro: 'Thank you for your order.',
-    detailsHeading: 'Order Summary',
-    orderRefLabel: 'Order',
-    totalLabel: 'Total',
-    ctaButton: 'View Order',
-  },
-  fieldNames: {
-    firstName: 'Order.CustomerName',
-    orderRef: 'Order.OrderRef',
-    totalPrice: 'Order.Total',
-  },
-});
-```
-
-> **Tip:** You usually don't need to build `BrandStyleConfig` manually. Use `toBrandStyleConfig()` to convert a brand style API response, or just pass `brandStyleId` to the high-level helpers.
+> **Vendor-specific pre-built templates** (Shopify order confirmation, Bookzen reservation, Samfora donation, etc.) are not included in this release. They will ship as part of `@rulecom/vendor-shopify`, `@rulecom/vendor-bookzen`, and `@rulecom/vendor-samfora` in a future release.
 
 ### Brand Templates
 
@@ -206,7 +173,7 @@ import {
   createPlaceholder,
   createTextNode,
   createDocWithPlaceholders,
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 
 const template = createBrandTemplate({
   brandStyle: myBrand,
@@ -243,7 +210,7 @@ import {
   createText,
   createButton,
   createLogo,
-} from '@rule-io/sdk';
+} from '@rulecom/sdk';
 
 const template = createRCMLDocument({
   preheader: 'Your order is confirmed!',
@@ -271,93 +238,6 @@ const template = createRCMLDocument({
 ```
 
 Additional RCML elements: `createImage`, `createVideo`, `createSpacer`, `createDivider`, `createSocial`/`createSocialElement`, `createLoop`, `createSwitch`/`createCase` (conditional content), `createTwoColumnSection`.
-
----
-
-## Vendor Presets
-
-Pre-configured integrations that bundle field names, tags, and automation flows for specific platforms.
-
-### Shopify
-
-```typescript
-import { shopifyPreset, SHOPIFY_FIELDS } from '@rule-io/sdk';
-
-const config = {
-  brandStyle: myBrand,
-  customFields: {
-    [SHOPIFY_FIELDS.firstName]: 169233,
-    [SHOPIFY_FIELDS.orderNumber]: 169234,
-    [SHOPIFY_FIELDS.totalPrice]: 169235,
-    // ... map all fields to your Rule.io numeric IDs
-  },
-  websiteUrl: 'https://myshop.com',
-};
-
-shopifyPreset.validateConfig(config); // throws if required fields are missing
-const automations = shopifyPreset.getAutomations(config);
-const single = shopifyPreset.getAutomation('shopify-order-confirmation', config);
-```
-
-### Bookzen (Hospitality)
-
-```typescript
-import { bookzenPreset, BOOKZEN_FIELDS } from '@rule-io/sdk';
-
-const config = {
-  brandStyle: myBrand,
-  customFields: {
-    [BOOKZEN_FIELDS.guestFirstName]: 100001,
-    [BOOKZEN_FIELDS.bookingRef]: 100002,
-    // ... map all fields
-  },
-  websiteUrl: 'https://myhotel.com',
-};
-
-const automations = bookzenPreset.getAutomations(config);
-```
-
-### Samfora (Donation)
-
-Swedish charitable-giving preset. Default email copy ships in Swedish.
-Three donation-confirmation variants are gated by donor-lifecycle tags
-(`donor-first-gift`, `donor-second-gift`, `donor-returning`) so first-time,
-second-time, and loyal donors see different wording.
-
-Samfora uses Rule.io's standard Subscriber fields (`Subscriber.FirstName`,
-`Subscriber.LastName`, `Subscriber.Address1`, etc.) rather than creating
-new custom ones — those fields already exist on every account. Per-donation
-data lives on a historical `Donation.*` group.
-
-```typescript
-import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
-
-const config = {
-  brandStyle: myBrand,
-  customFields: {
-    // Required: standard Subscriber field for the greeting
-    [SAMFORA_FIELDS.donorFirstName]: 47736,
-    // Required: historical Donation.* group
-    [SAMFORA_FIELDS.donationAmount]: 200002,
-    [SAMFORA_FIELDS.donationDate]: 200003,
-    [SAMFORA_FIELDS.donationRef]: 200004,
-    [SAMFORA_FIELDS.causeName]: 200005,
-    [SAMFORA_FIELDS.totalLifetimeAmount]: 200006,
-    [SAMFORA_FIELDS.taxYear]: 200007,
-    [SAMFORA_FIELDS.taxDeductibleAmount]: 200008,
-    // Optional Subscriber extensions (not referenced by built-in
-    // templates but available for consumer extensions):
-    // donorLastName, donorAddress1, donorAddress2, donorZipcode,
-    // donorCity, donorCountry, donorPhone, donorSource
-    // Optional Donation extras: donationCurrency, donationType
-  },
-  websiteUrl: 'https://samfora.org',
-};
-
-const automations = samforaPreset.getAutomations(config);
-```
-
-Each preset provides `getAutomations()`, `getAutomation(id, config)`, `validateConfig()`, and `getRequiredFields()`.
 
 ---
 
@@ -463,7 +343,7 @@ Also: `getMessage`.
 ### Templates
 
 ```typescript
-import { createRCMLDocument, createCenteredSection, createText } from '@rule-io/sdk';
+import { createRCMLDocument, createCenteredSection, createText } from '@rulecom/sdk';
 
 const rcmlDocument = createRCMLDocument({
   sections: [createCenteredSection({ children: [createText('Hello!')] })],
@@ -551,7 +431,7 @@ await client.deleteAccount(account.data!.id!);
 ### Brand Styles
 
 ```typescript
-import { resolvePreferredBrandStyle } from '@rule-io/sdk';
+import { resolvePreferredBrandStyle } from '@rulecom/sdk';
 
 // Preferred: resolve the account's default brand style (is_default: true)
 // and receive a ready-to-use BrandStyleConfig in a single call.
@@ -607,7 +487,7 @@ Also: `updateCustomFieldData`, `getCustomFieldDataByGroup`, `searchCustomFieldDa
 ## Error Handling
 
 ```typescript
-import { RuleApiError, RuleConfigError } from '@rule-io/sdk';
+import { RuleApiError, RuleClientError } from '@rulecom/sdk';
 
 try {
   await client.createSubscriberV3({ email: 'user@example.com' });
@@ -615,7 +495,7 @@ try {
   if (error instanceof RuleApiError) {
     console.error(error.statusCode); // 401, 404, 429, etc.
   }
-  if (error instanceof RuleConfigError) {
+  if (error instanceof RuleClientError) {
     console.error('Invalid config:', error.message);
   }
 }
@@ -624,17 +504,6 @@ try {
 ## Security
 
 RCML element builders (`createButton`, `createImage`, `createVideo`) sanitize URL parameters to block `javascript:` and `data:` URIs. Text content is placed into structured ProseMirror nodes (not raw HTML) so it doesn't need escaping.
-
-For custom raw HTML templates outside of RCML:
-
-```typescript
-import { escapeHtml, sanitizeUrl } from '@rule-io/sdk';
-
-const safeName = escapeHtml(userInput);       // For raw HTML interpolation
-const safeUrl = sanitizeUrl(userProvidedUrl); // Blocks javascript:/data: URLs
-```
-
-> **Do NOT** use `escapeHtml()` on text passed to RCML builders like `createText()` or `createHeading()` — these produce structured JSON, not HTML, and pre-escaping will result in double-escaped output.
 
 ---
 
@@ -645,20 +514,9 @@ This package is part of the [`rule-io-sdk` Nx monorepo](../../README.md). Build,
 For commands scoped to this package only:
 
 ```bash
-npx nx build sdk          # build @rule-io/sdk and its workspace deps
+npx nx build sdk          # build @rulecom/sdk and its workspace deps
 npx nx vitest:test sdk    # run this package's tests
 npx nx eslint:lint sdk    # lint this package
-```
-
-### RCML Validation
-
-Verify that the SDK produces valid templates by creating a campaign with all RCML elements via [`@rule-io/cli`](../cli/README.md):
-
-```bash
-echo "RULE_API_KEY=your-key" > .env
-npx @rule-io/cli validate-rcml                  # All elements
-npx @rule-io/cli validate-rcml --sections 1,4,7 # Specific sections
-npx @rule-io/cli validate-rcml --cleanup        # Clean up
 ```
 
 ### Releasing

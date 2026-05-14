@@ -49,6 +49,7 @@ export class RcmlElementBuildError extends Error {
   readonly issues: readonly RcmlElementBuildIssue[]
 
   constructor(tagName: RcmlTagName, issues: readonly RcmlElementBuildIssue[]) {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const summary = issues.length === 1 ? issues[0]!.message : `${issues.length} issues`
 
     super(`Cannot build <${tagName}>: ${summary}`)

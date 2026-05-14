@@ -303,6 +303,7 @@ export function createTextElement(options: TextElementOptions): RcmlText {
   const attributes = normalizeAttrs(options.attrs) as RcmlText['attributes']
   const node: RcmlText = {
     tagName: 'rc-text',
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     content: contentResult.json!,
   }
 
@@ -343,6 +344,7 @@ export function createHeadingElement(options: HeadingElementOptions): RcmlHeadin
   const attributes = normalizeAttrs(options.attrs) as RcmlHeading['attributes']
   const node: RcmlHeading = {
     tagName: 'rc-heading',
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     content: contentResult.json!,
   }
 
@@ -383,6 +385,7 @@ export function createButtonElement(options: ButtonElementOptions): RcmlButton {
   const attributes = normalizeAttrs(options.attrs) as RcmlButton['attributes']
   const node: RcmlButton = {
     tagName: 'rc-button',
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     content: contentResult.json!,
   }
 

@@ -12,14 +12,10 @@
  */
 
 import { randomUUID } from 'node:crypto';
-import type {
-  CustomFieldMap,
-  EmailTheme,
-  FooterConfig,
-  VendorAutomation,
-  VendorConsumerConfig,
-} from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+import type { CustomFieldMap, FooterConfig } from '@rulecom/vendor';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { EmailTheme } from '@rulecom/rcml';
+import type { VendorAutomation, VendorConsumerConfig } from '@rulecom/vendor';
 import type {
   Json,
   RcmlBodyChild,
@@ -29,8 +25,8 @@ import type {
   RcmlHeading,
   RcmlSection,
   RcmlText,
-} from '@rule-io/rcml';
-import { applyTheme } from '@rule-io/rcml';
+} from '@rulecom/rcml';
+import { applyTheme } from '@rulecom/rcml';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
 
@@ -390,7 +386,7 @@ function footerSection(config: FooterConfig): RcmlSection {
 
 /**
  * Require every `fieldNames` logical→rule-io mapping to be present in
- * `customFields`. Throws `RuleConfigError` listing the missing entries.
+ * `customFields`. Throws `VendorPresetError` listing the missing entries.
  */
 function validateRequiredFields(
   customFields: CustomFieldMap,
@@ -406,7 +402,7 @@ function validateRequiredFields(
   }
 
   if (missing.length > 0) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `${templateName}: missing customFields entries for ${missing.join(', ')}`,
     );
   }
@@ -468,7 +464,7 @@ function fieldPlaceholder(customFields: CustomFieldMap, fieldName: string): Plac
   const id = customFields[fieldName];
 
   if (id === undefined) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `samfora: missing customFields entry for "${fieldName}"`,
     );
   }

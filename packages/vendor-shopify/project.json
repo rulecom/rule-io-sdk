@@ -3,15 +3,6 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "packages/vendor-shopify/src",
   "projectType": "library",
-  "release": {
-    "version": {
-      "manifestRootsToUpdate": [
-        "dist/{projectRoot}"
-      ],
-      "currentVersionResolver": "git-tag",
-      "fallbackCurrentVersionResolver": "disk"
-    }
-  },
   "tags": [],
   "targets": {
     "build": {
@@ -31,7 +22,12 @@
           },
           {
             "input": "./packages/vendor-shopify/src/templates",
-            "glob": "*.xml",
+            "glob": "**/*.xml",
+            "output": "./src/templates"
+          },
+          {
+            "input": "./packages/vendor-shopify/src/templates",
+            "glob": "**/*.json",
             "output": "./src/templates"
           }
         ]
