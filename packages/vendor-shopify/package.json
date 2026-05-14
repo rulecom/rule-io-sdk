@@ -1,6 +1,7 @@
 {
+  "private": true,
   "name": "@rulecom/vendor-shopify",
-  "version": "0.4.0-beta.0",
+  "version": "0.4.0-beta.1",
   "description": "Shopify preset for the Rule.io SDK \u2014 e-commerce automation flows (order confirmation, shipping, abandoned cart, cancellation, welcome).",
   "type": "module",
   "main": "./src/index.js",
@@ -30,9 +31,9 @@
     "directory": "packages/vendor-shopify"
   },
   "dependencies": {
-    "@rulecom/rcml": "0.4.0-beta.0",
-    "@rulecom/template-engine": "0.4.0-beta.0",
-    "@rulecom/vendor": "0.4.0-beta.0"
+    "@rulecom/rcml": "*",
+    "@rulecom/template-engine": "*",
+    "@rulecom/vendor": "*"
   },
   "engines": {
     "node": ">=20"

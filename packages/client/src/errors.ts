@@ -39,6 +39,67 @@ export class RuleApiError extends Error {
    */
   public validationErrors?: RuleValidationErrors;
 
+  /**
+   * Seconds the server asks the client to wait before retrying, parsed from
+   * the `Retry-After` response header (v3 endpoints only).
+   *
+   * Rule.io's rate-limit contract triggers on a 49% error rate, so retrying
+   * before this delay actively accelerates the block. Consumer retry layers
+   * should prefer this value over a local backoff guess.
+   *
+   * Two input forms are accepted:
+   *  - integer seconds (per RFC 7231 / Rule.io's published docs)
+   *  - `YYYY-MM-DD HH:MM:SS` without a timezone (the form Rule.io v3 actually
+   *    emits on real 429s). The delta to `now` is computed against the
+   *    response `Date` header so the server's tz offset cancels.
+   *
+   * RFC 7231 HTTP-date is not yet supported (TODO). Field is `undefined`
+   * when the header is absent or can't be parsed.
+   */
+  public retryAfterSeconds?: number;
+
+  /**
+   * Maximum requests permitted in the current rate-limit window
+   * (v3 endpoints only).
+   *
+   * Sourced from `RequestsCount-Allowed` (the header v3 actually emits) or
+   * `X-RateLimit-Limit` (the documented name — used if Rule.io ever aligns).
+   *
+   * `undefined` when neither header is present.
+   */
+  public rateLimitLimit?: number;
+
+  /**
+   * Remaining requests in the current rate-limit window (v3 endpoints only).
+   *
+   * Sourced from `X-RateLimit-Remaining` if Rule.io ever ships it; otherwise
+   * computed as `RequestsCount-Allowed − RequestsCount-Current` (clamped to
+   * a non-negative integer).
+   *
+   * `undefined` when no header data is available to derive the value.
+   */
+  public rateLimitRemaining?: number;
+
+  /**
+   * The error-rate ceiling that, once crossed, triggers a rate-limit block.
+   * Parsed from `X-ErrorPercent-Limit` (v3 endpoints only). Rule.io's
+   * documented value is `49`.
+   *
+   * Consumer retry layers should treat this together with `errorPercentCurrent`
+   * — retrying after a 4xx counts toward the error-percent budget.
+   *
+   * `undefined` when the header is absent.
+   */
+  public errorPercentLimit?: number;
+
+  /**
+   * The current observed error-rate, parsed from `X-ErrorPercent-Current`
+   * (v3 endpoints only).
+   *
+   * `undefined` when the header is absent.
+   */
+  public errorPercentCurrent?: number;
+
   /** @deprecated This property is never populated. It will be removed in the next major version. */
   readonly requestId?: string;
 

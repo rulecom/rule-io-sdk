@@ -204,4 +204,222 @@ describe('HttpTransport', () => {
       });
     });
   });
+
+  describe('rate-limit headers (v3 only)', () => {
+    it('exposes integer Retry-After + RequestsCount + ErrorPercent on a v3 429 (synthetic)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'Rate limited' }, 429, {
+          'Retry-After': '45',
+          'RequestsCount-Allowed': '2000',
+          'RequestsCount-Current': '2000',
+          'X-ErrorPercent-Limit': '49',
+          'X-ErrorPercent-Current': '50',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 429,
+        retryAfterSeconds: 45,
+        rateLimitLimit: 2000,
+        rateLimitRemaining: 0,
+        errorPercentLimit: 49,
+        errorPercentCurrent: 50,
+      });
+    });
+
+    it('parses Retry-After in Rule.io v3\'s actual 429 form (YYYY-MM-DD HH:MM:SS, no tz)', async () => {
+      // Real-world headers captured from a probe against production v3 in May
+      // 2026: Retry-After is a server-local timestamp (no tz), and the
+      // RequestsCount pair is *not* echoed on 429s — only X-ErrorPercent-* is.
+      // The `Date` header carries the server's "now" — we use it as the
+      // reference frame so the tz offset cancels.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse(
+          'Too Many Requests. You can continue at 2026-05-14 14:22:16.',
+          429,
+          {
+            // Retry-After is 10 minutes after the response Date header.
+            'Retry-After': '2026-05-14 14:22:16',
+            Date: 'Thu, 14 May 2026 12:12:16 GMT',
+            'X-ErrorPercent-Limit': '49',
+            'X-ErrorPercent-Current': '0',
+          }
+        )
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 429,
+        retryAfterSeconds: 600, // 10 minutes
+        errorPercentLimit: 49,
+        errorPercentCurrent: 0,
+        rateLimitLimit: undefined, // not echoed on 429
+        rateLimitRemaining: undefined,
+      });
+    });
+
+    it('clamps negative retryAfterSeconds to 0 if the timestamp is already in the past', async () => {
+      // Edge case: clock skew or stale response. Don't return a negative
+      // wait — clamp to 0 so consumers retry immediately rather than
+      // hitting an arithmetic surprise.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse('', 429, {
+          'Retry-After': '2026-05-14 11:00:00',
+          Date: 'Thu, 14 May 2026 12:00:00 GMT',
+          'X-ErrorPercent-Limit': '49',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        retryAfterSeconds: 0,
+      });
+    });
+
+    it('leaves retryAfterSeconds undefined for the timestamp form when no Date header is present', async () => {
+      // The Date header is what makes the timestamp form parseable without
+      // knowing the server's tz — without it we'd have to guess.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse('', 429, {
+          'Retry-After': '2026-05-14 14:22:16',
+          // no Date header
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        retryAfterSeconds: undefined,
+      });
+    });
+
+    it('computes rateLimitRemaining as Allowed − Current on v3 errors', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'oops' }, 503, {
+          'RequestsCount-Allowed': '2000',
+          'RequestsCount-Current': '7',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 503,
+        rateLimitLimit: 2000,
+        rateLimitRemaining: 1993,
+      });
+    });
+
+    it('clamps rateLimitRemaining to 0 if Current exceeds Allowed', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'oops' }, 429, {
+          'RequestsCount-Allowed': '2000',
+          'RequestsCount-Current': '2050',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        rateLimitRemaining: 0,
+      });
+    });
+
+    it('prefers documented X-RateLimit-* headers if Rule.io ever ships them', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'Rate limited' }, 429, {
+          'X-RateLimit-Limit': '5000',
+          'X-RateLimit-Remaining': '12',
+          'RequestsCount-Allowed': '2000',
+          'RequestsCount-Current': '1999',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        rateLimitLimit: 5000,
+        rateLimitRemaining: 12,
+      });
+    });
+
+    it('leaves rate-limit fields undefined when v3 emits no headers', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 401));
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 401,
+        retryAfterSeconds: undefined,
+        rateLimitLimit: undefined,
+        rateLimitRemaining: undefined,
+        errorPercentLimit: undefined,
+        errorPercentCurrent: undefined,
+      });
+    });
+
+    it('ignores the HTTP-date form of Retry-After (TODO: parse it)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'Rate limited' }, 429, {
+          'Retry-After': 'Wed, 21 Oct 2026 07:28:00 GMT',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 429,
+        retryAfterSeconds: undefined,
+      });
+    });
+
+    it('rejects negative header values (parser is non-negative-int)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'oops' }, 429, {
+          'RequestsCount-Allowed': '-1',
+          'RequestsCount-Current': '-1',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        rateLimitLimit: undefined,
+        rateLimitRemaining: undefined,
+      });
+    });
+
+    it('exposes rate-limit headers alongside validationErrors on v3 422', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse(
+          { errors: { name: ['The name field is required.'] } },
+          422,
+          {
+            'RequestsCount-Allowed': '2000',
+            'RequestsCount-Current': '1',
+          }
+        )
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.put('/x')).rejects.toMatchObject({
+        statusCode: 422,
+        validationErrors: { name: ['The name field is required.'] },
+        rateLimitLimit: 2000,
+        rateLimitRemaining: 1999,
+      });
+    });
+
+    it('does NOT populate rate-limit fields on a v2 error', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse({ error: 'Rate limited' }, 429, {
+          'RequestsCount-Allowed': '2000',
+          'RequestsCount-Current': '2000',
+          'X-ErrorPercent-Limit': '49',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x', { version: 'v2' })).rejects.toMatchObject({
+        statusCode: 429,
+        rateLimitLimit: undefined,
+        rateLimitRemaining: undefined,
+        errorPercentLimit: undefined,
+      });
+    });
+  });
 });
