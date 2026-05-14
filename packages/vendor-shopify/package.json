@@ -30,9 +30,9 @@
     "directory": "packages/vendor-shopify"
   },
   "dependencies": {
-    "@rulecom/rcml": "0.4.0-beta.0",
-    "@rulecom/template-engine": "0.4.0-beta.0",
-    "@rulecom/vendor": "0.4.0-beta.0"
+    "@rulecom/rcml": "*",
+    "@rulecom/template-engine": "*",
+    "@rulecom/vendor": "*"
   },
   "engines": {
     "node": ">=20"

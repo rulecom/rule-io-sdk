@@ -45,9 +45,7 @@
       "currentVersionResolver": "git-tag",
       "fallbackCurrentVersionResolver": "disk",
       "manifestRootsToUpdate": ["{projectRoot}"],
-      "versionActionsOptions": {
-        "skipLockFileUpdate": true
-      }
+      "versionActionsOptions": {}
     },
     "changelog": {
       "workspaceChangelog": {

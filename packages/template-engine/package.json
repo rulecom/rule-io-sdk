@@ -30,7 +30,7 @@
     "directory": "packages/template-engine"
   },
   "dependencies": {
-    "@rulecom/rcml": "0.4.0-beta.0"
+    "@rulecom/rcml": "*"
   },
   "engines": {
     "node": ">=20"
