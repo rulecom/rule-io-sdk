@@ -41,11 +41,10 @@
     "projects": ["client", "rcml", "sdk"],
     "projectsRelationship": "fixed",
     "version": {
-      "preVersionCommand": "npx nx run-many -t build --projects=client,rcml,sdk",
       "specifierSource": "conventional-commits",
       "currentVersionResolver": "git-tag",
       "fallbackCurrentVersionResolver": "disk",
-      "manifestRootsToUpdate": ["{projectRoot}", "dist/{projectRoot}"],
+      "manifestRootsToUpdate": ["{projectRoot}"],
       "versionActionsOptions": {
         "skipLockFileUpdate": true
       }

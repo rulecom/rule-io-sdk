@@ -51,7 +51,7 @@ jobs:
         run: |
           OLD_VERSION=$(node -p "require('./packages/sdk/package.json').version")
 
-          npx nx release version --no-interactive --git-commit=false --git-tag=false
+          npx nx release version --git-commit=false --git-tag=false
 
           NEW_VERSION=$(node -p "require('./packages/sdk/package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
@@ -62,7 +62,7 @@ jobs:
             exit 0
           fi
 
-          npx nx release changelog "$NEW_VERSION" --no-interactive --git-commit=false --git-tag=false
+          npx nx release changelog "$NEW_VERSION" --git-commit=false --git-tag=false
 
           git add -A
           git commit -m "chore(release): v${NEW_VERSION} [skip ci]"
@@ -87,8 +87,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Checkout the release commit that Job 1 just pushed.
-          ref: main
+          # Checkout the exact release tag so a concurrent push to main cannot
+          # cause the build/publish to use a different commit than was versioned.
+          ref: v${{ needs.prepare.outputs.version }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -105,6 +106,7 @@ jobs:
         run: npx nx run-many -t build --projects=client,rcml,sdk
 
       - name: Publish
-        run: npx nx release publish
+        # TODO: remove --first-release after the first npm publish succeeds
+        run: npx nx release publish --first-release
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
