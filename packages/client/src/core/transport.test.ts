@@ -206,7 +206,7 @@ describe('HttpTransport', () => {
   });
 
   describe('rate-limit headers (v3 only)', () => {
-    it('exposes Retry-After + RequestsCount + ErrorPercent on a v3 429', async () => {
+    it('exposes integer Retry-After + RequestsCount + ErrorPercent on a v3 429 (synthetic)', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockErrorResponse({ error: 'Rate limited' }, 429, {
           'Retry-After': '45',
@@ -225,6 +225,71 @@ describe('HttpTransport', () => {
         rateLimitRemaining: 0,
         errorPercentLimit: 49,
         errorPercentCurrent: 50,
+      });
+    });
+
+    it('parses Retry-After in Rule.io v3\'s actual 429 form (YYYY-MM-DD HH:MM:SS, no tz)', async () => {
+      // Real-world headers captured from a probe against production v3 in May
+      // 2026: Retry-After is a server-local timestamp (no tz), and the
+      // RequestsCount pair is *not* echoed on 429s — only X-ErrorPercent-* is.
+      // The `Date` header carries the server's "now" — we use it as the
+      // reference frame so the tz offset cancels.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse(
+          'Too Many Requests. You can continue at 2026-05-14 14:22:16.',
+          429,
+          {
+            // Retry-After is 10 minutes after the response Date header.
+            'Retry-After': '2026-05-14 14:22:16',
+            Date: 'Thu, 14 May 2026 12:12:16 GMT',
+            'X-ErrorPercent-Limit': '49',
+            'X-ErrorPercent-Current': '0',
+          }
+        )
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        statusCode: 429,
+        retryAfterSeconds: 600, // 10 minutes
+        errorPercentLimit: 49,
+        errorPercentCurrent: 0,
+        rateLimitLimit: undefined, // not echoed on 429
+        rateLimitRemaining: undefined,
+      });
+    });
+
+    it('clamps negative retryAfterSeconds to 0 if the timestamp is already in the past', async () => {
+      // Edge case: clock skew or stale response. Don't return a negative
+      // wait — clamp to 0 so consumers retry immediately rather than
+      // hitting an arithmetic surprise.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse('', 429, {
+          'Retry-After': '2026-05-14 11:00:00',
+          Date: 'Thu, 14 May 2026 12:00:00 GMT',
+          'X-ErrorPercent-Limit': '49',
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        retryAfterSeconds: 0,
+      });
+    });
+
+    it('leaves retryAfterSeconds undefined for the timestamp form when no Date header is present', async () => {
+      // The Date header is what makes the timestamp form parseable without
+      // knowing the server's tz — without it we'd have to guess.
+      fetchMock.mockResolvedValueOnce(
+        createMockErrorResponse('', 429, {
+          'Retry-After': '2026-05-14 14:22:16',
+          // no Date header
+        })
+      );
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({
+        retryAfterSeconds: undefined,
       });
     });
 

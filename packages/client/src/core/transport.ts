@@ -231,6 +231,7 @@ export class HttpTransport {
 }
 
 const NON_NEGATIVE_INT = /^\s*\d+\s*$/;
+const RULE_TIMESTAMP = /^\s*(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})\s*$/;
 
 function readNonNegativeInt(headers: Headers, name: string): number | undefined {
   const raw = headers.get(name);
@@ -238,25 +239,101 @@ function readNonNegativeInt(headers: Headers, name: string): number | undefined 
   return raw !== null && NON_NEGATIVE_INT.test(raw) ? Number.parseInt(raw, 10) : undefined;
 }
 
-// Maps Rule.io v3's rate-limit headers onto a RuleApiError. The headers Rule.io
-// actually emits diverge from the names in their public docs:
+// Rule.io is a Swedish company; the live v3 API emits `Retry-After` as a
+// server-local timestamp without a timezone marker, in Stockholm time
+// (CET / CEST with DST). `Intl.DateTimeFormat` resolves the offset for us
+// including DST. If Rule.io ever relocates its servers, this becomes wrong;
+// the safer alternative would be punting to `undefined`. We choose to be
+// useful by default and document the assumption.
+const RULE_SERVER_TZ = 'Europe/Stockholm';
+
+const ruleServerWallFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: RULE_SERVER_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+});
+
+function serverWallIso(utcMs: number): string {
+  const parts: Record<string, string> = {};
+
+  for (const part of ruleServerWallFormatter.formatToParts(new Date(utcMs))) {
+    if (part.type !== 'literal') parts[part.type] = part.value;
+  }
+
+  // `Intl` can return 24:00:00 instead of 00:00:00 in some locales/runtimes.
+  const hour = parts.hour === '24' ? '00' : parts.hour;
+
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second}Z`;
+}
+
+/**
+ * Parse the `Retry-After` header into seconds-from-now.
+ *
+ * Three input forms are accepted:
+ *
+ * 1. Integer seconds (per Rule.io's published docs and RFC 7231) — returned as-is.
+ * 2. `YYYY-MM-DD HH:MM:SS` without a timezone (the form Rule.io's live v3 API
+ *    emits on real 429s, e.g. `2026-05-14 14:22:16`). The timestamp is in the
+ *    server's local timezone (Europe/Stockholm). We use the response's `Date`
+ *    header as the "server now" reference: convert it to the server's
+ *    wall-clock frame, then diff against the retry-after wall components.
+ *    The tz offset cancels (DST included).
+ * 3. RFC 7231 HTTP-date — TODO; not yet observed from Rule.io.
+ *
+ * Returns `undefined` when the header is absent or the value can't be parsed,
+ * or when the form-2 parse fails to find a usable `Date` header.
+ */
+function parseRetryAfter(headers: Headers): number | undefined {
+  const raw = headers.get('Retry-After');
+
+  if (raw === null) return undefined;
+
+  if (NON_NEGATIVE_INT.test(raw)) return Number.parseInt(raw, 10);
+
+  const match = RULE_TIMESTAMP.exec(raw);
+
+  if (!match) return undefined;
+
+  const dateHeader = headers.get('Date');
+
+  if (dateHeader === null) return undefined;
+
+  const serverNowUtcMs = Date.parse(dateHeader);
+
+  if (Number.isNaN(serverNowUtcMs)) return undefined;
+
+  const serverWallMs = Date.parse(serverWallIso(serverNowUtcMs));
+  const retryWallMs = Date.parse(`${match[1]}T${match[2]}Z`);
+
+  if (Number.isNaN(serverWallMs) || Number.isNaN(retryWallMs)) return undefined;
+
+  return Math.max(0, Math.round((retryWallMs - serverWallMs) / 1000));
+}
+
+// Maps Rule.io v3's rate-limit headers onto a RuleApiError. Live v3 emits
+// different header sets on different status codes:
 //
-//   docs claim            | live v3 header          | semantics
-//   --------------------- | ----------------------- | --------------------------------
-//   X-RateLimit-Limit     | RequestsCount-Allowed   | max requests per window
-//   X-RateLimit-Remaining | RequestsCount-Current   | requests **used** (not remaining!)
-//   Retry-After           | Retry-After             | seconds to wait (likely 429-only)
-//   (undocumented)        | X-ErrorPercent-Limit    | the 49% trigger ceiling
-//   (undocumented)        | X-ErrorPercent-Current  | observed error rate
+//   on 200 / 4xx (non-429)        | on 429
+//   ----------------------------- | ----------------------------------
+//   RequestsCount-Allowed         | (absent — counter not echoed)
+//   RequestsCount-Current         | (absent — counter not echoed)
+//   X-ErrorPercent-Limit          | X-ErrorPercent-Limit
+//   X-ErrorPercent-Current        | X-ErrorPercent-Current
+//   (no Retry-After)              | Retry-After: YYYY-MM-DD HH:MM:SS
+//                                 |   (server-local timestamp, no tz)
 //
-// We read the live names but prefer the documented ones if Rule.io ever ships
-// them. `rateLimitRemaining` is computed (`Allowed − Current`) when only the
-// live pair is available.
-//
-// Only the integer-seconds form of Retry-After is parsed; the HTTP-date form
-// (RFC 7231) is ignored. TODO: HTTP-date if Rule.io ever adopts it.
+// The X-RateLimit-* family Rule.io's docs claim is never emitted in practice
+// (probed May 2026, including a real 429). We still read those names because
+// they're cheap and would Just Work if Rule.io ever aligns. We compute
+// `rateLimitRemaining = Allowed - Current` (clamped non-negative) when the
+// RequestsCount pair is present (i.e. on non-429 responses).
 function applyRateLimitHeaders(error: RuleApiError, headers: Headers): RuleApiError {
-  const retryAfter = readNonNegativeInt(headers, 'Retry-After');
+  const retryAfter = parseRetryAfter(headers);
 
   if (retryAfter !== undefined) error.retryAfterSeconds = retryAfter;
 

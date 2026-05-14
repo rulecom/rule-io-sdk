@@ -47,9 +47,14 @@ export class RuleApiError extends Error {
    * before this delay actively accelerates the block. Consumer retry layers
    * should prefer this value over a local backoff guess.
    *
-   * Only the integer-seconds form is parsed today; the HTTP-date form
-   * (RFC 7231) is ignored. Field is `undefined` when the header is absent
-   * or unparseable.
+   * Two input forms are accepted:
+   *  - integer seconds (per RFC 7231 / Rule.io's published docs)
+   *  - `YYYY-MM-DD HH:MM:SS` without a timezone (the form Rule.io v3 actually
+   *    emits on real 429s). The delta to `now` is computed against the
+   *    response `Date` header so the server's tz offset cancels.
+   *
+   * RFC 7231 HTTP-date is not yet supported (TODO). Field is `undefined`
+   * when the header is absent or can't be parsed.
    */
   public retryAfterSeconds?: number;
 
