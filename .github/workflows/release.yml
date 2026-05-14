@@ -47,11 +47,11 @@ jobs:
       - name: Bump version & generate changelog
         id: bump
         run: |
-          OLD_VERSION=$(node -p "require('./package.json').version")
+          OLD_VERSION=$(node -p "require('./packages/sdk/package.json').version")
 
           npx nx release version --no-interactive --git-commit=false --git-tag=false
 
-          NEW_VERSION=$(node -p "require('./package.json').version")
+          NEW_VERSION=$(node -p "require('./packages/sdk/package.json').version")
           echo "version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
           if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
