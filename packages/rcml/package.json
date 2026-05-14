@@ -33,7 +33,7 @@
     "@types/mdast": "^4.0.4",
     "@types/unist": "^3.0.3",
     "ajv": "^8.17.1",
-    "fast-xml-parser": "^4.5.0",
+    "fast-xml-parser": "^5.7.0",
     "mdast-util-directive": "^3.0.0",
     "prosemirror-model": "^1.24.1",
     "remark-directive": "^3.0.0",
