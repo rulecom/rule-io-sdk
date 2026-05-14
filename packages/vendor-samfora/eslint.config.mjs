@@ -14,6 +14,7 @@ export default [
             '{projectRoot}/vitest.config.{js,ts,mjs,mts,cjs,cts}',
             '{projectRoot}/tests/**/*',
           ],
+          ignoredDependencies: ['vitest'],
         },
       ],
     },

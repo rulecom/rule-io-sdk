@@ -1,3 +1,4 @@
+export { bookzenPreset } from './preset.js';
 export {
   BookzenIntegration,
   BOOKZEN_SUBSCRIBER_SEED,

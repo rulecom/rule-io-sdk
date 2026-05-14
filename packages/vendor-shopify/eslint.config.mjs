@@ -15,6 +15,7 @@ export default [
             '{projectRoot}/tests/**/*',
             '{projectRoot}/src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
           ],
+          ignoredDependencies: ['vitest'],
         },
       ],
     },
