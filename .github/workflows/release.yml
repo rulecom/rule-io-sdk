@@ -108,7 +108,6 @@ jobs:
         run: npx nx run-many -t build --projects=client,rcml,sdk
 
       - name: Publish
-        # TODO: remove --first-release after the first npm publish succeeds
-        run: npx nx release publish --first-release
+        run: npx nx release publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
