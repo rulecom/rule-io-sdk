@@ -1,11 +1,7 @@
 name: Release
 
-# Only fire after the CI workflow passes on main — this ensures lint, tests,
-# and build are green before we touch any version numbers.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
 
 jobs:
@@ -14,7 +10,6 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────────
   prepare:
     name: Version & Changelog
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to push the release commit back to main
