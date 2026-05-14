@@ -1,12 +1,15 @@
 name: Release
 
-# Only fire after the CI workflow passes on main — this ensures lint, tests,
-# and build are green before we touch any version numbers.
 on:
-  workflow_run:
-    workflows: [CI]
-    types: [completed]
+  push:
     branches: [main]
+
+# Only one release run at a time. cancel-in-progress: false queues the
+# next run rather than cancelling it — cancelling mid-release could leave
+# a partial tag or a pushed version commit with no matching npm publish.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   # ────────────────────────────────────────────────────────────────────────────
@@ -14,7 +17,6 @@ jobs:
   # ────────────────────────────────────────────────────────────────────────────
   prepare:
     name: Version & Changelog
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to push the release commit back to main

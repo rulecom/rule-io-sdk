@@ -119,6 +119,28 @@ feature branches → develop → release PR → main → automated release workf
 
 Merging to `main` triggers CI. npm publishing is **gated by GitHub Environment approval** (`npm-production`) — the workflow auto-prepares the release but a human must approve before anything lands on the registry.
 
+### Merge strategy
+
+Always use **merge commit** when landing `develop` → `main`.
+
+`nx release version` calculates the version bump by reading Conventional Commits directly from the git log. The merge strategy determines what Nx sees:
+
+| Strategy | What Nx Release sees | Risk |
+|---|---|---|
+| **Merge commit** ✓ | Every `feat:`, `fix:`, `BREAKING CHANGE:` intact (Nx traverses through merge commits) | None — correct bump every time |
+| Rebase merge | Every commit intact, but new SHAs on `main` mean `develop` requires a `reset --hard` to re-sync | Extra friction keeping `develop` in sync |
+| Squash merge | One commit with the squash message | Minor bump if message is `feat:` — **no release** if message is `chore:` or generic. Also leaves `develop` with ghost commits that conflict on the next PR. |
+
+After each merge to `main`, sync `develop`:
+
+```bash
+git fetch origin main
+git checkout develop
+git merge --ff-only origin/main
+```
+
+`--ff-only` fails loudly if `develop` has diverged unexpectedly, preventing an accidental extra merge commit.
+
 ### Versioning rules
 
 **Beta stage (`0.x`):**
