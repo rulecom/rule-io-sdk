@@ -1,3 +1,28 @@
+## 0.4.0-beta.2 (2026-05-14)
+
+### 🚀 Features
+
+- **client:** expose v3 rate-limit headers on RuleApiError ([#136](https://github.com/rulecom/rule-io-sdk/pull/136))
+- **client:** expose v3 rate-limit headers on RuleApiError ([#136](https://github.com/rulecom/rule-io-sdk/pull/136), [#137](https://github.com/rulecom/rule-io-sdk/pull/137))
+
+### 🩹 Fixes
+
+- **ci:** use commit SHA instead of tag ref for publish job checkout ([61b2a57](https://github.com/rulecom/rule-io-sdk/commit/61b2a57))
+- **ci:** push release tag explicitly instead of --follow-tags ([b61a759](https://github.com/rulecom/rule-io-sdk/commit/b61a759))
+- **ci:** fix tag push and publish job checkout ([#135](https://github.com/rulecom/rule-io-sdk/pull/135))
+- **ci,deps:** atomic tag+branch push and mark vendor packages private ([28044ee](https://github.com/rulecom/rule-io-sdk/commit/28044ee))
+- **client:** parse Rule.io v3's actual Retry-After format on 429s ([#136](https://github.com/rulecom/rule-io-sdk/issues/136))
+- **client:** parse Rule.io v3's actual Retry-After format on 429s (#136 follow-up) ([#138](https://github.com/rulecom/rule-io-sdk/pull/138), [#136](https://github.com/rulecom/rule-io-sdk/issues/136))
+- **deps:** sync package versions with release and fix lock file consistency ([bb0d50f](https://github.com/rulecom/rule-io-sdk/commit/bb0d50f))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Opus 4.7
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk @webmarket7
+- swesam
+
 ## 0.4.0-beta.1 (2026-05-14)
 
 ### 🩹 Fixes

@@ -1,3 +1,22 @@
+## 0.4.0-beta.2 (2026-05-14)
+
+### 🚀 Features
+
+- **client:** expose v3 rate-limit headers on RuleApiError ([#136](https://github.com/rulecom/rule-io-sdk/pull/136))
+
+### 🩹 Fixes
+
+- **client:** parse Rule.io v3's actual Retry-After format on 429s ([#136](https://github.com/rulecom/rule-io-sdk/issues/136))
+- **deps:** sync package versions with release and fix lock file consistency ([bb0d50f](https://github.com/rulecom/rule-io-sdk/commit/bb0d50f))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Opus 4.7
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+- swesam
+
 ## 0.4.0-beta.1 (2026-05-14)
 
 This was a version bump only for client to align it with other projects, there were no code changes.
