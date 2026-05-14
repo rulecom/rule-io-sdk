@@ -131,12 +131,15 @@ Always use **merge commit** when landing `develop` → `main`.
 | Rebase merge | Every commit intact, but new SHAs on `main` mean `develop` requires a `reset --hard` to re-sync | Extra friction keeping `develop` in sync |
 | Squash merge | One commit with the squash message | Minor bump if message is `feat:` — **no release** if message is `chore:` or generic. Also leaves `develop` with ghost commits that conflict on the next PR. |
 
-After each merge to `main`, fast-forward `develop`:
+After each merge to `main`, sync `develop`:
 
 ```bash
 git fetch origin main
-git merge origin/main
+git checkout develop
+git merge --ff-only origin/main
 ```
+
+`--ff-only` fails loudly if `develop` has diverged unexpectedly, preventing an accidental extra merge commit.
 
 ### Versioning rules
 

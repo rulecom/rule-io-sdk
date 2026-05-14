@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
 
+# Only one release run at a time. cancel-in-progress: false queues the
+# next run rather than cancelling it — cancelling mid-release could leave
+# a partial tag or a pushed version commit with no matching npm publish.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ────────────────────────────────────────────────────────────────────────────
   # Job 1: bump versions, generate changelog, commit + tag + push
