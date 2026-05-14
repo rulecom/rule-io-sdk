@@ -194,7 +194,15 @@ function convertNode(
     return node
   }
 
-  const isLeaf = RCML_SCHEMA_SPEC[tagName as RcmlTagName].isLeaf === true
+  const schema = RCML_SCHEMA_SPEC[tagName as RcmlTagName]
+
+  if (!schema) {
+    issues.push({ path, code: 'UNKNOWN_TAG', message: `Unknown RCML tag: <${tagName}>` })
+
+    return node
+  }
+
+  const isLeaf = schema.isLeaf === true
 
   if (!isLeaf && Array.isArray(rawChildren)) {
     const children: unknown[] = []

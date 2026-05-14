@@ -330,7 +330,7 @@ export class SubscribersClient extends BaseResource {
       if (error instanceof RuleApiError) {
         const existing = await this.getByEmail(subscriber.email);
 
-        if (existing?.subscriber.id) {
+        if (existing?.subscriber?.id) {
           subscriberId = existing.subscriber.id;
         } else {
           throw error;

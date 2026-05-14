@@ -8,14 +8,13 @@ on:
     types: [completed]
     branches: [main]
 
-if: ${{ github.event.workflow_run.conclusion == 'success' }}
-
 jobs:
   # ────────────────────────────────────────────────────────────────────────────
   # Job 1: bump versions, generate changelog, commit + tag + push
   # ────────────────────────────────────────────────────────────────────────────
   prepare:
     name: Version & Changelog
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write   # needed to push the release commit back to main
