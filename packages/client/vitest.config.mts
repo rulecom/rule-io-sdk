@@ -16,6 +16,11 @@ export default defineConfig(() => ({
     coverage: {
       reportsDirectory: '../../coverage/packages/client',
       provider: 'v8' as const,
+      exclude: [
+        '**/*.test.ts',
+        '**/*.spec.ts',
+        '**/mock-fetch.ts',
+      ],
     },
   },
 }));

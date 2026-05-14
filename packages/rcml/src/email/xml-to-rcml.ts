@@ -2,7 +2,7 @@
  * Public API: RCML XML → `RcmlDocument` JSON-AST conversion.
  *
  * This file contains **only public exports**. Every symbol here is part of
- * the `@rule-io/rcml` contract and is marked `@public` in its JSDoc. All
+ * the `@rulecom/rcml` contract and is marked `@public` in its JSDoc. All
  * implementation details live in `./xml/parse-helpers.ts`.
  *
  * Text inside `<rc-text>`, `<rc-heading>`, and `<rc-button>` is treated as
@@ -26,6 +26,7 @@ export const RcmlXmlErrorCodes = {
   ROOT_INVALID: 'ROOT_INVALID',
   RFM_PARSE_ERROR: 'RFM_PARSE_ERROR',
   RFM_SERIALIZE_ERROR: 'RFM_SERIALIZE_ERROR',
+  UNKNOWN_TAG: 'UNKNOWN_TAG',
 } as const
 
 /**

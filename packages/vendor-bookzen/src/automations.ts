@@ -1,4 +1,5 @@
-import type { EmailTemplate, EmailTheme, RcmlDocument } from '@rule-io/rcml';
+import type { EmailTheme, RcmlDocument } from '@rulecom/rcml';
+import type { EmailTemplate } from '@rulecom/template-engine';
 
 import {
   createReservationConfirmationTemplate

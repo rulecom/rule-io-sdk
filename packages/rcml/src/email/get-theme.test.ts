@@ -235,7 +235,7 @@ describe('getTheme — unknown nodes', () => {
     const doc = applyTheme(bareDoc(), createEmailTheme())
     const attrs = (doc.children[0] as RcmlHead).children.find(
       (c) => c.tagName === 'rc-attributes'
-    ) as { children: Array<Record<string, unknown>> }
+    ) as unknown as { children: Array<Record<string, unknown>> }
 
     attrs.children.push({
       tagName: 'rc-class',

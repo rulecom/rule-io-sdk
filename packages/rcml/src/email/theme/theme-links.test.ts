@@ -24,7 +24,7 @@ describe('resetLinksTo', () => {
 
     expect(theme.links.facebook?.url).toBe('https://fb.example/acme')
     expect(
-      Object.values(theme.links).find((l) => (l?.type as string) === 'myspace')
+      Object.values(theme.links).find((l) => (l.type as string) === 'myspace')
     ).toBeUndefined()
   })
 

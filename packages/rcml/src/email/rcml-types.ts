@@ -13,7 +13,6 @@
  * larger rcml refactor.
  */
 
-import type { RCMLDocumentRoot } from '@rule-io/core'
 import type { z } from 'zod'
 import { type RCML_SCHEMA_SPEC } from './schema/index.js'
 import type { RcmlTagName } from './schema/tag-names.js'
@@ -65,9 +64,23 @@ export type AttrsFor<T extends RcmlTagName> = {
 // ─── Root + head ────────────────────────────────────────────────────────────
 
 /**
- * `<rcml>` document root. Extends {@link RCMLDocumentRoot} from
- * `@rule-io/core` so vendor-contract `templateBuilder` return types stay
- * compatible.
+ * Minimal structural shape of an RCML document root.
+ *
+ * Lives here so vendor-contract `templateBuilder` return types stay
+ * compatible without depending on the full rcml tree. `RcmlDocument`
+ * (below) extends this interface; function-return covariance means any
+ * function returning `RcmlDocument` also satisfies a position expecting
+ * `RCMLDocumentRoot`.
+ *
+ * @public
+ */
+export interface RCMLDocumentRoot {
+  readonly tagName: 'rcml'
+}
+
+/**
+ * `<rcml>` document root. Extends {@link RCMLDocumentRoot} so
+ * vendor-contract `templateBuilder` return types stay compatible.
  * @public
  */
 export interface RcmlDocument extends RCMLDocumentRoot {

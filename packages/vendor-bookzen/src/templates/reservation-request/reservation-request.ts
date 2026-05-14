@@ -4,15 +4,15 @@
  * Sent when a reservation request is received and awaiting manual
  * approval. Has no CTA — the email is purely informational.
  *
- * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  */
 
 import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/template-engine'
+import type { CustomFieldRef } from '@rulecom/template-engine'
 
 export interface ReservationRequestTemplateContext {
   recipient: {

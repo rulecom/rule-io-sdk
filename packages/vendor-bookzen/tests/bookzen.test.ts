@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/vendor';
 import { bookzenPreset, BOOKZEN_FIELD_SCHEMA, BOOKZEN_TAGS } from '../src/index.js';
 import { TEST_THEME } from './helpers.js';
 
@@ -14,14 +13,14 @@ import { TEST_THEME } from './helpers.js';
 // ============================================================================
 
 const TEST_CUSTOM_FIELDS: CustomFieldMap = {
-  [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
-  [BOOKZEN_FIELD_SCHEMA.bookingRef]: 100002,
-  [BOOKZEN_FIELD_SCHEMA.serviceType]: 100003,
-  [BOOKZEN_FIELD_SCHEMA.checkInDate]: 100004,
-  [BOOKZEN_FIELD_SCHEMA.checkOutDate]: 100005,
-  [BOOKZEN_FIELD_SCHEMA.totalGuests]: 100006,
-  [BOOKZEN_FIELD_SCHEMA.totalPrice]: 100007,
-  [BOOKZEN_FIELD_SCHEMA.roomName]: 100008,
+  'Subscriber.FirstName': 100001,
+  'Booking.BookingRef': 100002,
+  'Booking.ServiceType': 100003,
+  'Booking.CheckInDate': 100004,
+  'Booking.CheckOutDate': 100005,
+  'Booking.TotalGuests': 100006,
+  'Booking.TotalPrice': 100007,
+  'Booking.RoomName': 100008,
 };
 
 const TEST_CONFIG: VendorConsumerConfig = {
@@ -55,15 +54,15 @@ describe('bookzenPreset', () => {
       expect(() => bookzenPreset.validateConfig(TEST_CONFIG)).not.toThrow();
     });
 
-    it('throws RuleConfigError when fields are missing', () => {
+    it('throws VendorPresetError when fields are missing', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
-          [BOOKZEN_FIELD_SCHEMA.guestFirstName]: 100001,
+          'Subscriber.FirstName': 100001,
         },
       };
 
-      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(RuleConfigError);
+      expect(() => bookzenPreset.validateConfig(incompleteConfig)).toThrow(VendorPresetError);
     });
 
     it('error message lists the missing fields', () => {
@@ -92,9 +91,9 @@ describe('bookzenPreset', () => {
         expect(field.logicalName).toBeTruthy();
         expect(field.fieldName).toBeTruthy();
         expect(field.description).toBeTruthy();
-        expect(BOOKZEN_FIELD_SCHEMA[field.logicalName as keyof typeof BOOKZEN_FIELD_SCHEMA]).toBe(
-          field.fieldName
-        );
+        const def = BOOKZEN_FIELD_SCHEMA[field.logicalName as keyof typeof BOOKZEN_FIELD_SCHEMA];
+
+        expect(`${def.groupName}.${def.fieldName}`).toBe(field.fieldName);
       }
     });
   });
@@ -107,7 +106,7 @@ describe('bookzenPreset', () => {
     // The pre-built automation entries have been retired. Template
     // authors now build contexts directly via the factory functions
     // (createReservationConfirmationTemplate, etc.) and wire
-    // automations through @rule-io/client. See
+    // automations through @rulecom/client. See
     // packages/templates/README.md for the authoring pattern.
     it('returns an empty list (pre-built automations retired)', () => {
       const automations = bookzenPreset.getAutomations(TEST_CONFIG);
@@ -134,18 +133,24 @@ describe('bookzenPreset', () => {
 // ============================================================================
 
 describe('BOOKZEN_FIELDS', () => {
-  it('all values are non-empty strings', () => {
-    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
-      expect(typeof value).toBe('string');
-      expect(value.length).toBeGreaterThan(0);
+  it('all values are valid field definitions', () => {
+    for (const def of Object.values(BOOKZEN_FIELD_SCHEMA)) {
+      expect(typeof def.groupName).toBe('string');
+      expect(def.groupName.length).toBeGreaterThan(0);
+      expect(typeof def.fieldName).toBe('string');
+      expect(def.fieldName.length).toBeGreaterThan(0);
+      expect(typeof def.historical).toBe('boolean');
+      expect(typeof def.description).toBe('string');
+      expect(def.description.length).toBeGreaterThan(0);
     }
   });
 
   it('splits fields between the flat Subscriber group and the historical Booking group', () => {
-    // Rule.io praxis: guest identity on the flat Subscriber.* group
+    // Rule.io praxis: guest identity on the flat Subscriber group
     // (overwritten per sync); per-booking event data on the historical
-    // Booking.* group (appended per sync).
-    expect(BOOKZEN_FIELD_SCHEMA.guestFirstName).toBe('Subscriber.FirstName');
+    // Booking group (appended per sync).
+    expect(BOOKZEN_FIELD_SCHEMA.guestFirstName.groupName).toBe('Subscriber');
+    expect(BOOKZEN_FIELD_SCHEMA.guestFirstName.historical).toBe(false);
 
     const bookingFields = [
       BOOKZEN_FIELD_SCHEMA.bookingRef,
@@ -157,14 +162,15 @@ describe('BOOKZEN_FIELDS', () => {
       BOOKZEN_FIELD_SCHEMA.roomName,
     ];
 
-    for (const value of bookingFields) {
-      expect(value.startsWith('Booking.')).toBe(true);
+    for (const def of bookingFields) {
+      expect(def.groupName).toBe('Booking');
+      expect(def.historical).toBe(true);
     }
   });
 
-  it('every field uses either a Subscriber.* or Booking.* prefix', () => {
-    for (const value of Object.values(BOOKZEN_FIELD_SCHEMA)) {
-      expect(/^(Subscriber|Booking)\./.test(value)).toBe(true);
+  it('every field uses either the Subscriber or Booking group', () => {
+    for (const def of Object.values(BOOKZEN_FIELD_SCHEMA)) {
+      expect(['Subscriber', 'Booking']).toContain(def.groupName);
     }
   });
 });

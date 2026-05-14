@@ -46,7 +46,7 @@ export function validateChildren(
   }
 
   children.forEach((child, index) => {
-    const childTag = child?.tagName
+    const childTag = child.tagName
 
     if (typeof childTag !== 'string' || !allowed.includes(childTag as RcmlTagName)) {
       const received = typeof childTag === 'string' ? `<${childTag}>` : typeof childTag

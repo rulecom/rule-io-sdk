@@ -13,7 +13,7 @@
  * @public
  */
 
-import { RuleApiError } from '@rule-io/core';
+import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
 import type { RuleAutomation, RuleCampaign, RuleMessage } from './types.js';
 
@@ -274,6 +274,7 @@ async function scanDispatcherKind(
       }
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (match || internalAbort.signal.aborted) break;
     if (dispatchers.length < PER_PAGE) break;
     page += 1;
@@ -337,8 +338,9 @@ async function probeDispatcher(
   }
 
   for (const message of messages) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (internalAbort.signal.aborted) return null;
-    if (message.id == null) continue;
+    if (message.id == null) continue; // RuleMessage.id is optional per API spec
 
     let owns: boolean;
 
@@ -465,6 +467,7 @@ async function runWithConcurrency<T, R>(
   let nextIndex = 0;
 
   async function worker(): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
       if (signal?.aborted) return;
       const idx = nextIndex;

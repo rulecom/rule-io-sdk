@@ -11,7 +11,7 @@
  * - debug logging
  */
 
-import { RuleApiError, type RuleValidationErrors } from '@rule-io/core';
+import { RuleApiError, type RuleValidationErrors } from '../errors.js';
 
 /**
  * Resolved transport configuration. Every field is required — the caller

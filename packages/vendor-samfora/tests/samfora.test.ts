@@ -3,10 +3,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
-import type { RcmlDocument } from '@rule-io/rcml';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/vendor';
+import type { RcmlDocument } from '@rulecom/rcml';
 import { samforaPreset, SAMFORA_FIELDS, SAMFORA_TAGS } from '../src/index.js';
 import { TEST_THEME, themeWithoutLogo, assertValidRCMLDocument, docToString } from './helpers.js';
 
@@ -73,7 +72,7 @@ describe('samforaPreset', () => {
       expect(() => samforaPreset.validateConfig(TEST_CONFIG)).not.toThrow();
     });
 
-    it('throws RuleConfigError when any required field is missing', () => {
+    it('throws VendorPresetError when any required field is missing', () => {
       const incomplete: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
@@ -81,7 +80,7 @@ describe('samforaPreset', () => {
         },
       };
 
-      expect(() => samforaPreset.validateConfig(incomplete)).toThrow(RuleConfigError);
+      expect(() => samforaPreset.validateConfig(incomplete)).toThrow(VendorPresetError);
     });
 
     it('error message lists the missing fields', () => {
@@ -421,10 +420,10 @@ describe('samforaPreset', () => {
       expect(json).toContain('"text":"Avregistrera"');
     });
 
-    it('throws RuleConfigError for an incomplete config', () => {
+    it('throws VendorPresetError for an incomplete config', () => {
       expect(() =>
         samforaPreset.getAutomations({ ...TEST_CONFIG, customFields: {} }),
-      ).toThrow(RuleConfigError);
+      ).toThrow(VendorPresetError);
     });
   });
 

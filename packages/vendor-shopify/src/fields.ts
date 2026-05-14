@@ -7,14 +7,14 @@
  * Consumers provide the numeric IDs from their Rule.io account.
  */
 
-import type { VendorFieldSchema } from '@rule-io/core';
+import type { VendorFieldSchema } from '@rulecom/vendor';
 
 /**
  * Shopify field names for Rule.io custom fields.
  *
  * @example
  * ```typescript
- * import { SHOPIFY_FIELDS } from '@rule-io/sdk';
+ * import { SHOPIFY_FIELDS } from '@rulecom/sdk';
  *
  * const customFields = {
  *   [SHOPIFY_FIELDS.firstName]: 169233,

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError } from '../../errors.js';
+import { RuleClientError } from '../../errors.js';
 
 import {
   createMockErrorResponse,
@@ -110,7 +111,7 @@ describe('AnalyticsClient', () => {
       expect(url).not.toContain('metrics');
     });
 
-    it('throws RuleConfigError when object_ids is empty', async () => {
+    it('throws RuleClientError when object_ids is empty', async () => {
       const client = createClient(fetchMock);
 
       await expect(
@@ -124,7 +125,7 @@ describe('AnalyticsClient', () => {
       ).rejects.toThrow(/object_ids must be a non-empty array/);
     });
 
-    it('throws RuleConfigError when metrics is empty', async () => {
+    it('throws RuleClientError when metrics is empty', async () => {
       const client = createClient(fetchMock);
 
       await expect(
@@ -138,7 +139,7 @@ describe('AnalyticsClient', () => {
       ).rejects.toThrow(/metrics must be a non-empty array/);
     });
 
-    it('throws RuleConfigError when object_ids/metrics are passed without object_type', async () => {
+    it('throws RuleClientError when object_ids/metrics are passed without object_type', async () => {
       const client = createClient(fetchMock);
 
       await expect(
@@ -184,7 +185,7 @@ describe('AnalyticsClient', () => {
       ).rejects.toBeInstanceOf(RuleApiError);
     });
 
-    it('rejects RuleConfigError synchronously without calling fetch', async () => {
+    it('rejects RuleClientError synchronously without calling fetch', async () => {
       const client = createClient(fetchMock);
 
       await expect(
@@ -195,7 +196,7 @@ describe('AnalyticsClient', () => {
           object_ids: [],
           metrics: ['sent'],
         })
-      ).rejects.toBeInstanceOf(RuleConfigError);
+      ).rejects.toBeInstanceOf(RuleClientError);
       expect(fetchMock).not.toHaveBeenCalled();
     });
   });

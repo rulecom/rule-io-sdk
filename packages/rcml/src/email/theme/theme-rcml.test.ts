@@ -663,7 +663,7 @@ describe('upsertSocialOverlay', () => {
 
     expect(social.children.length).toBe(1)
     expect(
-      (social.children[0] as RcmlSocialElement).attributes?.href
+      (social.children[0] as RcmlSocialElement).attributes.href
     ).toBe('https://new.example/')
     expect((social.children[0] as RcmlSocialElement).id).toBe('fb1')
   })
@@ -692,7 +692,7 @@ describe('upsertSocialOverlay', () => {
     // Original orphan element kept, new facebook element appended.
     expect(social.children.length).toBe(2)
     expect(
-      (social.children[1] as RcmlSocialElement).attributes?.href
+      (social.children[1] as RcmlSocialElement).attributes.href
     ).toBe('https://new.example/')
   })
 
@@ -718,7 +718,7 @@ describe('upsertSocialOverlay', () => {
     const social = children[0] as unknown as RcmlSocial
 
     expect(
-      (social.children[0] as RcmlSocialElement).attributes?.href
+      (social.children[0] as RcmlSocialElement).attributes.href
     ).toBe('https://fb.example/')
   })
 })

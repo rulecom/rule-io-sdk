@@ -289,6 +289,7 @@ function parseTokenAttrs(attrsStr: string): Record<string, string | undefined> {
   let m: RegExpExecArray | null
 
   while ((m = re.exec(decoded)) !== null) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     result[m[1] as string] = m[2] !== undefined ? m[2] : m[3]
   }
 

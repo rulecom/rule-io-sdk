@@ -1,17 +1,17 @@
+import { RuleClient } from '@rulecom/sdk';
 import {
   BookzenIntegration,
   BOOKZEN_FIELD_SCHEMA,
   BOOKZEN_SUBSCRIBER_SEED,
   BOOKZEN_SUBSCRIBER_FIELD_VALUES_SEED,
   BOOKZEN_BOOKING_FIELD_VALUES_SEED,
-  RuleClient
-} from '@rule-io/sdk';
+} from '@rulecom/vendor-bookzen';
 import type {
   SeededBookzenSubscriber,
   BookzenSubscriberFieldName,
   BookzenBookingFieldName,
   BookzenFieldName,
-} from '@rule-io/sdk';
+} from '@rulecom/vendor-bookzen';
 
 
 describe('integrate with Bookzen', () => {

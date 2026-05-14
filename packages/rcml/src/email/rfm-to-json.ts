@@ -2,7 +2,7 @@
  * Public API: RFM markdown → RCML content JSON conversion.
  *
  * This file contains **only public exports**. Every symbol here is part of
- * the `@rule-io/rcml` contract and is marked `@public` in its JSDoc. The
+ * the `@rulecom/rcml` contract and is marked `@public` in its JSDoc. The
  * parse/transform/convert pipeline lives under `./content/`.
  */
 

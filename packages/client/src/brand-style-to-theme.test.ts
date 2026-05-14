@@ -1,5 +1,5 @@
 /**
- * Tests for {@link emailThemeFromBrandStyle} — the `@rule-io/client` bridge
+ * Tests for {@link emailThemeFromBrandStyle} — the `@rulecom/client` bridge
  * that converts a Rule.io brand-style API response directly into an
  * {@link EmailTheme}.
  */
@@ -11,9 +11,10 @@ import {
   EmailThemeFontStyleType,
   EmailThemeImageType,
   applyTheme,
-} from '@rule-io/rcml';
+} from '@rulecom/rcml';
 
-import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
+import { emailThemeFromBrandStyle, resolveBrandTheme } from './brand-style-to-theme.js';
+import { RuleClientError } from './errors.js';
 import type { RuleBrandStyle } from './types.js';
 
 const NOW = '2026-04-30T00:00:00Z';
@@ -170,6 +171,72 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     expect(theme.fonts).toEqual([{ fontFamily: 'Helvetica' }]);
   });
 
+  it('drops social links with empty or unsafe URLs so they do not override theme defaults', () => {
+    const theme = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        links: [
+          { id: 30, brand_style_id: 99999, type: 'facebook', link: '', created_at: NOW, updated_at: NOW },
+          { id: 31, brand_style_id: 99999, type: 'instagram', link: '   ', created_at: NOW, updated_at: NOW },
+          { id: 32, brand_style_id: 99999, type: 'linkedin', link: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+          { id: 33, brand_style_id: 99999, type: 'twitter', link: 'not-a-url', created_at: NOW, updated_at: NOW },
+          { id: 34, brand_style_id: 99999, type: 'website', link: '  https://acme.example/  ', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    // Empty and whitespace-only links are dropped.
+    expect(theme.links.facebook?.url).toBe('https://www.facebook.com/');
+    expect(theme.links.instagram?.url).toBe('https://www.instagram.com/');
+    // javascript: URI is blocked by @braintree/sanitize-url → about:blank → dropped.
+    expect(theme.links.linkedin?.url).toBe('https://www.linkedin.com/');
+    // A string without a protocol is passed through as-is by sanitize-url.
+    expect(theme.links.x?.url).toBe('not-a-url');
+
+    // A safe URL is trimmed and applied.
+    expect(theme.links.website?.url).toBe('https://acme.example/');
+  });
+
+  it('drops font url when it is empty or unsafe (applyTheme rejects unsafe font urls)', () => {
+    const theme = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        fonts: [
+          { id: 10, brand_style_id: 99999, type: 'title', origin: 'google', origin_name: 'Merriweather', name: 'Merriweather', url: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+          { id: 11, brand_style_id: 99999, type: 'body', origin: 'google', origin_name: 'Open Sans', name: 'Open Sans', url: '', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    // Font families still register, but unsafe URLs are stripped so
+    // applyTheme does not later throw EmailThemeApplyError on a partial
+    // brand style.
+    expect(theme.fonts).toEqual([
+      { fontFamily: 'Merriweather' },
+      { fontFamily: 'Open Sans' },
+    ]);
+  });
+
+  it('drops the logo image when its URL is empty or unsafe', () => {
+    const empty = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        images: [
+          { id: 20, brand_style_id: 99999, type: 'logo', public_path: '', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    expect(empty.images[EmailThemeImageType.Logo]).toBeUndefined();
+
+    const unsafe = emailThemeFromBrandStyle(
+      fullBrandStyle({
+        images: [
+          { id: 20, brand_style_id: 99999, type: 'logo', public_path: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+        ],
+      }),
+    );
+
+    expect(unsafe.images[EmailThemeImageType.Logo]).toBeUndefined();
+  });
+
   it('is tolerant of null top-level arrays', () => {
     const theme = emailThemeFromBrandStyle({
       id: 1,
@@ -187,6 +254,93 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     expect(theme.brandStyleId).toBe(1);
     // All slots revert to defaults.
     expect(theme.colors[EmailThemeColorType.Primary]?.hex).toBe('#05CC87');
+  });
+});
+
+describe('resolveBrandTheme', () => {
+  const minimalStyle: RuleBrandStyle = {
+    id: 1,
+    account_id: 1,
+    name: 'Default',
+    is_default: true,
+    colours: [],
+    fonts: [],
+    images: [],
+    links: [],
+    created_at: NOW,
+    updated_at: NOW,
+  };
+
+  it('uses the override id when provided, returning source=override', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => ({ data: minimalStyle }),
+    };
+    const result = await resolveBrandTheme(client, 1);
+
+    expect(result.id).toBe(1);
+    expect(result.source).toBe('override');
+  });
+
+  it('throws RuleClientError for non-integer override id', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client, 1.5)).rejects.toThrow(RuleClientError);
+    await expect(resolveBrandTheme(client, -3)).rejects.toThrow(RuleClientError);
+  });
+
+  it('throws RuleClientError when override id is not found', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client, 99)).rejects.toThrow(RuleClientError);
+  });
+
+  it('picks the is_default entry when no override is given', async () => {
+    const defaultStyle = { ...minimalStyle, id: 2, is_default: true };
+    const client = {
+      listBrandStyles: async () => ({ data: [{ ...minimalStyle, id: 1, is_default: false }, defaultStyle] }),
+      getBrandStyle: async () => ({ data: defaultStyle }),
+    };
+    const result = await resolveBrandTheme(client);
+
+    expect(result.id).toBe(2);
+    expect(result.source).toBe('default');
+  });
+
+  it('falls back to first entry when no default is flagged', async () => {
+    const first = { ...minimalStyle, id: 10, is_default: false };
+    const client = {
+      listBrandStyles: async () => ({ data: [first, { ...minimalStyle, id: 11, is_default: false }] }),
+      getBrandStyle: async () => ({ data: first }),
+    };
+    const result = await resolveBrandTheme(client);
+
+    expect(result.id).toBe(10);
+    expect(result.source).toBe('fallback');
+  });
+
+  it('throws RuleClientError when no brand styles exist', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);
+  });
+
+  it('throws RuleClientError when selected brand style cannot be fetched', async () => {
+    const client = {
+      listBrandStyles: async () => ({ data: [minimalStyle] }),
+      getBrandStyle: async () => null,
+    };
+
+    await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);
   });
 });
 

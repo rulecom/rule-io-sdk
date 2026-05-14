@@ -8,7 +8,7 @@
  * equivalent exists.
  */
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleClientError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
@@ -281,7 +281,7 @@ export class SubscribersClient extends BaseResource {
    * @param fieldGroupPrefix - Group prefix for custom fields (e.g. `'Booking'`).
    *   Must be non-empty and must not contain dots.
    * @returns A success response.
-   * @throws {RuleConfigError} If `fieldGroupPrefix` is empty or contains a dot,
+   * @throws {RuleClientError} If `fieldGroupPrefix` is empty or contains a dot,
    *   or if any field key already contains a dot.
    *
    * @example
@@ -297,18 +297,18 @@ export class SubscribersClient extends BaseResource {
     const prefix = fieldGroupPrefix.trim();
 
     if (!prefix) {
-      throw new RuleConfigError('fieldGroupPrefix must not be empty');
+      throw new RuleClientError('fieldGroupPrefix must not be empty');
     }
 
     if (prefix.includes('.')) {
-      throw new RuleConfigError('fieldGroupPrefix must not contain dots');
+      throw new RuleClientError('fieldGroupPrefix must not contain dots');
     }
 
     if (subscriber.fields) {
       const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
 
       if (dottedKey) {
-        throw new RuleConfigError(
+        throw new RuleClientError(
           `Field key "${dottedKey}" contains a dot. Pass bare field names (e.g. "${dottedKey.split('.').pop()}") — the SDK adds the group prefix automatically.`
         );
       }
@@ -340,7 +340,8 @@ export class SubscribersClient extends BaseResource {
       }
     }
 
-    if (subscriberId === undefined) {
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (subscriberId === undefined) { // defensive guard: API could return unexpected data
       throw new RuleApiError('v3 POST /subscribers returned no id', 0);
     }
 
@@ -398,8 +399,8 @@ export class SubscribersClient extends BaseResource {
   async listSubscribersByTagIds(
     params: ListSubscribersByTagIdsParams
   ): Promise<ListSubscribersByTagIdsResult> {
-    if (!params.tag_ids || params.tag_ids.length === 0) {
-      throw new RuleConfigError('tag_ids must not be empty');
+    if (params.tag_ids.length === 0) {
+      throw new RuleClientError('tag_ids must not be empty');
     }
 
     const qs = buildQueryString({

@@ -104,6 +104,7 @@ export function applyTheme(
 
     if (patch.images) {
       for (const image of patch.images) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (image.type === EmailThemeImageType.Logo) {
           upsertLogoClass(attrChildren, image.url)
         }
@@ -211,25 +212,19 @@ function normalizeInput(input: EmailTheme | EmailThemePatch): NormalizedInput {
   if (input.colors !== undefined) {
     out.colors = Array.isArray(input.colors)
       ? input.colors
-      : (Object.values(input.colors).filter(
-          (c): c is EmailThemeColor => c !== undefined
-        ) as EmailThemeColor[])
+      : Object.values(input.colors).filter((x): x is EmailThemeColor => x !== undefined)
   }
 
   if (input.links !== undefined) {
     out.links = Array.isArray(input.links)
       ? input.links
-      : (Object.values(input.links).filter(
-          (l): l is EmailThemeSocialLink => l !== undefined
-        ) as EmailThemeSocialLink[])
+      : Object.values(input.links).filter((x): x is EmailThemeSocialLink => x !== undefined)
   }
 
   if (input.images !== undefined) {
     out.images = Array.isArray(input.images)
       ? input.images
-      : (Object.values(input.images).filter(
-          (i): i is EmailThemeImage => i !== undefined
-        ) as EmailThemeImage[])
+      : Object.values(input.images).filter((x): x is EmailThemeImage => x !== undefined)
   }
 
   if (input.fonts !== undefined) {

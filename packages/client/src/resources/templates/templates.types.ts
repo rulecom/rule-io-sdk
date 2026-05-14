@@ -2,7 +2,7 @@
  * Template types (v3 `/editor/template` endpoint).
  */
 
-import type { RcmlDocument } from '@rule-io/rcml';
+import type { RcmlDocument } from '@rulecom/rcml';
 
 import type {
   RuleApiResponse,

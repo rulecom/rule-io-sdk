@@ -12,8 +12,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/template-engine'
+import type { CustomFieldRef } from '@rulecom/template-engine'
 
 export interface DonationConfirmationReturningTemplateContext {
   recipient: {

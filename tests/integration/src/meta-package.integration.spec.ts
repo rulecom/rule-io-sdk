@@ -1,6 +1,6 @@
-import * as sdk from '@rule-io/sdk';
+import * as sdk from '@rulecom/sdk';
 
-describe('@rule-io/sdk', () => {
+describe('@rulecom/sdk', () => {
   it('loads without error', () => {
     expect(sdk).toBeDefined();
   });

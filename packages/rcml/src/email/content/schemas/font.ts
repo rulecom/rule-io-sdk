@@ -19,6 +19,7 @@ export const FontAttrsSchema = z
   })
   .strict()
   .refine(
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     (attrs) => Object.values(attrs).some((v) => v !== undefined),
     { message: ':font must have at least one attribute set — a bare :font[text]{} is invalid' },
   )

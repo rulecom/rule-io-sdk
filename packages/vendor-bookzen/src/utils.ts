@@ -1,4 +1,4 @@
-import { CustomFieldRef } from '@rule-io/templates';
+import { CustomFieldRef } from '@rulecom/template-engine';
 import type { ResolvedVendorField } from './types.js';
 
 

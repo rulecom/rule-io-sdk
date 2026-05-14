@@ -17,8 +17,8 @@
 
 import { randomUUID } from 'node:crypto';
 
-import { applyTheme } from '@rule-io/rcml';
-import type { RcmlBodyChild, RcmlDocument, RcmlHead } from '@rule-io/rcml';
+import { applyTheme } from '@rulecom/rcml';
+import type { RcmlBodyChild, RcmlDocument, RcmlHead } from '@rulecom/rcml';
 
 import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
 import type { RuleBrandStyle } from './types.js';

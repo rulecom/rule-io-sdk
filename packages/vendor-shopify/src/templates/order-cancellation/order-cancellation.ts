@@ -1,10 +1,10 @@
 /**
  * Order-cancellation template factory.
  *
- * Thin wrapper over {@link createEmailTemplate} from `@rule-io/rcml`.
+ * Thin wrapper over {@link createEmailTemplate} from `@rulecom/rcml`.
  * The caller owns context assembly (building the typed
  * {@link OrderCancellationTemplateContext} with `customField` from
- * `@rule-io/templates`); the reusable factory handles loading the XML
+ * `@rulecom/template-engine`); the reusable factory handles loading the XML
  * + JSON copy, merging copy overrides, projecting
  * `theme.images.logo` / `theme.links` into context, compiling,
  * parsing to RCML, and applying the theme.
@@ -18,8 +18,8 @@ import {
   createEmailTemplate,
   type EmailTemplate,
   type EmailTemplateRenderArgs,
-} from '@rule-io/rcml'
-import type { CustomFieldRef } from '@rule-io/templates'
+} from '@rulecom/template-engine'
+import type { CustomFieldRef } from '@rulecom/template-engine'
 
 /**
  * Typed data context consumed by `order-cancellation.xml`.

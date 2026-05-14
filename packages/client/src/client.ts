@@ -23,7 +23,7 @@
  *    Look up IDs via `client.tags.list()`.
  */
 
-import { RuleApiError, RuleConfigError } from '@rule-io/core';
+import { RuleApiError, RuleClientError } from './errors.js';
 
 import { BaseResource } from './core/base-resource.js';
 import { HttpTransport } from './core/transport.js';
@@ -796,13 +796,13 @@ export class RuleClient extends BaseResource {
     config: CreateAutomationEmailConfig
   ): Promise<CreateAutomationEmailResult> {
     if (!config.template && !config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createAutomationEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
 
     if (config.template && config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createAutomationEmail: provide either "template" or "brandStyleId", not both.'
       );
     }
@@ -831,7 +831,7 @@ export class RuleClient extends BaseResource {
         (config.triggerType === 'tag' || config.triggerType === 'segment') &&
         !config.triggerValue
       ) {
-        throw new RuleConfigError(
+        throw new RuleClientError(
           `triggerValue is required when triggerType is "${config.triggerType}".`
         );
       }
@@ -861,7 +861,7 @@ export class RuleClient extends BaseResource {
 
         trigger = { type: 'SEGMENT', id: segmentId };
       } else if (config.triggerType === 'event') {
-        throw new RuleConfigError(
+        throw new RuleClientError(
           'triggerType "event" is not yet supported by createAutomationEmail(). Use "tag" or "segment".'
         );
       }
@@ -907,7 +907,8 @@ export class RuleClient extends BaseResource {
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {
@@ -971,13 +972,13 @@ export class RuleClient extends BaseResource {
     config: CreateCampaignEmailConfig
   ): Promise<CreateCampaignEmailResult> {
     if (!config.template && !config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createCampaignEmail: provide either "template" (full RCML) or "brandStyleId" to auto-build the template.'
       );
     }
 
     if (config.template && config.brandStyleId) {
-      throw new RuleConfigError(
+      throw new RuleClientError(
         'createCampaignEmail: provide either "template" or "brandStyleId", not both.'
       );
     }
@@ -1041,7 +1042,8 @@ export class RuleClient extends BaseResource {
         message_id: messageId,
         name: `${config.name} - ${Date.now()}`,
         message_type: 'email',
-        template: resolvedTemplate!,
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        template: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
       if (!templateResponse.data?.id) {

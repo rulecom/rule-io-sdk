@@ -16,7 +16,7 @@ on:
       - 'LICENSE'
       - '.gitignore'
   pull_request:
-    branches: [main]
+    branches: [main, develop]
     paths-ignore:
       - '**/*.md'
       - '.claude/**'
@@ -40,32 +40,39 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Lint, test, build all packages
-        run: npx nx run-many -t eslint:lint vitest:test build --parallel=3
+      - name: Lint all packages
+        run: npx nx run-many -t eslint:lint --parallel=3
+
+      - name: Test packages (excluding integration)
+        run: npx nx run-many -t vitest:test --parallel=3 --exclude=integration
+
+      - name: Build all packages
+        run: npx nx run-many -t build --parallel=3
 
       - name: Check library packages declare only permitted runtime dependencies
         run: |
           fail=0
           for pkg in packages/*/package.json; do
             name=$(jq -r '.name' "$pkg")
-            # Per-package allowlist of non-@rule-io/* runtime deps. Adding
+            # Per-package allowlist of non-@rulecom/* runtime deps. Adding
             # an entry here means we accept that the dep ships in the
             # published tarball and counts toward each consumer's install
             # footprint.
             case "$name" in
-              "@rule-io/cli")
-                allowed='["commander"]'
+              "@rulecom/rcml")
+                # sanitize-url: URL sanitisation used in RCML elements; ajv:
+                # JSON-schema validator; prosemirror-model: doc nodes;
+                # remark-* / unified / vfile / mdast-*: markdown→RCML pipeline;
+                # fast-xml-parser: RCML XML round-trip; zod: runtime schema.
+                allowed='["@braintree/sanitize-url","@types/mdast","@types/unist","ajv","fast-xml-parser","mdast-util-directive","prosemirror-model","remark-directive","remark-parse","unified","vfile","zod"]'
                 ;;
-              "@rule-io/rcml")
-                # ajv: JSON-schema validator for RCML; prosemirror-model:
-                # ProseMirror doc nodes; remark-* / unified / vfile / mdast-*:
-                # markdown→RCML pipeline; fast-xml-parser: RCML XML
-                # round-trip; zod: runtime schema for create-rcml-element.
-                allowed='["@types/mdast","@types/unist","ajv","fast-xml-parser","mdast-util-directive","prosemirror-model","remark-directive","remark-parse","unified","vfile","zod"]'
+              "@rulecom/client")
+                # sanitize-url: URL sanitisation used when constructing API requests.
+                allowed='["@braintree/sanitize-url"]'
                 ;;
-              "@rule-io/templates")
-                # fast-xml-parser: XML parsing for the Angular-like template engine.
-                allowed='["fast-xml-parser"]'
+              "@rulecom/template-engine")
+                # No external runtime deps — only @rulecom/rcml (internal).
+                allowed='[]'
                 ;;
               *)
                 allowed='[]'
@@ -74,7 +81,7 @@ jobs:
             bad=$(jq --argjson allowed "$allowed" -r '
               (.dependencies // {})
               | to_entries
-              | map(select(.key | startswith("@rule-io/") | not))
+              | map(select(.key | startswith("@rulecom/") | not))
               | map(select(.key as $k | ($allowed | index($k)) | not))
               | .[].key
             ' "$pkg")
@@ -88,14 +95,9 @@ jobs:
 
       - name: Verify build outputs for every package
         run: |
-          for pkg in core rcml client vendor-shopify vendor-bookzen vendor-samfora sdk; do
+          for pkg in rcml client template-engine vendor vendor-shopify vendor-bookzen vendor-samfora sdk; do
             test -f "dist/packages/$pkg/src/index.js"   || { echo "Missing dist/packages/$pkg/src/index.js"; exit 1; }
             test -f "dist/packages/$pkg/src/index.d.ts" || { echo "Missing dist/packages/$pkg/src/index.d.ts"; exit 1; }
             test -f "dist/packages/$pkg/package.json"   || { echo "Missing dist/packages/$pkg/package.json"; exit 1; }
           done
-          test -f "dist/packages/cli/src/cli.js"   || { echo "Missing dist/packages/cli/src/cli.js"; exit 1; }
-          test -f "dist/packages/cli/src/cli.d.ts" || { echo "Missing dist/packages/cli/src/cli.d.ts"; exit 1; }
-          test -f "dist/packages/cli/package.json" || { echo "Missing dist/packages/cli/package.json"; exit 1; }
-          head -1 dist/packages/cli/src/cli.js | grep -q "^#!/usr/bin/env node" \
-            || { echo "CLI shebang missing from dist/packages/cli/src/cli.js"; exit 1; }
           echo "All build outputs present for 8 packages."

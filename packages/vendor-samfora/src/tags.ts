@@ -8,14 +8,14 @@
  * returning donors) without triggering a new flow on their own.
  */
 
-import type { VendorTagSchema } from '@rule-io/core';
+import type { VendorTagSchema } from '@rulecom/vendor';
 
 /**
  * Samfora tags for Rule.io automations.
  *
  * @example
  * ```typescript
- * import { SAMFORA_TAGS } from '@rule-io/sdk';
+ * import { SAMFORA_TAGS } from '@rulecom/sdk';
  *
  * await client.syncSubscriber({
  *   email: 'donor@example.com',

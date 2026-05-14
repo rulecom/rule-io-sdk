@@ -5,7 +5,7 @@
  *
  * @example
  * ```typescript
- * import { samforaPreset, SAMFORA_FIELDS } from '@rule-io/sdk';
+ * import { samforaPreset, SAMFORA_FIELDS } from '@rulecom/sdk';
  *
  * const config = {
  *   brandStyle: myBrandStyle,
@@ -28,15 +28,14 @@
  * ```
  */
 
-import type { VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rule-io/core';
-import { resolveVendorAutomations } from '@rule-io/core';
-import type { AutomationConfigV2 } from '@rule-io/core';
+import type { AutomationConfigV2, VendorPreset, VendorConsumerConfig, VendorFieldInfo } from '@rulecom/vendor';
+import { resolveVendorAutomations } from '@rulecom/vendor';
 import type { SamforaFieldSchema, SamforaFieldNames } from './fields.js';
 import type { SamforaTagSchema } from './tags.js';
 import { SAMFORA_FIELDS } from './fields.js';
 import { SAMFORA_TAGS } from './tags.js';
 import { createSamforaAutomations } from './automations.js';
-import { RuleConfigError } from '@rule-io/core';
+import { VendorPresetError } from '@rulecom/vendor';
 
 const FIELD_DESCRIPTIONS: Record<SamforaFieldNames, string> = {
   // Subscriber (standard Rule.io fields)
@@ -104,7 +103,7 @@ function validateSamforaConfig(config: VendorConsumerConfig): void {
   }
 
   if (missingFields.length > 0) {
-    throw new RuleConfigError(
+    throw new VendorPresetError(
       `samforaPreset: missing customFields entries for: ${missingFields.join(', ')}`,
     );
   }

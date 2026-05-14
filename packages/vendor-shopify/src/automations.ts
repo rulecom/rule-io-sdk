@@ -3,16 +3,16 @@
  *
  * Placeholder. The pre-built shopify automations have been retired —
  * downstream code now builds template contexts explicitly (via
- * `customField` / `loopValue` from `@rule-io/templates`) and calls
+ * `customField` / `loopValue` from `@rulecom/template-engine`) and calls
  * the template factories (`createOrderConfirmationTemplate`,
  * `createShippingUpdateTemplate`, `createOrderCancellationTemplate`,
  * `createAbandonedCartTemplate`, `createWelcomeTemplate`) directly
- * when wiring automations through `@rule-io/client`.
+ * when wiring automations through `@rulecom/client`.
  *
  * @see https://help.rule.io/en/articles/349484-shopify-integration
  */
 
-import type { VendorAutomation } from '@rule-io/core';
+import type { VendorAutomation } from '@rulecom/vendor';
 
 /**
  * Shopify automation definitions. Currently empty; see module JSDoc.

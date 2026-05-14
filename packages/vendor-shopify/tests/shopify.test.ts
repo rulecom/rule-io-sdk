@@ -3,9 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { CustomFieldMap } from '@rule-io/core';
-import type { VendorConsumerConfig } from '@rule-io/core';
-import { RuleConfigError } from '@rule-io/core';
+import { VendorPresetError } from '@rulecom/vendor';
+import type { CustomFieldMap, VendorConsumerConfig } from '@rulecom/vendor';
 import { shopifyPreset, SHOPIFY_FIELDS, SHOPIFY_TAGS } from '../src/index.js';
 import { TEST_THEME } from '../src/test-fixtures.js';
 
@@ -87,7 +86,7 @@ describe('shopifyPreset', () => {
       }).not.toThrow();
     });
 
-    it('throws RuleConfigError when fields are missing', () => {
+    it('throws VendorPresetError when fields are missing', () => {
       const incompleteConfig: VendorConsumerConfig = {
         ...TEST_CONFIG,
         customFields: {
@@ -96,7 +95,7 @@ describe('shopifyPreset', () => {
         },
       };
 
-      expect(() => shopifyPreset.validateConfig(incompleteConfig)).toThrow(RuleConfigError);
+      expect(() => shopifyPreset.validateConfig(incompleteConfig)).toThrow(VendorPresetError);
     });
 
     it('error message lists the missing fields', () => {
@@ -140,7 +139,7 @@ describe('shopifyPreset', () => {
     // The pre-built automation entries have been retired. Template
     // authors now build contexts directly via the factory functions
     // (createOrderConfirmationTemplate, etc.) and wire automations
-    // through @rule-io/client. See packages/templates/README.md for
+    // through @rulecom/client. See packages/templates/README.md for
     // the authoring pattern.
     it('returns an empty list (pre-built automations retired)', () => {
       const automations = shopifyPreset.getAutomations(TEST_CONFIG);
