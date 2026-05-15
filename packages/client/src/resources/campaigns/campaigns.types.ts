@@ -72,10 +72,10 @@ export interface RuleCampaignCreateRequest {
 }
 
 /**
- * Request body for updating a campaign.
+ * Request body for updating a campaign via `campaigns.update()`.
  *
- * Tip: The `campaigns.update()` method accepts `Partial<RuleCampaignUpdateRequest>`
- * so you can pass only the fields you want to change.
+ * All fields are optional — pass only what you want to change. The client
+ * fetches the existing record and merges your partial input before writing.
  */
 export interface RuleCampaignUpdateRequest {
   name: string;
@@ -84,6 +84,17 @@ export interface RuleCampaignUpdateRequest {
   tags: RuleCampaignRecipientTag[];
   segments: RuleCampaignRecipientSegment[];
   subscribers: number[];
+}
+
+/**
+ * Request body for `campaigns.set()` — full replacement or creation (upsert).
+ *
+ * All five core fields are required. `message_type` is only needed when the
+ * campaign does not yet exist (i.e. the call results in a create).
+ */
+export interface RuleCampaignSetRequest extends RuleCampaignUpdateRequest {
+  /** 1 = email, 2 = text_message — required if the campaign does not exist yet */
+  message_type?: 1 | 2;
 }
 
 export interface RuleCampaignResponse extends RuleApiResponse {
