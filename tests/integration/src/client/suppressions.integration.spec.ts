@@ -9,6 +9,7 @@ describe('SuppressionsClient', () => {
   beforeAll(async () => {
     // Create a subscriber to use in suppression tests.
     const email = testEmail('suppress-setup');
+
     await client.subscribers.create({ email, status: 'ACTIVE' });
     createdEmails.push(email);
   });
@@ -33,6 +34,7 @@ describe('SuppressionsClient', () => {
       const response = await client.suppressions.create({
         subscribers: [{ email }],
       });
+
       expect(response.success).toBe(true);
     });
 
@@ -42,6 +44,7 @@ describe('SuppressionsClient', () => {
         subscribers: [{ email }],
         message_types: ['email'],
       });
+
       expect(response.success).toBe(true);
     });
 
@@ -60,6 +63,7 @@ describe('SuppressionsClient', () => {
       const response = await client.suppressions.delete({
         subscribers: [{ email }],
       });
+
       expect(response.success).toBe(true);
     });
 
@@ -75,6 +79,7 @@ describe('SuppressionsClient', () => {
   describe('error handling', () => {
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(
         bad.suppressions.create({ subscribers: [{ email: 'test@example.com' }] })
       ).rejects.toSatisfy((e: unknown) => e instanceof RuleApiError && e.isAuthError());

@@ -91,6 +91,7 @@ describe('DynamicSetsClient', () => {
   beforeAll(async () => {
     const { dsId, messageId, templateId, campaignId } =
       await bootstrapDynamicSet(client, 'shared');
+
     sharedDsId = dsId;
     sharedMessageId = messageId;
     sharedTemplateId = templateId;
@@ -113,6 +114,7 @@ describe('DynamicSetsClient', () => {
     it('creates a dynamic set and returns a numeric ID', async () => {
       const { dsId, messageId, templateId, campaignId } =
         await bootstrapDynamicSet(client, 'create');
+
       createdDsIds.push(dsId);
       createdTemplateIds.push(templateId);
       createdMessageIds.push(messageId);
@@ -128,12 +130,14 @@ describe('DynamicSetsClient', () => {
   describe('get', () => {
     it('returns the dynamic set for a known ID (round-trip)', async () => {
       const found = await client.dynamicSets.get(sharedDsId);
+
       expect(found).not.toBeNull();
       expect(found!.data!.id).toBe(sharedDsId);
     });
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.dynamicSets.get(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -143,8 +147,10 @@ describe('DynamicSetsClient', () => {
   describe('list', () => {
     it('returns dynamic sets for a message', async () => {
       const response = await client.dynamicSets.list({ message_id: sharedMessageId });
+
       expect(Array.isArray(response.data)).toBe(true);
       const found = response.data?.some((ds) => ds.id === sharedDsId);
+
       expect(found).toBe(true);
     });
   });
@@ -165,6 +171,7 @@ describe('DynamicSetsClient', () => {
         sender: { email: null, phone_number: null, name: null },
         trigger: null,
       });
+
       expect(updated.data!.id).toBe(sharedDsId);
     });
   });
@@ -175,6 +182,7 @@ describe('DynamicSetsClient', () => {
     it('deletes the dynamic set and subsequent get returns null', async () => {
       const { dsId, messageId, templateId, campaignId } =
         await bootstrapDynamicSet(client, 'delete');
+
       // Don't push dsId to createdDsIds — deleting manually here.
       createdTemplateIds.push(templateId);
       createdMessageIds.push(messageId);
@@ -182,6 +190,7 @@ describe('DynamicSetsClient', () => {
 
       await client.dynamicSets.delete(dsId);
       const found = await client.dynamicSets.get(dsId);
+
       expect(found).toBeNull();
     });
   });
@@ -191,11 +200,13 @@ describe('DynamicSetsClient', () => {
   describe('error handling', () => {
     it('returns null for a non-existent ID (get)', async () => {
       const result = await client.dynamicSets.get(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(
         bad.dynamicSets.list({ message_id: 1 })
       ).rejects.toSatisfy((e: unknown) => e instanceof RuleApiError && e.isAuthError());

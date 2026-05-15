@@ -6,6 +6,7 @@ describe('AnalyticsClient', () => {
 
   const today = new Date();
   const thirtyDaysAgo = new Date(today);
+
   thirtyDaysAgo.setDate(today.getDate() - 30);
   const dateFrom = thirtyDaysAgo.toISOString().split('T')[0];
   const dateTo = today.toISOString().split('T')[0];
@@ -24,6 +25,7 @@ describe('AnalyticsClient', () => {
         object_ids: ['999999999'],
         metrics: ['sent', 'open_uniq'],
       });
+
       expect(response).toBeDefined();
       expect(Array.isArray(response.data)).toBe(true);
     });
@@ -42,6 +44,7 @@ describe('AnalyticsClient', () => {
         object_ids: ['999999999'],
         metrics: ['sent'],
       });
+
       expect(response).toBeDefined();
       expect(Array.isArray(response.data)).toBe(true);
     });
@@ -79,6 +82,7 @@ describe('AnalyticsClient', () => {
   describe('error handling', () => {
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(
         bad.analytics.get({ date_from: dateFrom, date_to: dateTo })
       ).rejects.toSatisfy((e: unknown) => e instanceof RuleApiError && e.isAuthError());

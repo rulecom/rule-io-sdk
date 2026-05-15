@@ -9,6 +9,7 @@ describe('RecipientsClient', () => {
   describe('recipients.subscribers', () => {
     it('list returns an array', async () => {
       const response = await client.recipients.subscribers.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -18,6 +19,7 @@ describe('RecipientsClient', () => {
   describe('recipients.tags', () => {
     it('list returns an array', async () => {
       const response = await client.recipients.tags.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -27,6 +29,7 @@ describe('RecipientsClient', () => {
   describe('recipients.segments', () => {
     it('list returns an array', async () => {
       const response = await client.recipients.segments.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -36,6 +39,7 @@ describe('RecipientsClient', () => {
   describe('error handling', () => {
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.recipients.tags.list()).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

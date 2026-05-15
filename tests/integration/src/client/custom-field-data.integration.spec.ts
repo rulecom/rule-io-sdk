@@ -14,6 +14,7 @@ describe('CustomFieldDataClient', () => {
   beforeAll(async () => {
     const email = testEmail('cfd-setup');
     const created = await client.subscribers.create({ email, status: 'ACTIVE' });
+
     subscriberId = created.data.id;
     createdEmails.push(email);
   });
@@ -43,6 +44,7 @@ describe('CustomFieldDataClient', () => {
           },
         ],
       });
+
       expect(response.success).toBe(true);
     });
   });
@@ -52,6 +54,7 @@ describe('CustomFieldDataClient', () => {
   describe('list', () => {
     it('returns an array of custom field data records for a subscriber', async () => {
       const response = await client.customFieldData.list(subscriberId);
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -61,6 +64,7 @@ describe('CustomFieldDataClient', () => {
   describe('listByGroup', () => {
     it('returns records filtered by group name', async () => {
       const response = await client.customFieldData.listByGroup(subscriberId, groupName);
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -73,6 +77,7 @@ describe('CustomFieldDataClient', () => {
         identifier: { group: groupName, field: 'OrderRef', value: 'ORD-TEST-001' },
         values: [{ field: 'OrderRef', value: 'ORD-TEST-001-UPDATED' }],
       });
+
       expect(response.success).toBe(true);
     });
   });
@@ -83,6 +88,7 @@ describe('CustomFieldDataClient', () => {
     it('deletes all custom field data in a group and returns success', async () => {
       // Create a separate group to delete.
       const deleteGroup = 'IntegrationTestDeleteGroup';
+
       await client.customFieldData.create(subscriberId, {
         groups: [
           {
@@ -95,6 +101,7 @@ describe('CustomFieldDataClient', () => {
 
       // deleteByGroup returns the raw API response (no `success` field).
       const response = await client.customFieldData.deleteByGroup(subscriberId, deleteGroup);
+
       expect(response).toBeDefined();
     });
   });
@@ -104,6 +111,7 @@ describe('CustomFieldDataClient', () => {
   describe('error handling', () => {
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.customFieldData.list(1)).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

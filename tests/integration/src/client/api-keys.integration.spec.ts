@@ -15,6 +15,7 @@ describe('ApiKeysClient', () => {
   describe('list', () => {
     it('returns an array of API keys', async () => {
       const response = await client.apiKeys.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -25,6 +26,7 @@ describe('ApiKeysClient', () => {
     it('creates an API key and returns a numeric ID and key value', async () => {
       const name = testName('api-key-create');
       const result = await client.apiKeys.create({ name });
+
       createdIds.push(result.data!.id!);
       expect(typeof result.data!.id).toBe('number');
       expect(result.data!.id).toBeGreaterThan(0);
@@ -36,10 +38,12 @@ describe('ApiKeysClient', () => {
     it('includes the created key in the list', async () => {
       const name = testName('api-key-list');
       const created = await client.apiKeys.create({ name });
+
       createdIds.push(created.data!.id!);
 
       const list = await client.apiKeys.list();
       const found = list.data?.some((k) => k.id === created.data!.id);
+
       expect(found).toBe(true);
     });
   });
@@ -51,10 +55,12 @@ describe('ApiKeysClient', () => {
       const name = testName('api-key-update');
       const created = await client.apiKeys.create({ name });
       const id = created.data!.id!;
+
       createdIds.push(id);
 
       const newName = testName('api-key-update-renamed');
       const updated = await client.apiKeys.update(id, { name: newName });
+
       expect(updated.data!.name).toBe(newName);
     });
   });
@@ -69,6 +75,7 @@ describe('ApiKeysClient', () => {
       // Don't push to createdIds — deleting manually here.
 
       const response = await client.apiKeys.delete(id);
+
       expect(response.success).toBe(true);
     });
   });
@@ -78,6 +85,7 @@ describe('ApiKeysClient', () => {
   describe('error handling', () => {
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.apiKeys.list()).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

@@ -18,6 +18,7 @@ describe('BrandStylesClient', () => {
   describe('list', () => {
     it('returns an array of brand style items', async () => {
       const response = await client.brandStyles.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -31,6 +32,7 @@ describe('BrandStylesClient', () => {
         name,
         colours: [{ type: 'brand', hex: '#AABBCC', brightness: 50 }],
       });
+
       createdIds.push(result.data!.id);
       expect(typeof result.data!.id).toBe('number');
       expect(result.data!.id).toBeGreaterThan(0);
@@ -45,9 +47,11 @@ describe('BrandStylesClient', () => {
       const name = testName('brand-get');
       const created = await client.brandStyles.createManually({ name });
       const id = created.data!.id;
+
       createdIds.push(id);
 
       const found = await client.brandStyles.get(id);
+
       expect(found).not.toBeNull();
       expect(found!.data!.id).toBe(id);
       expect(found!.data!.name).toBe(name);
@@ -55,6 +59,7 @@ describe('BrandStylesClient', () => {
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.brandStyles.get(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -66,13 +71,16 @@ describe('BrandStylesClient', () => {
       const name = testName('brand-update');
       const created = await client.brandStyles.createManually({ name });
       const id = created.data!.id;
+
       createdIds.push(id);
 
       const newName = testName('brand-update-renamed');
       const updated = await client.brandStyles.update(id, { name: newName });
+
       expect(updated.data!.name).toBe(newName);
 
       const fetched = await client.brandStyles.get(id);
+
       expect(fetched!.data!.name).toBe(newName);
     });
   });
@@ -87,9 +95,11 @@ describe('BrandStylesClient', () => {
       // Don't push to createdIds — deleting manually here.
 
       const response = await client.brandStyles.delete(id);
+
       expect(response.success).toBe(true);
 
       const found = await client.brandStyles.get(id);
+
       expect(found).toBeNull();
     });
   });
@@ -99,11 +109,13 @@ describe('BrandStylesClient', () => {
   describe('error handling', () => {
     it('returns null for a non-existent ID (get)', async () => {
       const result = await client.brandStyles.get(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.brandStyles.list()).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

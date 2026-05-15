@@ -53,6 +53,7 @@ describe('TemplatesClient', () => {
       message_type: 1,
     });
     const campaignId = campaign.data!.id!;
+
     createdCampaignIds.push(campaignId);
 
     const message = await client.messages.create({
@@ -60,6 +61,7 @@ describe('TemplatesClient', () => {
       type: 1,
       subject: testName('tmpl-setup-subject'),
     });
+
     sharedMessageId = message.data!.id!;
     createdMessageIds.push(sharedMessageId);
   });
@@ -81,6 +83,7 @@ describe('TemplatesClient', () => {
         message_type: 'email',
         template: minimalRcml,
       });
+
       createdTemplateIds.push(result.data!.id!);
       expect(typeof result.data!.id).toBe('number');
       expect(result.data!.id).toBeGreaterThan(0);
@@ -100,9 +103,11 @@ describe('TemplatesClient', () => {
         template: minimalRcml,
       });
       const id = created.data!.id!;
+
       createdTemplateIds.push(id);
 
       const found = await client.templates.get(id);
+
       expect(found).not.toBeNull();
       expect(found!.data!.id).toBe(id);
       expect(found!.data!.name).toBe(name);
@@ -110,6 +115,7 @@ describe('TemplatesClient', () => {
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.templates.get(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -119,6 +125,7 @@ describe('TemplatesClient', () => {
   describe('list', () => {
     it('returns an array of templates', async () => {
       const response = await client.templates.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -135,6 +142,7 @@ describe('TemplatesClient', () => {
         template: minimalRcml,
       });
       const id = created.data!.id!;
+
       createdTemplateIds.push(id);
 
       const newName = testName('tmpl-update-renamed');
@@ -144,9 +152,11 @@ describe('TemplatesClient', () => {
         message_id: sharedMessageId,
         template: minimalRcml,
       });
+
       expect(updated.data!.name).toBe(newName);
 
       const fetched = await client.templates.get(id);
+
       expect(fetched!.data!.name).toBe(newName);
     });
   });
@@ -163,15 +173,18 @@ describe('TemplatesClient', () => {
         template: minimalRcml,
       });
       const id = created.data!.id!;
+
       createdTemplateIds.push(id);
 
       const html = await client.templates.render(id);
+
       expect(typeof html).toBe('string');
       expect((html as string).length).toBeGreaterThan(0);
     });
 
     it('returns null for a non-existent template', async () => {
       const result = await client.templates.render(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -192,6 +205,7 @@ describe('TemplatesClient', () => {
 
       await client.templates.delete(id);
       const found = await client.templates.get(id);
+
       expect(found).toBeNull();
     });
   });
@@ -201,11 +215,13 @@ describe('TemplatesClient', () => {
   describe('error handling', () => {
     it('returns null for a non-existent ID (get)', async () => {
       const result = await client.templates.get(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.templates.list()).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

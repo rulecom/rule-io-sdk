@@ -16,6 +16,7 @@ describe('CampaignsClient', () => {
     it('creates a campaign and returns a numeric ID', async () => {
       const name = testName('camp-create');
       const result = await client.campaigns.create({ name, message_type: 1 });
+
       createdIds.push(result.data!.id!);
       expect(typeof result.data!.id).toBe('number');
       expect(result.data!.id).toBeGreaterThan(0);
@@ -25,6 +26,7 @@ describe('CampaignsClient', () => {
     it('creates a campaign with sendout_type', async () => {
       const name = testName('camp-create-sendout');
       const result = await client.campaigns.create({ name, message_type: 1, sendout_type: 1 });
+
       createdIds.push(result.data!.id!);
       expect(result.data!.name).toBe(name);
     });
@@ -37,9 +39,11 @@ describe('CampaignsClient', () => {
       const name = testName('camp-get');
       const created = await client.campaigns.create({ name, message_type: 1 });
       const id = created.data!.id!;
+
       createdIds.push(id);
 
       const found = await client.campaigns.get(id);
+
       expect(found).not.toBeNull();
       expect(found!.data!.id).toBe(id);
       expect(found!.data!.name).toBe(name);
@@ -47,6 +51,7 @@ describe('CampaignsClient', () => {
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.campaigns.get(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -56,6 +61,7 @@ describe('CampaignsClient', () => {
   describe('list', () => {
     it('returns an array of campaigns', async () => {
       const response = await client.campaigns.list();
+
       expect(Array.isArray(response.data)).toBe(true);
     });
 
@@ -63,16 +69,19 @@ describe('CampaignsClient', () => {
       const name = testName('camp-list');
       const created = await client.campaigns.create({ name, message_type: 1 });
       const id = created.data!.id!;
+
       createdIds.push(id);
 
       // Fetch a large first page to maximise the chance of seeing the new campaign.
       const response = await client.campaigns.list({ per_page: 100 });
       const found = response.data?.some((c) => c.id === id);
+
       expect(found).toBe(true);
     });
 
     it('respects the message_type filter', async () => {
       const response = await client.campaigns.list({ message_type: 1 });
+
       expect(Array.isArray(response.data)).toBe(true);
     });
   });
@@ -84,6 +93,7 @@ describe('CampaignsClient', () => {
       const name = testName('camp-update');
       const created = await client.campaigns.create({ name, message_type: 1 });
       const id = created.data!.id!;
+
       createdIds.push(id);
 
       const newName = testName('camp-update-renamed');
@@ -95,9 +105,11 @@ describe('CampaignsClient', () => {
         segments: [],
         subscribers: [],
       });
+
       expect(updated.data!.name).toBe(newName);
 
       const fetched = await client.campaigns.get(id);
+
       expect(fetched!.data!.name).toBe(newName);
     });
   });
@@ -109,10 +121,12 @@ describe('CampaignsClient', () => {
       const name = testName('camp-copy');
       const original = await client.campaigns.create({ name, message_type: 1 });
       const originalId = original.data!.id!;
+
       createdIds.push(originalId);
 
       const copy = await client.campaigns.copy(originalId);
       const copyId = copy.data!.id!;
+
       createdIds.push(copyId);
 
       expect(typeof copyId).toBe('number');
@@ -131,6 +145,7 @@ describe('CampaignsClient', () => {
 
       await client.campaigns.delete(id);
       const found = await client.campaigns.get(id);
+
       expect(found).toBeNull();
     });
   });
@@ -140,11 +155,13 @@ describe('CampaignsClient', () => {
   describe('error handling', () => {
     it('returns null for a non-existent ID (get)', async () => {
       const result = await client.campaigns.get(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(bad.campaigns.list()).rejects.toSatisfy(
         (e: unknown) => e instanceof RuleApiError && e.isAuthError()
       );

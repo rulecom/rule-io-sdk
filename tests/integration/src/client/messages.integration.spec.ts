@@ -14,6 +14,7 @@ describe('MessagesClient', () => {
   beforeAll(async () => {
     const campaignName = testName('msg-setup-campaign');
     const campaign = await client.campaigns.create({ name: campaignName, message_type: 1 });
+
     sharedCampaignId = campaign.data!.id!;
     createdCampaignIds.push(sharedCampaignId);
 
@@ -22,6 +23,7 @@ describe('MessagesClient', () => {
       type: 1,
       subject: testName('msg-setup-subject'),
     });
+
     sharedMessageId = message.data!.id!;
     createdMessageIds.push(sharedMessageId);
   });
@@ -40,6 +42,7 @@ describe('MessagesClient', () => {
       const campaignName = testName('msg-create-campaign');
       const campaign = await client.campaigns.create({ name: campaignName, message_type: 1 });
       const campaignId = campaign.data!.id!;
+
       createdCampaignIds.push(campaignId);
 
       const subject = testName('msg-create');
@@ -48,6 +51,7 @@ describe('MessagesClient', () => {
         type: 1,
         subject,
       });
+
       createdMessageIds.push(result.data!.id!);
       expect(typeof result.data!.id).toBe('number');
       expect(result.data!.id).toBeGreaterThan(0);
@@ -60,12 +64,14 @@ describe('MessagesClient', () => {
   describe('get', () => {
     it('returns the message for a known ID (round-trip)', async () => {
       const found = await client.messages.get(sharedMessageId);
+
       expect(found).not.toBeNull();
       expect(found!.data!.id).toBe(sharedMessageId);
     });
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.messages.get(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -78,8 +84,10 @@ describe('MessagesClient', () => {
         id: sharedCampaignId,
         dispatcher_type: 'campaign',
       });
+
       expect(Array.isArray(response.data)).toBe(true);
       const found = response.data?.some((m) => m.id === sharedMessageId);
+
       expect(found).toBe(true);
     });
   });
@@ -90,9 +98,11 @@ describe('MessagesClient', () => {
     it('persists an updated subject', async () => {
       const newSubject = testName('msg-update-new-subject');
       const updated = await client.messages.update(sharedMessageId, { subject: newSubject });
+
       expect(updated.data!.subject).toBe(newSubject);
 
       const fetched = await client.messages.get(sharedMessageId);
+
       expect(fetched!.data!.subject).toBe(newSubject);
     });
   });
@@ -105,6 +115,7 @@ describe('MessagesClient', () => {
       const campaignName = testName('msg-delete-campaign');
       const campaign = await client.campaigns.create({ name: campaignName, message_type: 1 });
       const campaignId = campaign.data!.id!;
+
       createdCampaignIds.push(campaignId);
 
       const message = await client.messages.create({
@@ -117,6 +128,7 @@ describe('MessagesClient', () => {
 
       await client.messages.delete(id);
       const found = await client.messages.get(id);
+
       expect(found).toBeNull();
     });
   });
@@ -126,11 +138,13 @@ describe('MessagesClient', () => {
   describe('error handling', () => {
     it('returns null for a non-existent ID (get)', async () => {
       const result = await client.messages.get(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(
         bad.messages.list({ id: 1, dispatcher_type: 'campaign' })
       ).rejects.toSatisfy((e: unknown) => e instanceof RuleApiError && e.isAuthError());

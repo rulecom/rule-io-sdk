@@ -17,12 +17,15 @@ describe('SubscribersClient', () => {
   async function bootstrapTag(label: string): Promise<{ tagId: number; tagName: string }> {
     const setupEmail = testEmail(`sub-setup-${label}`);
     const tagName = testName(`sub-tag-${label}`);
+
     await client.subscribers.create({ email: setupEmail, status: 'ACTIVE' });
     createdEmails.push(setupEmail);
     await client.subscribers.addTags(setupEmail, { tags: [tagName] }, 'email');
     const tag = await client.tags.getByName(tagName);
+
     if (!tag) throw new Error(`bootstrapTag: tag not found after creation: ${tagName}`);
     createdTagIds.push(tag.id);
+
     return { tagId: tag.id, tagName };
   }
 
@@ -31,8 +34,10 @@ describe('SubscribersClient', () => {
   describe('create', () => {
     it('creates a subscriber with an email address', async () => {
       const email = testEmail('create-email');
+
       createdEmails.push(email);
       const result = await client.subscribers.create({ email, status: 'ACTIVE' });
+
       expect(result.data).toBeDefined();
       expect(typeof result.data.id).toBe('number');
       expect(result.data.email).toBe(email);
@@ -40,8 +45,10 @@ describe('SubscribersClient', () => {
 
     it('creates a subscriber and returns a numeric ID', async () => {
       const email = testEmail('create-second');
+
       createdEmails.push(email);
       const result = await client.subscribers.create({ email, status: 'ACTIVE' });
+
       expect(typeof result.data.id).toBe('number');
       expect(result.data.id).toBeGreaterThan(0);
     });
@@ -52,9 +59,11 @@ describe('SubscribersClient', () => {
   describe('getByEmail', () => {
     it('returns the subscriber for a known email (round-trip)', async () => {
       const email = testEmail('get-by-email');
+
       createdEmails.push(email);
       const created = await client.subscribers.create({ email, status: 'ACTIVE' });
       const found = await client.subscribers.getByEmail(email);
+
       expect(found).not.toBeNull();
       expect(found!.subscriber.id).toBe(created.data.id);
       expect(found!.subscriber.email).toBe(email);
@@ -62,6 +71,7 @@ describe('SubscribersClient', () => {
 
     it('returns null for a non-existent email', async () => {
       const result = await client.subscribers.getByEmail('no-such-subscriber-99999@example.com');
+
       expect(result).toBeNull();
     });
   });
@@ -69,15 +79,18 @@ describe('SubscribersClient', () => {
   describe('getById', () => {
     it('returns the subscriber for a known ID (round-trip)', async () => {
       const email = testEmail('get-by-id');
+
       createdEmails.push(email);
       const created = await client.subscribers.create({ email, status: 'ACTIVE' });
       const found = await client.subscribers.getById(created.data.id);
+
       expect(found).not.toBeNull();
       expect(found!.subscriber.id).toBe(created.data.id);
     });
 
     it('returns null for a non-existent ID', async () => {
       const result = await client.subscribers.getById(999_999_999);
+
       expect(result).toBeNull();
     });
   });
@@ -87,17 +100,21 @@ describe('SubscribersClient', () => {
   describe('addTags (identified by email)', () => {
     it('adds a tag to the subscriber and the tag appears in getTagNames', async () => {
       const email = testEmail('add-tags-email');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const tagName = testName('add-tags-email-tag');
       const response = await client.subscribers.addTags(email, { tags: [tagName] }, 'email');
+
       expect(response.success).toBe(true);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(names).toContain(tagName);
 
       // Clean up the tag
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
     });
   });
@@ -105,6 +122,7 @@ describe('SubscribersClient', () => {
   describe('addTags (identified by subscriber ID)', () => {
     it('adds a tag using the numeric subscriber ID as the selector', async () => {
       const email = testEmail('add-tags-id');
+
       createdEmails.push(email);
       const created = await client.subscribers.create({ email, status: 'ACTIVE' });
       const subscriberId = created.data.id;
@@ -115,12 +133,15 @@ describe('SubscribersClient', () => {
         { tags: [tagName] },
         'id'
       );
+
       expect(response.success).toBe(true);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(names).toContain(tagName);
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
     });
   });
@@ -130,18 +151,23 @@ describe('SubscribersClient', () => {
   describe('removeTag (identified by email)', () => {
     it('removes a tag and it no longer appears in getTagNames', async () => {
       const email = testEmail('remove-tag-email');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const tagName = testName('remove-tag-email-tag');
+
       await client.subscribers.addTags(email, { tags: [tagName] }, 'email');
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
 
       const response = await client.subscribers.removeTag(email, tagName, 'email');
+
       expect(response.success).toBe(true);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(names).not.toContain(tagName);
     });
   });
@@ -149,20 +175,25 @@ describe('SubscribersClient', () => {
   describe('removeTag (identified by subscriber ID)', () => {
     it('removes a tag from a subscriber using the numeric subscriber ID', async () => {
       const email = testEmail('remove-tag-id');
+
       createdEmails.push(email);
       const created = await client.subscribers.create({ email, status: 'ACTIVE' });
       const subscriberId = created.data.id;
 
       const tagName = testName('remove-tag-id-tag');
+
       await client.subscribers.addTags(subscriberId, { tags: [tagName] }, 'id');
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
 
       const response = await client.subscribers.removeTag(subscriberId, tagName, 'id');
+
       expect(response.success).toBe(true);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(names).not.toContain(tagName);
     });
   });
@@ -172,16 +203,19 @@ describe('SubscribersClient', () => {
   describe('bulkAddTags', () => {
     it('accepts the request and returns success (async dispatcher)', async () => {
       const email = testEmail('bulk-add-tags');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const tagName = testName('bulk-add-tag');
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
 
       const response = await client.subscribers.bulkAddTags({
         subscribers: [{ email }],
         tags: [tagName],
       });
+
       expect(response.success).toBe(true);
     });
   });
@@ -189,18 +223,22 @@ describe('SubscribersClient', () => {
   describe('bulkRemoveTags', () => {
     it('accepts the request and returns success (async dispatcher)', async () => {
       const email = testEmail('bulk-rm-tags');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const tagName = testName('bulk-rm-tag');
+
       await client.subscribers.addTags(email, { tags: [tagName] }, 'email');
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
 
       const response = await client.subscribers.bulkRemoveTags({
         subscribers: [{ email }],
         tags: [tagName],
       });
+
       expect(response.success).toBe(true);
     });
   });
@@ -210,13 +248,16 @@ describe('SubscribersClient', () => {
   describe('block / unblock', () => {
     it('blocks and then unblocks a subscriber (async dispatchers)', async () => {
       const email = testEmail('block-unblock');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
 
       const blockRes = await client.subscribers.block([{ email }]);
+
       expect(blockRes.success).toBe(true);
 
       const unblockRes = await client.subscribers.unblock([{ email }]);
+
       expect(unblockRes.success).toBe(true);
     });
   });
@@ -226,21 +267,26 @@ describe('SubscribersClient', () => {
   describe('getTagNames', () => {
     it('returns an array of tag name strings', async () => {
       const email = testEmail('get-tag-names');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const tagName = testName('get-tag-names-tag');
+
       await client.subscribers.addTags(email, { tags: [tagName] }, 'email');
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(Array.isArray(names)).toBe(true);
       expect(names).toContain(tagName);
     });
 
     it('returns an empty array for a non-existent subscriber', async () => {
       const names = await client.subscribers.getTagNames('no-such-subscriber@example.com');
+
       expect(names).toEqual([]);
     });
   });
@@ -251,6 +297,7 @@ describe('SubscribersClient', () => {
     it('returns subscribers that have all the specified tag IDs', async () => {
       const { tagId } = await bootstrapTag('list-by-tag-ids');
       const result = await client.subscribers.listSubscribersByTagIds({ tag_ids: [tagId] });
+
       expect(typeof result.matched).toBe('number');
       expect(typeof result.scanned).toBe('number');
       expect(Array.isArray(result.subscribers)).toBe(true);
@@ -269,14 +316,17 @@ describe('SubscribersClient', () => {
   describe('getFields', () => {
     it('returns an empty object for a non-existent subscriber', async () => {
       const fields = await client.subscribers.getFields('no-such-subscriber@example.com');
+
       expect(fields).toEqual({});
     });
 
     it('returns an object (possibly empty) for an existing subscriber', async () => {
       const email = testEmail('get-fields');
+
       createdEmails.push(email);
       await client.subscribers.create({ email, status: 'ACTIVE' });
       const fields = await client.subscribers.getFields(email);
+
       expect(typeof fields).toBe('object');
     });
   });
@@ -286,6 +336,7 @@ describe('SubscribersClient', () => {
   describe('sync', () => {
     it('creates a subscriber and assigns tags in a single call', async () => {
       const email = testEmail('sync');
+
       createdEmails.push(email);
       const tagName = testName('sync-tag');
 
@@ -293,17 +344,21 @@ describe('SubscribersClient', () => {
         { email, tags: [tagName] },
         'TestGroup'
       );
+
       expect(response.success).toBe(true);
 
       const names = await client.subscribers.getTagNames(email);
+
       expect(names).toContain(tagName);
 
       const tag = await client.tags.getByName(tagName);
+
       if (tag) createdTagIds.push(tag.id);
     });
 
     it('throws RuleClientError when fieldGroupPrefix is empty', async () => {
       const email = testEmail('sync-bad-prefix');
+
       await expect(
         client.subscribers.sync({ email }, '')
       ).rejects.toThrow('fieldGroupPrefix must not be empty');
@@ -311,6 +366,7 @@ describe('SubscribersClient', () => {
 
     it('throws RuleClientError when fieldGroupPrefix contains a dot', async () => {
       const email = testEmail('sync-dot-prefix');
+
       await expect(
         client.subscribers.sync({ email }, 'Bad.Prefix')
       ).rejects.toThrow('fieldGroupPrefix must not contain dots');
@@ -322,13 +378,16 @@ describe('SubscribersClient', () => {
   describe('delete (identified by email)', () => {
     it('deletes the subscriber and subsequent getByEmail returns null', async () => {
       const email = testEmail('delete-by-email');
+
       await client.subscribers.create({ email, status: 'ACTIVE' });
       // Don't push to createdEmails — we delete manually here.
 
       const response = await client.subscribers.delete(email, 'email');
+
       expect(response.success).toBe(true);
 
       const found = await client.subscribers.getByEmail(email);
+
       expect(found).toBeNull();
     });
   });
@@ -340,9 +399,11 @@ describe('SubscribersClient', () => {
       const subscriberId = created.data.id;
 
       const response = await client.subscribers.delete(subscriberId, 'id');
+
       expect(response.success).toBe(true);
 
       const found = await client.subscribers.getByEmail(email);
+
       expect(found).toBeNull();
     });
   });
@@ -352,16 +413,19 @@ describe('SubscribersClient', () => {
   describe('error handling', () => {
     it('returns null from getByEmail for a non-existent address', async () => {
       const result = await client.subscribers.getByEmail('no-such-subscriber-99999@example.com');
+
       expect(result).toBeNull();
     });
 
     it('returns null from getById for a non-existent ID', async () => {
       const result = await client.subscribers.getById(999_999_999);
+
       expect(result).toBeNull();
     });
 
     it('throws RuleApiError with isAuthError() when API key is invalid', async () => {
       const bad = new RuleClient({ apiKey: 'invalid-key' });
+
       await expect(
         bad.subscribers.create({ email: 'test@example.com', status: 'ACTIVE' })
       ).rejects.toSatisfy((e: unknown) => e instanceof RuleApiError && e.isAuthError());
