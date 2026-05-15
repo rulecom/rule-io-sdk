@@ -20,6 +20,7 @@ export type {
 
 // ── Client configuration ─────────────────────────────────────────────────────
 export type { RuleClientConfig } from './config.js';
+export type { RateLimitOptions, RetryInfo } from './core/rate-limit.js';
 
 // ── Subscribers (v2 + v3) ────────────────────────────────────────────────────
 export type {

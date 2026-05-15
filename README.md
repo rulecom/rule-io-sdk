@@ -208,6 +208,16 @@ tsconfig.json               # path mappings for IDE autocompletion
 
 ## Contributing
 
+> **Before creating a feature branch**, make sure your local `develop` is up to date with `main`. Release commits land on `main` first and are fast-forwarded into `develop` afterwards — branching from a stale `develop` will pull those already-merged commits into your PR diff.
+>
+> ```bash
+> git fetch origin main
+> git checkout develop
+> git merge --ff-only origin/main
+> ```
+>
+> Then create your branch from the updated `develop`.
+
 - Start a branch from `develop`.
 - Use conventional commits (`feat(client): …`, `fix(rcml): …`, etc.) — they drive the version bumps.
 - Open a PR targeting `develop`; CI runs `nx affected -t eslint:lint test-ci build --parallel=3` on your changes.
