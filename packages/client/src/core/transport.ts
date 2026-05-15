@@ -9,9 +9,12 @@
  * - v3 validation-error normalization
  * - 204 No Content → `{ success: true }` JSON convenience
  * - debug logging
+ * - opt-in client-side rate limiting (concurrency cap + 429 retry that
+ *   honors `Retry-After`), enabled by `TransportConfig.rateLimiting`.
  */
 
 import { RuleApiError, type RuleValidationErrors } from '../errors.js';
+import { RateLimitGate, type ResolvedRateLimitOptions } from './rate-limit.js';
 
 /**
  * Resolved transport configuration. Every field is required — the caller
@@ -23,6 +26,12 @@ export interface TransportConfig {
   baseUrlV3: string;
   fetch: typeof fetch;
   debug: boolean;
+  /**
+   * Optional resolved rate-limit options. When present, every HTTP request
+   * is gated by a concurrency semaphore and retried on 429. When absent,
+   * requests fire without gating and 429s surface directly.
+   */
+  rateLimiting?: ResolvedRateLimitOptions;
 }
 
 export type ApiVersion = 'v2' | 'v3';
@@ -43,7 +52,11 @@ interface JsonEnvelope {
 }
 
 export class HttpTransport {
-  constructor(private readonly config: TransportConfig) {}
+  private readonly gate: RateLimitGate | undefined;
+
+  constructor(private readonly config: TransportConfig) {
+    this.gate = config.rateLimiting ? new RateLimitGate(config.rateLimiting) : undefined;
+  }
 
   get<T>(endpoint: string, opts: RequestOptions = {}): Promise<T> {
     return this.requestJson<T>('GET', endpoint, opts);
@@ -114,11 +127,32 @@ export class HttpTransport {
    *
    * Callers that need the response object directly (e.g. async fire-and-forget
    * endpoints that ignore the body) use this instead of `requestJson`.
+   *
+   * When `rateLimiting` is configured, the call is gated by a concurrency
+   * semaphore and retried on 429 according to the resolved options.
    */
   async fetchRaw(
     method: string,
     endpoint: string,
     opts: RequestOptions = {}
+  ): Promise<Response> {
+    if (this.gate === undefined) {
+      return this.doFetchRaw(method, endpoint, opts);
+    }
+
+    return this.gate.run(`${method} ${endpoint}`, () =>
+      this.doFetchRaw(method, endpoint, opts)
+    );
+  }
+
+  /**
+   * The actual HTTP send. Extracted from {@link fetchRaw} so the rate-limit
+   * gate can wrap it without recursing through itself.
+   */
+  private async doFetchRaw(
+    method: string,
+    endpoint: string,
+    opts: RequestOptions
   ): Promise<Response> {
     const version: ApiVersion = opts.version ?? 'v3';
     const baseUrl = version === 'v3' ? this.config.baseUrlV3 : this.config.baseUrlV2;
