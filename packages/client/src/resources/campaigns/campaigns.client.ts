@@ -19,6 +19,7 @@ import type {
   RuleCampaignScheduleRequest,
   RuleCampaignUpdateRequest,
 } from './campaigns.types.js';
+import type { RuleSendoutType } from '../automations/automations.types.js';
 
 export class CampaignsClient extends BaseResource {
   /**
@@ -134,13 +135,13 @@ export class CampaignsClient extends BaseResource {
     // value or the response wrapper `{ value, key, description }`.
     // A consumer round-tripping a getCampaign() response into update can
     // legitimately pass the object form; both paths must handle it.
-    const toNumericSendout = (v: unknown): number | undefined => {
-      if (typeof v === 'number') return v;
+    const toNumericSendout = (v: unknown): RuleSendoutType | undefined => {
+      if (typeof v === 'number') return v as RuleSendoutType;
 
       if (v != null && typeof v === 'object' && 'value' in v) {
         const val = (v as { value: unknown }).value;
 
-        if (typeof val === 'number') return val;
+        if (typeof val === 'number') return val as RuleSendoutType;
       }
 
       return undefined;
