@@ -5,7 +5,7 @@
  * `/copy` and `/schedule` actions.
  */
 
-import { RuleApiError } from '../../errors.js';
+import { RuleApiError, RuleClientError } from '../../errors.js';
 
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
@@ -99,9 +99,17 @@ export class CampaignsClient extends BaseResource {
    * Update a campaign. Supports partial updates — only include the fields
    * you want to change.
    *
+   * The API requires a full body with `sendout_type` and `tags` even for
+   * partial updates. This method implements read-modify-write internally:
+   * it fetches the existing campaign, merges the partial input over it, and
+   * PUTs the full merged body.
+   *
    * @param id - Campaign ID.
    * @param update - Partial update request (all fields optional).
    * @returns The updated campaign.
+   * @throws RuleApiError with 404 if the campaign doesn't exist.
+   * @throws RuleClientError if the merged record lacks required fields
+   *   (`sendout_type`, `tags`).
    *
    * @example
    * ```typescript
@@ -118,12 +126,98 @@ export class CampaignsClient extends BaseResource {
    * });
    * ```
    */
-  update(
+  async update(
     id: number,
     update: Partial<RuleCampaignUpdateRequest>
   ): Promise<RuleCampaignResponse> {
+    // Coerce sendout_type to its numeric form, accepting either the numeric
+    // value or the response wrapper `{ value, key, description }`.
+    // A consumer round-tripping a getCampaign() response into update can
+    // legitimately pass the object form; both paths must handle it.
+    const toNumericSendout = (v: unknown): number | undefined => {
+      if (typeof v === 'number') return v;
+
+      if (v != null && typeof v === 'object' && 'value' in v) {
+        const val = (v as { value: unknown }).value;
+
+        if (typeof val === 'number') return val;
+      }
+
+      return undefined;
+    };
+
+    const updateSendout = toNumericSendout(update.sendout_type);
+
+    // Fast path: when the caller already supplies every required field, skip
+    // the read and PUT directly to save one round-trip.
+    // Guard with `!= null` (not `!== undefined`) so a JS caller passing
+    // `{ tags: null }` falls through to the slow path instead of sending it
+    // to the API. `sendout_type` accepts either form (number or response
+    // wrapper object) — it was coerced to a number by `toNumericSendout`
+    // above, and the coerced value is what we PUT.
+    if (
+      update.name != null &&
+      update.sendout_type != null &&
+      update.tags != null
+    ) {
+      return this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
+        body: JSON.stringify({
+          name: update.name,
+          sendout_type: updateSendout,
+          tags: update.tags,
+          segments: update.segments,
+          subscribers: update.subscribers,
+        }),
+      });
+    }
+
+    // Slow path: read-modify-write to satisfy the API's full-body PUT
+    // requirement when caller passes a partial update.
+    const existing = await this.get(id);
+
+    if (existing === null) {
+      throw new RuleApiError(`Campaign ${id} not found`, 404);
+    }
+
+    if (!existing.data) {
+      const detail = existing.error ?? existing.message ?? 'response had no data';
+
+      throw new RuleApiError(
+        `Cannot update campaign ${id}: unexpected response from get (${detail})`,
+        500
+      );
+    }
+
+    const current = existing.data;
+    const currentSendout = toNumericSendout(current.sendout_type);
+
+    const sendoutType = updateSendout ?? currentSendout;
+    const tags = update.tags ?? current.recipients?.tags;
+    const segments = update.segments ?? current.recipients?.segments;
+    const subscribers = update.subscribers ?? current.recipients?.subscribers?.map(s => s.id);
+
+    if (sendoutType == null) {
+      throw new RuleClientError(
+        `Cannot update campaign ${id}: existing record has no sendout_type and update did not provide one`
+      );
+    }
+
+    if (tags == null) {
+      throw new RuleClientError(
+        `Cannot update campaign ${id}: existing record has no tags and update did not provide one`
+      );
+    }
+
+    const fullBody: RuleCampaignUpdateRequest = {
+      name: update.name ?? current.name,
+      sendout_type: sendoutType,
+      tags,
+      segments: segments ?? [],
+      subscribers: subscribers ?? [],
+    };
+
     return this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
-      body: JSON.stringify(update),
+      body: JSON.stringify(fullBody),
     });
   }
 
