@@ -58,7 +58,6 @@ describe('AnalyticsClient', () => {
         client.analytics.get({
           date_from: dateFrom,
           date_to: dateTo,
-          // @ts-expect-error intentional bad input
           object_ids: ['1'],
         })
       ).rejects.toThrow(RuleClientError);
