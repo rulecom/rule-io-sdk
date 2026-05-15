@@ -149,27 +149,27 @@ export class CampaignsClient extends BaseResource {
 
     const updateSendout = toNumericSendout(update.sendout_type);
 
-    // Fast path: when the caller already supplies every required field, skip
-    // the read and PUT directly to save one round-trip.
-    // Guard with `!= null` (not `!== undefined`) so a JS caller passing
-    // `{ tags: null }` falls through to the slow path instead of sending it
-    // to the API. Guard on `updateSendout` (the coerced value), not
-    // `update.sendout_type` (the raw input), so a non-coercible wrapper
-    // falls through to the slow path instead of producing a PUT with
-    // `sendout_type: undefined`. Default `segments`/`subscribers` to `[]`
-    // because the API requires the full body (matches slow path).
+    // Fast path: only when the caller supplies *every* required field —
+    // including segments and subscribers — skip the read and PUT directly.
+    // If any field is omitted, fall through to the slow path so existing
+    // recipients are preserved rather than silently cleared. Guard with
+    // `!= null` (not `!== undefined`) so a JS caller passing `null` falls
+    // through too. Guard on `updateSendout` (the coerced value) so a
+    // non-coercible `sendout_type` also falls through.
     if (
       update.name != null &&
       updateSendout != null &&
-      update.tags != null
+      update.tags != null &&
+      update.segments != null &&
+      update.subscribers != null
     ) {
       return this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
         body: JSON.stringify({
           name: update.name,
           sendout_type: updateSendout,
           tags: update.tags,
-          segments: update.segments ?? [],
-          subscribers: update.subscribers ?? [],
+          segments: update.segments,
+          subscribers: update.subscribers,
         }),
       });
     }

@@ -73,7 +73,7 @@ describe('CampaignsClient', () => {
   });
 
   describe('update', () => {
-    it('fast path: PUTs full body when all required fields provided', async () => {
+    it('fast path: PUTs full body when all 5 fields are provided', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({ data: { id: 1, name: 'Updated' } })
       );
@@ -83,6 +83,8 @@ describe('CampaignsClient', () => {
         name: 'Updated',
         sendout_type: 1,
         tags: [{ id: 42, negative: false }],
+        segments: [{ id: 7, negative: false }],
+        subscribers: [101, 102],
       });
 
       // Only one call — no GET
@@ -97,8 +99,8 @@ describe('CampaignsClient', () => {
         name: 'Updated',
         sendout_type: 1,
         tags: [{ id: 42, negative: false }],
-        segments: [],
-        subscribers: [],
+        segments: [{ id: 7, negative: false }],
+        subscribers: [101, 102],
       });
     });
 
@@ -112,6 +114,8 @@ describe('CampaignsClient', () => {
         name: 'Updated',
         sendout_type: { value: 2, key: 'transactional', description: 'T' } as unknown as 1 | 2,
         tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
       });
 
       expect(fetchMock.mock.calls.length).toBe(1);
@@ -139,16 +143,58 @@ describe('CampaignsClient', () => {
       );
       const client = createClient(fetchMock);
 
+      // All other required fields present so coercion is the only thing
+      // forcing the slow path.
       await client.update(1, {
         name: 'Updated',
         sendout_type: 'garbage' as unknown as 1 | 2,
         tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
       });
 
-      // Two calls — guard on coerced value forced the slow path
       expect(fetchMock.mock.calls.length).toBe(2);
       expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
       expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('PUT');
+    });
+
+    it('slow path preserves existing recipients when caller omits segments/subscribers', async () => {
+      // GET response — existing campaign with non-empty recipients
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            sendout_type: { value: 1, key: 'marketing', description: 'M' },
+            recipients: {
+              tags: [{ id: 42, negative: false }],
+              segments: [{ id: 7, negative: false }],
+              subscribers: [{ id: 101 }, { id: 102 }],
+            },
+          },
+        })
+      );
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      // Caller provides 3 of 5 — the omitted segments/subscribers must
+      // come from the existing record, not be silently cleared to [].
+      await client.update(1, {
+        name: 'Updated',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      // Two calls — fast path skipped because segments/subscribers absent
+      expect(fetchMock.mock.calls.length).toBe(2);
+      const putBody = JSON.parse(
+        (fetchMock.mock.calls[1]![1] as RequestInit).body as string
+      );
+
+      expect(putBody.segments).toEqual([{ id: 7, negative: false }]);
+      expect(putBody.subscribers).toEqual([101, 102]);
     });
 
     it('slow path: read-modify-write for partial updates', async () => {
@@ -267,6 +313,8 @@ describe('CampaignsClient', () => {
         name: 'Updated',
         sendout_type: 2, // numeric
         tags: [],
+        segments: [],
+        subscribers: [],
       });
 
       const putBody = JSON.parse(
