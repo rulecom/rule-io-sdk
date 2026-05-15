@@ -153,12 +153,14 @@ export class CampaignsClient extends BaseResource {
     // the read and PUT directly to save one round-trip.
     // Guard with `!= null` (not `!== undefined`) so a JS caller passing
     // `{ tags: null }` falls through to the slow path instead of sending it
-    // to the API. `sendout_type` accepts either form (number or response
-    // wrapper object) — it was coerced to a number by `toNumericSendout`
-    // above, and the coerced value is what we PUT.
+    // to the API. Guard on `updateSendout` (the coerced value), not
+    // `update.sendout_type` (the raw input), so a non-coercible wrapper
+    // falls through to the slow path instead of producing a PUT with
+    // `sendout_type: undefined`. Default `segments`/`subscribers` to `[]`
+    // because the API requires the full body (matches slow path).
     if (
       update.name != null &&
-      update.sendout_type != null &&
+      updateSendout != null &&
       update.tags != null
     ) {
       return this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
@@ -166,8 +168,8 @@ export class CampaignsClient extends BaseResource {
           name: update.name,
           sendout_type: updateSendout,
           tags: update.tags,
-          segments: update.segments,
-          subscribers: update.subscribers,
+          segments: update.segments ?? [],
+          subscribers: update.subscribers ?? [],
         }),
       });
     }

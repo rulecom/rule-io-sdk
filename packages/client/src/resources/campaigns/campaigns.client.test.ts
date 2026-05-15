@@ -97,9 +97,58 @@ describe('CampaignsClient', () => {
         name: 'Updated',
         sendout_type: 1,
         tags: [{ id: 42, negative: false }],
-        segments: undefined,
-        subscribers: undefined,
+        segments: [],
+        subscribers: [],
       });
+    });
+
+    it('fast path: coerces sendout_type wrapper object to numeric', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, {
+        name: 'Updated',
+        sendout_type: { value: 2, key: 'transactional', description: 'T' } as unknown as 1 | 2,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      expect(fetchMock.mock.calls.length).toBe(1);
+      const [, init] = fetchMock.mock.calls[0]!;
+      const body = JSON.parse((init as RequestInit).body as string);
+
+      expect(body.sendout_type).toBe(2);
+    });
+
+    it('falls through to slow path when sendout_type is non-coercible', async () => {
+      // GET response — existing campaign with valid sendout_type
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            sendout_type: { value: 1, key: 'marketing', description: 'M' },
+            recipients: { tags: [{ id: 42, negative: false }] },
+          },
+        })
+      );
+      // PUT response
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, {
+        name: 'Updated',
+        sendout_type: 'garbage' as unknown as 1 | 2,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      // Two calls — guard on coerced value forced the slow path
+      expect(fetchMock.mock.calls.length).toBe(2);
+      expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
+      expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('PUT');
     });
 
     it('slow path: read-modify-write for partial updates', async () => {
