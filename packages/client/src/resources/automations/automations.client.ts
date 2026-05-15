@@ -17,8 +17,8 @@ import type {
   RuleAutomationListResponse,
   RuleAutomationResponse,
   RuleAutomationUpdateRequest,
-  RuleSendoutType,
 } from './automations.types.js';
+import { toNumericSendout } from '../../utils/index.js';
 
 export class AutomationsClient extends BaseResource {
   /**
@@ -86,18 +86,6 @@ export class AutomationsClient extends BaseResource {
     id: number,
     update: Partial<RuleAutomationUpdateRequest>
   ): Promise<RuleAutomationResponse> {
-    const toNumericSendout = (v: unknown): RuleSendoutType | undefined => {
-      if (typeof v === 'number') return v as RuleSendoutType;
-
-      if (v != null && typeof v === 'object' && 'value' in v) {
-        const val = (v as { value: unknown }).value;
-
-        if (typeof val === 'number') return val as RuleSendoutType;
-      }
-
-      return undefined;
-    };
-
     const updateSendout = toNumericSendout(update.sendout_type);
 
     // Fast path: when the caller already supplies every required field, skip
