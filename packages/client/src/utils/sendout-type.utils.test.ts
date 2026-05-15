@@ -28,4 +28,12 @@ describe('toNumericSendout', () => {
     expect(toNumericSendout('1')).toBeUndefined();
     expect(toNumericSendout(true)).toBeUndefined();
   });
+
+  it('returns undefined for non-finite numbers (NaN, Infinity)', () => {
+    expect(toNumericSendout(NaN)).toBeUndefined();
+    expect(toNumericSendout(Infinity)).toBeUndefined();
+    expect(toNumericSendout(-Infinity)).toBeUndefined();
+    expect(toNumericSendout({ value: NaN })).toBeUndefined();
+    expect(toNumericSendout({ value: Infinity })).toBeUndefined();
+  });
 });

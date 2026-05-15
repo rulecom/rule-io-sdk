@@ -72,10 +72,11 @@ export interface RuleCampaignCreateRequest {
 }
 
 /**
- * Request body for updating a campaign via `campaigns.update()`.
+ * Full PUT body for updating a campaign — all fields are required by the API.
  *
- * All fields are optional — pass only what you want to change. The client
- * fetches the existing record and merges your partial input before writing.
+ * `campaigns.update()` accepts `Partial<RuleCampaignUpdateRequest>`; the
+ * client fetches the existing record, merges the partial input, and sends
+ * this complete shape to the API.
  */
 export interface RuleCampaignUpdateRequest {
   name: string;
