@@ -155,6 +155,13 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
     required.push('content')
   }
 
+  const simpleContent = TAGS_WITH_SIMPLE_CONTENT[tagName]
+
+  if (simpleContent !== undefined) {
+    properties['content'] = simpleContent.schema
+    if (simpleContent.required) required.push('content')
+  }
+
   return {
     type: 'object',
     properties,
@@ -191,6 +198,41 @@ function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): J
     required: ['tagName'],
     additionalProperties: false,
   }
+}
+
+/**
+ * Non-ProseMirror content schemas for tags that carry a `content` property
+ * with a plain string or a structured-but-non-PM object.
+ *
+ * Each entry:
+ *  - `schema`   — the JSON Schema that validates the `content` value.
+ *  - `required` — whether the property must be present (mirrors the
+ *                 TypeScript type: required for `rc-plain-text`, optional for
+ *                 `rc-preview` and `rc-raw`).
+ */
+const TAGS_WITH_SIMPLE_CONTENT: Partial<
+  Record<RcmlTagName, { schema: JsonSchema; required: boolean }>
+> = {
+  [RcmlTagNamesEnum.Preview]: {
+    schema: { type: 'string' },
+    required: false,
+  },
+  [RcmlTagNamesEnum.PlainText]: {
+    schema: {
+      type: 'object',
+      properties: {
+        type: { const: 'text' },
+        text: { type: 'string' },
+      },
+      required: ['type', 'text'],
+      additionalProperties: false,
+    },
+    required: true,
+  },
+  [RcmlTagNamesEnum.Raw]: {
+    schema: { type: 'string' },
+    required: false,
+  },
 }
 
 /**

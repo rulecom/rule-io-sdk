@@ -448,3 +448,74 @@ describe('validateEmailTemplate — rc-attributes attribute-override nodes', () 
     expect(result.success).toBe(false)
   })
 })
+
+// ─── Regression: rc-preview / rc-plain-text / rc-raw content fields ──────────
+
+describe('validateEmailTemplate — non-PM content fields', () => {
+  it('accepts rc-plain-text with a { type, text } content object', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [
+            {
+              tagName: 'rc-plain-text',
+              content: { type: 'text', text: 'Click here to unsubscribe: %Link:Unsubscribe%' },
+            },
+          ],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    expect(safeValidateEmailTemplate(doc).success).toBe(true)
+  })
+
+  it('accepts rc-preview with a string content', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [{ tagName: 'rc-preview', content: 'Check out our latest deals' }],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    expect(safeValidateEmailTemplate(doc).success).toBe(true)
+  })
+
+  it('accepts rc-preview without content', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        { tagName: 'rc-head', children: [{ tagName: 'rc-preview' }] },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    expect(safeValidateEmailTemplate(doc).success).toBe(true)
+  })
+
+  it('rejects rc-plain-text with wrong content shape', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [
+            // @ts-expect-error — intentionally wrong shape
+            { tagName: 'rc-plain-text', content: 'just a string, not an object' },
+          ],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    const result = safeValidateEmailTemplate(doc)
+
+    expect(result.success).toBe(false)
+  })
+})
