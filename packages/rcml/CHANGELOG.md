@@ -1,3 +1,7 @@
+## 0.4.0-beta.3 (2026-05-18)
+
+This was a version bump only for rcml to align it with other projects, there were no code changes.
+
 ## 0.4.0-beta.2 (2026-05-14)
 
 ### 🩹 Fixes

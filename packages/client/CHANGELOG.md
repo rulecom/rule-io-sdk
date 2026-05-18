@@ -1,3 +1,27 @@
+## 0.4.0-beta.3 (2026-05-18)
+
+### 🚀 Features
+
+- **client:** opt-in rate limiting in HttpTransport ([954aca8](https://github.com/rulecom/rule-io-sdk/commit/954aca8))
+
+### 🩹 Fixes
+
+- **client:** clamp Retry-After delay to maxRetryAfterMs after jitter ([3591e34](https://github.com/rulecom/rule-io-sdk/commit/3591e34))
+- **client:** reject NaN/Infinity in toNumericSendout; clarify UpdateRequest JSDoc ([72f4725](https://github.com/rulecom/rule-io-sdk/commit/72f4725))
+- **client:** require all 5 fields for campaigns update fast path ([ab48d02](https://github.com/rulecom/rule-io-sdk/commit/ab48d02))
+- **client:** repair campaigns update fast-path body completeness ([#140](https://github.com/rulecom/rule-io-sdk/issues/140))
+- **client:** type campaigns toNumericSendout as RuleSendoutType ([#140](https://github.com/rulecom/rule-io-sdk/issues/140))
+- **client:** updateCampaign partial updates via read-modify-write ([#129](https://github.com/rulecom/rule-io-sdk/issues/129), [#116](https://github.com/rulecom/rule-io-sdk/issues/116))
+- **client:** log parsed retry-after seconds and fix tz doc ([49cbb12](https://github.com/rulecom/rule-io-sdk/commit/49cbb12))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Opus 4.7
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+- swesam
+
 ## 0.4.0-beta.2 (2026-05-14)
 
 ### 🚀 Features
