@@ -170,9 +170,13 @@ export function computeRetryDelayMs(
     if (requestedMs > opts.maxRetryAfterMs) return null;
     // Small upward jitter (0–10 %) avoids the thundering-herd case where
     // every client wakes the instant the rate-limit window rolls over.
+    // Clamp after jitter so the cap is always a hard ceiling on actual sleep.
     const jitter = 1 + opts.random() * 0.1;
 
-    return { delayMs: Math.round(requestedMs * jitter), honoredRetryAfter: true };
+    return {
+      delayMs: Math.min(Math.round(requestedMs * jitter), opts.maxRetryAfterMs),
+      honoredRetryAfter: true,
+    };
   }
 
   const exponential = opts.baseDelayMs * Math.pow(2, attempt);
