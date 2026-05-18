@@ -476,36 +476,17 @@ function upsertBackgroundColorNode(
 }
 
 /**
- * Construct a fresh default-attribute node for one of the three tags
- * `upsertBackgroundColorNode` cares about. The shapes differ subtly:
- * `rc-body` holds children, `rc-section` holds children, `rc-button` carries
- * an empty ProseMirror `content` doc — the schema requires each.
+ * Construct a fresh attribute-default node for one of the three tags
+ * `upsertBackgroundColorNode` cares about. These nodes live inside
+ * `<rc-attributes>` and carry only attributes — the `*-attr` override
+ * schema does not require `children` or `content` here.
  */
 function buildBgNode(tagName: BgNode['tagName'], colorHex: string): BgNode {
-  if (tagName === 'rc-body') {
-    return {
-      id: newId(),
-      tagName: 'rc-body',
-      attributes: { 'background-color': colorHex },
-      children: [],
-    } as unknown as RcmlBody
-  }
-
-  if (tagName === 'rc-section') {
-    return {
-      id: newId(),
-      tagName: 'rc-section',
-      attributes: { 'background-color': colorHex },
-      children: [],
-    } as unknown as RcmlSection
-  }
-
   return {
     id: newId(),
-    tagName: 'rc-button',
+    tagName,
     attributes: { 'background-color': colorHex },
-    content: { type: 'doc', content: [{ type: 'paragraph' }] },
-  } as unknown as RcmlButton
+  } as unknown as BgNode
 }
 
 // ──────────────────────────────────────────────────────────────────────────

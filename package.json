@@ -17,7 +17,7 @@
     "release:dry": "nx release --dry-run",
     "release": "nx release",
     "local-registry": "nx run rule-io-sdk:local-registry",
-    "publish:local": "nx release publish --registry http://localhost:4873",
+    "publish:local": "nx run-many -t build && nx release publish --registry http://localhost:4873",
     "daemon:restart": "nx daemon --stop && nx daemon --start"
   },
   "devDependencies": {
