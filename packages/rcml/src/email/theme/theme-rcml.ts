@@ -478,7 +478,7 @@ function upsertBackgroundColorNode(
 /**
  * Construct a fresh default-attribute node for one of the three tags
  * `upsertBackgroundColorNode` cares about. The shapes differ subtly:
- * `rc-body` is a leaf, `rc-section` holds children, `rc-button` carries
+ * `rc-body` holds children, `rc-section` holds children, `rc-button` carries
  * an empty ProseMirror `content` doc — the schema requires each.
  */
 function buildBgNode(tagName: BgNode['tagName'], colorHex: string): BgNode {
@@ -487,7 +487,8 @@ function buildBgNode(tagName: BgNode['tagName'], colorHex: string): BgNode {
       id: newId(),
       tagName: 'rc-body',
       attributes: { 'background-color': colorHex },
-    } as RcmlBody
+      children: [],
+    } as unknown as RcmlBody
   }
 
   if (tagName === 'rc-section') {
@@ -503,7 +504,7 @@ function buildBgNode(tagName: BgNode['tagName'], colorHex: string): BgNode {
     id: newId(),
     tagName: 'rc-button',
     attributes: { 'background-color': colorHex },
-    content: { type: 'doc', content: [] },
+    content: { type: 'doc', content: [{ type: 'paragraph' }] },
   } as unknown as RcmlButton
 }
 

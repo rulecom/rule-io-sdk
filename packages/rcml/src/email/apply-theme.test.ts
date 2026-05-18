@@ -18,6 +18,7 @@ import {
   EmailThemeImageType,
 } from './theme-types.js'
 import { applyTheme, EmailThemeApplyError } from './apply-theme.js'
+import { safeValidateEmailTemplate } from './validate-email-template.js'
 
 // ──────────────────────────────────────────────────────────────────────────
 // Fixtures
@@ -627,4 +628,62 @@ describe('applyTheme — rc-social merge', () => {
     expect((elements[0] as { id: string }).id).toBe('facebook-first')
     expect((elements[0]!.attributes as Record<string, unknown>).href).toBe('https://new.fb/')
   })
+})
+
+// ──────────────────────────────────────────────────────────────────────────
+// Regression: applyTheme result must pass safeValidateEmailTemplate
+// ──────────────────────────────────────────────────────────────────────────
+
+it('theme-applied document passes safeValidateEmailTemplate', () => {
+  const doc: RcmlDocument = {
+    tagName: 'rcml',
+    children: [
+      { tagName: 'rc-head', children: [] } as RcmlHead,
+      {
+        tagName: 'rc-body',
+        children: [
+          {
+            tagName: 'rc-section',
+            children: [
+              {
+                tagName: 'rc-column',
+                children: [
+                  {
+                    tagName: 'rc-text',
+                    content: {
+                      type: 'doc',
+                      content: [
+                        { type: 'paragraph', content: [{ type: 'text', text: 'Hello!' }] },
+                      ],
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } as unknown as RcmlBody,
+    ],
+  } as RcmlDocument
+
+  const theme = createEmailTheme({
+    brandStyleId: 10457,
+    colors: [
+      { type: EmailThemeColorType.Background, hex: '#f3f3f3' },
+      { type: EmailThemeColorType.Body, hex: '#ffffff' },
+      { type: EmailThemeColorType.Primary, hex: '#05cc87' },
+      { type: EmailThemeColorType.Secondary, hex: '#F6F8F9' },
+    ],
+    images: [{ type: EmailThemeImageType.Logo, url: 'https://img.rule.io/14702/69709c979b5df' }],
+    fonts: [{ fontFamily: 'Lato', url: 'https://fonts.googleapis.com/css?family=Lato' }],
+    fontStyles: [
+      { type: EmailThemeFontStyleType.P, fontFamily: 'Lato', fallbackFontFamily: 'sans-serif', fontSize: '16px', color: '#0F0F1F', lineHeight: '120%', letterSpacing: '0em', fontStyle: 'normal', fontWeight: '400', textDecoration: 'none' },
+      { type: EmailThemeFontStyleType.H1, fontFamily: 'Helvetica', fallbackFontFamily: 'sans-serif', fontSize: '36px', color: '#0F0F1F', lineHeight: '120%', letterSpacing: '0em', fontStyle: 'normal', fontWeight: '700', textDecoration: 'none' },
+    ],
+  })
+
+  const themed = applyTheme(doc, theme)
+  const result = safeValidateEmailTemplate(themed)
+
+  expect(result.success).toBe(true)
 })

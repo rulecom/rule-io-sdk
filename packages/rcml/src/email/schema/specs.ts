@@ -28,7 +28,7 @@ const rcmlSpec = {
 const headSpec = {
   attrs: {},
   isLeaf: false,
-  validChildTypes: [T.BrandStyle, T.Attributes, T.Preview, T.Class, T.PlainText],
+  validChildTypes: [T.BrandStyle, T.Attributes, T.Preview, T.Class, T.PlainText, T.Font],
 } as const satisfies RcmlNodeSpec
 
 const brandStyleSpec = {
@@ -49,7 +49,7 @@ const fontSpec = {
 const attributesSpec = {
   attrs: {},
   isLeaf: false,
-  validChildTypes: [T.Body, T.Section, T.Button, T.Heading, T.Text, T.Social],
+  validChildTypes: [T.Body, T.Section, T.Button, T.Heading, T.Text, T.Social, T.Class],
 } as const satisfies RcmlNodeSpec
 
 const previewSpec = {

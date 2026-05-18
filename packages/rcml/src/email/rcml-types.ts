@@ -95,6 +95,7 @@ export type RcmlHeadChild =
   | RcmlAttributes
   | RcmlPreview
   | RcmlClass
+  | RcmlFont
   | RcmlPlainText
 
 /** `<rc-head>` container. @public */
@@ -126,6 +127,7 @@ export type RcmlAttributesChild =
   | RcmlHeading
   | RcmlText
   | RcmlSocial
+  | RcmlClass
 
 /** `<rc-attributes>` — holds default-attribute overrides and named classes. @public */
 export interface RcmlAttributes {
