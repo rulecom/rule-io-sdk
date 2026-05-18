@@ -7,6 +7,11 @@
 import { RuleClientError } from './errors.js';
 
 import { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL } from './constants.js';
+import {
+  resolveRateLimitOptions,
+  type RateLimitOptions,
+  type ResolvedRateLimitOptions,
+} from './core/rate-limit.js';
 
 /** User-facing client configuration. All fields except `apiKey` have defaults. */
 export interface RuleClientConfig {
@@ -19,6 +24,15 @@ export interface RuleClientConfig {
   fetch?: typeof fetch;
   /** Enable debug logging. */
   debug?: boolean;
+  /**
+   * Opt-in client-side rate limiting. When present, every HTTP request is
+   * gated by a concurrency semaphore and retried on 429 according to the
+   * supplied options (server `Retry-After` is honored when available).
+   *
+   * Omit to disable — the client fires requests with no concurrency cap and
+   * surfaces 429s directly to the caller.
+   */
+  rateLimiting?: RateLimitOptions;
 }
 
 /** Fully-resolved configuration with every default applied. */
@@ -28,6 +42,8 @@ export interface ResolvedClientConfig {
   baseUrlV3: string;
   fetch: typeof fetch;
   debug: boolean;
+  /** Resolved rate-limit options, or `undefined` when rate limiting is off. */
+  rateLimiting?: ResolvedRateLimitOptions;
 }
 
 /**
@@ -50,5 +66,9 @@ export function resolveConfig(input: RuleClientConfig | string): ResolvedClientC
     baseUrlV3: config.baseUrlV3 ?? RULE_API_V3_BASE_URL,
     fetch: config.fetch ?? globalThis.fetch,
     debug: config.debug ?? false,
+    rateLimiting:
+      config.rateLimiting !== undefined
+        ? resolveRateLimitOptions(config.rateLimiting)
+        : undefined,
   };
 }

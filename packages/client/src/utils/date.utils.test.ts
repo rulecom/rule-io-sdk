@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatDateForRule } from './utils.js';
+import { formatDateForRule } from './date.utils.js';
 
 describe('formatDateForRule', () => {
   it('formats a date as YYYY-MM-DD in UTC', () => {

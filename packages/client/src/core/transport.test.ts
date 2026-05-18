@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RuleApiError } from '../errors.js';
 
@@ -10,15 +10,24 @@ import {
   createMockTextResponse,
   type MockFetch,
 } from './mock-fetch.js';
+import {
+  resolveRateLimitOptions,
+  type RateLimitOptions,
+} from './rate-limit.js';
 import { HttpTransport, type TransportConfig } from './transport.js';
 
-function makeTransport(fetchMock: MockFetch, debug = false): HttpTransport {
+function makeTransport(
+  fetchMock: MockFetch,
+  debug = false,
+  rateLimiting?: RateLimitOptions
+): HttpTransport {
   const config: TransportConfig = {
     apiKey: 'test-key',
     baseUrlV2: 'https://app.rule.io/api/v2',
     baseUrlV3: 'https://app.rule.io/api/v3',
     fetch: fetchMock,
     debug,
+    ...(rateLimiting ? { rateLimiting: resolveRateLimitOptions(rateLimiting) } : {}),
   };
 
   return new HttpTransport(config);
@@ -420,6 +429,98 @@ describe('HttpTransport', () => {
         rateLimitRemaining: undefined,
         errorPercentLimit: undefined,
       });
+    });
+  });
+
+  describe('rate-limit gate (opt-in)', () => {
+    it('does not retry or gate when rateLimiting is omitted', async () => {
+      // 429 surfaces directly; no retries.
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse('', 429));
+      const t = makeTransport(fetchMock);
+
+      await expect(t.get('/x')).rejects.toMatchObject({ statusCode: 429 });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries on 429 and resolves on the next success', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockErrorResponse('', 429, { 'Retry-After': '1' }))
+        .mockResolvedValueOnce(createMockResponse({ ok: true }));
+
+      const sleep = vi.fn(() => Promise.resolve());
+      const t = makeTransport(fetchMock, false, {
+        maxConcurrency: 1,
+        maxRetries: 2,
+        sleep,
+        random: () => 0,
+      });
+
+      await expect(t.get('/x')).resolves.toEqual({ ok: true });
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      // First retry waits the server-supplied 1 s (no jitter with random=0).
+      expect(sleep).toHaveBeenCalledWith(1000);
+    });
+
+    it('honors RuleApiError.retryAfterSeconds parsed from the timestamp form', async () => {
+      // Real-world: Rule.io v3 emits Retry-After as a server-local
+      // (Stockholm) wall timestamp and the transport parses it into seconds
+      // by referencing the response `Date` header. May 2026 = CEST (UTC+2),
+      // so 12:22:11 GMT corresponds to 14:22:11 Stockholm wall — a 5 s gap
+      // to the retry-after wall time.
+      fetchMock
+        .mockResolvedValueOnce(
+          createMockErrorResponse('', 429, {
+            'Retry-After': '2026-05-14 14:22:16',
+            Date: 'Thu, 14 May 2026 12:22:11 GMT',
+          })
+        )
+        .mockResolvedValueOnce(createMockResponse({ ok: true }));
+
+      const sleep = vi.fn(() => Promise.resolve());
+      const t = makeTransport(fetchMock, false, {
+        maxConcurrency: 1,
+        maxRetries: 1,
+        sleep,
+        random: () => 0,
+      });
+
+      await t.get('/x');
+      // 14:22:16 − 14:22:11 = 5 s
+      expect(sleep).toHaveBeenCalledWith(5000);
+    });
+
+    it('caps in-flight HTTP requests at maxConcurrency', async () => {
+      let inFlight = 0;
+      let peak = 0;
+      const releases: Array<() => void> = [];
+
+      fetchMock.mockImplementation(
+        () =>
+          new Promise<Response>((resolve) => {
+            inFlight++;
+            if (inFlight > peak) peak = inFlight;
+            releases.push(() => {
+              inFlight--;
+              resolve(createMockResponse({ ok: true }));
+            });
+          })
+      );
+
+      const t = makeTransport(fetchMock, false, { maxConcurrency: 2 });
+      const all = Promise.all(Array.from({ length: 5 }, () => t.get('/x')));
+
+      // Let the first batch enter fetch.
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+
+      while (releases.length > 0) {
+        releases.shift()?.();
+        for (let i = 0; i < 5; i++) await Promise.resolve();
+      }
+
+      await all;
+
+      expect(peak).toBe(2);
+      expect(fetchMock).toHaveBeenCalledTimes(5);
     });
   });
 });

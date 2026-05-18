@@ -72,22 +72,305 @@ describe('CampaignsClient', () => {
     });
   });
 
-  describe('update', () => {
-    it('PUTs a partial update', async () => {
+  describe('set', () => {
+    it('PUTs full body when campaign exists', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'New' } })
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
       );
       const client = createClient(fetchMock);
 
-      await client.update(1, { name: 'New' });
+      await client.set(1, {
+        name: 'Updated',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+        segments: [{ id: 7, negative: false }],
+        subscribers: [101, 102],
+      });
 
+      expect(fetchMock.mock.calls.length).toBe(1);
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/1');
       expect((init as RequestInit).method).toBe('PUT');
       const body = JSON.parse((init as RequestInit).body as string);
 
-      expect(body).toEqual({ name: 'New' });
+      expect(body).toEqual({
+        name: 'Updated',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+        segments: [{ id: 7, negative: false }],
+        subscribers: [101, 102],
+      });
+    });
+
+    it('coerces sendout_type wrapper object to numeric', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.set(1, {
+        name: 'Updated',
+        sendout_type: { value: 2, key: 'transactional', description: 'T' } as unknown as 1 | 2,
+        tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
+      });
+
+      const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+
+      expect(body.sendout_type).toBe(2);
+    });
+
+    it('falls back to POST when campaign does not exist (404)', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 99, name: 'New' } })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.set(1, {
+        name: 'New',
+        message_type: 1,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+
+      expect(result.data?.id).toBe(99);
+      expect(fetchMock.mock.calls.length).toBe(2);
+      expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('PUT');
+      expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('POST');
+      expect(fetchMock.mock.calls[1]![0]).toBe('https://app.rule.io/api/v3/editor/campaign');
+    });
+
+    it('includes message_type in POST body on create', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 5, name: 'New' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.set(1, {
+        name: 'New',
+        message_type: 2,
+        sendout_type: 1,
+        tags: [],
+        segments: [],
+        subscribers: [],
+      });
+
+      const postBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
+
+      expect(postBody.message_type).toBe(2);
+    });
+
+    it('throws RuleClientError when 404 and message_type is absent', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.set(1, { name: 'N', sendout_type: 1, tags: [], segments: [], subscribers: [] })
+      ).rejects.toThrow(/message_type is required/);
+    });
+
+    it('throws RuleClientError when sendout_type is not coercible', async () => {
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.set(1, {
+          name: 'N',
+          sendout_type: 'garbage' as unknown as 1 | 2,
+          tags: [],
+          segments: [],
+          subscribers: [],
+        })
+      ).rejects.toThrow(/sendout_type is not a valid numeric value/);
+    });
+
+    it('rethrows non-404 errors', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 500));
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.set(1, { name: 'N', sendout_type: 1, tags: [], segments: [], subscribers: [] })
+      ).rejects.toBeInstanceOf(RuleApiError);
+    });
+  });
+
+  describe('update', () => {
+    it('always does read-modify-write (GET + PUT)', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
+            recipients: {
+              tags: [{ id: 42, negative: false }],
+              segments: [],
+              subscribers: [],
+            },
+          },
+        })
+      );
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'New Name' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, {
+        name: 'New Name',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
+      });
+
+      expect(fetchMock.mock.calls.length).toBe(2);
+      expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
+      expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('PUT');
+    });
+
+    it('merges partial input — name-only update preserves existing recipients', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
+            recipients: {
+              tags: [{ id: 42, negative: false }],
+              segments: [],
+              subscribers: [],
+            },
+          },
+        })
+      );
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'New Name' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, { name: 'New Name' });
+
+      const [putUrl, putInit] = fetchMock.mock.calls[1]!;
+
+      expect(putUrl).toBe('https://app.rule.io/api/v3/editor/campaign/1');
+      expect((putInit as RequestInit).method).toBe('PUT');
+      const putBody = JSON.parse((putInit as RequestInit).body as string);
+
+      expect(putBody).toEqual({
+        name: 'New Name',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+        segments: [],
+        subscribers: [],
+      });
+    });
+
+    it('preserves existing recipients when caller omits segments/subscribers', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'Old Name',
+            sendout_type: { value: 1, key: 'marketing', description: 'M' },
+            recipients: {
+              tags: [{ id: 42, negative: false }],
+              segments: [{ id: 7, negative: false }],
+              subscribers: [{ id: 101 }, { id: 102 }],
+            },
+          },
+        })
+      );
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, {
+        name: 'Updated',
+        sendout_type: 1,
+        tags: [{ id: 42, negative: false }],
+      });
+
+      const putBody = JSON.parse(
+        (fetchMock.mock.calls[1]![1] as RequestInit).body as string
+      );
+
+      expect(putBody.segments).toEqual([{ id: 7, negative: false }]);
+      expect(putBody.subscribers).toEqual([101, 102]);
+    });
+
+    it('throws RuleApiError(404) when campaign does not exist', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
+      const client = createClient(fetchMock);
+
+      await expect(client.update(999, { name: 'New' })).rejects.toThrow(
+        /Campaign 999 not found/
+      );
+    });
+
+    it('throws RuleClientError when merged record lacks sendout_type', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'C',
+            recipients: { tags: [{ id: 42, negative: false }] },
+          },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'New' })).rejects.toThrow(
+        /existing record has no sendout_type/
+      );
+    });
+
+    it('throws RuleClientError when merged record lacks tags', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'C',
+            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
+            recipients: {},
+          },
+        })
+      );
+      const client = createClient(fetchMock);
+
+      await expect(client.update(1, { name: 'New' })).rejects.toThrow(
+        /existing record has no tags/
+      );
+    });
+
+    it('coerces response wrapper sendout_type in merged body', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: {
+            id: 1,
+            name: 'C',
+            sendout_type: { value: 2, key: 'transactional', description: 'Transactional' },
+            recipients: { tags: [] },
+          },
+        })
+      );
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: { id: 1, name: 'Updated' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.update(1, { name: 'Updated' });
+
+      const putBody = JSON.parse(
+        (fetchMock.mock.calls[1]![1] as RequestInit).body as string,
+      );
+
+      expect(putBody.sendout_type).toBe(2);
     });
   });
 
