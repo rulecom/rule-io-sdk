@@ -519,3 +519,163 @@ describe('validateEmailTemplate — non-PM content fields', () => {
     expect(result.success).toBe(false)
   })
 })
+
+// ─── Regression: full editor-produced document ───────────────────────────────
+
+describe('validateEmailTemplate — full editor-produced document', () => {
+  it('accepts a complete branded template as produced by the editor', () => {
+    const doc = {
+      id: '2f142943-4c50-4e15-8bc9-e62cd0cc1048',
+      tagName: 'rcml',
+      children: [
+        {
+          id: 'e71cb80d-93fa-4239-8a1b-91a43d9233be',
+          tagName: 'rc-head',
+          children: [
+            {
+              id: 'ca9f6719-84fa-45e5-afae-d62240ad1500',
+              tagName: 'rc-brand-style',
+              attributes: { id: '10457' },
+            },
+            {
+              id: '18ce0f2b-1f23-4f74-aa1f-fd07674c4ad9',
+              tagName: 'rc-attributes',
+              children: [
+                { id: '6b7020c2-01e9-4dc6-9aae-5d0294817763', tagName: 'rc-body', attributes: { 'background-color': '#f3f3f3' } },
+                { id: '910efa7b-3a65-4377-9ee2-a11d92c429e2', tagName: 'rc-section', attributes: { 'background-color': '#ffffff' } },
+                { id: '3c07274e-f634-4441-a846-37673d03cac6', tagName: 'rc-button', attributes: { 'background-color': '#05cc87' } },
+                { id: '9e389fd8-8ac5-4191-802e-8cd29e1bceeb', tagName: 'rc-class', attributes: { name: 'rcml-logo-style', src: 'https://img.rule.io/14702/69709c979b5df' } },
+                {
+                  id: '109a86ff-796b-4f93-b089-0cf02647f57e',
+                  tagName: 'rc-social',
+                  children: [
+                    { id: '64a9d206-33c2-4453-a619-f765c3e454b3', tagName: 'rc-social-element', attributes: { name: 'facebook', href: 'https://facebook.com/rulecom' } },
+                    { id: '7bc58ba7-a60d-4731-b323-e0d06752306b', tagName: 'rc-social-element', attributes: { name: 'instagram', href: 'https://instagram.com/rulecom' } },
+                    { id: 'e3f83567-876c-4101-b0c2-b383c49d7d40', tagName: 'rc-social-element', attributes: { name: 'linkedin', href: 'https://linkedin.com/company/rulecom' } },
+                    { id: 'daf55b98-6603-4300-aede-6d3a4ae2e379', tagName: 'rc-social-element', attributes: { name: 'tiktok', href: 'https://www.tiktok.com' } },
+                    { id: '0fb4982b-0b84-49c5-baaa-aaa7fdfd2de0', tagName: 'rc-social-element', attributes: { name: 'x', href: 'https://www.x.com' } },
+                    { id: 'e7b166f0-f647-4c7d-a4bd-ea58cc91430c', tagName: 'rc-social-element', attributes: { name: 'web', href: 'https://rule.se' } },
+                  ],
+                },
+                { id: 'c6e6dc65-acbd-4f45-9fcb-daeb5e700ae1', tagName: 'rc-class', attributes: { name: 'rcml-brand-color', 'background-color': '#F6F8F9' } },
+                { id: '28e82ed1-93f3-49b9-be4a-9cd28aaaf7fd', tagName: 'rc-class', attributes: { name: 'rcml-p-style', 'font-family': "'Lato',   sans-serif", 'font-size': '16px', color: '#0F0F1F', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+                { id: '7fcc0040-c138-49f7-98a2-e7ab47274ab4', tagName: 'rc-class', attributes: { name: 'rcml-h1-style', 'font-family': "'Helvetica',   sans-serif", 'font-size': '36px', color: '#0F0F1F', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+                { id: '55e04b66-bc8f-43ee-a090-64a0e28b5491', tagName: 'rc-class', attributes: { name: 'rcml-h2-style', 'font-family': "'Helvetica',   sans-serif", 'font-size': '28px', color: '#0F0F1F', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+                { id: '58acf5f1-688c-4a49-8325-05adb98fc4c8', tagName: 'rc-class', attributes: { name: 'rcml-h3-style', 'font-family': "'Helvetica',   sans-serif", 'font-size': '24px', color: '#0F0F1F', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+                { id: '72d2b2d8-221f-4003-8ed9-cef4ff62c62b', tagName: 'rc-class', attributes: { name: 'rcml-h4-style', 'font-family': "'Helvetica',   sans-serif", 'font-size': '18px', color: '#0F0F1F', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '700', 'font-style': 'normal', 'text-decoration': 'none' } },
+                { id: '2df5206d-a281-481e-9608-e0850e8d9d5b', tagName: 'rc-class', attributes: { name: 'rcml-label-style', 'font-family': "'Lato',   sans-serif", 'font-size': '14px', color: '#FFFFFF', 'line-height': '120%', 'letter-spacing': '0em', 'font-weight': '400', 'font-style': 'normal', 'text-decoration': 'none' } },
+              ],
+            },
+            { id: '37d4595b-8a79-4eb7-b84c-b9f2f0475377', tagName: 'rc-preview' },
+            {
+              id: '51aa7b3d-ad76-4ebc-b42d-50039b890eb5',
+              tagName: 'rc-plain-text',
+              content: { type: 'text', text: 'Klicka här för att läsa mailet på webben: %Link:WebBrowser%\n\nLorem ipsum dolor sit amet\n\n---\nKlicka här för att avregistrera dig från detta nyhetsbrev: %Link:Unsubscribe%\nskickat med Rule - http://www.rule.se' },
+            },
+            { id: 'f091c148-5337-4a7c-946d-7332edc506c9', tagName: 'rc-font', attributes: { name: "'Lato'", href: 'https://fonts.googleapis.com/css?family=Lato' } },
+          ],
+        },
+        {
+          id: '6edb1753-975f-4e9c-b0dc-b0276a3f40fc',
+          tagName: 'rc-body',
+          children: [
+            {
+              id: 'a5518de0-5453-40e7-be09-6923e9a0a6ac',
+              tagName: 'rc-section',
+              children: [
+                {
+                  id: '244f498e-06b5-43f2-ab2c-54306b70a295',
+                  tagName: 'rc-column',
+                  attributes: { padding: '0 20px' },
+                  children: [
+                    { id: 'ad00bab6-ce53-4a76-9ade-d81f36714c81', tagName: 'rc-logo', attributes: { 'rc-class': 'rcml-logo-style rc-initial-logo', width: '96px', padding: '20px 0' } },
+                  ],
+                },
+              ],
+            },
+            {
+              id: '7f7b575f-80fa-4c78-8d45-6a211d8f103a',
+              tagName: 'rc-section',
+              attributes: { padding: '20px 0' },
+              children: [
+                {
+                  id: '5a166430-f9f1-461a-a1a6-8dea2906a330',
+                  tagName: 'rc-column',
+                  attributes: { padding: '0 20px' },
+                  children: [
+                    { id: '670a7b30-4966-48b2-bcdb-fe63f1433d08', tagName: 'rc-image', attributes: { padding: '0 0 20px 0', src: 'https://app.rule.io/img/editor/image.png' } },
+                    {
+                      id: 'ee11fb66-2129-4c18-8dd8-6bffb077dfe6',
+                      tagName: 'rc-heading',
+                      attributes: { 'rc-class': 'rcml-h1-style' },
+                      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Replace this title' }] }] },
+                    },
+                    {
+                      id: 'b73b1189-acfb-4654-a9fe-539f720cd349',
+                      tagName: 'rc-text',
+                      attributes: { 'rc-class': 'rcml-p-style' },
+                      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Click into this box to change the font settings.' }] }] },
+                    },
+                    {
+                      id: 'e7a39c4d-c524-45b7-b927-b791b1c62098',
+                      tagName: 'rc-button',
+                      attributes: { align: 'center', border: 'none', 'border-radius': '8px', 'inner-padding': '10px 16px', padding: '0 0 20px 0', 'padding-bottom': '20px', 'text-align': 'center', 'vertical-align': 'middle', 'rc-class': 'rcml-label-style' },
+                      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Click me!' }] }] },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              id: '171381bc-0a6b-4899-862e-235133c23119',
+              tagName: 'rc-section',
+              attributes: { padding: '20px 0px 20px 0px', 'background-color': '#f3f3f3' },
+              children: [
+                {
+                  id: '10975dc0-e3fd-4ec1-84e9-83263a6df2af',
+                  tagName: 'rc-column',
+                  attributes: { padding: '0 20px' },
+                  children: [
+                    {
+                      id: 'c1c0b664-0239-4bbb-b907-472848b79eee',
+                      tagName: 'rc-text',
+                      attributes: { align: 'center', padding: '0px 0px 10px 0px', 'rc-class': 'rcml-p-style' },
+                      content: {
+                        type: 'doc',
+                        content: [{
+                          type: 'paragraph',
+                          content: [
+                            { type: 'text', text: 'Open in browser', marks: [{ type: 'font', attrs: { 'font-size': '10px', 'text-decoration': 'underline', color: '#666666' } }, { type: 'link', attrs: { href: '[Link:WebBrowser]', target: '_blank', 'no-tracked': 'true' } }] },
+                            { type: 'text', text: ' ' },
+                            { type: 'text', text: '|', marks: [{ type: 'font', attrs: { 'font-size': '10px', color: '#666666' } }] },
+                            { type: 'text', text: ' ' },
+                            { type: 'text', text: 'Unsubscribe', marks: [{ type: 'font', attrs: { 'font-size': '10px', 'text-decoration': 'underline', color: '#666666' } }, { type: 'link', attrs: { href: '[Link:Unsubscribe]', target: '_blank', 'no-tracked': 'true' } }] },
+                          ],
+                        }],
+                      },
+                    },
+                    {
+                      id: '6380b542-3286-46a4-aa5d-3ccce584f92b',
+                      tagName: 'rc-text',
+                      attributes: { align: 'center', padding: '10px 0px 0px 0px', 'font-family': "'Helvetica',   sans-serif", 'font-style': 'normal', 'line-height': '120%', 'letter-spacing': '0em', color: '#666666', 'font-weight': '400', 'text-decoration': 'none', 'font-size': '10px', 'rc-class': 'rcml-p-style' },
+                      content: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Certified by Rule' }] }] },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as RcmlDocument
+
+    const result = safeValidateEmailTemplate(doc)
+
+    if (!result.success) {
+      // Print errors to aid diagnosis when the test fails.
+      console.error('Validation errors:', JSON.stringify(result.errors, null, 2))
+    }
+
+    expect(result.success).toBe(true)
+  })
+})
