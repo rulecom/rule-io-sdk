@@ -97,15 +97,20 @@ function buildAttrsSchema(spec: RcmlNodeSpec): JsonSchema {
  * Build the `children` array schema for one non-leaf tag. Uses `$ref` to
  * reference each allowed child tag by name, and applies `maxItems` when the
  * NodeSpec caps the child count.
+ *
+ * When `useAttrOverride` is true (only for `rc-attributes`), child refs point
+ * to the `*-attr` override schemas so that attribute-default nodes don't need
+ * `children` / `content`.
  */
-function buildChildrenSchema(spec: RcmlNodeSpec): JsonSchema {
+function buildChildrenSchema(spec: RcmlNodeSpec, useAttrOverride = false): JsonSchema {
   const childTypes = spec.validChildTypes ?? []
+  const refFor = (t: string): string => (useAttrOverride ? `${t}${ATTR_OVERRIDE_SUFFIX}` : t)
   const items: JsonSchema =
     childTypes.length === 0
       ? { type: 'object', not: { type: 'object' } } // empty children only
       : childTypes.length === 1 && childTypes[0]
-        ? { $ref: `#/$defs/${childTypes[0]}` }
-        : { oneOf: childTypes.map((t) => ({ $ref: `#/$defs/${t}` })) }
+        ? { $ref: `#/$defs/${refFor(childTypes[0])}` }
+        : { oneOf: childTypes.map((t) => ({ $ref: `#/$defs/${refFor(t)}` })) }
 
   const schema: JsonSchema = {
     type: 'array',
@@ -118,6 +123,9 @@ function buildChildrenSchema(spec: RcmlNodeSpec): JsonSchema {
 
   return schema
 }
+
+/** Suffix appended to `$defs` keys for attribute-override schema variants. */
+const ATTR_OVERRIDE_SUFFIX = '-attr'
 
 /**
  * Build the complete JSON Schema for one RCML tag — its `tagName` const,
@@ -134,7 +142,11 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
   const required: string[] = ['tagName']
 
   if (!spec.isLeaf) {
-    properties['children'] = buildChildrenSchema(spec)
+    // rc-attributes children are attribute-default nodes; reference the
+    // permissive *-attr override schemas so editor-generated nodes that lack
+    // children/content still pass.
+    const isAttrParent = tagName === RcmlTagNamesEnum.Attributes
+    properties['children'] = buildChildrenSchema(spec, isAttrParent)
     required.push('children')
   }
 
@@ -152,6 +164,36 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
 }
 
 /**
+ * Build an "attribute-override" schema variant for one RCML tag. Used for
+ * nodes that appear as attribute-default children of `<rc-attributes>`.
+ * These nodes carry only `attributes`; `children` and `content` are allowed
+ * but NOT required, so editor-generated RCML that omits them still validates.
+ */
+function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
+  const properties: Record<string, JsonSchema> = {
+    id: { type: 'string' },
+    tagName: { const: tagName },
+    attributes: buildAttrsSchema(spec),
+  }
+
+  if (!spec.isLeaf) {
+    // Children are validated normally when present, just not required.
+    properties['children'] = buildChildrenSchema(spec)
+  }
+
+  if (TAGS_WITH_PM_CONTENT.includes(tagName)) {
+    properties['content'] = {}
+  }
+
+  return {
+    type: 'object',
+    properties,
+    required: ['tagName'],
+    additionalProperties: false,
+  }
+}
+
+/**
  * Complete JSON Schema 2020-12 describing an RcmlDocument (rooted at `rcml`).
  * AJV can compile this once at startup and validate any input against it.
  */
@@ -162,6 +204,21 @@ export const RCML_JSON_SCHEMA: JsonSchema = (() => {
     const spec = RCML_SCHEMA_SPEC[tagName]
 
     $defs[tagName] = buildTagSchema(tagName, spec)
+  }
+
+  // Generate attribute-override schemas (key = `${tagName}-attr`) for every
+  // tag that can appear as an attribute-default child of <rc-attributes>.
+  // These are identical to the regular schemas except that `children` and
+  // `content` are not required, matching the shape the editor emits.
+  const attrChildTypes = RCML_SCHEMA_SPEC[RcmlTagNamesEnum.Attributes].validChildTypes ?? []
+
+  for (const tagName of attrChildTypes) {
+    const spec = RCML_SCHEMA_SPEC[tagName as RcmlTagName]
+
+    $defs[`${tagName}${ATTR_OVERRIDE_SUFFIX}`] = buildAttrOverrideTagSchema(
+      tagName as RcmlTagName,
+      spec,
+    )
   }
 
   return {

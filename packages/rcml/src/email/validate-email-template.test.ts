@@ -358,3 +358,93 @@ describe('EmailTemplateValidationError shape', () => {
     expect(err.message).toContain('more')
   })
 })
+
+// ─── Regression: editor-generated rc-attributes children ─────────────────────
+
+describe('validateEmailTemplate — rc-attributes attribute-override nodes', () => {
+  it('accepts rc-body/rc-section/rc-button inside rc-attributes without children/content', () => {
+    // The editor emits attribute-default nodes with only `attributes` — no
+    // `children` on rc-body/rc-section, no `content` on rc-button.  The
+    // schema must accept this shape.
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [
+            {
+              tagName: 'rc-attributes',
+              children: [
+                { tagName: 'rc-body', attributes: { 'background-color': '#f3f3f3' } },
+                { tagName: 'rc-section', attributes: { 'background-color': '#ffffff' } },
+                { tagName: 'rc-button', attributes: { 'background-color': '#05cc87' } },
+              ],
+            },
+          ],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    const result = safeValidateEmailTemplate(doc)
+
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts rc-class and rc-social inside rc-attributes', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [
+            {
+              tagName: 'rc-attributes',
+              children: [
+                {
+                  tagName: 'rc-class',
+                  attributes: { name: 'rcml-brand-color', 'background-color': '#F6F8F9' },
+                },
+                {
+                  tagName: 'rc-social',
+                  children: [
+                    { tagName: 'rc-social-element', attributes: { name: 'facebook', href: 'https://facebook.com/' } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    const result = safeValidateEmailTemplate(doc)
+
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an unknown tag inside rc-attributes', () => {
+    const doc = {
+      tagName: 'rcml',
+      children: [
+        {
+          tagName: 'rc-head',
+          children: [
+            {
+              tagName: 'rc-attributes',
+              children: [
+                { tagName: 'rc-column', children: [] },
+              ],
+            },
+          ],
+        },
+        { tagName: 'rc-body', children: [] },
+      ],
+    } as unknown as RcmlDocument
+
+    const result = safeValidateEmailTemplate(doc)
+
+    expect(result.success).toBe(false)
+  })
+})

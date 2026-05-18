@@ -677,7 +677,7 @@ it('theme-applied document passes safeValidateEmailTemplate', () => {
     images: [{ type: EmailThemeImageType.Logo, url: 'https://img.rule.io/14702/69709c979b5df' }],
     fonts: [{ fontFamily: 'Lato', url: 'https://fonts.googleapis.com/css?family=Lato' }],
     fontStyles: [
-      { type: EmailThemeFontStyleType.P, fontFamily: 'Lato', fallbackFontFamily: 'sans-serif', fontSize: '16px', color: '#0F0F1F', lineHeight: '120%', letterSpacing: '0em', fontStyle: 'normal', fontWeight: '400', textDecoration: 'none' },
+      { type: EmailThemeFontStyleType.Paragraph, fontFamily: 'Lato', fallbackFontFamily: 'sans-serif', fontSize: '16px', color: '#0F0F1F', lineHeight: '120%', letterSpacing: '0em', fontStyle: 'normal', fontWeight: '400', textDecoration: 'none' },
       { type: EmailThemeFontStyleType.H1, fontFamily: 'Helvetica', fallbackFontFamily: 'sans-serif', fontSize: '36px', color: '#0F0F1F', lineHeight: '120%', letterSpacing: '0em', fontStyle: 'normal', fontWeight: '700', textDecoration: 'none' },
     ],
   })
