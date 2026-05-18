@@ -16,7 +16,9 @@
     "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
     "release:dry": "nx release --dry-run",
     "release": "nx release",
-    "local-registry": "nx run rule-io-sdk:local-registry"
+    "local-registry": "nx run rule-io-sdk:local-registry",
+    "publish:local": "nx release publish --registry http://localhost:4873",
+    "daemon:restart": "nx daemon --stop && nx daemon --start"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
