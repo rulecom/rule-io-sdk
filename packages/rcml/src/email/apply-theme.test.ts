@@ -631,6 +631,148 @@ describe('applyTheme — rc-social merge', () => {
 })
 
 // ──────────────────────────────────────────────────────────────────────────
+// Logo src propagation to body rc-logo nodes
+// ──────────────────────────────────────────────────────────────────────────
+
+function docWithLogoInBody(opts?: {
+  rcClass?: string
+  existingSrc?: string
+  existingWidth?: string
+}): RcmlDocument {
+  const attrs: Record<string, string> = {
+    'rc-class': opts?.rcClass ?? 'rcml-logo-style rc-initial-logo',
+  }
+
+  if (opts?.existingSrc !== undefined) attrs['src'] = opts.existingSrc
+  if (opts?.existingWidth !== undefined) attrs['width'] = opts.existingWidth
+
+  return {
+    tagName: 'rcml',
+    id: 'doc-logo',
+    children: [
+      { tagName: 'rc-head', id: 'head-logo', children: [] } as RcmlHead,
+      {
+        tagName: 'rc-body',
+        id: 'body-logo',
+        children: [
+          {
+            tagName: 'rc-section',
+            children: [
+              {
+                tagName: 'rc-column',
+                children: [
+                  {
+                    tagName: 'rc-logo',
+                    id: 'logo-node',
+                    attributes: { ...attrs },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      } as unknown as RcmlBody,
+    ],
+  } as RcmlDocument
+}
+
+function getBodyLogoNode(doc: RcmlDocument): { tagName: string; id?: string; attributes?: Record<string, unknown> } | undefined {
+  const body = doc.children[1] as unknown as { children: Array<{ children: Array<{ children: Array<{ tagName: string; id?: string; attributes?: Record<string, unknown> }> }> }> }
+
+  return body.children[0]?.children[0]?.children[0]
+}
+
+describe('applyTheme — logo src propagation to body', () => {
+  it('sets src on rc-logo referencing rcml-logo-style', () => {
+    const doc = docWithLogoInBody()
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['src']).toBe('https://example.com/logo.png')
+  })
+
+  it('sets src on rc-logo referencing only rc-initial-logo', () => {
+    const doc = docWithLogoInBody({ rcClass: 'rc-initial-logo' })
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['src']).toBe('https://example.com/logo.png')
+  })
+
+  it('adds default width when rc-logo has no width attribute', () => {
+    const doc = docWithLogoInBody()
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['width']).toBe('96px')
+  })
+
+  it('preserves explicit width on rc-logo when already set', () => {
+    const doc = docWithLogoInBody({ existingWidth: '200px' })
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['width']).toBe('200px')
+  })
+
+  it('updates existing src when re-applying a different logo URL', () => {
+    const doc = docWithLogoInBody({ existingSrc: 'https://example.com/old.png' })
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/new.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['src']).toBe('https://example.com/new.png')
+  })
+
+  it('does not touch rc-logo without a logo class reference', () => {
+    const doc = docWithLogoInBody({ rcClass: 'some-other-class' })
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.attributes?.['src']).toBeUndefined()
+  })
+
+  it('does not modify the body when no logo image is in the patch', () => {
+    const doc = docWithLogoInBody()
+    const result = applyTheme(doc, { brandStyleId: 1 })
+
+    expect(doc.children[1]).toBe(result.children[1])
+  })
+
+  it('does not mutate the input body', () => {
+    const doc = docWithLogoInBody()
+    const bodySnapshot = JSON.stringify(doc.children[1])
+
+    applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+
+    expect(JSON.stringify(doc.children[1])).toBe(bodySnapshot)
+  })
+
+  it('preserves logo node id after src propagation', () => {
+    const doc = docWithLogoInBody()
+    const result = applyTheme(doc, {
+      images: [{ type: EmailThemeImageType.Logo, url: 'https://example.com/logo.png' }],
+    })
+    const logo = getBodyLogoNode(result)
+
+    expect(logo?.id).toBe('logo-node')
+  })
+})
+
+// ──────────────────────────────────────────────────────────────────────────
 // Regression: applyTheme result must pass safeValidateEmailTemplate
 // ──────────────────────────────────────────────────────────────────────────
 
