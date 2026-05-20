@@ -51,16 +51,21 @@ function visit(node: unknown, path: string, issues: EmailTemplateValidationIssue
     tagName === RcmlTagNamesEnum.Heading ||
     tagName === RcmlTagNamesEnum.Button
   ) {
-    const flavor = tagName === RcmlTagNamesEnum.Button ? inlineRfmConfig : rfmConfig
-    const result = safeParseJson(n.content, flavor)
+    // When `content` is absent the node is an attribute-default override
+    // inside <rc-attributes>; AJV already enforces presence in normal
+    // positions, so skip content validation here.
+    if (n.content !== undefined) {
+      const flavor = tagName === RcmlTagNamesEnum.Button ? inlineRfmConfig : rfmConfig
+      const result = safeParseJson(n.content, flavor)
 
-    if (!result.success) {
-      for (const err of result.errors) {
-        issues.push({
-          path: `${path}/content${err.path}`,
-          code: EmailTemplateErrorCodes.CONTENT_INVALID,
-          message: err.message,
-        })
+      if (!result.success) {
+        for (const err of result.errors) {
+          issues.push({
+            path: `${path}/content${err.path}`,
+            code: EmailTemplateErrorCodes.CONTENT_INVALID,
+            message: err.message,
+          })
+        }
       }
     }
   }

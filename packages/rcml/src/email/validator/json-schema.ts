@@ -74,6 +74,9 @@ const JSON_SCHEMA_BY_VALIDATOR: Partial<Record<RcmlAttributeValidatorsEnum, Json
 /** Fallback attribute schema for validators without a cheap JSON Schema hint. */
 const DEFAULT_ATTR_SCHEMA: JsonSchema = { type: 'string' }
 
+/** Suffix appended to `$defs` keys for attribute-override schema variants. */
+const ATTR_OVERRIDE_SUFFIX = '-attr'
+
 /**
  * Build the `attributes` object schema for one RCML tag by mapping each
  * allowed attribute to a loose JSON Schema constraint based on its Zod
@@ -97,15 +100,20 @@ function buildAttrsSchema(spec: RcmlNodeSpec): JsonSchema {
  * Build the `children` array schema for one non-leaf tag. Uses `$ref` to
  * reference each allowed child tag by name, and applies `maxItems` when the
  * NodeSpec caps the child count.
+ *
+ * When `useAttrOverride` is true (only for `rc-attributes`), child refs point
+ * to the `*-attr` override schemas so that attribute-default nodes don't need
+ * `children` / `content`.
  */
-function buildChildrenSchema(spec: RcmlNodeSpec): JsonSchema {
+function buildChildrenSchema(spec: RcmlNodeSpec, useAttrOverride = false): JsonSchema {
   const childTypes = spec.validChildTypes ?? []
+  const refFor = (t: string): string => (useAttrOverride ? `${t}${ATTR_OVERRIDE_SUFFIX}` : t)
   const items: JsonSchema =
     childTypes.length === 0
       ? { type: 'object', not: { type: 'object' } } // empty children only
       : childTypes.length === 1 && childTypes[0]
-        ? { $ref: `#/$defs/${childTypes[0]}` }
-        : { oneOf: childTypes.map((t) => ({ $ref: `#/$defs/${t}` })) }
+        ? { $ref: `#/$defs/${refFor(childTypes[0])}` }
+        : { oneOf: childTypes.map((t) => ({ $ref: `#/$defs/${refFor(t)}` })) }
 
   const schema: JsonSchema = {
     type: 'array',
@@ -117,6 +125,41 @@ function buildChildrenSchema(spec: RcmlNodeSpec): JsonSchema {
   }
 
   return schema
+}
+
+/**
+ * Non-ProseMirror content schemas for tags that carry a `content` property
+ * with a plain string or a structured-but-non-PM object.
+ *
+ * Each entry:
+ *  - `schema`   — the JSON Schema that validates the `content` value.
+ *  - `required` — whether the property must be present (mirrors the
+ *                 TypeScript type: required for `rc-plain-text`, optional for
+ *                 `rc-preview` and `rc-raw`).
+ */
+const TAGS_WITH_SIMPLE_CONTENT: Partial<
+  Record<RcmlTagName, { schema: JsonSchema; required: boolean }>
+> = {
+  [RcmlTagNamesEnum.Preview]: {
+    schema: { type: 'string' },
+    required: false,
+  },
+  [RcmlTagNamesEnum.PlainText]: {
+    schema: {
+      type: 'object',
+      properties: {
+        type: { const: 'text' },
+        text: { type: 'string' },
+      },
+      required: ['type', 'text'],
+      additionalProperties: false,
+    },
+    required: true,
+  },
+  [RcmlTagNamesEnum.Raw]: {
+    schema: { type: 'string' },
+    required: false,
+  },
 }
 
 /**
@@ -134,13 +177,64 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
   const required: string[] = ['tagName']
 
   if (!spec.isLeaf) {
-    properties['children'] = buildChildrenSchema(spec)
+    // rc-attributes children are attribute-default nodes; reference the
+    // permissive *-attr override schemas so editor-generated nodes that lack
+    // children/content still pass.
+    const isAttrParent = tagName === RcmlTagNamesEnum.Attributes
+
+    properties['children'] = buildChildrenSchema(spec, isAttrParent)
     required.push('children')
   }
 
   if (TAGS_WITH_PM_CONTENT.includes(tagName)) {
     properties['content'] = {} // accept-anything; validated by content-validate.ts
     required.push('content')
+  }
+
+  const simpleContent = TAGS_WITH_SIMPLE_CONTENT[tagName]
+
+  if (simpleContent !== undefined) {
+    properties['content'] = simpleContent.schema
+    if (simpleContent.required) required.push('content')
+  }
+
+  return {
+    type: 'object',
+    properties,
+    required,
+    additionalProperties: false,
+  }
+}
+
+/**
+ * Build an "attribute-override" schema variant for one RCML tag. Used for
+ * nodes that appear as attribute-default children of `<rc-attributes>`.
+ * These nodes carry only `attributes`; `children` and `content` are allowed
+ * but NOT required, so editor-generated RCML that omits them still validates.
+ */
+function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
+  const properties: Record<string, JsonSchema> = {
+    id: { type: 'string' },
+    tagName: { const: tagName },
+    attributes: buildAttrsSchema(spec),
+  }
+
+  const required: string[] = ['tagName']
+
+  if (!spec.isLeaf) {
+    properties['children'] = buildChildrenSchema(spec)
+
+    // rc-social children are always required — downstream consumers iterate them
+    // (e.g. link extraction, social overlay logic). Only structural/content tags
+    // (rc-body, rc-section, rc-text, rc-heading, rc-button) legitimately omit
+    // children/content in attribute-default position.
+    if (tagName === RcmlTagNamesEnum.Social) {
+      required.push('children')
+    }
+  }
+
+  if (TAGS_WITH_PM_CONTENT.includes(tagName)) {
+    properties['content'] = {}
   }
 
   return {
@@ -162,6 +256,21 @@ export const RCML_JSON_SCHEMA: JsonSchema = (() => {
     const spec = RCML_SCHEMA_SPEC[tagName]
 
     $defs[tagName] = buildTagSchema(tagName, spec)
+  }
+
+  // Generate attribute-override schemas (key = `${tagName}-attr`) for every
+  // tag that can appear as an attribute-default child of <rc-attributes>.
+  // These are identical to the regular schemas except that `children` and
+  // `content` are not required, matching the shape the editor emits.
+  const attrChildTypes = RCML_SCHEMA_SPEC[RcmlTagNamesEnum.Attributes].validChildTypes ?? []
+
+  for (const tagName of attrChildTypes) {
+    const spec = RCML_SCHEMA_SPEC[tagName as RcmlTagName]
+
+    $defs[`${tagName}${ATTR_OVERRIDE_SUFFIX}`] = buildAttrOverrideTagSchema(
+      tagName as RcmlTagName,
+      spec,
+    )
   }
 
   return {

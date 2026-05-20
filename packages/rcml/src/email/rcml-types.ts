@@ -95,6 +95,7 @@ export type RcmlHeadChild =
   | RcmlAttributes
   | RcmlPreview
   | RcmlClass
+  | RcmlFont
   | RcmlPlainText
 
 /** `<rc-head>` container. @public */
@@ -118,14 +119,20 @@ export interface RcmlFont {
   attributes: AttrsFor<'rc-font'>
 }
 
-/** Valid children of `<rc-attributes>`. @public */
+/**
+ * Nodes under `<rc-attributes>` carry only `attributes` — the editor omits
+ * `children` and `content` for structural/content tags in this position.
+ * `rc-social` keeps `children` required because downstream consumers iterate them.
+ * @public
+ */
 export type RcmlAttributesChild =
-  | RcmlBody
-  | RcmlSection
-  | RcmlButton
-  | RcmlHeading
-  | RcmlText
+  | (Omit<RcmlBody, 'children'> & { children?: RcmlBody['children'] })
+  | (Omit<RcmlSection, 'children'> & { children?: RcmlSection['children'] })
+  | (Omit<RcmlButton, 'content'> & { content?: RcmlButton['content'] })
+  | (Omit<RcmlHeading, 'content'> & { content?: RcmlHeading['content'] })
+  | (Omit<RcmlText, 'content'> & { content?: RcmlText['content'] })
   | RcmlSocial
+  | RcmlClass
 
 /** `<rc-attributes>` — holds default-attribute overrides and named classes. @public */
 export interface RcmlAttributes {
