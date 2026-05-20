@@ -2,9 +2,11 @@
 
 /**
  * A `font` mark that applies typographic styling to a text node.
- * All attributes are optional — omitted attrs are inherited from the surrounding context.
- * Present attrs may be `null` to explicitly clear an inherited value.
- * At least one attribute must be present (a bare `font` mark with empty attrs has no effect).
+ * All attributes are optional — only include the attrs you want to set.
+ * `null` is treated identically to omission: the serializer filters it out and the attribute
+ * is not emitted. (The RFM-to-JSON converter always emits all eight keys, setting unset ones
+ * to `null`; sparse editor-produced marks simply omit them instead.)
+ * At least one attribute must be present (a bare `font` mark with no attrs has no effect).
  */
 export type FontMark = {
   type: 'font'
