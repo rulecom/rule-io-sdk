@@ -227,6 +227,7 @@ const CONCRETE_DEFS = {
           color: { type: ['string', 'null'] },
         },
         additionalProperties: false,
+        minProperties: 1,
       },
     },
     required: ['type', 'attrs'],
