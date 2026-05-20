@@ -23,6 +23,7 @@ import { DEFAULT_FONT_STYLES_MAP } from './theme-defaults.js'
 import {
   type AnyAttrChild,
   EmailThemeApplyError,
+  applyLogoSrcToBody,
   cloneHead,
   findOrCreateAttributes,
   overlayFontsInHead,
@@ -81,6 +82,7 @@ export function applyTheme(
   const patch = normalizeInput(theme)
   const [head, body] = doc.children
   const cloned: RcmlHead = cloneHead(head)
+  let updatedBody = body
 
   if (patch.brandStyleId !== undefined) {
     upsertBrandStyleInHead(cloned.children, patch.brandStyleId)
@@ -107,6 +109,7 @@ export function applyTheme(
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (image.type === EmailThemeImageType.Logo) {
           upsertLogoClass(attrChildren, image.url)
+          updatedBody = applyLogoSrcToBody(updatedBody, image.url)
         }
       }
     }
@@ -134,7 +137,7 @@ export function applyTheme(
     cloned.children = overlayFontsInHead(cloned.children, patch.fonts)
   }
 
-  return { ...doc, children: [cloned, body] }
+  return { ...doc, children: [cloned, updatedBody] }
 }
 
 /**

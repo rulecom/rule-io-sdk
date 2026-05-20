@@ -2,27 +2,31 @@
 
 /**
  * A `font` mark that applies typographic styling to a text node.
- * All attributes are nullable — `null` means "inherit / not set".
+ * All attributes are optional — only include the attrs you want to set.
+ * `null` is treated identically to omission: the serializer filters it out and the attribute
+ * is not emitted. (The RFM-to-JSON converter always emits all eight keys, setting unset ones
+ * to `null`; sparse editor-produced marks simply omit them instead.)
+ * At least one attribute must be present (a bare `font` mark with no attrs has no effect).
  */
 export type FontMark = {
   type: 'font'
   attrs: {
     /** CSS font-family value, e.g. `"Arial, sans-serif"`. */
-    'font-family': string | null
+    'font-family'?: string | null
     /** CSS font-size value, e.g. `"14px"`. */
-    'font-size': string | null
+    'font-size'?: string | null
     /** CSS line-height value, e.g. `"1.5"`. */
-    'line-height': string | null
+    'line-height'?: string | null
     /** CSS letter-spacing value, e.g. `"0.05em"`. */
-    'letter-spacing': string | null
+    'letter-spacing'?: string | null
     /** CSS font-style. Only `"normal"` and `"italic"` are supported. */
-    'font-style': 'normal' | 'italic' | null
+    'font-style'?: 'normal' | 'italic' | null
     /** CSS font-weight value, e.g. `"bold"` or `"700"`. */
-    'font-weight': string | null
+    'font-weight'?: string | null
     /** CSS text-decoration shorthand. */
-    'text-decoration': 'none' | 'underline' | 'line-through' | null
+    'text-decoration'?: 'none' | 'underline' | 'line-through' | null
     /** CSS color value, e.g. `"#ff0000"` or `"rgb(255,0,0)"`. */
-    color: string | null
+    color?: string | null
   }
 }
 

@@ -476,35 +476,17 @@ function upsertBackgroundColorNode(
 }
 
 /**
- * Construct a fresh default-attribute node for one of the three tags
- * `upsertBackgroundColorNode` cares about. The shapes differ subtly:
- * `rc-body` is a leaf, `rc-section` holds children, `rc-button` carries
- * an empty ProseMirror `content` doc — the schema requires each.
+ * Construct a fresh attribute-default node for one of the three tags
+ * `upsertBackgroundColorNode` cares about. These nodes live inside
+ * `<rc-attributes>` and carry only attributes — the `*-attr` override
+ * schema does not require `children` or `content` here.
  */
 function buildBgNode(tagName: BgNode['tagName'], colorHex: string): BgNode {
-  if (tagName === 'rc-body') {
-    return {
-      id: newId(),
-      tagName: 'rc-body',
-      attributes: { 'background-color': colorHex },
-    } as RcmlBody
-  }
-
-  if (tagName === 'rc-section') {
-    return {
-      id: newId(),
-      tagName: 'rc-section',
-      attributes: { 'background-color': colorHex },
-      children: [],
-    } as unknown as RcmlSection
-  }
-
   return {
     id: newId(),
-    tagName: 'rc-button',
+    tagName,
     attributes: { 'background-color': colorHex },
-    content: { type: 'doc', content: [] },
-  } as unknown as RcmlButton
+  } as unknown as BgNode
 }
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -533,6 +515,71 @@ export function upsertLogoClass(
   const safeUrl = ensureSafeUrl(logoUrl, 'logo image')
 
   upsertClassNode(children, className, { name: className, src: safeUrl })
+}
+
+/** Default width applied to logo body nodes that carry no explicit width. */
+const LOGO_DEFAULT_WIDTH = '96px'
+
+/** Loose node shape used when walking the body tree. */
+type LooseNode = {
+  tagName: string
+  attributes?: Record<string, unknown>
+  children?: LooseNode[]
+}
+
+/**
+ * Deep-clone the body and propagate `logoUrl` onto every `<rc-logo>` node
+ * whose `rc-class` references the logo class (main or initial seed). Also
+ * ensures each updated node carries a `width` attribute, defaulting to
+ * `'96px'` when unset, so the logo is always size-constrained.
+ *
+ * @param body    - The body node. Not mutated.
+ * @param logoUrl - The logo image URL (already validated by the caller).
+ * @returns       A new body with matching logo nodes updated.
+ *
+ * @internal
+ */
+export function applyLogoSrcToBody(body: RcmlBody, logoUrl: string): RcmlBody {
+  const cloned = JSON.parse(JSON.stringify(body)) as RcmlBody
+  const { main: mainClass, initial: initialClass } =
+    CLASS_NAMES_BY_IMAGE_TYPE_MAP[EmailThemeImageType.Logo]
+
+  patchLogoNodes(cloned.children as unknown as LooseNode[], logoUrl, mainClass, initialClass)
+
+  return cloned
+}
+
+function patchLogoNodes(
+  nodes: LooseNode[],
+  logoUrl: string,
+  mainClass: string,
+  initialClass: string
+): void {
+  for (const node of nodes) {
+    if (node.tagName === 'rc-logo') {
+      const rcClass = node.attributes?.['rc-class']
+
+      if (typeof rcClass === 'string' && referencesLogoClass(rcClass, mainClass, initialClass)) {
+        const attrs = node.attributes ?? {}
+
+        node.attributes = {
+          ...attrs,
+          src: logoUrl,
+          ...(typeof attrs['width'] !== 'string' ? { width: LOGO_DEFAULT_WIDTH } : {}),
+        }
+      }
+    }
+
+    if (node.children) {
+      patchLogoNodes(node.children, logoUrl, mainClass, initialClass)
+    }
+  }
+}
+
+function referencesLogoClass(rcClass: string, mainClass: string, initialClass: string): boolean {
+  const classes = rcClass.split(/\s+/)
+
+  return classes.includes(mainClass) || classes.includes(initialClass)
 }
 
 /**
