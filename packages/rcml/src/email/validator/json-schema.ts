@@ -74,6 +74,9 @@ const JSON_SCHEMA_BY_VALIDATOR: Partial<Record<RcmlAttributeValidatorsEnum, Json
 /** Fallback attribute schema for validators without a cheap JSON Schema hint. */
 const DEFAULT_ATTR_SCHEMA: JsonSchema = { type: 'string' }
 
+/** Suffix appended to `$defs` keys for attribute-override schema variants. */
+const ATTR_OVERRIDE_SUFFIX = '-attr'
+
 /**
  * Build the `attributes` object schema for one RCML tag by mapping each
  * allowed attribute to a loose JSON Schema constraint based on its Zod
@@ -124,8 +127,40 @@ function buildChildrenSchema(spec: RcmlNodeSpec, useAttrOverride = false): JsonS
   return schema
 }
 
-/** Suffix appended to `$defs` keys for attribute-override schema variants. */
-const ATTR_OVERRIDE_SUFFIX = '-attr'
+/**
+ * Non-ProseMirror content schemas for tags that carry a `content` property
+ * with a plain string or a structured-but-non-PM object.
+ *
+ * Each entry:
+ *  - `schema`   — the JSON Schema that validates the `content` value.
+ *  - `required` — whether the property must be present (mirrors the
+ *                 TypeScript type: required for `rc-plain-text`, optional for
+ *                 `rc-preview` and `rc-raw`).
+ */
+const TAGS_WITH_SIMPLE_CONTENT: Partial<
+  Record<RcmlTagName, { schema: JsonSchema; required: boolean }>
+> = {
+  [RcmlTagNamesEnum.Preview]: {
+    schema: { type: 'string' },
+    required: false,
+  },
+  [RcmlTagNamesEnum.PlainText]: {
+    schema: {
+      type: 'object',
+      properties: {
+        type: { const: 'text' },
+        text: { type: 'string' },
+      },
+      required: ['type', 'text'],
+      additionalProperties: false,
+    },
+    required: true,
+  },
+  [RcmlTagNamesEnum.Raw]: {
+    schema: { type: 'string' },
+    required: false,
+  },
+}
 
 /**
  * Build the complete JSON Schema for one RCML tag — its `tagName` const,
@@ -146,6 +181,7 @@ function buildTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): JsonSchema {
     // permissive *-attr override schemas so editor-generated nodes that lack
     // children/content still pass.
     const isAttrParent = tagName === RcmlTagNamesEnum.Attributes
+
     properties['children'] = buildChildrenSchema(spec, isAttrParent)
     required.push('children')
   }
@@ -198,41 +234,6 @@ function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): J
     required: ['tagName'],
     additionalProperties: false,
   }
-}
-
-/**
- * Non-ProseMirror content schemas for tags that carry a `content` property
- * with a plain string or a structured-but-non-PM object.
- *
- * Each entry:
- *  - `schema`   — the JSON Schema that validates the `content` value.
- *  - `required` — whether the property must be present (mirrors the
- *                 TypeScript type: required for `rc-plain-text`, optional for
- *                 `rc-preview` and `rc-raw`).
- */
-const TAGS_WITH_SIMPLE_CONTENT: Partial<
-  Record<RcmlTagName, { schema: JsonSchema; required: boolean }>
-> = {
-  [RcmlTagNamesEnum.Preview]: {
-    schema: { type: 'string' },
-    required: false,
-  },
-  [RcmlTagNamesEnum.PlainText]: {
-    schema: {
-      type: 'object',
-      properties: {
-        type: { const: 'text' },
-        text: { type: 'string' },
-      },
-      required: ['type', 'text'],
-      additionalProperties: false,
-    },
-    required: true,
-  },
-  [RcmlTagNamesEnum.Raw]: {
-    schema: { type: 'string' },
-    required: false,
-  },
 }
 
 /**
