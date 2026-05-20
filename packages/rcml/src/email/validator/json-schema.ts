@@ -219,9 +219,18 @@ function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): J
     attributes: buildAttrsSchema(spec),
   }
 
+  const required: string[] = ['tagName']
+
   if (!spec.isLeaf) {
-    // Children are validated normally when present, just not required.
     properties['children'] = buildChildrenSchema(spec)
+
+    // rc-social children are always required — downstream consumers iterate them
+    // (e.g. link extraction, social overlay logic). Only structural/content tags
+    // (rc-body, rc-section, rc-text, rc-heading, rc-button) legitimately omit
+    // children/content in attribute-default position.
+    if (tagName === RcmlTagNamesEnum.Social) {
+      required.push('children')
+    }
   }
 
   if (TAGS_WITH_PM_CONTENT.includes(tagName)) {
@@ -231,7 +240,7 @@ function buildAttrOverrideTagSchema(tagName: RcmlTagName, spec: RcmlNodeSpec): J
   return {
     type: 'object',
     properties,
-    required: ['tagName'],
+    required,
     additionalProperties: false,
   }
 }
