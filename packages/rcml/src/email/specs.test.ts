@@ -16,6 +16,7 @@ describe('rcmlSpec', () => {
 
   it('includes core structural tags', () => {
     const tags = Object.keys(rcmlSpec.tags)
+
     expect(tags).toContain('rc-body')
     expect(tags).toContain('rc-section')
     expect(tags).toContain('rc-column')
@@ -34,7 +35,9 @@ describe('rcmlSpec', () => {
 
   it('rc-section content type is children with rc-column', () => {
     const content = rcmlSpec.tags['rc-section'].content
+
     expect(content.type).toBe('children')
+
     if (content.type === 'children') {
       expect(content.allowedChildren).toContain('rc-column')
     }
@@ -68,6 +71,7 @@ describe('rfmSpec', () => {
 
   it('rcml-content supports block and inline nodes', () => {
     const { blockNodes, inlineNodes } = rfmSpec.flavors['rcml-content']
+
     expect(blockNodes).toContain('paragraph')
     expect(blockNodes).toContain('bullet-list')
     expect(inlineNodes).toContain('text')
@@ -77,6 +81,7 @@ describe('rfmSpec', () => {
 
   it('placeholder node has correct required attrs', () => {
     const attrs = rfmSpec.nodes['placeholder'].attrs!
+
     expect(attrs['type'].required).toBe(true)
     expect(attrs['value'].required).toBe(true)
     expect(attrs['name'].required).toBe(true)
@@ -100,6 +105,7 @@ describe('rfmSpec', () => {
 
   it('link mark has all required attrs', () => {
     const attrs = rfmSpec.marks['link'].attrs
+
     expect(attrs['href'].required).toBe(true)
     expect(attrs['target'].required).toBe(true)
     expect(attrs['no-tracked'].required).toBe(true)
@@ -107,6 +113,7 @@ describe('rfmSpec', () => {
 
   it('loop-value node index examples are 1-based', () => {
     const examples = rfmSpec.nodes['loop-value'].attrs!['index'].examples ?? []
+
     for (const ex of examples) {
       expect(Number(ex)).toBeGreaterThanOrEqual(1)
     }
@@ -129,6 +136,7 @@ describe('placeholderSpec', () => {
 
   it('includes all expected token names', () => {
     const names = Object.keys(placeholderSpec.tokens)
+
     for (const expected of [
       'CustomField',
       'Subscriber',
@@ -147,6 +155,7 @@ describe('placeholderSpec', () => {
 
   it('tokens with rfmPlaceholderType cross-reference rfmSpec allowedValues', () => {
     const rfmAllowed = rfmSpec.nodes['placeholder'].attrs!['type'].allowedValues ?? []
+
     for (const [, token] of Object.entries(placeholderSpec.tokens)) {
       if (token.rfmPlaceholderType !== undefined) {
         expect(rfmAllowed).toContain(token.rfmPlaceholderType)
@@ -163,9 +172,11 @@ describe('placeholderSpec', () => {
 
   it('Date type param uses allowedValues for literals and patterns for expressions', () => {
     const typeParam = placeholderSpec.tokens['Date'].params!['type']
+
     expect(typeParam.allowedValues).toEqual(['now', 'tomorrow', 'yesterday'])
     expect(typeParam.patterns).toBeDefined()
     expect(typeParam.patterns!.length).toBeGreaterThan(0)
+
     // patterns should not contain plain literals
     for (const p of typeParam.patterns!) {
       expect(typeParam.allowedValues).not.toContain(p)
@@ -177,6 +188,7 @@ describe('placeholderSpec', () => {
       .filter(([, t]) => t.nestable)
       .map(([k]) => k)
       .sort()
+
     expect(nestable).toEqual(['CustomField', 'Subscriber', 'User'])
   })
 })
