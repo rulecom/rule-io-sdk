@@ -31,7 +31,11 @@ export type RcmlContentSpec =
 export interface RcmlPublicAttrSpec {
   /** Validator type key, e.g. 'color', 'padding', 'px', 'enum'. */
   type: string
-  /** `true` when the tag has no default value and the attribute must be provided explicitly. */
+  /**
+   * `true` when the attribute has no declared default value and should be provided explicitly.
+   * Derived from the absence of a `default` in the internal schema — use as authoring guidance
+   * rather than a strict validator constraint.
+   */
   required: boolean
   /** Default value applied when the attribute is omitted. */
   default?: string | number | boolean | null

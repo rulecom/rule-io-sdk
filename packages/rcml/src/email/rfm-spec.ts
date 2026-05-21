@@ -210,9 +210,9 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
         examples: ['Subscriber', 'CustomField'],
       },
       value: {
-        type: 'string',
-        required: false,
-        description: 'Resolved value shown in preview mode. `null` when not yet resolved.',
+        type: 'string | number | null',
+        required: true,
+        description: 'Resolved value shown in preview mode. Set to `null` when not yet resolved.',
         examples: ['Jane', '42'],
       },
       name: {
@@ -229,9 +229,9 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
         examples: ['[Subscriber:email]', '[CustomField:Order.Total]', '[Date:now::Y-m-d]'],
       },
       'max-length': {
-        type: 'string',
-        required: false,
-        description: 'Optional maximum character length for the resolved value.',
+        type: 'string | null',
+        required: true,
+        description: 'Maximum character length for the resolved value, or `null` when no limit is set.',
         examples: ['20'],
       },
     },
@@ -324,7 +324,7 @@ const MARK_META: Record<string, Omit<RfmMarkSpec, 'flavors'>> = {
   },
   link: {
     description:
-      'Wraps a text run in an anchor link. `href` is required; `target` and `no-tracked` are optional. Available in both flavors.',
+      'Wraps a text run in an anchor link. All three attributes must be present. Available in both flavors.',
     attrs: {
       href: {
         type: 'string',
@@ -334,16 +334,16 @@ const MARK_META: Record<string, Omit<RfmMarkSpec, 'flavors'>> = {
         examples: ['https://example.com/offer', '[Link:Unsubscribe]'],
       },
       target: {
-        type: 'enum',
-        required: false,
-        description: 'HTML anchor target attribute. Omit to use the default browser behaviour.',
+        type: 'enum | null',
+        required: true,
+        description: 'HTML anchor target. Use `"_blank"` to open in a new tab; `null` uses the default browser behaviour.',
         allowedValues: ['_blank'],
         examples: ['_blank'],
       },
       'no-tracked': {
         type: 'enum',
-        required: false,
-        description: "When 'true', link-click tracking is disabled for this link.",
+        required: true,
+        description: "Whether click tracking is disabled. `'true'` disables tracking; `'false'` enables it.",
         allowedValues: ['true', 'false'],
         examples: ['false'],
       },

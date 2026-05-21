@@ -28,13 +28,20 @@ export interface PlaceholderParamSpec {
   /** Human-readable description of the parameter. */
   description: string
   /**
-   * Exhaustive list of allowed values for enum-type parameters.
-   * Absent for free-form parameters (URLs, field names, numbers, etc.).
+   * Exhaustive list of **literal** allowed values for strictly enum-type parameters.
+   * Absent when the parameter accepts free-form input or pattern-based values.
    */
   allowedValues?: string[]
   /**
+   * Non-exhaustive list of **pattern** expressions for parameters that accept
+   * structured but parameterised values (e.g. `'in-<count>-days'`).
+   * Uses `<placeholder>` notation for variable parts.
+   * May coexist with `allowedValues` when both literal and pattern forms are valid.
+   */
+  patterns?: string[]
+  /**
    * Free-form format hint for non-enum parameters (e.g. `'PHP date format string'`).
-   * Absent when `allowedValues` is provided.
+   * Absent when `allowedValues` or `patterns` fully describes the valid inputs.
    */
   format?: string
 }
@@ -165,15 +172,9 @@ const TOKENS: Record<string, PlaceholderTokenSpec> = {
       type: {
         required: true,
         description:
-          'Date source. Use a relative keyword, an offset expression, or a custom-field reference to read a date stored in a subscriber field.',
-        allowedValues: [
-          'now',
-          'tomorrow',
-          'yesterday',
-          'in-<count>-days',
-          '<count>-days-ago',
-          '[CustomField:<group>.<field>]',
-        ],
+          'Date source. Use a literal keyword, an offset expression, or a custom-field reference to read a date stored in a subscriber field.',
+        allowedValues: ['now', 'tomorrow', 'yesterday'],
+        patterns: ['in-<count>-days', '<count>-days-ago', '[CustomField:<group>.<field>]'],
       },
       format: {
         required: false,
