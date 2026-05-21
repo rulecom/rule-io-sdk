@@ -3,7 +3,7 @@ import type { Root, RootContent } from 'mdast'
 import { parseRfm, parseInlineRfm } from '../parser/parse.js'
 import { ATOM_TOKEN_DELIMITER, ATOM_TOKEN_SEPARATOR } from '../parser/preprocess.js'
 import { transform } from './transform.js'
-import type { IrDoc, IrParagraph, IrFont, IrLink, IrBulletList, IrOrderedList, IrAlign, IrPlaceholder, IrLoopValue, IrPlaceholderValueFragment } from './types.js'
+import type { IrDoc, IrParagraph, IrFont, IrLink, IrBulletList, IrOrderedList, IrAlign, IrPlaceholder, IrLoopValue } from './types.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -404,38 +404,6 @@ describe('transform() — ::loop-value', () => {
   })
 })
 
-// ─── ::placeholder-value-fragment ────────────────────────────────────────────
-
-describe('transform() — ::placeholder-value-fragment', () => {
-  it('produces IrPlaceholderValueFragment', () => {
-    const ir = rfm('::placeholder-value-fragment{}')
-    const frag = ir.children[0] as IrPlaceholderValueFragment
-
-    expect(frag.type).toBe('placeholderValueFragment')
-  })
-
-  it('text attr defaults to empty string when not provided', () => {
-    const ir = rfm('::placeholder-value-fragment{}')
-    const frag = ir.children[0] as IrPlaceholderValueFragment
-
-    expect(frag.text).toBe('')
-  })
-
-  it('captures text attr from directive attributes', () => {
-    const ir = rfm('::placeholder-value-fragment{text="hello"}')
-    const frag = ir.children[0] as IrPlaceholderValueFragment
-
-    expect(frag.text).toBe('hello')
-  })
-
-  it('has empty children (leaf directive has no content)', () => {
-    const ir = rfm('::placeholder-value-fragment{}')
-    const frag = ir.children[0] as IrPlaceholderValueFragment
-
-    expect(frag.children).toEqual([])
-  })
-})
-
 // ─── Inline RFM ───────────────────────────────────────────────────────────────
 
 describe('transform() — Inline RFM', () => {
@@ -561,17 +529,6 @@ describe('transform() — error handling', () => {
   })
 })
 
-// ─── Inline ::placeholder-value-fragment ─────────────────────────────────────
-
-describe('transform() — inline ::placeholder-value-fragment via PUA token', () => {
-  it('inline placeholder-value-fragment in paragraph produces IrPlaceholderValueFragment', () => {
-    const ir = rfm('before ::placeholder-value-fragment{text="x"} after')
-    const para = ir.children[0] as IrParagraph
-
-    expect(para.children[1]?.type).toBe('placeholderValueFragment')
-  })
-})
-
 // ─── Container directive variants (direct MDAST) ──────────────────────────────
 
 describe('transform() — :::placeholder as container directive', () => {
@@ -612,25 +569,6 @@ describe('transform() — :::loop-value as container directive', () => {
   })
 })
 
-describe('transform() — :::placeholder-value-fragment as container directive', () => {
-  it('produces IrPlaceholderValueFragment from container directive', () => {
-    const ast: Root = {
-      type: 'root',
-      children: [
-        {
-          type: 'containerDirective',
-          name: 'placeholder-value-fragment',
-          attributes: { text: 'hello' },
-          children: [],
-        } as unknown as RootContent,
-      ],
-    }
-    const ir = transform(ast)
-
-    expect(ir.children[0]?.type).toBe('placeholderValueFragment')
-  })
-})
-
 // ─── transformAlign default value ─────────────────────────────────────────────
 
 describe('transform() — transformAlign default value', () => {
@@ -657,12 +595,12 @@ describe('transform() — transformAlign default value', () => {
 
 describe('transform() — expandTokenizedText empty segment', () => {
   it('atom at end of text produces no trailing IrText node', () => {
-    const ir = rfm('before ::placeholder-value-fragment{text="x"}')
+    const ir = rfm('before ::placeholder{type="Subscriber" value="v" name="n" original="o"}')
     const para = ir.children[0] as IrParagraph
 
     expect(para.children).toHaveLength(2)
     expect(para.children[0]).toEqual({ type: 'text', value: 'before ' })
-    expect(para.children[1]?.type).toBe('placeholderValueFragment')
+    expect(para.children[1]?.type).toBe('placeholder')
   })
 })
 
@@ -713,7 +651,7 @@ describe('transform() — transformAtomToken unknown name', () => {
 
 describe('transform() — parseTokenAttrs unquoted attribute value', () => {
   it('parses unquoted attribute value in PUA token', () => {
-    const token = `${ATOM_TOKEN_DELIMITER}placeholder-value-fragment${ATOM_TOKEN_SEPARATOR}text=hello${ATOM_TOKEN_DELIMITER}`
+    const token = `${ATOM_TOKEN_DELIMITER}loop-value${ATOM_TOKEN_SEPARATOR}original=o value=v index=0${ATOM_TOKEN_DELIMITER}`
     const ast: Root = {
       type: 'root',
       children: [
@@ -725,10 +663,10 @@ describe('transform() — parseTokenAttrs unquoted attribute value', () => {
     }
     const ir = transform(ast)
     const para = ir.children[0] as IrParagraph
-    const frag = para.children[0] as IrPlaceholderValueFragment
+    const lv = para.children[0] as IrLoopValue
 
-    expect(frag.type).toBe('placeholderValueFragment')
-    expect(frag.text).toBe('hello')
+    expect(lv.type).toBe('loopValue')
+    expect(lv.value).toBe('v')
   })
 })
 
@@ -799,18 +737,6 @@ describe('transform() — null attributes on container directives', () => {
     expect(lv.index).toBe('')
   })
 
-  it(':::placeholder-value-fragment with null attributes uses fallback empty text', () => {
-    const ast: Root = {
-      type: 'root',
-      children: [
-        { type: 'containerDirective', name: 'placeholder-value-fragment', attributes: null, children: [] } as unknown as RootContent,
-      ],
-    }
-    const ir = transform(ast)
-    const frag = ir.children[0] as IrPlaceholderValueFragment
-
-    expect(frag.text).toBe('')
-  })
 })
 
 describe('transform() — null attributes on text directives', () => {
@@ -850,22 +776,6 @@ describe('transform() — null attributes on text directives', () => {
 // ─── expandTokenizedText — sepIdx < 0 (token without separator) ───────────────
 
 describe('transform() — PUA token without separator', () => {
-  it('placeholder-value-fragment token without separator produces node with empty text', () => {
-    // DELIM + name + DELIM (no SEP) → sepIdx = -1, both ternary false branches taken
-    const token = `${ATOM_TOKEN_DELIMITER}placeholder-value-fragment${ATOM_TOKEN_DELIMITER}`
-    const ast: Root = {
-      type: 'root',
-      children: [
-        { type: 'paragraph', children: [{ type: 'text', value: token }] } as unknown as RootContent,
-      ],
-    }
-    const ir = transform(ast)
-    const frag = (ir.children[0] as IrParagraph).children[0] as IrPlaceholderValueFragment
-
-    expect(frag.type).toBe('placeholderValueFragment')
-    expect(frag.text).toBe('')
-  })
-
   it('loop-value token with separator but empty attrs uses fallback empty strings', () => {
     // DELIM + name + SEP + DELIM (SEP present but no attrs after it) → empty raw map
     const token = `${ATOM_TOKEN_DELIMITER}loop-value${ATOM_TOKEN_SEPARATOR}${ATOM_TOKEN_DELIMITER}`

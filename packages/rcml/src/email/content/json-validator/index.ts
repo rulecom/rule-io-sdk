@@ -10,7 +10,6 @@ export type {
   HardbreakNode,
   PlaceholderNode,
   LoopValueNode,
-  PlaceholderValueFragmentNode,
   ParagraphNode,
   ListItemNode,
   BulletListNode,

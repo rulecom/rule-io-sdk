@@ -10,7 +10,6 @@ export type {
   IrAlign,
   IrPlaceholder,
   IrLoopValue,
-  IrPlaceholderValueFragment,
   IrText,
   IrFont,
   IrLink,

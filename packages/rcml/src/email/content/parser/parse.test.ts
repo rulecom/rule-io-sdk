@@ -266,14 +266,6 @@ describe('parse()', () => {
       expect(directive.attributes?.['max-length']).toBe('100')
     })
 
-    it('parses ::placeholder-value-fragment as a leafDirective', () => {
-      const input = '::placeholder-value-fragment{}'
-      const { ast } = parse(input, { position: false })
-      const directive = ast.children.find((c) => c.type === 'leafDirective')
-
-      if (directive?.type !== 'leafDirective') return
-      expect(directive.name).toBe('placeholder-value-fragment')
-    })
   })
 
   describe('::loop-value leaf directive', () => {

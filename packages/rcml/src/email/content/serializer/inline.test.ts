@@ -5,7 +5,6 @@ import type {
   LinkMark,
   PlaceholderNode,
   LoopValueNode,
-  PlaceholderValueFragmentNode,
 } from '../json-validator/types.js'
 import { serializeInlineNode, serializeInlineNodes } from './inline.js'
 
@@ -103,20 +102,6 @@ describe('serializeInlineNode — loop-value', () => {
     expect(result).toContain('original="orig"')
     expect(result).toContain('value="val"')
     expect(result).toContain('index="0"')
-  })
-})
-
-describe('serializeInlineNode — placeholder-value-fragment', () => {
-  it('serializes with text attr', () => {
-    const node: PlaceholderValueFragmentNode = { type: 'placeholder-value-fragment', attrs: { text: 'hello' } }
-
-    expect(serializeInlineNode(node)).toBe('::placeholder-value-fragment{text="hello"}')
-  })
-
-  it('serializes with empty text attr', () => {
-    const node: PlaceholderValueFragmentNode = { type: 'placeholder-value-fragment', attrs: { text: '' } }
-
-    expect(serializeInlineNode(node)).toBe('::placeholder-value-fragment{text=""}')
   })
 })
 

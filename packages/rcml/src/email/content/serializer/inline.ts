@@ -4,7 +4,6 @@ import type {
   Mark,
   PlaceholderNode,
   LoopValueNode,
-  PlaceholderValueFragmentNode,
 } from '../json-validator/types.js'
 import { renderWithMarks, renderMark, marksEqual } from './mark.js'
 
@@ -84,9 +83,6 @@ export function serializeInlineNode(node: InlineNode): string {
     case 'loop-value':
       return serializeLoopValue(node)
 
-    case 'placeholder-value-fragment':
-      return serializePlaceholderValueFragment(node)
-
     default:
       throw new Error(`Unexpected inline node type "${(node as { type: string }).type}"`)
   }
@@ -109,8 +105,4 @@ function serializeLoopValue(node: LoopValueNode): string {
   const a = node.attrs
 
   return `::loop-value{original="${a.original}" value="${a.value}" index="${a.index}"}`
-}
-
-function serializePlaceholderValueFragment(node: PlaceholderValueFragmentNode): string {
-  return `::placeholder-value-fragment{text="${node.attrs.text}"}`
 }

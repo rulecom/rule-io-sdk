@@ -61,7 +61,7 @@ export interface IrHardBreak {
  * Union of all inline node types produced by the transformer.
  * @internal
  */
-export type IrInline = IrText | IrFont | IrLink | IrHardBreak | IrPlaceholder | IrLoopValue | IrPlaceholderValueFragment;
+export type IrInline = IrText | IrFont | IrLink | IrHardBreak | IrPlaceholder | IrLoopValue;
 
 // ─── Placeholder attrs ────────────────────────────────────────────────────────
 
@@ -147,17 +147,6 @@ export interface IrLoopValue {
 }
 
 /**
- * `::placeholder-value-fragment{text="…"}` — text fragment inside a nested placeholder.
- * @internal
- */
-export interface IrPlaceholderValueFragment {
-  type: 'placeholderValueFragment';
-  /** The text content of the fragment, from the `text` directive attribute. */
-  text: string;
-  children: IrBlock[];
-}
-
-/**
  * Union of all top-level block node types produced by the transformer.
  * @internal
  */
@@ -167,8 +156,7 @@ export type IrBlock =
   | IrOrderedList
   | IrAlign
   | IrPlaceholder
-  | IrLoopValue
-  | IrPlaceholderValueFragment;
+  | IrLoopValue;
 
 // ─── Document root ────────────────────────────────────────────────────────────
 

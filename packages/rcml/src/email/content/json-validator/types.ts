@@ -105,24 +105,12 @@ export type LoopValueNode = {
   }
 }
 
-/**
- * A text fragment inside a placeholder value — used to build rich fallback content.
- */
-export type PlaceholderValueFragmentNode = {
-  type: 'placeholder-value-fragment'
-  attrs: {
-    /** The text content of this fragment. */
-    text: string
-  }
-}
-
 /** Union of all inline node types that can appear inside a {@link ParagraphNode}. */
 export type InlineNode =
   | TextNode
   | HardbreakNode
   | PlaceholderNode
   | LoopValueNode
-  | PlaceholderValueFragmentNode
 
 // ─── Block node types ─────────────────────────────────────────────────────────
 

@@ -191,23 +191,6 @@ const CONCRETE_DEFS = {
     additionalProperties: false,
   },
 
-  'placeholder-value-fragment': {
-    type: 'object',
-    properties: {
-      type: { const: 'placeholder-value-fragment' },
-      attrs: {
-        type: 'object',
-        properties: {
-          text: { type: 'string' },
-        },
-        required: ['text'],
-        additionalProperties: false,
-      },
-    },
-    required: ['type', 'attrs'],
-    additionalProperties: false,
-  },
-
   // ─── Mark nodes ──────────────────────────────────────────────────────────────
 
   'font-mark': {
@@ -294,10 +277,6 @@ function buildInlineUnion(config: FlavorConfig) {
     oneOf.push({ $ref: '#/$defs/loop-value' })
   }
 
-  if (config.allowedLeafDirectives.has('placeholder-value-fragment')) {
-    oneOf.push({ $ref: '#/$defs/placeholder-value-fragment' })
-  }
-
   return { type: 'object', oneOf }
 }
 
@@ -370,7 +349,6 @@ export const rcmlContentJsonSchema = {
         { $ref: '#/$defs/hardbreak' },
         { $ref: '#/$defs/placeholder' },
         { $ref: '#/$defs/loop-value' },
-        { $ref: '#/$defs/placeholder-value-fragment' },
       ],
     },
 

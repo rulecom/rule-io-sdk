@@ -222,22 +222,6 @@ describe('jsonToRfm — ::loop-value', () => {
   })
 })
 
-// ─── jsonToRfm — ::placeholder-value-fragment ────────────────────────────────
-
-describe('jsonToRfm — ::placeholder-value-fragment', () => {
-  it('round-trips placeholder-value-fragment with text', () => {
-    const { original, roundTripped } = rt('::placeholder-value-fragment{text="hello"}')
-
-    expect(roundTripped).toEqual(original)
-  })
-
-  it('round-trips placeholder-value-fragment with empty text', () => {
-    const { original, roundTripped } = rt('::placeholder-value-fragment{}')
-
-    expect(roundTripped).toEqual(original)
-  })
-})
-
 // ─── jsonToRfm — hard break ───────────────────────────────────────────────────
 
 describe('jsonToRfm — hard break', () => {

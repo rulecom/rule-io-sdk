@@ -5,6 +5,9 @@
  * `validChildTypes`, `maxChildCount`. Editor-runtime concerns (computed
  * attributes, rendering hooks) are intentionally out of scope — validation
  * is syntactic only.
+ *
+ * Optional `description`, `category`, and `examples` fields are metadata for
+ * the public machine-readable spec (`rcmlSpec`). Internal consumers ignore them.
  */
 
 // Deep import keeps the type-only import aligned with the value import in
@@ -12,12 +15,19 @@
 import type { RcmlAttributeValidatorsEnum } from '../validator/attr-validators.js'
 import type { RcmlTagName } from './tag-names.js'
 
+/** Functional grouping of an RCML tag for the public spec. */
+export type RcmlTagCategory = 'root' | 'head' | 'layout' | 'control-flow' | 'content'
+
 /** Per-attribute declaration on a NodeSpec. */
 export type RcmlAttrSpec = {
   /** Name of the attribute-value Zod schema in RCML_ATTR_VALIDATORS. */
   validator: RcmlAttributeValidatorsEnum
   /** Default value supplied by the editor when the attribute is omitted. */
   default?: string | number | boolean | null
+  /** Human-readable description for the public spec. */
+  description?: string
+  /** Representative valid values for the public spec. */
+  examples?: string[]
 }
 
 /** Declaration for one RCML tag. */
@@ -30,4 +40,8 @@ export interface RcmlNodeSpec {
   validChildTypes?: readonly RcmlTagName[]
   /** Upper bound on number of children (e.g. rc-section ≤ 20 columns). */
   maxChildCount?: number
+  /** Human-readable description for the public spec. */
+  description?: string
+  /** Functional grouping for the public spec. */
+  category?: RcmlTagCategory
 }

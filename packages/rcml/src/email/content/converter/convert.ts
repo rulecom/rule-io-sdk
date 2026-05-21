@@ -10,7 +10,6 @@ import type {
   IrAlign,
   IrPlaceholder,
   IrLoopValue,
-  IrPlaceholderValueFragment,
   IrFont,
   IrLink,
 } from '../transformer/types.js'
@@ -72,9 +71,6 @@ function convertBlock(node: IrBlock, schema: Schema): Node {
     case 'loopValue':
       return schema.node('paragraph', null, [convertLoopValue(node, schema)])
 
-    case 'placeholderValueFragment':
-      return schema.node('paragraph', null, [convertPlaceholderValueFragment(node, schema)])
-
     default:
       throw new Error(`Unexpected IR block type "${(node as { type: string }).type}"`)
   }
@@ -127,11 +123,6 @@ function convertLoopValue(node: IrLoopValue, schema: Schema): Node {
   })
 }
 
-/** @internal */
-function convertPlaceholderValueFragment(node: IrPlaceholderValueFragment, schema: Schema): Node {
-  return schema.node('placeholder-value-fragment', { text: node.text })
-}
-
 // ─── Inline flattening ────────────────────────────────────────────────────────
 
 /**
@@ -164,10 +155,6 @@ function flattenInline(nodes: IrInline[], schema: Schema, inherited: readonly Ma
 
       case 'loopValue':
         result.push(convertLoopValue(node, schema))
-        break
-
-      case 'placeholderValueFragment':
-        result.push(convertPlaceholderValueFragment(node, schema))
         break
 
       case 'font': {
