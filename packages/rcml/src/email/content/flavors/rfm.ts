@@ -29,7 +29,6 @@ export const rfmConfig: FlavorConfig = {
 
   allowedLeafDirectives: new Map<string, ZodType | null>([
     ['placeholder', PlaceholderAttrsSchema],
-    ['placeholder-value-fragment', null],
     ['loop-value', LoopValueAttrsSchema],
   ]),
 

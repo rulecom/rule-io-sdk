@@ -12,7 +12,6 @@ import type {
   IrAlign,
   IrPlaceholder,
   IrLoopValue,
-  IrPlaceholderValueFragment,
   IrText,
   IrFont,
   IrLink,
@@ -107,7 +106,7 @@ function transformListItem(node: ListItem): IrListItem {
 // ─── Leaf directive transformer ───────────────────────────────────────────────
 
 /** Handles block-level `::name{attrs}` leaf directives (inline atoms at line start). */
-function transformLeafDirective(node: LeafDirective): IrPlaceholder | IrLoopValue | IrPlaceholderValueFragment {
+function transformLeafDirective(node: LeafDirective): IrPlaceholder | IrLoopValue {
   const raw = (node.attributes ?? {}) as Record<string, string>
 
   switch (node.name) {
@@ -120,13 +119,6 @@ function transformLeafDirective(node: LeafDirective): IrPlaceholder | IrLoopValu
         original: raw['original'] ?? '',
         value: raw['value'] ?? '',
         index: raw['index'] ?? '',
-        children: [],
-      }
-
-    case 'placeholder-value-fragment':
-      return {
-        type: 'placeholderValueFragment',
-        text: raw['text'] ?? '',
         children: [],
       }
 
@@ -150,9 +142,6 @@ function transformContainerDirective(node: ContainerDirective): IrBlock {
 
     case 'loop-value':
       return transformLoopValue(node)
-
-    case 'placeholder-value-fragment':
-      return transformPlaceholderValueFragment(node)
 
     default:
       throw new Error(
@@ -187,17 +176,6 @@ function transformLoopValue(node: ContainerDirective): IrLoopValue {
     original: raw['original'] ?? '',
     value: raw['value'] ?? '',
     index: raw['index'] ?? '',
-    children: (node.children as unknown as RootContent[]).map(transformBlock),
-  }
-}
-
-/** @internal */
-function transformPlaceholderValueFragment(node: ContainerDirective): IrPlaceholderValueFragment {
-  const raw = (node.attributes ?? {}) as Record<string, string>
-
-  return {
-    type: 'placeholderValueFragment',
-    text: raw['text'] ?? '',
     children: (node.children as unknown as RootContent[]).map(transformBlock),
   }
 }
@@ -251,7 +229,7 @@ function expandTokenizedText(text: string): IrInline[] {
  * Reconstruct an inline atom IR node from a PUA token's name and serialised attribute string.
  * @internal
  */
-function transformAtomToken(name: string, attrsStr: string): IrPlaceholder | IrLoopValue | IrPlaceholderValueFragment {
+function transformAtomToken(name: string, attrsStr: string): IrPlaceholder | IrLoopValue {
   const raw = parseTokenAttrs(attrsStr)
 
   switch (name) {
@@ -264,13 +242,6 @@ function transformAtomToken(name: string, attrsStr: string): IrPlaceholder | IrL
         original: raw['original'] ?? '',
         value: raw['value'] ?? '',
         index: raw['index'] ?? '',
-        children: [],
-      }
-
-    case 'placeholder-value-fragment':
-      return {
-        type: 'placeholderValueFragment',
-        text: raw['text'] ?? '',
         children: [],
       }
 

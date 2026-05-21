@@ -263,16 +263,6 @@ describe('convert() — hardbreak', () => {
   })
 })
 
-// ─── Inline placeholder-value-fragment ────────────────────────────────────────
-
-describe('convert() — inline ::placeholder-value-fragment', () => {
-  it('produces a placeholder-value-fragment node when used inline in a paragraph', () => {
-    const doc = rfm('before ::placeholder-value-fragment{text="x"} after')
-
-    expect(doc.content[0].content[1].type).toBe('placeholder-value-fragment')
-  })
-})
-
 // ─── Lists ────────────────────────────────────────────────────────────────────
 
 describe('convert() — bullet list (kebab-case type names)', () => {
@@ -429,29 +419,6 @@ describe('convert() — ::loop-value', () => {
     expect(attrs.original).toBe('orig')
     expect(attrs.value).toBe('val')
     expect(attrs.index).toBe('2')
-  })
-})
-
-// ─── ::placeholder-value-fragment ────────────────────────────────────────────
-
-describe('convert() — ::placeholder-value-fragment', () => {
-  it('produces inline placeholder-value-fragment wrapped in paragraph', () => {
-    const doc = rfm('::placeholder-value-fragment{}')
-
-    expect(doc.content[0].type).toBe('paragraph')
-    expect(doc.content[0].content[0].type).toBe('placeholder-value-fragment')
-  })
-
-  it('text attr defaults to empty string', () => {
-    const doc = rfm('::placeholder-value-fragment{}')
-
-    expect(doc.content[0].content[0].attrs.text).toBe('')
-  })
-
-  it('text attr is populated from directive attributes', () => {
-    const doc = rfm('::placeholder-value-fragment{text="hello"}')
-
-    expect(doc.content[0].content[0].attrs.text).toBe('hello')
   })
 })
 

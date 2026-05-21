@@ -18,7 +18,7 @@ export const ATOM_TOKEN_SEPARATOR = '\uE001'
  */
 export const COLON_ESCAPE = '\uE002'
 
-const ATOM_NAMES = '(?:placeholder|loop-value|placeholder-value-fragment)'
+const ATOM_NAMES = '(?:placeholder|loop-value)'
 
 /**
  * Matches a `::name{attrs}` sequence that is preceded by a non-newline,
@@ -29,7 +29,7 @@ const ATOM_NAMES = '(?:placeholder|loop-value|placeholder-value-fragment)'
  * to be skipped.
  *
  * Capture groups:
- *  1 — the directive name (placeholder | loop-value | placeholder-value-fragment)
+ *  1 — the directive name (placeholder | loop-value)
  *  2 — the raw attribute string (everything between `{` and `}`)
  *
  * The lookbehind `(?<=[^\n:])` and `(?!:)` lookahead together exclude
@@ -54,7 +54,7 @@ const MID_LINE_ATOM_RE = new RegExp(
  *
  * Capture groups:
  *  1 — the line-start anchor (`\n` or empty string for string start)
- *  2 — directive name
+ *  2 — directive name (placeholder | loop-value)
  *  3 — raw attribute string
  */
 const LINE_START_ATOM_RE = new RegExp(

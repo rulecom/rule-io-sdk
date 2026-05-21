@@ -29,7 +29,6 @@ import type {
   OrderedListNode,
   ParagraphNode,
   PlaceholderNode,
-  PlaceholderValueFragmentNode,
   SafeParseResult,
   TextNode,
 } from './content/json-validator/types.js'
@@ -89,8 +88,6 @@ export type { HardbreakNode }
 export type { PlaceholderNode }
 /** Loop-value inline node. @public */
 export type { LoopValueNode }
-/** Placeholder fallback-fragment inline node. @public */
-export type { PlaceholderValueFragmentNode }
 /** Paragraph block node. @public */
 export type { ParagraphNode }
 /** Bullet-list block node. @public */

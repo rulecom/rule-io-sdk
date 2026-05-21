@@ -414,27 +414,6 @@ describe('rfmToJson()', () => {
     })
   })
 
-  // ─── ::placeholder-value-fragment ─────────────────────────────────────────────
-
-  describe('::placeholder-value-fragment', () => {
-    it('standalone → paragraph wrapping placeholder-value-fragment atom', () => {
-      const doc = rfmToJson('::placeholder-value-fragment{text="fragment text"}') as AnyJson
-
-      expect(doc.content[0].type).toBe('paragraph')
-
-      const atom = doc.content[0].content[0]
-
-      expect(atom.type).toBe('placeholder-value-fragment')
-      expect(atom.attrs.text).toBe('fragment text')
-    })
-
-    it('empty text attr defaults to empty string', () => {
-      const atom = (rfmToJson('::placeholder-value-fragment{}') as AnyJson).content[0].content[0]
-
-      expect(atom.attrs.text).toBe('')
-    })
-  })
-
   // ─── Real-world fixtures ──────────────────────────────────────────────────────
 
   describe('real-world fixtures', () => {

@@ -65,10 +65,6 @@ function loopValue() {
   }
 }
 
-function placeholderValueFragment(t = '') {
-  return { type: 'placeholder-value-fragment', attrs: { text: t } }
-}
-
 function hardbreak() {
   return { type: 'hardbreak', attrs: { isInline: false } }
 }
@@ -244,18 +240,6 @@ describe('validateJson — valid inputs', () => {
 
   it('accepts a loop-value node', () => {
     const doc = validDoc(paragraph(loopValue()))
-
-    expect(() => validateJson(doc)).not.toThrow()
-  })
-
-  it('accepts a placeholder-value-fragment node', () => {
-    const doc = validDoc(paragraph(placeholderValueFragment('hello')))
-
-    expect(() => validateJson(doc)).not.toThrow()
-  })
-
-  it('accepts a placeholder-value-fragment with empty text', () => {
-    const doc = validDoc(paragraph(placeholderValueFragment()))
 
     expect(() => validateJson(doc)).not.toThrow()
   })
@@ -650,12 +634,6 @@ describe('integration — full pipeline output passes validateJson', () => {
 
   it('loop-value', () => {
     const json = rfmToJson('::loop-value{original="orig" value="val" index="0"}')
-
-    expect(() => validateJson(json)).not.toThrow()
-  })
-
-  it('placeholder-value-fragment', () => {
-    const json = rfmToJson('::placeholder-value-fragment{text="hello"}')
 
     expect(() => validateJson(json)).not.toThrow()
   })
