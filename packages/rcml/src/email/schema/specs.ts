@@ -1012,8 +1012,8 @@ const buttonSpec = {
     },
     href: {
       validator: V.Url,
-      description: 'Destination URL when the button is clicked.',
-      examples: ['https://example.com/offer'],
+      description: "Destination URL when the button is clicked. Use `[Link:<type>]` for system-managed links (e.g. `[Link:Unsubscribe]`, `[Link:WebBrowser]`) or any absolute URL. May contain placeholder tokens such as `[CustomField:...]` for per-recipient links.",
+      examples: ['https://example.com/offer', '[Link:Unsubscribe]'],
     },
     'inner-padding': {
       validator: V.Padding,
@@ -1177,8 +1177,8 @@ const imageSpec = {
     },
     href: {
       validator: V.Url,
-      description: 'URL to navigate to when the image is clicked.',
-      examples: ['https://example.com'],
+      description: "URL to navigate to when the image is clicked. Use `[Link:<type>]` for system-managed links (e.g. `[Link:Unsubscribe]`, `[Link:WebBrowser]`) or any absolute URL. May contain placeholder tokens such as `[CustomField:...]` for per-recipient links.",
+      examples: ['https://example.com', '[Link:WebBrowser]'],
     },
     'max-height': {
       validator: V.PxOrPercentage,
@@ -1291,7 +1291,7 @@ const logoSpec = {
     },
     href: {
       validator: V.Url,
-      description: 'URL to navigate to when the logo is clicked.',
+      description: "URL to navigate to when the logo is clicked. Use `[Link:<type>]` for system-managed links or any absolute URL. May contain placeholder tokens such as `[CustomField:...]`.",
       examples: ['https://example.com'],
     },
     'max-height': { validator: V.PxOrPercentage, description: 'Maximum logo height.', examples: ['80px'] },
@@ -1388,7 +1388,7 @@ const videoSpec = {
     },
     href: {
       validator: V.Url,
-      description: 'URL to navigate to when the thumbnail (not the play button) is clicked.',
+      description: "URL to navigate to when the thumbnail (not the play button) is clicked. May contain placeholder tokens such as `[Link:<type>]` or `[CustomField:...]`.",
       examples: ['https://example.com'],
     },
     'max-height': { validator: V.PxOrPercentage, description: 'Maximum thumbnail height.', examples: ['400px'] },
@@ -1679,7 +1679,7 @@ const socialElementSpec = {
     },
     href: {
       validator: V.Url,
-      description: 'URL of the social profile page.',
+      description: "URL of the social profile page. Typically a direct social media URL; may contain placeholder tokens (e.g. `[CustomField:...]`) for per-subscriber personalisation.",
       examples: ['https://twitter.com/rulecom', 'https://facebook.com/rulecom'],
     },
     'icon-height': { validator: V.PxOrPercentage, description: 'Icon height when different from icon-size.', examples: ['20px'] },

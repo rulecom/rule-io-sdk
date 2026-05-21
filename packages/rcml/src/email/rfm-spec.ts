@@ -204,7 +204,8 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
       type: {
         type: 'enum',
         required: true,
-        description: 'The category of placeholder.',
+        description:
+          'The backend token category. Each value corresponds to a token type in `placeholderSpec.tokens` — consult that spec for the exact syntax, parameters, and examples.',
         allowedValues: ['CustomField', 'Subscriber', 'User', 'RemoteContent', 'Date'],
         examples: ['Subscriber', 'CustomField'],
       },
@@ -217,14 +218,15 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
       name: {
         type: 'string',
         required: true,
-        description: 'Human-readable display name shown in the editor.',
+        description: 'Human-readable display name shown in the editor. Not interpreted by the renderer.',
         examples: ['First name', 'Order total'],
       },
       original: {
         type: 'string',
         required: true,
-        description: 'Source token from the original RFM markdown (e.g. `[sub:fn]`, `[CustomField:123]`).',
-        examples: ['[sub:fn]', '[CustomField:42]'],
+        description:
+          'The backend token string substituted by the renderer at send time. Must conform to the syntax for the given `type` — see `placeholderSpec.tokens[type]` for the exact pattern.',
+        examples: ['[Subscriber:email]', '[CustomField:Order.Total]', '[Date:now::Y-m-d]'],
       },
       'max-length': {
         type: 'string',
@@ -241,20 +243,23 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
       original: {
         type: 'string',
         required: true,
-        description: 'Source token from the original RFM markdown.',
-        examples: ['[LoopValue:title]'],
+        description:
+          'The `[LoopValue:<key>.<index>]` token string. See `placeholderSpec.tokens[\'LoopValue\']` for the full syntax.',
+        examples: ['[LoopValue:title.1]', '[LoopValue:price.1]'],
       },
       value: {
         type: 'string',
         required: true,
-        description: 'Loop variable name (the field key from the loop item).',
+        description:
+          'The `key` component of the token — the property name from the loop data item (e.g. an Open Graph tag name for news-feed sources, or a JSON property name for remote-content and custom-field sources).',
         examples: ['title', 'price'],
       },
       index: {
         type: 'string',
         required: true,
-        description: 'Loop index identifier.',
-        examples: ['0', 'i'],
+        description:
+          'The `index` component of the token — a 1-based position counting all column slots across all sections of the loop block.',
+        examples: ['1', '2'],
       },
     },
   },
@@ -324,8 +329,9 @@ const MARK_META: Record<string, Omit<RfmMarkSpec, 'flavors'>> = {
       href: {
         type: 'string',
         required: true,
-        description: 'Destination URL. Must not be empty.',
-        examples: ['https://example.com/offer'],
+        description:
+          'Destination URL. Use `[Link:<type>]` tokens for system-managed links (e.g. `[Link:Unsubscribe]`, `[Link:WebBrowser]`) — see `placeholderSpec.tokens[\'Link\']` for all types. May also contain `[CustomField:...]`, `[Subscriber:...]`, or `[User:...]` tokens for per-recipient URLs.',
+        examples: ['https://example.com/offer', '[Link:Unsubscribe]'],
       },
       target: {
         type: 'enum',
