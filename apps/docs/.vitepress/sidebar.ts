@@ -19,6 +19,7 @@ const CATEGORIES: { dir: string; label: string }[] = [
 
 function mdFilesToItems(dir: string, linkPrefix: string): DefaultTheme.SidebarItem[] {
   if (!existsSync(dir)) return [];
+
   return readdirSync(dir)
     .filter((f) => f.endsWith('.md'))
     .sort()
@@ -27,6 +28,7 @@ function mdFilesToItems(dir: string, linkPrefix: string): DefaultTheme.SidebarIt
 
 export function buildApiSidebar(srcDir: string): DefaultTheme.SidebarItem[] {
   const apiDir = join(srcDir, 'api');
+
   if (!existsSync(apiDir)) return [];
 
   return API_PACKAGES.map(({ dir, label }) => {
@@ -35,6 +37,7 @@ export function buildApiSidebar(srcDir: string): DefaultTheme.SidebarItem[] {
 
     for (const { dir: catDir, label: catLabel } of CATEGORIES) {
       const files = mdFilesToItems(join(pkgDir, catDir), `/api/${dir}/${catDir}`);
+
       if (files.length === 0) continue;
       items.push({ text: catLabel, collapsed: true, items: files });
     }
