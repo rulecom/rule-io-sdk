@@ -13,5 +13,6 @@
   "excludeInternal": true,
   "excludeExternals": true,
   "readme": "none",
+  "entryFileName": "index",
   "tsconfig": "tsconfig.typedoc.json"
 }
