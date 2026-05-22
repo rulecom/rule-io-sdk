@@ -13,12 +13,28 @@
     },
     "generate": {
       "executor": "nx:run-commands",
-      "outputs": ["{workspaceRoot}/apps/docs/src/api"],
+      "outputs": [
+        "{workspaceRoot}/apps/docs/src/api",
+        "{workspaceRoot}/apps/docs/src/packages"
+      ],
+      "inputs": [
+        "{workspaceRoot}/packages/client/src/**/*.ts",
+        "{workspaceRoot}/packages/rcml/src/**/*.ts",
+        "{workspaceRoot}/packages/sdk/src/**/*.ts",
+        "{workspaceRoot}/packages/client/docs/**",
+        "{workspaceRoot}/packages/rcml/docs/**",
+        "{workspaceRoot}/packages/sdk/docs/**",
+        "{workspaceRoot}/typedoc.json",
+        "{workspaceRoot}/tsconfig.typedoc.json",
+        "{projectRoot}/scripts/sync-package-docs.ts",
+        "{projectRoot}/scripts/docs-packages.ts"
+      ],
       "options": {
         "parallel": false,
         "commands": [
-          "rm -rf apps/docs/src/api",
-          "typedoc"
+          "rm -rf apps/docs/src/api apps/docs/src/packages",
+          "typedoc",
+          "tsx apps/docs/scripts/sync-package-docs.ts"
         ]
       }
     },

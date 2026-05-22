@@ -63,4 +63,4 @@ import {
 
 ## Types
 
-The full RCML structural type hierarchy is exported: `RCMLDocument`, `RCMLSection`, `RCMLProseMirrorDoc`, `BrandStyleConfig`, `CustomFieldMap`, and more. See the [API Reference](../../api/rcml/) for complete type documentation.
+The full RCML structural type hierarchy is exported: `RCMLDocument`, `RCMLSection`, `RCMLProseMirrorDoc`, `BrandStyleConfig`, `CustomFieldMap`, and more. See the [API Reference](/api/rcml/src/) for complete type documentation.
