@@ -59,6 +59,7 @@ function copyDir(src: string, dest: string, docsDir: string): void {
     } else if (entry.isFile()) {
       if (entry.name.endsWith('.md')) {
         const content = readFileSync(srcPath, 'utf8');
+
         checkEscapingLinks(srcPath, content, docsDir);
         copyFileSync(srcPath, destPath);
       } else if (/\.(png|jpg|jpeg|gif|svg|webp)$/i.test(entry.name)) {
