@@ -101,3 +101,25 @@ jobs:
             test -f "dist/packages/$pkg/package.json"   || { echo "Missing dist/packages/$pkg/package.json"; exit 1; }
           done
           echo "All build outputs present for 8 packages."
+
+  docs:
+    name: Docs Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check JSDoc coverage (all public symbols documented)
+        run: npx nx run docs:check
+
+      - name: Build docs site (dead-link check)
+        run: npx nx run docs:build

@@ -80,6 +80,25 @@
         "command": "vitepress preview apps/docs"
       }
     },
+    "check": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/packages/client/src/**/*.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/rcml/src/**/*.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/sdk/src/**/*.ts",
+        "{workspaceRoot}/typedoc.json",
+        "{workspaceRoot}/tsconfig.typedoc.json"
+      ],
+      "outputs": [],
+      "options": {
+        "command": "typedoc --treatValidationWarningsAsErrors"
+      }
+    },
     "clean": {
       "executor": "nx:run-commands",
       "cache": false,

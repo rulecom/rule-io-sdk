@@ -14,5 +14,8 @@
   "excludeExternals": true,
   "readme": "none",
   "entryFileName": "index",
-  "tsconfig": "tsconfig.typedoc.json"
+  "tsconfig": "tsconfig.typedoc.json",
+  "validation": {
+    "notDocumented": true
+  }
 }
