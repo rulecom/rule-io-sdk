@@ -46,7 +46,10 @@ export function buildApiSidebar(srcDir: string): DefaultTheme.SidebarItem[] {
 export const guideSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Getting Started',
-    items: [{ text: 'Quick Start', link: '/guide/getting-started' }],
+    items: [
+      { text: 'Quick Start', link: '/guide/getting-started' },
+      { text: 'Contributing to Docs', link: '/guide/contributing' },
+    ],
   },
   {
     text: '@rulecom/sdk',

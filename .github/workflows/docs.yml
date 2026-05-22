@@ -1,0 +1,62 @@
+# Builds and deploys the documentation site to GitHub Pages.
+#
+# Prerequisites (one-time repository setup):
+#   1. Settings → Pages → Source: "Deploy from a branch", branch: gh-pages, folder: / (root)
+#   2. The first run will create the gh-pages branch automatically.
+#
+# Deployment layout on gh-pages:
+#   /index.html      → redirect to /rule-io-sdk/latest/
+#   /latest/         → current docs (updated on every push to main)
+#   /vX.Y/           → immutable version snapshots (added in Phase 9)
+
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    name: Build and deploy docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate API docs and sync package docs
+        run: npx nx run docs:generate
+
+      - name: Build VitePress site
+        run: npx nx run docs:build
+        env:
+          DOCS_BASE: /rule-io-sdk/latest/
+
+      - name: Stage deployment (redirect at root + docs at latest/)
+        run: |
+          mkdir -p /tmp/gh-pages/latest
+          cp apps/docs/redirect/index.html /tmp/gh-pages/index.html
+          cp -r apps/docs/.vitepress/dist/. /tmp/gh-pages/latest/
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: /tmp/gh-pages
+          keep_files: true
