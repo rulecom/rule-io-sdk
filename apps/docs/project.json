@@ -11,6 +11,17 @@
         "command": "vitepress dev apps/docs"
       }
     },
+    "generate": {
+      "executor": "nx:run-commands",
+      "outputs": ["{workspaceRoot}/apps/docs/src/api"],
+      "options": {
+        "parallel": false,
+        "commands": [
+          "rm -rf apps/docs/src/api",
+          "typedoc"
+        ]
+      }
+    },
     "build": {
       "executor": "nx:run-commands",
       "outputs": ["{workspaceRoot}/apps/docs/.vitepress/dist"],

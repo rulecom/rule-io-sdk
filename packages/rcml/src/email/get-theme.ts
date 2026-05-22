@@ -2,7 +2,7 @@
  * Public entry point for reading the {@link EmailTheme} encoded in an
  * rcml document.
  *
- * The inverse of {@link import('./apply-theme.js').applyTheme}. Internal
+ * The inverse of {@link applyTheme}. Internal
  * per-bucket extractors live in `./theme/theme-rcml.ts`; this file's job
  * is orchestrating them and merging the results with the theme defaults
  * so the caller always gets back a fully-populated {@link EmailTheme}.
@@ -38,10 +38,10 @@ import {
  * children). Missing fields fall back to the defaults from
  * `theme-defaults.ts`, so the return value is always a full
  * {@link EmailTheme} — safe to pass to
- * {@link import('./apply-theme.js').applyTheme} or any other consumer.
+ * {@link applyTheme} or any other consumer.
  *
  * A bare doc with no theme returns the same shape as
- * {@link import('./create-theme.js').createEmailTheme}(). Unknown or
+ * {@link createEmailTheme}(). Unknown or
  * malformed rcml nodes are ignored silently; nodes that look right but
  * are missing required attributes are skipped. Input is not mutated.
  *

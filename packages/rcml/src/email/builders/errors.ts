@@ -1,7 +1,7 @@
 /**
  * Internal: build-time issue codes + error class for element factories.
  *
- * Mirrors the shape of {@link import('../validate-email-template.js').EmailTemplateValidationIssue}
+ * Mirrors the shape of {@link EmailTemplateValidationIssue}
  * so downstream tooling (MCP, validators) can consume both uniformly. The
  * class and the issue type are re-exported `@public` from
  * `../create-rcml-element.ts`.
@@ -11,7 +11,7 @@ import type { RcmlTagName } from '../schema/index.js'
 
 /**
  * Category of a single build-time issue reported by
- * {@link import('../create-rcml-element.js').RcmlElementBuildError}.
+ * {@link RcmlElementBuildError}.
  */
 export const RcmlElementBuildErrorCodes = {
   ATTR_UNKNOWN: 'ATTR_UNKNOWN',
@@ -42,7 +42,7 @@ export interface RcmlElementBuildIssue {
  * too many children, invalid / missing content).
  *
  * Surfaces issues at the exact call site instead of later inside
- * {@link import('../validate-email-template.js').validateEmailTemplate}.
+ * {@link validateEmailTemplate}.
  */
 export class RcmlElementBuildError extends Error {
   readonly tagName: RcmlTagName

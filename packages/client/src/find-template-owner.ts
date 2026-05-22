@@ -76,7 +76,7 @@ export interface PartialScanError {
 }
 
 /**
- * Options for {@link RuleClient.findTemplateOwner}.
+ * Options for {@link findTemplateOwner}.
  *
  * @public
  */
@@ -114,9 +114,7 @@ const PER_PAGE = 100;
 
 /**
  * Scan dispatchers (campaigns then automations) for the one whose message
- * carries a dynamic-set with the given `template_id`. Exported as a free
- * function for testability; consumers normally call
- * {@link RuleClient.findTemplateOwner}.
+ * carries a dynamic-set with the given `template_id`.
  *
  * @public
  */

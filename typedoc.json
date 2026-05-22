@@ -1,0 +1,17 @@
+{
+  "entryPoints": [
+    "packages/client/src/index.ts",
+    "packages/rcml/src/index.ts",
+    "packages/sdk/src/index.ts"
+  ],
+  "entryPointStrategy": "resolve",
+  "out": "apps/docs/src/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "name": "Rule.io SDK",
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "excludeExternals": true,
+  "readme": "none",
+  "tsconfig": "tsconfig.typedoc.json"
+}
