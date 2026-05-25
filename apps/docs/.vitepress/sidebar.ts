@@ -206,7 +206,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
               },
             ],
           },
-          { text: 'Template validation', link: '/packages/rcml/email/template-validation' },
+          { text: 'Validation', link: '/packages/rcml/email/validation' },
           { text: 'Formats conversion', link: '/packages/rcml/email/formats-conversion' },
         ],
       },
