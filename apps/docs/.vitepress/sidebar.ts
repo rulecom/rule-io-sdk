@@ -178,6 +178,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
                 text: 'Block nodes',
                 collapsed: true,
                 items: [
+                  { text: 'doc', link: '/packages/rcml/email/content/block-nodes/doc' },
                   { text: 'paragraph', link: '/packages/rcml/email/content/block-nodes/paragraph' },
                   { text: 'bullet-list', link: '/packages/rcml/email/content/block-nodes/bullet-list' },
                   { text: 'ordered-list', link: '/packages/rcml/email/content/block-nodes/ordered-list' },
