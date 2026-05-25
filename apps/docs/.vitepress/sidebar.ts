@@ -49,6 +49,7 @@ export function buildApiSidebar(srcDir: string): DefaultTheme.SidebarItem[] {
 export const guideSidebar: DefaultTheme.SidebarItem[] = [
   {
     text: 'Getting Started',
+    collapsed: false,
     items: [
       { text: 'Quick Start', link: '/guide/getting-started' },
       { text: 'Contributing to Docs', link: '/guide/contributing' },
@@ -56,6 +57,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
   },
   {
     text: '@rulecom/sdk',
+    collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/sdk/' },
       { text: 'Sending Emails', link: '/packages/sdk/sending-emails' },
@@ -63,6 +65,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
   },
   {
     text: '@rulecom/client',
+    collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/client/' },
       { text: 'Managing Subscribers', link: '/packages/client/subscribers' },
@@ -72,13 +75,16 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
   },
   {
     text: '@rulecom/rcml',
+    collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/rcml/' },
       {
         text: 'Email',
+        collapsed: false,
         items: [
           {
             text: 'Concepts',
+            collapsed: false,
             items: [
               {
                 text: 'Basic',
@@ -104,6 +110,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           },
           {
             text: 'RCML',
+            collapsed: false,
             items: [
               { text: 'Overview', link: '/packages/rcml/email/rcml/' },
               {
@@ -129,6 +136,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
               },
               {
                 text: 'Body components',
+                collapsed: true,
                 items: [
                   {
                     text: 'Layout',
@@ -172,6 +180,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           },
           {
             text: 'RCML Content',
+            collapsed: false,
             items: [
               { text: 'Flavors', link: '/packages/rcml/email/content/flavors' },
               {

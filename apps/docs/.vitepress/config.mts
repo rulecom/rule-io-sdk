@@ -11,6 +11,12 @@ export default defineConfig({
   srcDir: 'src',
   base: (process.env['DOCS_BASE'] ?? '/rule-io-sdk/') as `/${string}/`,
 
+  markdown: {
+    anchor: {
+      level: [2, 3, 4, 5, 6],
+    },
+  },
+
   themeConfig: {
     nav: [
       {
