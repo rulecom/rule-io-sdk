@@ -58,5 +58,5 @@ const result = await client.createAutomationEmail({
 
 ## See also
 
-- [Brand Styles](./brand-styles) — resolve `brandStyleId` and `myBrand`
-- [Building Templates](./templates) — compose a custom `RCMLDocument`
+- [Brand Styles](/packages/client/brand-styles) — resolve `brandStyleId` and `myBrand`
+- [Building Templates](/packages/rcml/) — compose a custom `RCMLDocument`

@@ -60,4 +60,4 @@ const { brandStyle } = await client.getBrandStyle(id);
 
 ## Next steps
 
-Use `myBrand` and `myFields` from this guide as inputs to the [template builders](./templates) or pass `brandStyleId` to [createCampaignEmail / createAutomationEmail](./sending-emails).
+Use `myBrand` and `myFields` from this guide as inputs to the [template builders](/packages/rcml/) or pass `brandStyleId` to [createCampaignEmail / createAutomationEmail](/packages/sdk/sending-emails).

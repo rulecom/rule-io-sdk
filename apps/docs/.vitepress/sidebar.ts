@@ -59,18 +59,156 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Overview', link: '/packages/sdk/' },
       { text: 'Sending Emails', link: '/packages/sdk/sending-emails' },
-      { text: 'Brand Styles', link: '/packages/sdk/brand-styles' },
-      { text: 'Managing Subscribers', link: '/packages/sdk/subscribers' },
-      { text: 'Templates', link: '/packages/sdk/templates' },
-      { text: 'Direct API Reference', link: '/packages/sdk/api-reference' },
     ],
   },
   {
     text: '@rulecom/client',
-    items: [{ text: 'Overview', link: '/packages/client/' }],
+    items: [
+      { text: 'Overview', link: '/packages/client/' },
+      { text: 'Managing Subscribers', link: '/packages/client/subscribers' },
+      { text: 'Brand Styles', link: '/packages/client/brand-styles' },
+      { text: 'Direct API Reference', link: '/packages/client/api-reference' },
+    ],
   },
   {
     text: '@rulecom/rcml',
-    items: [{ text: 'Overview', link: '/packages/rcml/' }],
+    items: [
+      { text: 'Overview', link: '/packages/rcml/' },
+      {
+        text: 'Email',
+        items: [
+          {
+            text: 'Concepts',
+            items: [
+              {
+                text: 'Basic',
+                collapsed: true,
+                items: [
+                  { text: 'Template', link: '/packages/rcml/email/concepts/basic/template' },
+                  { text: 'Containers', link: '/packages/rcml/email/concepts/basic/containers' },
+                  { text: 'Elements', link: '/packages/rcml/email/concepts/basic/elements' },
+                  { text: 'Rich text content', link: '/packages/rcml/email/concepts/basic/rich-text-content' },
+                  { text: 'Theme', link: '/packages/rcml/email/concepts/basic/theme' },
+                ],
+              },
+              {
+                text: 'Advanced',
+                collapsed: true,
+                items: [
+                  { text: 'Switches', link: '/packages/rcml/email/concepts/advanced/switches' },
+                  { text: 'Loops', link: '/packages/rcml/email/concepts/advanced/loops' },
+                  { text: 'Custom HTML', link: '/packages/rcml/email/concepts/advanced/custom-html' },
+                ],
+              },
+            ],
+          },
+          {
+            text: 'RCML',
+            items: [
+              { text: 'Overview', link: '/packages/rcml/email/rcml/' },
+              {
+                text: 'Root components',
+                collapsed: true,
+                items: [
+                  { text: 'rcml', link: '/packages/rcml/email/rcml/root/rcml' },
+                  { text: 'rc-head', link: '/packages/rcml/email/rcml/root/rc-head' },
+                  { text: 'rc-body', link: '/packages/rcml/email/rcml/root/rc-body' },
+                ],
+              },
+              {
+                text: 'Head components',
+                collapsed: true,
+                items: [
+                  { text: 'rc-brand-style', link: '/packages/rcml/email/rcml/head/rc-brand-style' },
+                  { text: 'rc-font', link: '/packages/rcml/email/rcml/head/rc-font' },
+                  { text: 'rc-attributes', link: '/packages/rcml/email/rcml/head/rc-attributes' },
+                  { text: 'rc-preview', link: '/packages/rcml/email/rcml/head/rc-preview' },
+                  { text: 'rc-class', link: '/packages/rcml/email/rcml/head/rc-class' },
+                  { text: 'rc-plain-text', link: '/packages/rcml/email/rcml/head/rc-plain-text' },
+                ],
+              },
+              {
+                text: 'Body components',
+                items: [
+                  {
+                    text: 'Layout',
+                    collapsed: true,
+                    items: [
+                      { text: 'rc-section', link: '/packages/rcml/email/rcml/body/layout/rc-section' },
+                      { text: 'rc-column', link: '/packages/rcml/email/rcml/body/layout/rc-column' },
+                      { text: 'rc-wrapper', link: '/packages/rcml/email/rcml/body/layout/rc-wrapper' },
+                      { text: 'rc-group', link: '/packages/rcml/email/rcml/body/layout/rc-group' },
+                    ],
+                  },
+                  {
+                    text: 'Content',
+                    collapsed: true,
+                    items: [
+                      { text: 'rc-text', link: '/packages/rcml/email/rcml/body/content/rc-text' },
+                      { text: 'rc-heading', link: '/packages/rcml/email/rcml/body/content/rc-heading' },
+                      { text: 'rc-button', link: '/packages/rcml/email/rcml/body/content/rc-button' },
+                      { text: 'rc-image', link: '/packages/rcml/email/rcml/body/content/rc-image' },
+                      { text: 'rc-logo', link: '/packages/rcml/email/rcml/body/content/rc-logo' },
+                      { text: 'rc-video', link: '/packages/rcml/email/rcml/body/content/rc-video' },
+                      { text: 'rc-spacer', link: '/packages/rcml/email/rcml/body/content/rc-spacer' },
+                      { text: 'rc-divider', link: '/packages/rcml/email/rcml/body/content/rc-divider' },
+                      { text: 'rc-social', link: '/packages/rcml/email/rcml/body/content/rc-social' },
+                      { text: 'rc-social-element', link: '/packages/rcml/email/rcml/body/content/rc-social-element' },
+                      { text: 'rc-raw', link: '/packages/rcml/email/rcml/body/content/rc-raw' },
+                    ],
+                  },
+                  {
+                    text: 'Control flow',
+                    collapsed: true,
+                    items: [
+                      { text: 'rc-switch', link: '/packages/rcml/email/rcml/body/control-flow/rc-switch' },
+                      { text: 'rc-case', link: '/packages/rcml/email/rcml/body/control-flow/rc-case' },
+                      { text: 'rc-loop', link: '/packages/rcml/email/rcml/body/control-flow/rc-loop' },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            text: 'RCML Content',
+            items: [
+              { text: 'Flavors', link: '/packages/rcml/email/content/flavors' },
+              {
+                text: 'Block nodes',
+                collapsed: true,
+                items: [
+                  { text: 'paragraph', link: '/packages/rcml/email/content/block-nodes/paragraph' },
+                  { text: 'bullet-list', link: '/packages/rcml/email/content/block-nodes/bullet-list' },
+                  { text: 'ordered-list', link: '/packages/rcml/email/content/block-nodes/ordered-list' },
+                  { text: 'list-item', link: '/packages/rcml/email/content/block-nodes/list-item' },
+                  { text: 'align', link: '/packages/rcml/email/content/block-nodes/align' },
+                  { text: 'hardbreak', link: '/packages/rcml/email/content/block-nodes/hardbreak' },
+                ],
+              },
+              {
+                text: 'Inline nodes',
+                collapsed: true,
+                items: [
+                  { text: 'text', link: '/packages/rcml/email/content/inline-nodes/text' },
+                  { text: 'placeholder', link: '/packages/rcml/email/content/inline-nodes/placeholder' },
+                  { text: 'loop-value', link: '/packages/rcml/email/content/inline-nodes/loop-value' },
+                ],
+              },
+              {
+                text: 'Marks',
+                collapsed: true,
+                items: [
+                  { text: 'font', link: '/packages/rcml/email/content/marks/font' },
+                  { text: 'link', link: '/packages/rcml/email/content/marks/link' },
+                ],
+              },
+            ],
+          },
+          { text: 'Template validation', link: '/packages/rcml/email/template-validation' },
+          { text: 'Formats conversion', link: '/packages/rcml/email/formats-conversion' },
+        ],
+      },
+    ],
   },
 ];

@@ -2,7 +2,7 @@
 
 Beyond the high-level helpers, the SDK provides direct access to all Rule.io API endpoints through `RuleClient`. Each method is fully typed — see the exported types for request/response shapes.
 
-> This page covers the low-level methods. For the high-level helpers see [Sending Emails](./sending-emails), [Building Templates](./templates), and [Managing Subscribers](./subscribers).
+> This page covers the low-level methods. For the high-level helpers see [Sending Emails](/packages/sdk/sending-emails), [Building Templates](/packages/rcml/), and [Managing Subscribers](./subscribers).
 
 ## Campaigns
 
