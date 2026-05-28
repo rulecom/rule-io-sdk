@@ -120,4 +120,3 @@ ones.
 - [`safeValidateEmailTemplate`](/api/rcml/src/functions/safeValidateEmailTemplate) — API reference
 - [`validateEmailTemplate`](/api/rcml/src/functions/validateEmailTemplate) — API reference
 - [`EmailTemplateErrorCodes`](/api/rcml/src/variables/EmailTemplateErrorCodes) — API reference
-- [Formats conversion](/packages/rcml/email/formats-conversion) — converting between XML and JSON AST

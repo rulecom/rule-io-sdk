@@ -17,7 +17,7 @@ Clickable call-to-action button. The label is set via inline rich-text content. 
 | `color` | — | CSS color value | `#ffffff` | Label text colour. |
 | `container-background-color` | — | CSS color value | `#f9f9f9` | Background colour of the containing table cell. |
 | `css-class` | — | String | `cta-button` | HTML class names for custom CSS targeting. |
-| `rc-class` | — | String | `btn-primary` | Space-separated names of [`<rc-class>`](../head/rc-class.md) elements whose styles are inherited. |
+| `rc-class` | — | String | `btn-primary` | Space-separated names of [`<rc-class>`](../../head/rc-class.md) elements whose styles are inherited. |
 | `font-family` | — | String | `'Helvetica, sans-serif'` | Font family of the button label. |
 | `font-size` | — | Pixel value | `14px` | Font size of the button label. |
 | `font-style` | — | `normal` \| `italic` \| `oblique` | `normal` | CSS font-style for the label. |

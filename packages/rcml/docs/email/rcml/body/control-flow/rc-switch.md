@@ -14,7 +14,7 @@ None.
 
 ## Parents
 
-- [`<rc-body>`](../root/rc-body.md)
+- [`<rc-body>`](../../root/rc-body.md)
 - [`<rc-wrapper>`](../layout/rc-wrapper.md)
 
 ## JSON

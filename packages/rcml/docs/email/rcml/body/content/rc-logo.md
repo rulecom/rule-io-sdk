@@ -17,7 +17,7 @@ Brand logo image. Functionally identical to `<rc-image>` but semantically distin
 | `border-radius` | — | px or %, 1–4 values | `4px` | Rounded corners on the logo. |
 | `container-background-color` | — | CSS color value | `#ffffff` | Background colour of the containing cell. |
 | `css-class` | — | String | `brand-logo` | HTML class names for custom targeting. |
-| `rc-class` | — | String | `logo-style` | Space-separated names of [`<rc-class>`](../head/rc-class.md) elements whose styles are inherited. |
+| `rc-class` | — | String | `logo-style` | Space-separated names of [`<rc-class>`](../../head/rc-class.md) elements whose styles are inherited. |
 | `fluid-on-mobile` | — | `true` \| `false` | `true` | When `true`, the logo stretches to full width on mobile. |
 | `font-size` | `14px` | Pixel value | `14px` | Font size for the alt-text fallback display. |
 | `height` | `auto` | Pixel value or `auto` | `auto` | Logo height. Defaults to `auto` to maintain aspect ratio. |

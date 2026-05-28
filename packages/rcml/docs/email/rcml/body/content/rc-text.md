@@ -10,7 +10,7 @@ Rich-text paragraph block. Supports paragraphs, bullet and ordered lists, alignm
 | `color` | — | CSS color value | `#333333` | Default text colour for the block. |
 | `container-background-color` | — | CSS color value | `#f9f9f9` | Background colour of the containing table cell. |
 | `css-class` | — | String | `body-text` | HTML class names applied to the rendered element. |
-| `rc-class` | — | String | `heading-style` | Space-separated names of [`<rc-class>`](../head/rc-class.md) elements whose styles are inherited. |
+| `rc-class` | — | String | `heading-style` | Space-separated names of [`<rc-class>`](../../head/rc-class.md) elements whose styles are inherited. |
 | `font-family` | — | String | `'Georgia, serif'` | Default font family for the text block. |
 | `font-size` | — | Pixel value | `16px` | Default font size in pixels. |
 | `font-style` | — | `normal` \| `italic` \| `oblique` | `italic` | CSS font-style keyword. |

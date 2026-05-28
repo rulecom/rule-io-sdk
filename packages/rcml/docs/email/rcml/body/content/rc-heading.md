@@ -11,7 +11,7 @@ Heading block with h1–h6 semantics set inside the rich-text content. Supports 
 | `color` | — | CSS color value | `#1a1a2e` | Heading text colour. |
 | `container-background-color` | — | CSS color value | `#f9f9f9` | Background colour of the containing table cell. |
 | `css-class` | — | String | `section-title` | HTML class names applied to the rendered element. |
-| `rc-class` | — | String | `heading-style` | Space-separated names of [`<rc-class>`](../head/rc-class.md) elements whose styles are inherited. |
+| `rc-class` | — | String | `heading-style` | Space-separated names of [`<rc-class>`](../../head/rc-class.md) elements whose styles are inherited. |
 | `font-family` | — | String | `'Georgia, serif'` | Font family for the heading. |
 | `font-size` | — | Pixel value | `32px` | Font size in pixels. |
 | `font-style` | — | `normal` \| `italic` \| `oblique` | `italic` | CSS font-style keyword. |

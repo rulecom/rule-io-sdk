@@ -40,7 +40,7 @@ Full-width horizontal band that holds one or more columns. The primary layout ro
 
 ## Parents
 
-- [`<rc-body>`](../root/rc-body.md)
+- [`<rc-body>`](../../root/rc-body.md)
 - [`<rc-wrapper>`](./rc-wrapper.md)
 - [`<rc-case>`](../control-flow/rc-case.md)
 - [`<rc-loop>`](../control-flow/rc-loop.md)

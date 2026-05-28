@@ -36,7 +36,7 @@ Groups multiple sections under a shared background image or colour. Use for hero
 
 ## Parents
 
-- [`<rc-body>`](../root/rc-body.md)
+- [`<rc-body>`](../../root/rc-body.md)
 - [`<rc-column>`](./rc-column.md)
 
 ## JSON

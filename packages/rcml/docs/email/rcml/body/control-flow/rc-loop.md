@@ -18,7 +18,7 @@ Repeating section driven by a data feed. Renders its child `<rc-section>` once p
 
 ## Parents
 
-- [`<rc-body>`](../root/rc-body.md)
+- [`<rc-body>`](../../root/rc-body.md)
 - [`<rc-column>`](../layout/rc-column.md)
 
 ## JSON
