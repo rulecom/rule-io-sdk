@@ -152,7 +152,6 @@ describe('RuleClient — namespaced API', () => {
         client.exports,
         client.analytics,
         client.recipients,
-        client.customFieldData,
       ];
 
       for (const ns of namespaces) {
@@ -201,7 +200,7 @@ describe('RuleClient — deprecated-alias delegation', () => {
     expect(spy).toHaveBeenCalledWith({ name: 'X' });
   });
 
-  it('syncSubscriber delegates to subscribers.sync', async () => {
+  it('syncSubscriber delegates to subscribers.sync with the new signature', async () => {
     const client = makeClient(fetchMock);
     const spy = vi.spyOn(client.subscribers, 'sync');
 
@@ -210,8 +209,7 @@ describe('RuleClient — deprecated-alias delegation', () => {
     await client.syncSubscriber({ email: 'a@b.c', tags: ['t'] }, 'Booking');
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0]![0]).toEqual({ email: 'a@b.c', tags: ['t'] });
-    expect(spy.mock.calls[0]![1]).toBe('Booking');
+    expect(spy.mock.calls[0]![0]).toEqual({ subscriber: { email: 'a@b.c' }, tags: ['t'] });
   });
 
   it('getAnalytics delegates to analytics.get', async () => {
@@ -244,9 +242,10 @@ describe('RuleClient — deprecated-alias delegation', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('addSubscriberTagsV3 delegates to subscribers.addTags', async () => {
+  it('addSubscriberTagsV3 delegates to subscribers._addSubscriberTags', async () => {
     const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.subscribers, 'addTags');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(client.subscribers as any, '_addSubscriberTags');
 
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -256,14 +255,14 @@ describe('RuleClient — deprecated-alias delegation', () => {
     await client.addSubscriberTagsV3('user@example.com', { tags: ['vip'] }, 'email');
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0]![0]).toBe('user@example.com');
-    expect(spy.mock.calls[0]![1]).toEqual({ tags: ['vip'] });
-    expect(spy.mock.calls[0]![2]).toBe('email');
+    expect(spy.mock.calls[0]![0]).toEqual({ email: 'user@example.com' });
+    expect(spy.mock.calls[0]![1]).toEqual(['vip']);
+    expect(spy.mock.calls[0]![2]).toEqual({ automation: undefined, syncSegments: undefined });
   });
 
-  it('preserves the original v2 endpoint for addSubscriberTags (does NOT route through subscribers.addTags v3)', async () => {
+  it('preserves the original v2 endpoint for addSubscriberTags (does NOT route through subscribers.addSubscriberTags v3)', async () => {
     const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.subscribers, 'addTags');
+    const spy = vi.spyOn(client.subscribers, 'addSubscriberTags');
 
     fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
     await client.addSubscriberTags('user@example.com', ['vip']);
@@ -817,15 +816,12 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalledWith('a@b.c');
   });
 
-  it('getSubscriberFields delegates to subscribers.getFields', async () => {
-    const spy = vi.spyOn(client.subscribers, 'getFields').mockResolvedValueOnce({});
-
-    await client.getSubscriberFields('a@b.c');
-    expect(spy).toHaveBeenCalledWith('a@b.c');
+  it('getSubscriberFields throws with migration guidance', async () => {
+    await expect(client.getSubscriberFields('a@b.c')).rejects.toThrow('listCustomFieldData');
   });
 
-  it('getSubscriberTags delegates to subscribers.getTagNames', async () => {
-    const spy = vi.spyOn(client.subscribers, 'getTagNames').mockResolvedValueOnce([]);
+  it('getSubscriberTags delegates to subscribers.getSubscriberTags', async () => {
+    const spy = vi.spyOn(client.subscribers, 'getSubscriberTags').mockResolvedValueOnce([]);
 
     await client.getSubscriberTags('a@b.c');
     expect(spy).toHaveBeenCalledWith('a@b.c');
@@ -857,11 +853,11 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' });
   });
 
-  it('deleteSubscriberV3 delegates to subscribers.delete', async () => {
-    const spy = vi.spyOn(client.subscribers, 'delete').mockResolvedValueOnce({ success: true });
+  it('deleteSubscriberV3 delegates to subscribers.deleteByEmail', async () => {
+    const spy = vi.spyOn(client.subscribers, 'deleteByEmail').mockResolvedValueOnce({ success: true });
 
     await client.deleteSubscriberV3('a@b.c', 'email');
-    expect(spy).toHaveBeenCalledWith('a@b.c', 'email');
+    expect(spy).toHaveBeenCalledWith('a@b.c');
   });
 
   it('blockSubscribers delegates to subscribers.block', async () => {
@@ -892,11 +888,11 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalled();
   });
 
-  it('removeSubscriberTagV3 delegates to subscribers.removeTag', async () => {
-    const spy = vi.spyOn(client.subscribers, 'removeTag').mockResolvedValueOnce({ success: true });
+  it('removeSubscriberTagV3 delegates to subscribers.removeSubscriberTag', async () => {
+    const spy = vi.spyOn(client.subscribers, 'removeSubscriberTag').mockResolvedValueOnce({ success: true });
 
     await client.removeSubscriberTagV3('a@b.c', 'old-tag', 'email');
-    expect(spy).toHaveBeenCalledWith('a@b.c', 'old-tag', 'email');
+    expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' }, 'old-tag');
   });
 
   it('addSubscriberTags sends automation flag in payload when triggerAutomation is truthy', async () => {
@@ -1267,43 +1263,43 @@ describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports d
     expect(spy).toHaveBeenCalled();
   });
 
-  it('getCustomFieldData delegates to customFieldData.list', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'list').mockResolvedValueOnce({ groups: [] });
+  it('getCustomFieldData delegates to subscribers.listCustomFieldData', async () => {
+    const spy = vi.spyOn(client.subscribers, 'listCustomFieldData').mockResolvedValueOnce({ groups: [] });
 
     await client.getCustomFieldData(1);
     expect(spy).toHaveBeenCalledWith(1, undefined);
   });
 
-  it('createCustomFieldData delegates to customFieldData.create', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'create').mockResolvedValueOnce({ success: true });
+  it('createCustomFieldData delegates to subscribers.writeCustomFieldData', async () => {
+    const spy = vi.spyOn(client.subscribers, 'writeCustomFieldData').mockResolvedValueOnce({ success: true });
 
     await client.createCustomFieldData(1, { groups: [] });
     expect(spy).toHaveBeenCalled();
   });
 
-  it('updateCustomFieldData delegates to customFieldData.update', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'update').mockResolvedValueOnce({ success: true });
+  it('updateCustomFieldData delegates to subscribers.patchCustomFieldData', async () => {
+    const spy = vi.spyOn(client.subscribers, 'patchCustomFieldData').mockResolvedValueOnce({ success: true });
 
-    await client.updateCustomFieldData(1, { groups: [] });
+    await client.updateCustomFieldData(1, { identifier: { dataId: 1 }, values: [] });
     expect(spy).toHaveBeenCalled();
   });
 
-  it('getCustomFieldDataByGroup delegates to customFieldData.listByGroup', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'listByGroup').mockResolvedValueOnce({ groups: [] });
+  it('getCustomFieldDataByGroup delegates to subscribers.listCustomFieldDataByGroup', async () => {
+    const spy = vi.spyOn(client.subscribers, 'listCustomFieldDataByGroup').mockResolvedValueOnce({ groups: [] });
 
     await client.getCustomFieldDataByGroup(1, 'Booking');
     expect(spy).toHaveBeenCalledWith(1, 'Booking', undefined);
   });
 
-  it('deleteCustomFieldDataByGroup delegates to customFieldData.deleteByGroup', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'deleteByGroup').mockResolvedValueOnce({ success: true });
+  it('deleteCustomFieldDataByGroup delegates to subscribers.deleteCustomFieldDataByGroup', async () => {
+    const spy = vi.spyOn(client.subscribers, 'deleteCustomFieldDataByGroup').mockResolvedValueOnce({ success: true });
 
     await client.deleteCustomFieldDataByGroup(1, 'Booking');
     expect(spy).toHaveBeenCalledWith(1, 'Booking');
   });
 
-  it('searchCustomFieldData delegates to customFieldData.search', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'search').mockResolvedValueOnce(null);
+  it('searchCustomFieldData delegates to subscribers.findCustomFieldData', async () => {
+    const spy = vi.spyOn(client.subscribers, 'findCustomFieldData').mockResolvedValueOnce(null);
 
     await client.searchCustomFieldData(1, { group: 'Booking', field: 'Name', value: 'A' });
     expect(spy).toHaveBeenCalled();

@@ -80,14 +80,15 @@ import type {
   RuleCampaignUpdateRequest,
 } from './resources/campaigns/campaigns.types.js';
 import type {
-  CreateCustomFieldDataRequestBody,
-  RuleCustomFieldDataGroupParams,
-  RuleCustomFieldDataListParams,
-  RuleCustomFieldDataResponse,
-  RuleCustomFieldDataSearchParams,
-  RuleCustomFieldDataSingleResponse,
-  RuleCustomFieldDataUpdateRequest,
-} from './resources/custom-field-data/custom-field-data.types.js';
+  WriteCustomFieldDataPayload,
+  PatchCustomFieldDataPayload,
+  ListCustomFieldDataByGroupParams,
+  ListCustomFieldDataParams,
+  CustomFieldDataListResult,
+  SearchCustomFieldDataParams,
+  CustomFieldDataResult,
+  CustomFieldGroupDataRecord,
+} from './resources/subscribers/subscribers.types.js';
 import type {
   RuleDynamicSetCreateRequest,
   RuleDynamicSetListParams,
@@ -116,13 +117,11 @@ import type {
   RuleSegmentListResponse,
 } from './resources/recipients/recipients.types.js';
 import type {
-  RuleBulkSubscriberIdentifier,
-  RuleBulkTagsRequest,
-  RuleSubscriber,
-  GetSubscriberV2Response,
-  RuleSubscriberTagsV3Request,
-  CreateSubscriberV3Request,
-  CreateSubscriberV3Response,
+  Subscriber,
+  SubscriberIdentifier,
+  SubscriberTag,
+  BulkTagsPayload,
+  CreateSubscriberPayload,
 } from './resources/subscribers/subscribers.types.js';
 import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
 import type { RuleTagsResponse } from './resources/tags/tags.types.js';
@@ -233,8 +232,9 @@ export class RuleClient extends BaseResource {
     return this.lazy('recipients', () => new RecipientsClient(this.transport));
   }
 
+  /** @deprecated Use `client.subscribers.listCustomFieldData()`, `writeCustomFieldData()`, etc. instead. */
   get customFieldData(): CustomFieldDataClient {
-    return this.lazy('customFieldData', () => new CustomFieldDataClient(this.transport));
+    return this.lazy('customFieldData', () => new CustomFieldDataClient(this.subscribers));
   }
 
   get customField(): CustomFieldClient {
@@ -252,24 +252,32 @@ export class RuleClient extends BaseResource {
 
   // ── Subscribers — v2 ──────────────────────────────────────────────────────
 
-  /** @deprecated Use `client.subscribers.sync()` instead. */
-  syncSubscriber(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleApiResponse> {
-    return this.subscribers.sync(subscriber, fieldGroupPrefix);
+  /** @deprecated Use `client.subscribers.sync({ subscriber: { email }, customFieldData, tags })` instead. */
+  syncSubscriber(
+    subscriber: { email: string; fields?: Record<string, string | number | undefined>; tags?: string[] },
+    fieldGroupPrefix: string
+  ): Promise<Subscriber> {
+    return this.subscribers.sync({
+      subscriber: { email: subscriber.email },
+      tags: subscriber.tags,
+      ...(subscriber.fields ? { customFieldData: { [fieldGroupPrefix]: subscriber.fields } } : {}),
+    });
   }
 
   /** @deprecated Use `client.subscribers.getByEmail()` instead. */
-  getSubscriber(email: string): Promise<GetSubscriberV2Response | null> {
+  getSubscriber(email: string): Promise<Subscriber | null> {
     return this.subscribers.getByEmail(email);
   }
 
-  /** @deprecated Use `client.subscribers.getFields()` instead. */
-  getSubscriberFields(email: string): Promise<Record<string, string | null>> {
-    return this.subscribers.getFields(email);
+  /** @deprecated Use `client.subscribers.listCustomFieldData()` instead. */
+  getSubscriberFields(email: string): Promise<CustomFieldGroupDataRecord | null> {
+    void email;
+    return Promise.reject(new Error('getSubscriberFields is no longer supported. Use client.subscribers.listCustomFieldData() instead.'));
   }
 
-  /** @deprecated Use `client.subscribers.getTagNames()` instead. */
-  getSubscriberTags(email: string): Promise<string[]> {
-    return this.subscribers.getTagNames(email);
+  /** @deprecated Use `client.subscribers.getSubscriberTags()` instead. */
+  getSubscriberTags(email: string): Promise<SubscriberTag[] | null> {
+    return this.subscribers.getSubscriberTags(email);
   }
 
   /**
@@ -295,8 +303,8 @@ export class RuleClient extends BaseResource {
   /**
    * Remove tags from a subscriber via the v2 endpoint (one DELETE per tag).
    *
-   * @deprecated Use `client.subscribers.removeTag()` for single-tag removal,
-   * or `client.subscribers.bulkRemoveTags()` for bulk operations (both v3).
+   * @deprecated Use `client.subscribers.removeSubscriberTag()` for single-tag removal,
+   * or `client.subscribers.bulkRemoveSubscriberTags()` for bulk operations (both v3).
    */
   async removeSubscriberTags(
     email: string,
@@ -330,61 +338,83 @@ export class RuleClient extends BaseResource {
 
   /** @deprecated Use `client.subscribers.create()` instead. */
   createSubscriberV3(
-    subscriber: CreateSubscriberV3Request
-  ): Promise<CreateSubscriberV3Response> {
+    subscriber: CreateSubscriberPayload
+  ): Promise<Subscriber> {
     return this.subscribers.create(subscriber);
   }
 
-  /** @deprecated Use `client.subscribers.delete()` instead. */
+  /** @deprecated Use `client.subscribers.deleteByEmail()` / `deleteById()` / `deleteByPhoneNumber()` / `deleteByCustomIdentifier()` instead. */
   deleteSubscriberV3(
     subscriber: string | number,
     identifiedBy: V2SubscriberIdentifierBy = 'email'
   ): Promise<RuleApiResponse> {
-    return this.subscribers.delete(subscriber, identifiedBy);
+    if (identifiedBy === 'id') return this.subscribers.deleteById(subscriber as number);
+    if (identifiedBy === 'phone_number') return this.subscribers.deleteByPhoneNumber(subscriber as string);
+    if (identifiedBy === 'custom_identifier') return this.subscribers.deleteByCustomIdentifier(subscriber as string);
+    return this.subscribers.deleteByEmail(subscriber as string);
   }
 
   /** @deprecated Use `client.subscribers.block()` instead. */
   blockSubscribers(
-    subscribers: RuleBulkSubscriberIdentifier[],
+    subscribers: SubscriberIdentifier[],
     callbackUrl?: string
   ): Promise<RuleApiResponse> {
-    return this.subscribers.block(subscribers, callbackUrl);
+    return this.subscribers.block(subscribers, callbackUrl ? { callbackUrl } : {});
   }
 
   /** @deprecated Use `client.subscribers.unblock()` instead. */
   unblockSubscribers(
-    subscribers: RuleBulkSubscriberIdentifier[],
+    subscribers: SubscriberIdentifier[],
     callbackUrl?: string
   ): Promise<RuleApiResponse> {
-    return this.subscribers.unblock(subscribers, callbackUrl);
+    return this.subscribers.unblock(subscribers, callbackUrl ? { callbackUrl } : {});
   }
 
   /** @deprecated Use `client.subscribers.bulkAddTags()` instead. */
-  bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+  bulkAddTags(request: BulkTagsPayload): Promise<RuleApiResponse> {
     return this.subscribers.bulkAddTags(request);
   }
 
   /** @deprecated Use `client.subscribers.bulkRemoveTags()` instead. */
-  bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
+  bulkRemoveTags(request: BulkTagsPayload): Promise<RuleApiResponse> {
     return this.subscribers.bulkRemoveTags(request);
   }
 
-  /** @deprecated Use `client.subscribers.addTags()` instead. */
+  /** @deprecated Use `client.subscribers.addSubscriberTags()` instead. */
   addSubscriberTagsV3(
     subscriber: string | number,
-    request: RuleSubscriberTagsV3Request,
+    request: { tags: (string | number)[]; automation?: 'send' | 'force' | 'reset' | null; syncSubscriber?: boolean },
     identifiedBy: V2SubscriberIdentifierBy = 'email'
   ): Promise<RuleApiResponse> {
-    return this.subscribers.addTags(subscriber, request, identifiedBy);
+    const id: SubscriberIdentifier =
+      identifiedBy === 'id'                  ? { id: subscriber as number }
+      : identifiedBy === 'phone_number'      ? { phoneNumber: String(subscriber) }
+      : identifiedBy === 'custom_identifier' ? { customIdentifier: String(subscriber) }
+      :                                        { email: String(subscriber) };
+
+    const automationMap = { send: 'trigger', force: 'force', reset: 'reset' } as const;
+    const automation = request.automation ? automationMap[request.automation] : undefined;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (this.subscribers as any)._addSubscriberTags(id, request.tags, {
+      automation,
+      syncSegments: request.syncSubscriber === false ? false : undefined,
+    });
   }
 
-  /** @deprecated Use `client.subscribers.removeTag()` instead. */
+  /** @deprecated Use `client.subscribers.removeSubscriberTag()` instead. */
   removeSubscriberTagV3(
     subscriber: string | number,
     tag: string | number,
     identifiedBy: V2SubscriberIdentifierBy = 'email'
   ): Promise<RuleApiResponse> {
-    return this.subscribers.removeTag(subscriber, tag, identifiedBy);
+    const id: SubscriberIdentifier =
+      identifiedBy === 'id'                  ? { id: subscriber as number }
+      : identifiedBy === 'phone_number'      ? { phoneNumber: String(subscriber) }
+      : identifiedBy === 'custom_identifier' ? { customIdentifier: String(subscriber) }
+      :                                        { email: String(subscriber) };
+
+    return this.subscribers.removeSubscriberTag(id, tag);
   }
 
   // ── Tags ──────────────────────────────────────────────────────────────────
@@ -727,55 +757,55 @@ export class RuleClient extends BaseResource {
     return this.recipients.tags.list(params);
   }
 
-  // ── Custom field data (deprecated by Rule.io) ─────────────────────────────
+  // ── Custom field data ─────────────────────────────────────────────────────
 
-  /** @deprecated Use `client.customFieldData.list()` instead. */
+  /** @deprecated Use `client.subscribers.listCustomFieldData()` instead. */
   getCustomFieldData(
     subscriberId: number,
-    params?: RuleCustomFieldDataListParams
-  ): Promise<RuleCustomFieldDataResponse> {
-    return this.customFieldData.list(subscriberId, params);
+    params?: ListCustomFieldDataParams
+  ): Promise<CustomFieldDataListResult> {
+    return this.subscribers.listCustomFieldData(subscriberId, params);
   }
 
-  /** @deprecated Use `client.customFieldData.create()` instead. */
+  /** @deprecated Use `client.subscribers.writeCustomFieldData()` instead. */
   createCustomFieldData(
     subscriberId: number,
-    request: CreateCustomFieldDataRequestBody
+    request: WriteCustomFieldDataPayload
   ): Promise<RuleApiResponse> {
-    return this.customFieldData.create(subscriberId, request);
+    return this.subscribers.writeCustomFieldData(subscriberId, request);
   }
 
-  /** @deprecated Use `client.customFieldData.update()` instead. */
+  /** @deprecated Use `client.subscribers.patchCustomFieldData()` instead. */
   updateCustomFieldData(
     subscriberId: number,
-    request: RuleCustomFieldDataUpdateRequest
+    request: PatchCustomFieldDataPayload
   ): Promise<RuleApiResponse> {
-    return this.customFieldData.update(subscriberId, request);
+    return this.subscribers.patchCustomFieldData(subscriberId, request);
   }
 
-  /** @deprecated Use `client.customFieldData.listByGroup()` instead. */
+  /** @deprecated Use `client.subscribers.listCustomFieldDataByGroup()` instead. */
   getCustomFieldDataByGroup(
     subscriberId: number,
     group: number | string,
-    params?: RuleCustomFieldDataGroupParams
-  ): Promise<RuleCustomFieldDataResponse> {
-    return this.customFieldData.listByGroup(subscriberId, group, params);
+    params?: ListCustomFieldDataByGroupParams
+  ): Promise<CustomFieldDataListResult> {
+    return this.subscribers.listCustomFieldDataByGroup(subscriberId, group, params);
   }
 
-  /** @deprecated Use `client.customFieldData.deleteByGroup()` instead. */
+  /** @deprecated Use `client.subscribers.deleteCustomFieldDataByGroup()` instead. */
   deleteCustomFieldDataByGroup(
     subscriberId: number,
     group: number | string
   ): Promise<RuleApiResponse> {
-    return this.customFieldData.deleteByGroup(subscriberId, group);
+    return this.subscribers.deleteCustomFieldDataByGroup(subscriberId, group);
   }
 
-  /** @deprecated Use `client.customFieldData.search()` instead. */
+  /** @deprecated Use `client.subscribers.findCustomFieldData()` instead. */
   searchCustomFieldData(
     subscriberId: number,
-    params: RuleCustomFieldDataSearchParams
-  ): Promise<RuleCustomFieldDataSingleResponse | null> {
-    return this.customFieldData.search(subscriberId, params);
+    params: SearchCustomFieldDataParams
+  ): Promise<CustomFieldDataResult | null> {
+    return this.subscribers.findCustomFieldData(subscriberId, params);
   }
 
   // ──────────────────────────────────────────────────────────────────────────

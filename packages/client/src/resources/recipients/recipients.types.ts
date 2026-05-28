@@ -17,7 +17,7 @@ export interface RuleTagSegment {
 /**
  * A subscriber as returned by the recipients endpoint.
  *
- * This is intentionally separate from `RuleSubscriberV3` despite field overlap.
+ * This is intentionally separate from `Subscriber` despite field overlap.
  * The recipients endpoint includes `has_next_item` (pagination cursor hint) and
  * `account_id`, which are absent from the standard v3 subscriber response.
  */

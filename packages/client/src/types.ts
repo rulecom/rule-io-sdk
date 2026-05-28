@@ -16,29 +16,29 @@ export type {
   RuleApiResponse,
   RuleListResponse,
   RulePaginationParams,
+  PagePaginationParams,
 } from './shared.types.js';
 
 // ── Client configuration ─────────────────────────────────────────────────────
 export type { RuleClientConfig } from './config.js';
 export type { RateLimitOptions, RetryInfo } from './core/rate-limit.js';
 
-// ── Subscribers (v2 + v3) ────────────────────────────────────────────────────
+// ── Subscribers ──────────────────────────────────────────────────────────────
 export type {
-  RuleSubscriber,
-  RuleSubscriberFields,
-  RuleSubscriberFieldsResponse,
-  GetSubscriberV2Response,
-  SubscriberSegmentV2,
-  RuleSubscriberTagsResponse,
-  RuleSubscriberV3,
-  CreateSubscriberV3Request,
-  CreateSubscriberV3Response,
-  RuleBulkSubscriberIdentifier,
-  RuleBulkTagsRequest,
-  RuleSubscriberTagsV3Request,
-  RuleSubscriberV2,
-  RuleSubscribersV2ListResponse,
+  Subscriber,
+  SubscriberTag,
+  SubscriberIdentifier,
+  SubscriberSyncPayload,
+  CustomFieldGroupData,
+  CustomFieldGroupDataRecord,
+  SubscriberSegment,
+  CreateSubscriberPayload,
+  BulkTagsPayload,
+  TagRef,
+  TagAutomationMode,
+  AddSubscriberTagsOptions,
   ListSubscribersByTagIdsParams,
+  ListAllSubscribersByTagIdsParams,
   ListSubscribersByTagIdsResult,
 } from './resources/subscribers/subscribers.types.js';
 
@@ -186,21 +186,28 @@ export type {
   RuleTagSegment,
 } from './resources/recipients/recipients.types.js';
 
-// ── Custom field data (deprecated by Rule.io) ────────────────────────────────
+// ── Custom field data ────────────────────────────────────────────────────────
 export type {
-  CreateCustomFieldDataRequestBody,
-  RuleCustomFieldDataGroupParams,
-  RuleCustomFieldDataListParams,
-  RuleCustomFieldDataRecord,
-  RuleCustomFieldDataResponse,
-  RuleCustomFieldDataSearchParams,
-  RuleCustomFieldDataSingleResponse,
-  RuleCustomFieldDataUpdateRequest,
+  CustomFieldDataValue,
+  CustomFieldValueEntry,
+  CustomFieldData,
+  CustomFieldDataFilters,
+  CustomFieldDataByGroupFilters,
+  CustomFieldDataListResult,
+  CustomFieldDataResult,
+  ListCustomFieldDataParams,
+  ListAllCustomFieldDataParams,
+  ListCustomFieldDataByGroupParams,
+  ListAllCustomFieldDataByGroupParams,
+  CustomFieldEntry,
+  CustomFieldGroupEntry,
+  WriteCustomFieldDataPayload,
+  PatchCustomFieldDataPayload,
   CustomFieldValue,
-  CustomFieldDataEntry,
-  CustomFieldGroupDataEntry,
-  RuleCustomFieldValue,
-} from './resources/custom-field-data/custom-field-data.types.js';
+  CustomFieldDataInput,
+  CustomFieldDataWriteResult,
+  SearchCustomFieldDataParams,
+} from './resources/subscribers/subscribers.types.js';
 
 // ── Orchestration helpers (deprecated wrappers on RuleClient) ────────────────
 export type {

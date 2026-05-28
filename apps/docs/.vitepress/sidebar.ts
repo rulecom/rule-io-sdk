@@ -67,6 +67,59 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/client/' },
+      {
+        text: 'Concepts',
+        collapsed: false,
+        items: [
+          { text: 'Asynchronous Operations', link: '/packages/client/async-operations' },
+        ],
+      },
+      { text: 'Managing Tags', link: '/packages/client/managing-tags' },
+      {
+        text: 'Subscribers',
+        collapsed: true,
+        items: [
+          { text: 'Managing Subscribers', link: '/packages/client/managing-subscribers' },
+          { text: 'Custom Fields', link: '/packages/client/custom-fields' },
+          { text: 'Organizing with Tags', link: '/packages/client/organizing-with-tags' },
+          { text: 'Blocking Subscribers', link: '/packages/client/blocking-subscribers' },
+          { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
+        ],
+      },
+      {
+        text: 'Sending Emails',
+        collapsed: true,
+        items: [
+          { text: 'Running Campaigns', link: '/packages/client/running-campaigns' },
+          { text: 'Setting Up Automations', link: '/packages/client/setting-up-automations' },
+          { text: 'Building Email Content', link: '/packages/client/email-content' },
+        ],
+      },
+      {
+        text: 'Analytics & Data',
+        collapsed: true,
+        items: [
+          { text: 'Tracking Performance', link: '/packages/client/tracking-performance' },
+          { text: 'Exporting Data', link: '/packages/client/exporting-data' },
+        ],
+      },
+      {
+        text: 'Account',
+        collapsed: true,
+        items: [
+          { text: 'Managing Brand Styles', link: '/packages/client/managing-brand-styles' },
+          { text: 'Managing Suppressions', link: '/packages/client/managing-suppressions' },
+          { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },
+        ],
+      },
+      { text: 'Error Handling', link: '/packages/client/error-handling' },
+      {
+        text: 'Known Issues',
+        collapsed: true,
+        items: [
+          { text: 'Subscribers API', link: '/packages/client/known-issues-subscribers' },
+        ],
+      },
     ],
   },
   {

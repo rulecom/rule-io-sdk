@@ -2,8 +2,8 @@ import { RuleApiError } from '@rulecom/client';
 import type {
   CreateCustomFieldDataRequestBody,
   CustomFieldGroupDataEntry,
-  CreateSubscriberV3Response,
-  GetSubscriberV2Response, RuleApiResponse,
+  CreateSubscriberResponse,
+  GetSubscriberResponse, RuleApiResponse,
   RuleClient
 } from '@rulecom/client';
 import {
@@ -80,7 +80,7 @@ export class BookzenIntegration {
 
   async seedSubscriber(email = BOOKZEN_SUBSCRIBER_SEED.email): Promise<SeededBookzenSubscriber | null> {
     try {
-      const subscriber: CreateSubscriberV3Response = await this._client.subscribers.create({ email });
+      const subscriber: CreateSubscriberResponse = await this._client.subscribers.create({ email });
 
       return {
         id: subscriber.data.id,
@@ -89,7 +89,7 @@ export class BookzenIntegration {
     } catch (error) {
       if (!(error instanceof RuleApiError) || !error.isConflict()) throw error;
 
-      const existing: GetSubscriberV2Response | null = await this._client.subscribers.getByEmail(email);
+      const existing: GetSubscriberResponse | null = await this._client.subscribers.getByEmail(email);
 
       return existing ? {
         id: existing.subscriber.id,
