@@ -31,7 +31,7 @@ console.log(result.automationId, result.templateId);
 
 ## Using a custom template
 
-Both helpers accept either `brandStyleId` (auto-builds a branded template) or `template` (your own `RCMLDocument`). You can also pass custom `sections` to replace the default placeholder content when using `brandStyleId`:
+Both helpers accept either `brandStyleId` (auto-builds a branded template) or `template` (your own `RcmlDocument`). You can also pass custom `sections` to replace the default placeholder content when using `brandStyleId`:
 
 ```typescript
 import { createBrandTemplate, createContentSection, createBrandHeading, createTextNode } from '@rulecom/sdk';
@@ -59,4 +59,4 @@ const result = await client.createAutomationEmail({
 ## See also
 
 - [Brand Styles](/packages/client/brand-styles) — resolve `brandStyleId` and `myBrand`
-- [Building Templates](/packages/rcml/) — compose a custom `RCMLDocument`
+- [Building Templates](/packages/rcml/) — compose a custom `RcmlDocument`

@@ -158,14 +158,15 @@ See [Brand Styles](./brand-styles) for the full guide. Low-level CRUD:
 ```typescript
 const styles = await client.listBrandStyles();
 const fromDomain = await client.createBrandStyleFromDomain({ domain: 'example.com' });
-const style = await client.getBrandStyle(styleId);
+const brandStyleId = fromDomain.data!.id!;
+const style = await client.getBrandStyle(brandStyleId);
 const manual = await client.createBrandStyleManually({
   name: 'My Brand',
   colours: [{ type: 'accent', hex: '#0066CC', brightness: 50 }],
   fonts: [{ type: 'title', name: 'Helvetica', origin: 'system' }],
 });
-await client.updateBrandStyle(styleId, { name: 'Updated Brand' });
-await client.deleteBrandStyle(styleId);
+await client.updateBrandStyle(brandStyleId, { name: 'Updated Brand' });
+await client.deleteBrandStyle(brandStyleId);
 ```
 
 ## API Keys

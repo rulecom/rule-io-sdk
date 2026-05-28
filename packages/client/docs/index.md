@@ -14,7 +14,7 @@ const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 await client.subscribers.sync({
   email: 'jane@example.com',
   tags: ['Newsletter'],
-});
+}, 'Booking');
 ```
 
 ## Namespace clients
