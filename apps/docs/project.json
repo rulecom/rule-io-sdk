@@ -1,0 +1,110 @@
+{
+  "name": "docs",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/docs/src",
+  "tags": [],
+  "targets": {
+    "generate": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "outputs": [
+        "{workspaceRoot}/apps/docs/src/api",
+        "{workspaceRoot}/apps/docs/src/packages"
+      ],
+      "inputs": [
+        "{workspaceRoot}/packages/client/src/**/*.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/rcml/src/**/*.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/sdk/src/**/*.ts",
+        "{workspaceRoot}/packages/client/docs/**",
+        "{workspaceRoot}/packages/rcml/docs/**",
+        "{workspaceRoot}/packages/sdk/docs/**",
+        "{workspaceRoot}/typedoc.json",
+        "{workspaceRoot}/tsconfig.typedoc.json",
+        "{projectRoot}/scripts/sync-package-docs.ts",
+        "{projectRoot}/scripts/docs-packages.ts"
+      ],
+      "options": {
+        "parallel": false,
+        "commands": [
+          "rm -rf apps/docs/src/api apps/docs/src/packages",
+          "typedoc",
+          "tsx apps/docs/scripts/sync-package-docs.ts"
+        ]
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "dependsOn": ["generate"],
+      "outputs": ["{workspaceRoot}/apps/docs/.vitepress/dist"],
+      "inputs": [
+        "{projectRoot}/src/**",
+        "!{projectRoot}/src/api/**",
+        "!{projectRoot}/src/packages/**",
+        "{projectRoot}/.vitepress/config.mts",
+        "{projectRoot}/.vitepress/sidebar.ts",
+        "{workspaceRoot}/packages/client/src/**/*.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/rcml/src/**/*.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/sdk/src/**/*.ts",
+        "{workspaceRoot}/packages/client/docs/**",
+        "{workspaceRoot}/packages/rcml/docs/**",
+        "{workspaceRoot}/packages/sdk/docs/**",
+        "{workspaceRoot}/typedoc.json",
+        "{workspaceRoot}/tsconfig.typedoc.json"
+      ],
+      "options": {
+        "command": "vitepress build apps/docs"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "dependsOn": ["generate"],
+      "options": {
+        "command": "vitepress dev apps/docs"
+      }
+    },
+    "preview": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "vitepress preview apps/docs"
+      }
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/packages/client/src/**/*.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/client/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/rcml/src/**/*.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.test.ts",
+        "!{workspaceRoot}/packages/rcml/src/**/*.spec.ts",
+        "{workspaceRoot}/packages/sdk/src/**/*.ts",
+        "{workspaceRoot}/typedoc.json",
+        "{workspaceRoot}/tsconfig.typedoc.json"
+      ],
+      "outputs": [],
+      "options": {
+        "command": "typedoc --treatValidationWarningsAsErrors"
+      }
+    },
+    "clean": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "rm -rf apps/docs/src/api apps/docs/src/packages apps/docs/.vitepress/dist apps/docs/.vitepress/cache"
+      }
+    }
+  }
+}

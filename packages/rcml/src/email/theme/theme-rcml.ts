@@ -45,10 +45,9 @@ import { DEFAULT_FONT_STYLES_MAP } from '../theme-defaults.js'
 
 /**
  * Error thrown when a URL (logo src, social href, font href) provided to
- * {@link import('../apply-theme.js').applyTheme} fails safety validation.
- * Re-exported from `../apply-theme.ts` as the public declaration.
+ * {@link applyTheme} fails safety validation.
  *
- * @internal
+ * @public
  */
 export class EmailThemeApplyError extends Error {
   constructor(message: string) {

@@ -5,7 +5,7 @@
  * Each `create<Xxx>Element` returns a single RCML node validated against the
  * canonical schema in `./schema/`. Invalid input throws
  * {@link RcmlElementBuildError} at the call site — consumers never have to
- * wait for a downstream {@link import('./validate-email-template.js').validateEmailTemplate}
+ * wait for a downstream {@link validateEmailTemplate}
  * pass to discover an unknown attribute or a wrong child tag.
  *
  * Two families:
@@ -1156,8 +1156,8 @@ export function createRawElement(options: RawElementOptions = {}): RcmlRaw {
  *   children in order. Both must be produced by
  *   {@link createHeadElement} / {@link createBodyElement}.
  * @returns A typed {@link RcmlDocument} node, ready for
- *   {@link import('./rcml-to-xml.js').rcmlToXml} or
- *   {@link import('./validate-email-template.js').validateEmailTemplate}.
+ *   {@link rcmlToXml} or
+ *   {@link validateEmailTemplate}.
  * @throws {RcmlElementBuildError} When the supplied head/body nodes are
  *   not structurally valid children of `<rcml>`.
  *

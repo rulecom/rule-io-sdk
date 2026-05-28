@@ -31,6 +31,11 @@ npm-debug.log*
 # Nx local-registry / temp
 tmp/
 
+# VitePress build artifacts
+apps/docs/.vitepress/.temp/
+apps/docs/.vitepress/dist/
+apps/docs/.vitepress/cache/
+
 # Cloned email snapshots (may contain prod content)
 email-snapshots/
 
