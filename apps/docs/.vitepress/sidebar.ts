@@ -60,7 +60,6 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/sdk/' },
-      { text: 'Sending Emails', link: '/packages/sdk/sending-emails' },
     ],
   },
   {
@@ -68,9 +67,6 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/client/' },
-      { text: 'Managing Subscribers', link: '/packages/client/subscribers' },
-      { text: 'Brand Styles', link: '/packages/client/brand-styles' },
-      { text: 'Direct API Reference', link: '/packages/client/api-reference' },
     ],
   },
   {
