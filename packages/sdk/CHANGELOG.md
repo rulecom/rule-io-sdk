@@ -1,3 +1,14 @@
+## 0.4.0-beta.5 (2026-05-29)
+
+### 🩹 Fixes
+
+- **docs:** address Copilot review findings ([b02f989](https://github.com/rulecom/rule-io-sdk/commit/b02f989))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.4 (2026-05-20)
 
 This was a version bump only for sdk to align it with other projects, there were no code changes.

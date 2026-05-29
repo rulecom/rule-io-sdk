@@ -1,3 +1,22 @@
+## 0.4.0-beta.5 (2026-05-29)
+
+### 🚀 Features
+
+- **rcml:** expose machine-readable placeholderSpec public API ([73b0ac6](https://github.com/rulecom/rule-io-sdk/commit/73b0ac6))
+- **rcml:** expose machine-readable rfmSpec public API ([c82c917](https://github.com/rulecom/rule-io-sdk/commit/c82c917))
+- **rcml:** export machine-readable rcmlSpec as public API ([101797d](https://github.com/rulecom/rule-io-sdk/commit/101797d))
+
+### 🩹 Fixes
+
+- **docs:** address Copilot review comments on PR #148 ([#148](https://github.com/rulecom/rule-io-sdk/issues/148))
+- **docs:** fix 9 dead links breaking VitePress build ([3939cf9](https://github.com/rulecom/rule-io-sdk/commit/3939cf9))
+- **rcml:** address Copilot review comments on public specs ([5641c11](https://github.com/rulecom/rule-io-sdk/commit/5641c11))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.4 (2026-05-20)
 
 ### 🩹 Fixes
