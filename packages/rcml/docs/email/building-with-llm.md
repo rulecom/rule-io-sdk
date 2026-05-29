@@ -68,7 +68,7 @@ Example of what LLM-generated XML looks like:
 ```xml
 <rcml>
   <rc-head>
-    <rc-preview text="Your order is confirmed" />
+    <rc-preview>Your order is confirmed</rc-preview>
   </rc-head>
   <rc-body>
     <rc-section>

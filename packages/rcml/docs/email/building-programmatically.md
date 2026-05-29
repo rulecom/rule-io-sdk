@@ -133,6 +133,8 @@ import {
   createEmailTheme,
   applyTheme,
   EmailThemeColorType,
+  EmailThemeImageType,
+  EmailThemeFontStyleType,
   EmailThemeSocialLinkType,
 } from '@rulecom/rcml';
 
