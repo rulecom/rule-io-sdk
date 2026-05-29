@@ -45,12 +45,6 @@ describe('preprocessMarkdown()', () => {
       expect(preprocessMarkdown(input)).toBe(input)
     })
 
-    it('leaves a standalone block-level ::placeholder-value-fragment unchanged', () => {
-      const input = '::placeholder-value-fragment{}'
-
-      expect(preprocessMarkdown(input)).toBe(input)
-    })
-
     it('leaves a :::align container directive unchanged', () => {
       const input = ':::align{value="center"}'
 
@@ -75,13 +69,6 @@ describe('preprocessMarkdown()', () => {
     it('encodes ::loop-value preceded by a word character', () => {
       const input = 'word::loop-value{original="a.b" value="a" index="b"}'
       const expected = `word${token('loop-value', 'original="a.b" value="a" index="b"')}`
-
-      expect(preprocessMarkdown(input)).toBe(expected)
-    })
-
-    it('encodes ::placeholder-value-fragment preceded by a space', () => {
-      const input = 'text ::placeholder-value-fragment{}'
-      const expected = `text ${token('placeholder-value-fragment', '')}`
 
       expect(preprocessMarkdown(input)).toBe(expected)
     })
@@ -112,12 +99,12 @@ describe('preprocessMarkdown()', () => {
     it('encodes three consecutive atoms at string start', () => {
       const a = '::placeholder{value="a" name="A" type="T" original="[a]"}'
       const b = '::loop-value{original="b.c" value="b" index="c"}'
-      const c = '::placeholder-value-fragment{}'
+      const c = '::placeholder{value="c" name="C" type="T" original="[c]"}'
       const result = preprocessMarkdown(`${a}${b}${c}`)
 
       expect(result).toContain(token('placeholder', 'value="a" name="A" type="T" original="[a]"'))
       expect(result).toContain(token('loop-value', 'original="b.c" value="b" index="c"'))
-      expect(result).toContain(token('placeholder-value-fragment', ''))
+      expect(result).toContain(token('placeholder', 'value="c" name="C" type="T" original="[c]"'))
     })
 
     it('does NOT encode a lone atom at line start (block-level — no following non-whitespace)', () => {

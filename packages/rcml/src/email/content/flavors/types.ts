@@ -48,9 +48,8 @@ export interface FlavorConfig {
   /**
    * Allowed leaf directives (`::name{...}`) keyed by directive name.
    *
-   * Used for inline atom directives: `::placeholder`, `::loop-value`,
-   * `::placeholder-value-fragment`. The value is a Zod schema for attribute
-   * validation, or `null` to skip validation.
+   * Used for inline atom directives: `::placeholder`, `::loop-value`.
+   * The value is a Zod schema for attribute validation, or `null` to skip validation.
    */
   allowedLeafDirectives: ReadonlyMap<string, ZodType | null>;
 

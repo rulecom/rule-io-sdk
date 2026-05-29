@@ -18,7 +18,13 @@
     "release": "nx release",
     "local-registry": "nx run rule-io-sdk:local-registry",
     "publish:local": "nx run-many -t build && nx release publish --registry http://localhost:4873",
-    "daemon:restart": "nx daemon --stop && nx daemon --start"
+    "daemon:restart": "nx daemon --stop && nx daemon --start",
+    "docs:generate": "nx run docs:generate",
+    "docs:check": "nx run docs:check",
+    "docs:dev": "nx run docs:dev",
+    "docs:build": "nx run docs:build",
+    "docs:preview": "nx run docs:preview",
+    "docs:clean": "nx run docs:clean"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -38,10 +44,13 @@
     "prettier": "~3.6.2",
     "tslib": "^2.3.0",
     "tsx": "^4.21.0",
+    "typedoc": "^0.28.0",
+    "typedoc-plugin-markdown": "^4.0.0",
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.1",
     "verdaccio": "^6.3.2",
     "vite": "^8.0.0",
+    "vitepress": "^1.0.0",
     "vitest": "^4.1.4"
   },
   "engines": {

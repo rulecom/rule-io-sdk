@@ -7,7 +7,7 @@ import { RuleClient } from '@rulecom/client';
 
 const client = new RuleClient({ apiKey: process.env.RULE_API_KEY! });
 
-await client.createSubscriberV3({
+await client.subscribers.create({
   email: 'jane@example.com',
   tags: ['Newsletter'],
 });
@@ -15,6 +15,6 @@ await client.createSubscriberV3({
 
 ## Composes with
 
-- [`@rulecom/rcml`](../rcml/README.md) — build email templates that the client sends via `createAutomationEmail()` / `createCampaignEmail()`.
+- [`@rulecom/rcml`](../rcml/README.md) — build email templates that the client sends via `client.createAutomationEmail()` / `client.createCampaignEmail()`.
 
 See the [main `@rulecom/sdk` README](../sdk/README.md) for end-to-end usage.

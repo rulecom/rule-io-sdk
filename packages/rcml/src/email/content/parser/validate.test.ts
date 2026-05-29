@@ -129,14 +129,6 @@ describe('validate()', () => {
       expect(result.valid).toBe(true)
     })
 
-    it('accepts ::placeholder-value-fragment in rfmConfig', () => {
-      expect(parseAndValidate('::placeholder-value-fragment{}\n:::', rfmConfig).valid).toBe(true)
-    })
-
-    it('accepts ::placeholder-value-fragment in inlineRfmConfig', () => {
-      expect(parseAndValidate('::placeholder-value-fragment{}\n:::', inlineRfmConfig).valid).toBe(true)
-    })
-
     it('accepts ::loop-value in both configs', () => {
       const input = '::loop-value{original="orders.name" value="orders" index="name"}\n:::'
 

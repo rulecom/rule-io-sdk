@@ -88,15 +88,6 @@ export const rcmlSchema = new Schema({
       },
     },
 
-    'placeholder-value-fragment': {
-      group: 'inline',
-      inline: true,
-      atom: true,
-      attrs: {
-        text: { default: '' },
-      },
-    },
-
     'loop-value': {
       group: 'inline',
       inline: true,
