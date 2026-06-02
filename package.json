@@ -10,7 +10,6 @@
     "nx": "nx",
     "build": "nx run-many -t build",
     "test": "nx run-many -t vitest:test",
-    "test:ci": "nx run-many -t test-ci",
     "lint": "nx run-many -t eslint:lint",
     "graph": "nx graph",
     "affected": "nx affected -t eslint:lint test-ci build --parallel=3",
@@ -49,7 +48,7 @@
     "typescript": "^5.9.0",
     "typescript-eslint": "^8.58.1",
     "verdaccio": "^6.3.2",
-    "vite": "^8.0.0",
+    "vite": "^6.0.0",
     "vitepress": "^1.0.0",
     "vitest": "^4.1.4"
   },
