@@ -44,7 +44,7 @@ await client.subscribers.create({
 
 ## Looking up a subscriber
 
-Use the method that matches the identifier you have:
+Use the method that matches the identifier you have. For operations that accept a `SubscriberIdentifier` object (tag methods, block/unblock, etc.), see [Subscriber Identifiers](./subscriber-identifiers).
 
 ```typescript
 // By email address

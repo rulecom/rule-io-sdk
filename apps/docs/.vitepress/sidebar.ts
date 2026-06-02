@@ -79,6 +79,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         text: 'Subscribers',
         collapsed: true,
         items: [
+          { text: 'Subscriber Identifiers', link: '/packages/client/subscriber-identifiers' },
           { text: 'Managing Subscribers', link: '/packages/client/managing-subscribers' },
           { text: 'Custom Fields', link: '/packages/client/custom-fields' },
           { text: 'Organizing with Tags', link: '/packages/client/organizing-with-tags' },

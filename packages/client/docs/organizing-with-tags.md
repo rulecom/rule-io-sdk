@@ -2,7 +2,7 @@
 
 Tags are labels you attach to subscribers to record their interests, lifecycle stage, purchase history, or any attribute relevant to your messaging. You can then filter subscribers by tag and target campaigns or automations at specific tagged groups.
 
-For managing the tag catalogue itself (creating, listing, renaming, or deleting tags), see [Managing Tags](./managing-tags).
+For managing the tag catalogue itself (creating, listing, renaming, or deleting tags), see [Managing Tags](./managing-tags). For a full description of the subscriber identifier forms used in examples below, see [Subscriber Identifiers](./subscriber-identifiers).
 
 ## Assigning a single tag
 

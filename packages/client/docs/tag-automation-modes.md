@@ -120,14 +120,7 @@ The same option is available on `addSubscriberTag()`, `forceTagAutomation()`, an
 
 ## Subscriber identifiers
 
-All four methods accept any `SubscriberIdentifier` — you can identify the subscriber by email, numeric ID, phone number, or custom identifier:
-
-```typescript
-await client.subscribers.triggerTagAutomation({ email: 'customer@example.com' }, 'welcome');
-await client.subscribers.triggerTagAutomation({ id: 1042 }, 'welcome');
-await client.subscribers.triggerTagAutomation({ phoneNumber: '+46701234567' }, 'welcome');
-await client.subscribers.triggerTagAutomation({ customIdentifier: 'ext-user-123' }, 'welcome');
-```
+All four methods accept any `SubscriberIdentifier` form — email, numeric ID, phone number, or custom identifier. See [Subscriber Identifiers](./subscriber-identifiers) for the full description.
 
 ---
 

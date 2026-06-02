@@ -4,19 +4,20 @@ Blocking prevents a subscriber from receiving any emails. Use it when processing
 
 Blocking is not the same as deletion — the subscriber record remains and can be unblocked later.
 
-## Blocking subscribers
+## Blocking
 
-Pass an array of subscriber identifiers. All standard identifier types are supported: email, phone number, numeric ID, and custom identifier.
+Pass an array of subscriber identifiers to `block()`. All identifier forms are supported:
 
 ```typescript
 await client.subscribers.block([
   { email: 'opt-out@example.com' },
-  { phoneNumber: '+46701234567' },
   { id: 1042 },
+  { phoneNumber: '+46701234567' },
+  { customIdentifier: 'ext-user-123' },
 ]);
 ```
 
-To receive a webhook notification when the operation completes:
+To receive a webhook notification when the operation completes, pass a `callbackUrl`:
 
 ```typescript
 await client.subscribers.block(
@@ -25,15 +26,33 @@ await client.subscribers.block(
 );
 ```
 
-## Unblocking subscribers
+## Unblocking
 
 ```typescript
 await client.subscribers.unblock([
   { email: 'opt-in@example.com' },
+  { id: 1042 },
+  { phoneNumber: '+46701234567' },
+  { customIdentifier: 'ext-user-123' },
 ]);
 ```
 
-Both `block()` and `unblock()` are asynchronous — the API accepts the request immediately and processes it in the background. See [Asynchronous Operations](./async-operations) for details.
+To receive a webhook notification when unblocking completes:
+
+```typescript
+await client.subscribers.unblock(
+  [{ email: 'opt-in@example.com' }],
+  { callbackUrl: 'https://yourapp.com/webhooks/rule' },
+);
+```
+
+## Asynchronous behaviour
+
+`block()` and `unblock()` are asynchronous — Rule.io accepts the request immediately and processes it in the background. See [Asynchronous Operations](./async-operations) for details.
+
+## Subscriber identifiers
+
+For a full description of the four identifier forms (`email`, `id`, `phoneNumber`, `customIdentifier`), see [Subscriber Identifiers](./subscriber-identifiers).
 
 ## Next steps
 
