@@ -403,6 +403,35 @@ describe('SubscribersClient', () => {
     });
   });
 
+  describe('getByCustomIdentifier', () => {
+    it('uses identified_by=custom_identifier in the URL', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '99', email: 'a@b.c' } })
+      );
+      const client = createClient(fetchMock);
+
+      await client.getByCustomIdentifier('ext-user-123');
+
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
+        'https://app.rule.io/api/v2/subscribers/ext-user-123?identified_by=custom_identifier'
+      );
+    });
+
+    it('returns null on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+      const client = createClient(fetchMock);
+
+      expect(await client.getByCustomIdentifier('no-such-id')).toBeNull();
+    });
+
+    it('rethrows non-404 errors', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 500));
+      const client = createClient(fetchMock);
+
+      await expect(client.getByCustomIdentifier('bad')).rejects.toBeInstanceOf(RuleApiError);
+    });
+  });
+
   describe('getSubscriberTags', () => {
     it('returns tag objects with id and name', async () => {
       fetchMock.mockResolvedValueOnce(

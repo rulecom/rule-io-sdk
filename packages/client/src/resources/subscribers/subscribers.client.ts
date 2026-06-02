@@ -117,10 +117,6 @@ export class SubscribersClient extends BaseResource {
    * Get subscriber by numeric ID.
    *
    * @returns The subscriber entity, or `null` if not found (HTTP 404).
-   *
-   * @remarks There is no `getByCustomIdentifier` — the API does not support
-   * fetching a subscriber by custom identifier. See
-   * [Known Issues — Subscribers API](../docs/known-issues-subscribers.md).
    */
   getById(id: number): Promise<Subscriber | null> {
     return this._getSubscriber(String(id), 'id');
@@ -130,10 +126,6 @@ export class SubscribersClient extends BaseResource {
    * Get subscriber by email address.
    *
    * @returns The subscriber entity, or `null` if not found (HTTP 404).
-   *
-   * @remarks There is no `getByCustomIdentifier` — the API does not support
-   * fetching a subscriber by custom identifier. See
-   * [Known Issues — Subscribers API](../docs/known-issues-subscribers.md).
    */
   getByEmail(email: string): Promise<Subscriber | null> {
     return this._getSubscriber(email, 'email');
@@ -144,13 +136,24 @@ export class SubscribersClient extends BaseResource {
    * (e.g. `+46123456789` → `%2B46123456789`).
    *
    * @returns The subscriber entity, or `null` if not found (HTTP 404).
-   *
-   * @remarks There is no `getByCustomIdentifier` — the API does not support
-   * fetching a subscriber by custom identifier. See
-   * [Known Issues — Subscribers API](../docs/known-issues-subscribers.md).
    */
   getByPhone(phone: string): Promise<Subscriber | null> {
     return this._getSubscriber(phone, 'phone_number');
+  }
+
+  /**
+   * Get subscriber by custom identifier via the v2 API.
+   *
+   * @param identifier - The subscriber's custom identifier value.
+   * @returns The subscriber entity, or `null` if not found (HTTP 404).
+   *
+   * @example
+   * ```typescript
+   * const sub = await client.subscribers.getByCustomIdentifier('ext-user-123');
+   * ```
+   */
+  getByCustomIdentifier(identifier: string): Promise<Subscriber | null> {
+    return this._getSubscriber(identifier, 'custom_identifier');
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
@@ -1249,7 +1252,7 @@ export class SubscribersClient extends BaseResource {
   /** @internal */
   private async _getSubscriber(
     identifier: string,
-    identifiedBy: 'id' | 'email' | 'phone_number',
+    identifiedBy: SubscriberIdentifierBy,
   ): Promise<Subscriber | null> {
     try {
       const response = await this.transport.get<GetSubscriberResponse>(
