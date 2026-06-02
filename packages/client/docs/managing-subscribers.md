@@ -4,7 +4,7 @@ Subscribers are the contacts in your Rule.io account. This guide covers adding n
 
 ## Adding a subscriber
 
-Use `subscribers.create()` to add a new subscriber. At least one of `email`, `phone_number`, or `custom_identifier` is required:
+Use `subscribers.create()` to add a new subscriber. At least one of `email`, `phoneNumber`, or `customIdentifier` is required:
 
 ```typescript
 // By email
@@ -16,13 +16,13 @@ const subscriberId = subscriber.id;
 
 // By phone number
 await client.subscribers.create({
-  phone_number: '+46701234567',
+  phoneNumber: '+46701234567',
   status: 'ACTIVE',
 });
 
 // By custom identifier (your own system's ID)
 await client.subscribers.create({
-  custom_identifier: 'user-abc123',
+  customIdentifier: 'user-abc123',
   email: 'jane@example.com',
   status: 'ACTIVE',
 });

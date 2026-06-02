@@ -1,6 +1,6 @@
 # Asynchronous Operations
 
-Some methods in `@rulecom/client` return immediately with an HTTP 204 response. The actual work — tagging subscribers, blocking contacts, sending bulk updates — happens in the background on Rule.io's side.
+Some methods in `@rulecom/client` return immediately once Rule.io has accepted the request. The actual work — tagging subscribers, blocking contacts, sending bulk updates — happens in the background on Rule.io's side.
 
 These methods are:
 

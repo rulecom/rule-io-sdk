@@ -111,26 +111,26 @@ await client.automations.delete(automationId);
 
 ## Triggering the automation when assigning a tag
 
-When you assign a trigger tag to a subscriber, control whether the automation fires using the `automation` option in `subscribers.addSubscriberTags()`:
+Use one of the dedicated automation methods when you assign a trigger tag:
 
 ```typescript
-await client.subscribers.addSubscriberTags(
-  'jane@example.com',
-  {
-    tags: ['welcome'],
-    automation: 'send',  // fire if not already sent
-  },
-  'email',
-);
+// Fire once — safe to repeat, no-op if already triggered
+await client.subscribers.triggerTagAutomation({ email: 'jane@example.com' }, 'welcome');
+
+// Always start a new pass (pending messages from any in-progress pass remain scheduled)
+await client.subscribers.forceTagAutomation({ email: 'jane@example.com' }, 'welcome');
+
+// Cancel pending messages and restart from the beginning
+await client.subscribers.resetTagAutomation({ email: 'jane@example.com' }, 'welcome');
 ```
 
-- `'send'` — fires the automation if it hasn't run for this subscriber yet
-- `'force'` — fires it regardless of history
-- `'reset'` — resets state and fires again
-- `null` — assigns the tag silently, automation does not fire
+To add the tag silently without triggering any automation, use `addSubscriberTag()`.
+
+For a full breakdown of each mode's behaviour — including what happens when an automation is already in progress — see [Triggering Tag Automations](./tag-automation-modes).
 
 ## Next steps
 
+- Control automation firing in detail: [Triggering Tag Automations](./tag-automation-modes)
 - Build the email body: [Building Email Content](./email-content)
 - Assign trigger tags to subscribers: [Organizing with Tags](./organizing-with-tags)
 - Send a one-off blast instead: [Running Campaigns](./running-campaigns)

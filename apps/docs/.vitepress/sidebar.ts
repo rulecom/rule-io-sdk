@@ -82,6 +82,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Managing Subscribers', link: '/packages/client/managing-subscribers' },
           { text: 'Custom Fields', link: '/packages/client/custom-fields' },
           { text: 'Organizing with Tags', link: '/packages/client/organizing-with-tags' },
+          { text: 'Triggering Tag Automations', link: '/packages/client/tag-automation-modes' },
           { text: 'Blocking Subscribers', link: '/packages/client/blocking-subscribers' },
           { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
         ],

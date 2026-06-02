@@ -726,6 +726,107 @@ describe('SubscribersClient', () => {
       const [url] = fetchMock.mock.calls[0]!;
       expect(url).toBe('https://app.rule.io/api/v3/subscribers/42/tags?identified_by=id');
     });
+
+    it('sends sync_subscriber=false when syncSegments is false', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      await client.addSubscriberTag({ email: 'customer@example.com' }, 'vip', { syncSegments: false });
+
+      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      expect(body.sync_subscriber).toBe(false);
+    });
+  });
+
+  describe('triggerTagAutomation', () => {
+    it('PUTs with automation=send and no sync_subscriber override by default', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.triggerTagAutomation({ email: 'customer@example.com' }, 'onboarding');
+
+      expect(result.success).toBe(true);
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags?identified_by=email'
+      );
+      expect((init as RequestInit).method).toBe('PUT');
+      const body = JSON.parse((init as RequestInit).body as string);
+      expect(body.tags).toEqual(['onboarding']);
+      expect(body.automation).toBe('send');
+      expect(body.sync_subscriber).toBeUndefined();
+    });
+
+    it('sends sync_subscriber=false when syncSegments is false', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      await client.triggerTagAutomation({ email: 'customer@example.com' }, 'onboarding', { syncSegments: false });
+
+      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      expect(body.automation).toBe('send');
+      expect(body.sync_subscriber).toBe(false);
+    });
+  });
+
+  describe('forceTagAutomation', () => {
+    it('PUTs with automation=force and no sync_subscriber override', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.forceTagAutomation({ email: 'customer@example.com' }, 'promo');
+
+      expect(result.success).toBe(true);
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags?identified_by=email'
+      );
+      expect((init as RequestInit).method).toBe('PUT');
+      const body = JSON.parse((init as RequestInit).body as string);
+      expect(body.tags).toEqual(['promo']);
+      expect(body.automation).toBe('force');
+      expect(body.sync_subscriber).toBeUndefined();
+    });
+
+    it('sends sync_subscriber=false when syncSegments is false', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      await client.forceTagAutomation({ email: 'customer@example.com' }, 'promo', { syncSegments: false });
+
+      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      expect(body.sync_subscriber).toBe(false);
+    });
+  });
+
+  describe('resetTagAutomation', () => {
+    it('PUTs with automation=reset and no sync_subscriber override', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.resetTagAutomation({ email: 'customer@example.com' }, 'onboarding');
+
+      expect(result.success).toBe(true);
+      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(url).toBe(
+        'https://app.rule.io/api/v3/subscribers/customer%40example.com/tags?identified_by=email'
+      );
+      expect((init as RequestInit).method).toBe('PUT');
+      const body = JSON.parse((init as RequestInit).body as string);
+      expect(body.tags).toEqual(['onboarding']);
+      expect(body.automation).toBe('reset');
+      expect(body.sync_subscriber).toBeUndefined();
+    });
+
+    it('sends sync_subscriber=false when syncSegments is false', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      await client.resetTagAutomation({ email: 'customer@example.com' }, 'onboarding', { syncSegments: false });
+
+      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      expect(body.sync_subscriber).toBe(false);
+    });
   });
 
   describe('removeSubscriberTag', () => {

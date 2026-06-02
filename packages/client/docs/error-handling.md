@@ -64,7 +64,7 @@ This applies consistently to `getById()`, `getByName()`, `get()`, and similar lo
 
 ## Handling authentication errors
 
-An invalid or missing API key returns a 401:
+An invalid or missing API key causes an authentication error:
 
 ```typescript
 try {
@@ -78,7 +78,7 @@ try {
 
 ## Handling validation errors
 
-When the API rejects your input with a 400 or 422, the `validationErrors` array contains field-level details:
+When Rule.io rejects your input due to a validation error, the `validationErrors` array contains field-level details:
 
 ```typescript
 try {
@@ -96,4 +96,4 @@ try {
 
 ## Handling errors from async operations
 
-Bulk operations (suppressions, block/unblock, bulk tag changes) return immediately and process in the background. API errors from these calls indicate a problem with the request itself (e.g. malformed input), not a processing failure. Processing failures are reported via the `callback_url` webhook if you provided one.
+Bulk operations (suppressions, block/unblock, bulk tag changes) return immediately and process in the background. API errors from these calls indicate a problem with the request itself (e.g. malformed input), not a processing failure. Processing failures are reported via the `callbackUrl` webhook if you provided one.

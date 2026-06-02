@@ -1,6 +1,6 @@
 # @rulecom/client
 
-`@rulecom/client` is the HTTP API client for the [Rule.io](https://rule.io) email marketing platform. It covers the full Rule.io v2 and v3 API surface: subscriber management, audience segmentation, campaigns, automations, analytics, and more.
+`@rulecom/client` is the HTTP API client for the [Rule.io](https://rule.io) email marketing platform. It covers the full Rule.io API surface: subscriber management, audience segmentation, campaigns, automations, analytics, and more.
 
 > **Most users should install `@rulecom/sdk` instead.** It re-exports everything from this package and adds the RCML template builders and high-level helpers on top.
 

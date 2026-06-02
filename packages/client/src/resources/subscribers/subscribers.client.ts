@@ -10,6 +10,7 @@ import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
   BulkTagsPayload,
+  AddSubscriberTagOptions,
   SubscriberSyncPayload,
   CustomFieldGroupData,
   CustomFieldGroupDataRecord,
@@ -187,6 +188,9 @@ export class SubscribersClient extends BaseResource {
    *
    * @param subscriber - Who to tag: `{ email }`, `{ id }`, `{ phoneNumber }`, or `{ customIdentifier }`.
    * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
    * @returns A success response.
    *
    * @example
@@ -197,8 +201,11 @@ export class SubscribersClient extends BaseResource {
   async addSubscriberTag(
     subscriber: SubscriberIdentifier,
     tag: TagRef,
+    options?: AddSubscriberTagOptions,
   ): Promise<RuleApiResponse> {
-    return this._addSubscriberTags(subscriber, [tag]);
+    return this._addSubscriberTags(subscriber, [tag], {
+      syncSegments: options?.syncSegments,
+    });
   }
 
   /**
@@ -232,6 +239,142 @@ export class SubscribersClient extends BaseResource {
     );
 
     return { success: true };
+  }
+
+  // Automation-aware single-tag methods
+
+  /**
+   * Add a tag to a subscriber and trigger its automation once — if the
+   * automation has not already been triggered for this subscriber.
+   *
+   * This is the **idempotent trigger**: safe to call multiple times.
+   * If the subscriber already received the automation (or has the tag and the
+   * automation is in progress), this call is a no-op — no extra messages are
+   * sent and no pending messages are cancelled.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation not yet sent | Tag already held (no-op); automation triggered |
+   * | Has the tag; automation in progress | No-op — pending messages still send on schedule |
+   * | Has the tag; automation completed | No-op — automation does NOT re-fire |
+   *
+   * Use `forceTagAutomation()` to re-fire an already-completed automation.
+   * Use `resetTagAutomation()` to cancel pending messages and restart.
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Trigger the welcome sequence for a new subscriber.
+   * await client.subscribers.triggerTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'onboarding',
+   * );
+   * ```
+   */
+  async triggerTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'trigger',
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  /**
+   * Add a tag to a subscriber and unconditionally start a new automation pass —
+   * regardless of whether the automation has run before and regardless of any
+   * messages currently in the queue from a previous pass.
+   *
+   * **Pending messages from the current pass are NOT cancelled.** If the
+   * subscriber is mid-sequence (e.g. message 1 of 3 was sent), messages 2 and 3
+   * will still send on their original schedule, and a fresh pass (messages 1, 2,
+   * 3 again) will also start. The subscriber will receive both sets.
+   *
+   * Use `resetTagAutomation()` to cancel the pending messages before restarting.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation in progress | Pending messages stay; a second full pass starts |
+   * | Has the tag; automation completed | A new full pass starts |
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Re-send a promotional sequence to all subscribers, even those who already received it.
+   * await client.subscribers.forceTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'promo-spring',
+   * );
+   * ```
+   */
+  async forceTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'force',
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  /**
+   * Add a tag to a subscriber, cancel any messages from an in-progress automation
+   * pass, and start a fresh pass from step 1.
+   *
+   * This is the **clean-restart**: pending messages are deleted from the queue
+   * before the new pass begins, so the subscriber receives a single complete
+   * sequence — not duplicates from overlapping passes.
+   *
+   * Use `forceTagAutomation()` to start a new pass without cancelling pending messages.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation in progress | Pending messages cancelled; fresh pass starts from step 1 |
+   * | Has the tag; automation completed | A new full pass starts |
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Restart the onboarding flow after a subscriber's plan changed.
+   * await client.subscribers.resetTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'onboarding',
+   * );
+   * ```
+   */
+  async resetTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'reset',
+      syncSegments: options?.syncSegments,
+    });
   }
 
   // Multi-tag add/remove (mirrored pair, single subscriber, async)

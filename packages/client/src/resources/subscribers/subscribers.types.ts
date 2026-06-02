@@ -121,20 +121,7 @@ export type TagRef = string | number;
 /** Controls tag automation behaviour in `addSubscriberTags`. */
 export type TagAutomationMode = 'trigger' | 'force' | 'reset';
 
-/**
- * Options for `addSubscriberTags`.
- *
- * `automation` and `syncSegments` are independent controls:
- *
- * | `automation` | `syncSegments` | Tag automations | Segment sync |
- * |---|---|---|---|
- * | omitted | omitted / `true` | None | Refreshed in background |
- * | omitted | `false` | None | Skipped |
- * | `'trigger'` | omitted / `true` | Fire once if not yet triggered | Refreshed in background |
- * | `'trigger'` | `false` | Fire once if not yet triggered | Skipped |
- *
- * `'force'` and `'reset'` control both automations and segments regardless of `syncSegments`.
- */
+/** Options for `addSubscriberTags`. */
 export interface AddSubscriberTagsOptions {
   /**
    * Controls tag automations after the tags are added.
@@ -150,12 +137,24 @@ export interface AddSubscriberTagsOptions {
   automation?: TagAutomationMode;
 
   /**
-   * When `true` (API default), schedules a background job that recalculates which
-   * tag-based segments this subscriber belongs to after the tag change.
+   * Whether Rule.io should recalculate segment membership after the tag
+   * change. Defaults to `true`.
    *
-   * Set to `false` to skip the sync and leave segment membership stale.
+   * Set to `false` to skip the recalculation.
+   */
+  syncSegments?: boolean;
+}
+
+/** Options for single-tag add methods. */
+export interface AddSubscriberTagOptions {
+  /**
+   * Whether Rule.io should recalculate segment membership after the tag
+   * operation. Defaults to `true`.
    *
-   * Has no effect when `automation` is `'force'` or `'reset'`.
+   * Set to `false` to skip the recalculation. You might do this if your
+   * Rule.io account has autosync configured (so the sync would be redundant),
+   * or for any other reason you want to manage segment membership separately
+   * from this tag operation.
    */
   syncSegments?: boolean;
 }

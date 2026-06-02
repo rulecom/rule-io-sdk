@@ -30,7 +30,7 @@ await client.subscribers.removeSubscriberTag(
 
 ## Adding multiple tags to a subscriber
 
-Use `addSubscriberTags()` to add several tags in a single call. This uses the bulk endpoint and is **asynchronous** — the API accepts the request (HTTP 204) and applies the tags in the background.
+Use `addSubscriberTags()` to add several tags in a single call. This is **asynchronous** — Rule.io accepts the request and applies the tags in the background.
 
 ```typescript
 await client.subscribers.addSubscriberTags(
@@ -133,5 +133,6 @@ To target campaigns at tagged groups, use the `recipients` namespace — see [Ru
 ## Next steps
 
 - Manage the tag catalogue (create, update, delete): [Managing Tags](./managing-tags)
-- Trigger automations when tags are assigned: [Setting Up Automations](./setting-up-automations)
+- Trigger automations when assigning tags: [Triggering Tag Automations](./tag-automation-modes)
+- Set up tag-triggered automations: [Setting Up Automations](./setting-up-automations)
 - Use tags to select campaign recipients: [Running Campaigns](./running-campaigns)

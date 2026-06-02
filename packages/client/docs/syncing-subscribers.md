@@ -8,7 +8,7 @@ Use `create()` when you only need to register a subscriber — no fields, no tag
 
 ## Basic sync
 
-The `subscriber` property accepts the same fields as `create()`: `email`, `phone_number`, `custom_identifier`, `status`, and `language`. At least one identifier is required.
+The `subscriber` property accepts the same fields as `create()`: `email`, `phoneNumber`, `customIdentifier`, `status`, and `language`. At least one identifier is required.
 
 ```typescript
 await client.subscribers.sync({
