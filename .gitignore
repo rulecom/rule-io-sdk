@@ -43,6 +43,9 @@ email-snapshots/
 .claude/
 CLAUDE.md
 
+# AI context documents (architecture docs, not tracked in git)
+ai-context/
+
 
 
 .nx/cache
