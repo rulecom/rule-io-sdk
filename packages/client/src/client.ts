@@ -56,13 +56,6 @@ import type {
   RuleApiKeyUpdateRequest,
 } from './resources/api-keys/api-keys.types.js';
 import type {
-  RuleBrandStyleCreateRequest,
-  RuleBrandStyleFromDomainRequest,
-  RuleBrandStyleListResponse,
-  RuleBrandStyleResponse,
-  RuleBrandStyleUpdateRequest,
-} from './resources/brand-styles/brand-styles.types.js';
-import type {
   CustomFieldGroupDataRecord,
 } from './resources/subscribers/subscribers.types.js';
 import type {
@@ -362,45 +355,6 @@ export class RuleClient extends BaseResource {
     return this.subscribers.removeSubscriberTag(id, tag);
   }
 
-  // ── Brand styles ──────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.brandStyles.list()` instead. */
-  listBrandStyles(): Promise<RuleBrandStyleListResponse> {
-    return this.brandStyles.list();
-  }
-
-  /** @deprecated Use `client.brandStyles.get()` instead. */
-  getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null> {
-    return this.brandStyles.get(brandStyleId);
-  }
-
-  /** @deprecated Use `client.brandStyles.createFromDomain()` instead. */
-  createBrandStyleFromDomain(
-    request: RuleBrandStyleFromDomainRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.brandStyles.createFromDomain(request);
-  }
-
-  /** @deprecated Use `client.brandStyles.createManually()` instead. */
-  createBrandStyleManually(
-    request: RuleBrandStyleCreateRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.brandStyles.createManually(request);
-  }
-
-  /** @deprecated Use `client.brandStyles.update()` instead. */
-  updateBrandStyle(
-    brandStyleId: number,
-    request: RuleBrandStyleUpdateRequest
-  ): Promise<RuleBrandStyleResponse> {
-    return this.brandStyles.update(brandStyleId, request);
-  }
-
-  /** @deprecated Use `client.brandStyles.delete()` instead. */
-  deleteBrandStyle(brandStyleId: number): Promise<RuleApiResponse> {
-    return this.brandStyles.delete(brandStyleId);
-  }
-
   // ── API keys ──────────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.apiKeys.list()` instead. */
@@ -514,11 +468,11 @@ export class RuleClient extends BaseResource {
       this.transport.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
       const brandStyleResponse = await this.brandStyles.get(config.brandStyleId);
 
-      if (!brandStyleResponse?.data) {
+      if (!brandStyleResponse) {
         throw new RuleApiError(`Brand style ${config.brandStyleId} not found.`, 404);
       }
 
-      resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse.data, {
+      resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse, {
         preheader: config.preheader,
         sections: config.sections,
       });
@@ -685,11 +639,11 @@ export class RuleClient extends BaseResource {
       this.transport.log('Fetching brand style', config.brandStyleId, 'to build RCML template');
       const brandStyleResponse = await this.brandStyles.get(config.brandStyleId);
 
-      if (!brandStyleResponse?.data) {
+      if (!brandStyleResponse) {
         throw new RuleApiError(`Brand style ${config.brandStyleId} not found.`, 404);
       }
 
-      resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse.data, {
+      resolvedTemplate = buildDefaultBrandedTemplate(brandStyleResponse, {
         preheader: config.preheader,
         sections: config.sections,
       });

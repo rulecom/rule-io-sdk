@@ -21,7 +21,7 @@ import { applyTheme } from '@rulecom/rcml';
 import type { RcmlBodyChild, RcmlDocument, RcmlHead } from '@rulecom/rcml';
 
 import { emailThemeFromBrandStyle } from './brand-style-to-theme.js';
-import type { RuleBrandStyle } from './types.js';
+import type { BrandStyle } from './types.js';
 
 function genId(): string {
   return randomUUID();
@@ -251,7 +251,7 @@ function buildFooterSection(): RcmlBodyChild {
  *   `applyTheme(skeleton, theme)` → returns the decorated document
  */
 export function buildDefaultBrandedTemplate(
-  brandStyle: RuleBrandStyle,
+  brandStyle: BrandStyle,
   options: { preheader?: string; sections?: readonly RcmlBodyChild[] } = {}
 ): RcmlDocument {
   const theme = emailThemeFromBrandStyle(brandStyle);

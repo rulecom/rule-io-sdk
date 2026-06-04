@@ -15,39 +15,39 @@ import {
 
 import { emailThemeFromBrandStyle, resolveBrandTheme } from './brand-style-to-theme.js';
 import { RuleClientError } from './errors.js';
-import type { RuleBrandStyle } from './types.js';
+import type { BrandStyle } from './types.js';
 
 const NOW = '2026-04-30T00:00:00Z';
 
-function fullBrandStyle(overrides: Partial<RuleBrandStyle> = {}): RuleBrandStyle {
+function fullBrandStyle(overrides: Partial<BrandStyle> = {}): BrandStyle {
   return {
     id: 99999,
-    account_id: 1,
+    accountId: 1,
     name: 'Test Brand',
-    is_default: true,
+    isDefault: true,
     colours: [
-      { id: 1, brand_style_id: 99999, type: 'brand', hex: '#F6F8F9', brightness: 0, created_at: NOW, updated_at: NOW },
-      { id: 2, brand_style_id: 99999, type: 'accent', hex: '#0066CC', brightness: 0, created_at: NOW, updated_at: NOW },
-      { id: 3, brand_style_id: 99999, type: 'light', hex: '#FFFFFF', brightness: 0, created_at: NOW, updated_at: NOW },
-      { id: 4, brand_style_id: 99999, type: 'side', hex: '#F3F3F3', brightness: 0, created_at: NOW, updated_at: NOW },
-      { id: 5, brand_style_id: 99999, type: 'dark', hex: '#1A1A1A', brightness: 0, created_at: NOW, updated_at: NOW },
+      { id: 1, brandStyleId: 99999, type: 'brand', hex: '#F6F8F9', brightness: 0, createdAt: NOW, updatedAt: NOW },
+      { id: 2, brandStyleId: 99999, type: 'accent', hex: '#0066CC', brightness: 0, createdAt: NOW, updatedAt: NOW },
+      { id: 3, brandStyleId: 99999, type: 'light', hex: '#FFFFFF', brightness: 0, createdAt: NOW, updatedAt: NOW },
+      { id: 4, brandStyleId: 99999, type: 'side', hex: '#F3F3F3', brightness: 0, createdAt: NOW, updatedAt: NOW },
+      { id: 5, brandStyleId: 99999, type: 'dark', hex: '#1A1A1A', brightness: 0, createdAt: NOW, updatedAt: NOW },
     ],
     fonts: [
-      { id: 10, brand_style_id: 99999, type: 'title', origin: 'google', origin_name: 'Merriweather', name: 'Merriweather', url: 'https://fonts.example/merriweather.css', created_at: NOW, updated_at: NOW },
-      { id: 11, brand_style_id: 99999, type: 'body', origin: 'google', origin_name: 'Open Sans', name: 'Open Sans', url: 'https://fonts.example/opensans.css', created_at: NOW, updated_at: NOW },
+      { id: 10, brandStyleId: 99999, type: 'title', origin: 'google', originName: 'Merriweather', name: 'Merriweather', url: 'https://fonts.example/merriweather.css', createdAt: NOW, updatedAt: NOW },
+      { id: 11, brandStyleId: 99999, type: 'body', origin: 'google', originName: 'Open Sans', name: 'Open Sans', url: 'https://fonts.example/opensans.css', createdAt: NOW, updatedAt: NOW },
     ],
     images: [
-      { id: 20, brand_style_id: 99999, type: 'logo', public_path: 'https://example.com/logo.png', created_at: NOW, updated_at: NOW },
-      { id: 21, brand_style_id: 99999, type: 'icon', public_path: 'https://example.com/icon.png', created_at: NOW, updated_at: NOW },
+      { id: 20, brandStyleId: 99999, type: 'logo', publicPath: 'https://example.com/logo.png', createdAt: NOW, updatedAt: NOW },
+      { id: 21, brandStyleId: 99999, type: 'icon', publicPath: 'https://example.com/icon.png', createdAt: NOW, updatedAt: NOW },
     ],
     links: [
-      { id: 30, brand_style_id: 99999, type: 'facebook', link: 'https://fb.example/acme', created_at: NOW, updated_at: NOW },
-      { id: 31, brand_style_id: 99999, type: 'twitter', link: 'https://twitter.example/acme', created_at: NOW, updated_at: NOW },
-      { id: 32, brand_style_id: 99999, type: 'website', link: 'https://acme.example/', created_at: NOW, updated_at: NOW },
-      { id: 33, brand_style_id: 99999, type: 'youtube', link: 'https://yt.example/acme', created_at: NOW, updated_at: NOW },
+      { id: 30, brandStyleId: 99999, type: 'facebook', link: 'https://fb.example/acme', createdAt: NOW, updatedAt: NOW },
+      { id: 31, brandStyleId: 99999, type: 'twitter', link: 'https://twitter.example/acme', createdAt: NOW, updatedAt: NOW },
+      { id: 32, brandStyleId: 99999, type: 'website', link: 'https://acme.example/', createdAt: NOW, updatedAt: NOW },
+      { id: 33, brandStyleId: 99999, type: 'youtube', link: 'https://yt.example/acme', createdAt: NOW, updatedAt: NOW },
     ],
-    created_at: NOW,
-    updated_at: NOW,
+    createdAt: NOW,
+    updatedAt: NOW,
     ...overrides,
   };
 }
@@ -122,12 +122,12 @@ describe('emailThemeFromBrandStyle — partial input', () => {
         colours: [
           {
             id: 1,
-            brand_style_id: 99999,
+            brandStyleId: 99999,
             type: 'accent',
             hex: '#123456',
             brightness: 0,
-            created_at: NOW,
-            updated_at: NOW,
+            createdAt: NOW,
+            updatedAt: NOW,
           },
         ],
       })
@@ -155,14 +155,14 @@ describe('emailThemeFromBrandStyle — partial input', () => {
         fonts: [
           {
             id: 10,
-            brand_style_id: 99999,
+            brandStyleId: 99999,
             type: 'title',
             origin: 'system',
-            origin_name: 'Helvetica',
+            originName: 'Helvetica',
             name: 'Helvetica',
             url: null,
-            created_at: NOW,
-            updated_at: NOW,
+            createdAt: NOW,
+            updatedAt: NOW,
           },
         ],
       })
@@ -175,11 +175,11 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     const theme = emailThemeFromBrandStyle(
       fullBrandStyle({
         links: [
-          { id: 30, brand_style_id: 99999, type: 'facebook', link: '', created_at: NOW, updated_at: NOW },
-          { id: 31, brand_style_id: 99999, type: 'instagram', link: '   ', created_at: NOW, updated_at: NOW },
-          { id: 32, brand_style_id: 99999, type: 'linkedin', link: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
-          { id: 33, brand_style_id: 99999, type: 'twitter', link: 'not-a-url', created_at: NOW, updated_at: NOW },
-          { id: 34, brand_style_id: 99999, type: 'website', link: '  https://acme.example/  ', created_at: NOW, updated_at: NOW },
+          { id: 30, brandStyleId: 99999, type: 'facebook', link: '', createdAt: NOW, updatedAt: NOW },
+          { id: 31, brandStyleId: 99999, type: 'instagram', link: '   ', createdAt: NOW, updatedAt: NOW },
+          { id: 32, brandStyleId: 99999, type: 'linkedin', link: 'javascript:alert(1)', createdAt: NOW, updatedAt: NOW },
+          { id: 33, brandStyleId: 99999, type: 'twitter', link: 'not-a-url', createdAt: NOW, updatedAt: NOW },
+          { id: 34, brandStyleId: 99999, type: 'website', link: '  https://acme.example/  ', createdAt: NOW, updatedAt: NOW },
         ],
       }),
     );
@@ -200,8 +200,8 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     const theme = emailThemeFromBrandStyle(
       fullBrandStyle({
         fonts: [
-          { id: 10, brand_style_id: 99999, type: 'title', origin: 'google', origin_name: 'Merriweather', name: 'Merriweather', url: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
-          { id: 11, brand_style_id: 99999, type: 'body', origin: 'google', origin_name: 'Open Sans', name: 'Open Sans', url: '', created_at: NOW, updated_at: NOW },
+          { id: 10, brandStyleId: 99999, type: 'title', origin: 'google', originName: 'Merriweather', name: 'Merriweather', url: 'javascript:alert(1)', createdAt: NOW, updatedAt: NOW },
+          { id: 11, brandStyleId: 99999, type: 'body', origin: 'google', originName: 'Open Sans', name: 'Open Sans', url: '', createdAt: NOW, updatedAt: NOW },
         ],
       }),
     );
@@ -219,7 +219,7 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     const empty = emailThemeFromBrandStyle(
       fullBrandStyle({
         images: [
-          { id: 20, brand_style_id: 99999, type: 'logo', public_path: '', created_at: NOW, updated_at: NOW },
+          { id: 20, brandStyleId: 99999, type: 'logo', publicPath: '', createdAt: NOW, updatedAt: NOW },
         ],
       }),
     );
@@ -229,7 +229,7 @@ describe('emailThemeFromBrandStyle — partial input', () => {
     const unsafe = emailThemeFromBrandStyle(
       fullBrandStyle({
         images: [
-          { id: 20, brand_style_id: 99999, type: 'logo', public_path: 'javascript:alert(1)', created_at: NOW, updated_at: NOW },
+          { id: 20, brandStyleId: 99999, type: 'logo', publicPath: 'javascript:alert(1)', createdAt: NOW, updatedAt: NOW },
         ],
       }),
     );
@@ -240,15 +240,15 @@ describe('emailThemeFromBrandStyle — partial input', () => {
   it('is tolerant of null top-level arrays', () => {
     const theme = emailThemeFromBrandStyle({
       id: 1,
-      account_id: 1,
+      accountId: 1,
       name: 'Empty',
-      is_default: true,
+      isDefault: true,
       colours: null,
       fonts: null,
       images: null,
       links: null,
-      created_at: NOW,
-      updated_at: NOW,
+      createdAt: NOW,
+      updatedAt: NOW,
     });
 
     expect(theme.brandStyleId).toBe(1);
@@ -258,23 +258,22 @@ describe('emailThemeFromBrandStyle — partial input', () => {
 });
 
 describe('resolveBrandTheme', () => {
-  const minimalStyle: RuleBrandStyle = {
+  const minimalStyle: BrandStyle = {
     id: 1,
-    account_id: 1,
+    accountId: 1,
     name: 'Default',
-    is_default: true,
+    isDefault: true,
     colours: [],
     fonts: [],
     images: [],
     links: [],
-    created_at: NOW,
-    updated_at: NOW,
+    createdAt: NOW,
+    updatedAt: NOW,
   };
 
   it('uses the override id when provided, returning source=override', async () => {
     const client = {
-      listBrandStyles: async () => ({ data: [] }),
-      getBrandStyle: async () => ({ data: minimalStyle }),
+      brandStyles: { list: async () => [], get: async () => minimalStyle },
     };
     const result = await resolveBrandTheme(client, 1);
 
@@ -284,8 +283,7 @@ describe('resolveBrandTheme', () => {
 
   it('throws RuleClientError for non-integer override id', async () => {
     const client = {
-      listBrandStyles: async () => ({ data: [] }),
-      getBrandStyle: async () => null,
+      brandStyles: { list: async () => [], get: async () => null },
     };
 
     await expect(resolveBrandTheme(client, 1.5)).rejects.toThrow(RuleClientError);
@@ -294,18 +292,19 @@ describe('resolveBrandTheme', () => {
 
   it('throws RuleClientError when override id is not found', async () => {
     const client = {
-      listBrandStyles: async () => ({ data: [] }),
-      getBrandStyle: async () => null,
+      brandStyles: { list: async () => [], get: async () => null },
     };
 
     await expect(resolveBrandTheme(client, 99)).rejects.toThrow(RuleClientError);
   });
 
-  it('picks the is_default entry when no override is given', async () => {
-    const defaultStyle = { ...minimalStyle, id: 2, is_default: true };
+  it('picks the isDefault entry when no override is given', async () => {
+    const defaultStyle = { ...minimalStyle, id: 2, isDefault: true };
     const client = {
-      listBrandStyles: async () => ({ data: [{ ...minimalStyle, id: 1, is_default: false }, defaultStyle] }),
-      getBrandStyle: async () => ({ data: defaultStyle }),
+      brandStyles: {
+        list: async () => [{ ...minimalStyle, id: 1, isDefault: false }, defaultStyle],
+        get: async () => defaultStyle,
+      },
     };
     const result = await resolveBrandTheme(client);
 
@@ -314,10 +313,12 @@ describe('resolveBrandTheme', () => {
   });
 
   it('falls back to first entry when no default is flagged', async () => {
-    const first = { ...minimalStyle, id: 10, is_default: false };
+    const first = { ...minimalStyle, id: 10, isDefault: false };
     const client = {
-      listBrandStyles: async () => ({ data: [first, { ...minimalStyle, id: 11, is_default: false }] }),
-      getBrandStyle: async () => ({ data: first }),
+      brandStyles: {
+        list: async () => [first, { ...minimalStyle, id: 11, isDefault: false }],
+        get: async () => first,
+      },
     };
     const result = await resolveBrandTheme(client);
 
@@ -327,8 +328,7 @@ describe('resolveBrandTheme', () => {
 
   it('throws RuleClientError when no brand styles exist', async () => {
     const client = {
-      listBrandStyles: async () => ({ data: [] }),
-      getBrandStyle: async () => null,
+      brandStyles: { list: async () => [], get: async () => null },
     };
 
     await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);
@@ -336,8 +336,7 @@ describe('resolveBrandTheme', () => {
 
   it('throws RuleClientError when selected brand style cannot be fetched', async () => {
     const client = {
-      listBrandStyles: async () => ({ data: [minimalStyle] }),
-      getBrandStyle: async () => null,
+      brandStyles: { list: async () => [minimalStyle], get: async () => null },
     };
 
     await expect(resolveBrandTheme(client)).rejects.toThrow(RuleClientError);

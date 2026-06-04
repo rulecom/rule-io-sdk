@@ -89,6 +89,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
         ],
       },
+      { text: 'Managing Brand Styles', link: '/packages/client/managing-brand-styles' },
       {
         text: 'Sending Emails',
         collapsed: true,
@@ -112,7 +113,6 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         text: 'Account',
         collapsed: true,
         items: [
-          { text: 'Managing Brand Styles', link: '/packages/client/managing-brand-styles' },
           { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },
         ],
       },

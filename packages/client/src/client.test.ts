@@ -196,15 +196,6 @@ describe('RuleClient — deprecated-alias delegation', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('listBrandStyles delegates to brandStyles.list', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.brandStyles, 'list');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.listBrandStyles();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
 
   it('listSegments delegates to recipients.segments.list (nested)', async () => {
     const client = makeClient(fetchMock);
@@ -447,7 +438,7 @@ describe('createAutomationEmail orchestration', () => {
   });
 
   it('throws RuleApiError when brand style returns a response with no data', async () => {
-    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404)); // brand style not found
     const client = makeClient(fetchMock);
 
     await expect(
@@ -566,7 +557,7 @@ describe('createCampaignEmail orchestration', () => {
   });
 
   it('throws RuleApiError when brand style returns a response with no data', async () => {
-    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404)); // brand style not found
     const client = makeClient(fetchMock);
 
     await expect(
@@ -893,41 +884,6 @@ describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', 
   beforeEach(() => {
     fetchMock = createMockFetch();
     client = makeClient(fetchMock);
-  });
-
-  it('getBrandStyle delegates to brandStyles.get', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'get').mockResolvedValueOnce(null);
-
-    await client.getBrandStyle(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('createBrandStyleFromDomain delegates to brandStyles.createFromDomain', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'createFromDomain').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createBrandStyleFromDomain({ domain: 'example.com' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('createBrandStyleManually delegates to brandStyles.createManually', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'createManually').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createBrandStyleManually({ name: 'Manual', colours: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('updateBrandStyle delegates to brandStyles.update', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateBrandStyle(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteBrandStyle delegates to brandStyles.delete', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteBrandStyle(1);
-    expect(spy).toHaveBeenCalledWith(1);
   });
 
   it('listApiKeys delegates to apiKeys.list', async () => {
