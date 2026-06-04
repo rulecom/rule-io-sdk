@@ -52,16 +52,14 @@ const message = await client.messages.createEmailAutomationMessage(automationId,
   subject: 'Welcome to Acme!',
 });
 
-const template = await client.templates.create({
-  message_id: message.id!,
+const template = await client.templates.createEmailTemplate({
   name: 'Welcome template',
-  message_type: 'email',
-  template: rcml,
+  content: rcml,
 });
 
 await client.dynamicSets.create({
   message_id: message.id!,
-  template_id: template.data!.id!,
+  template_id: template.id,
 });
 ```
 

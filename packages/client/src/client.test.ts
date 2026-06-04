@@ -972,55 +972,13 @@ describe('RuleClient — deprecated tags/automation/message delegations', () => 
 
 });
 
-describe('RuleClient — deprecated template/dynamic-set/campaign delegations', () => {
+describe('RuleClient — deprecated dynamic-set/campaign delegations', () => {
   let fetchMock: MockFetch;
   let client: RuleClient;
 
   beforeEach(() => {
     fetchMock = createMockFetch();
     client = makeClient(fetchMock);
-  });
-
-  it('createTemplate delegates to templates.create', async () => {
-    const spy = vi.spyOn(client.templates, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createTemplate({ name: 'T', template: {} });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getTemplate delegates to templates.get', async () => {
-    const spy = vi.spyOn(client.templates, 'get').mockResolvedValueOnce(null);
-
-    await client.getTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateTemplate delegates to templates.update', async () => {
-    const spy = vi.spyOn(client.templates, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateTemplate(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteTemplate delegates to templates.delete', async () => {
-    const spy = vi.spyOn(client.templates, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listTemplates delegates to templates.list', async () => {
-    const spy = vi.spyOn(client.templates, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listTemplates();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('renderTemplate delegates to templates.render', async () => {
-    const spy = vi.spyOn(client.templates, 'render').mockResolvedValueOnce(null);
-
-    await client.renderTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1, undefined);
   });
 
   it('createDynamicSet delegates to dynamicSets.create', async () => {

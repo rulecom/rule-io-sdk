@@ -120,13 +120,6 @@ import type {
 import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
 import type { RuleTagsResponse } from './resources/tags/tags.types.js';
 import type {
-  RuleRenderTemplateParams,
-  RuleTemplateCreateRequest,
-  RuleTemplateListParams,
-  RuleTemplateListResponse,
-  RuleTemplateResponse,
-} from './resources/templates/templates.types.js';
-import type {
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
   CreateCampaignEmailConfig,
@@ -481,44 +474,6 @@ export class RuleClient extends BaseResource {
   /** @deprecated Use `client.automations.list()` instead. */
   listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     return this.automations.list(params);
-  }
-
-  // ── Templates ─────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.templates.create()` instead. */
-  createTemplate(req: RuleTemplateCreateRequest): Promise<RuleTemplateResponse> {
-    return this.templates.create(req);
-  }
-
-  /** @deprecated Use `client.templates.get()` instead. */
-  getTemplate(id: number): Promise<RuleTemplateResponse | null> {
-    return this.templates.get(id);
-  }
-
-  /** @deprecated Use `client.templates.update()` instead. */
-  updateTemplate(
-    id: number,
-    template: Partial<RuleTemplateCreateRequest>
-  ): Promise<RuleTemplateResponse> {
-    return this.templates.update(id, template);
-  }
-
-  /** @deprecated Use `client.templates.delete()` instead. */
-  deleteTemplate(id: number): Promise<RuleApiResponse> {
-    return this.templates.delete(id);
-  }
-
-  /** @deprecated Use `client.templates.list()` instead. */
-  listTemplates(params?: RuleTemplateListParams): Promise<RuleTemplateListResponse> {
-    return this.templates.list(params);
-  }
-
-  /** @deprecated Use `client.templates.render()` instead. */
-  renderTemplate(
-    id: number,
-    params?: RuleRenderTemplateParams
-  ): Promise<string | null> {
-    return this.templates.render(id, params);
   }
 
   // ── Dynamic sets ──────────────────────────────────────────────────────────
@@ -894,19 +849,17 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      const templateResponse = await this.templates.create({
-        message_id: messageId,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const template = await this.templates.createEmailTemplate({
         name: `${config.name} - ${Date.now()}`,
-        message_type: 'email',
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        template: resolvedTemplate!, // caller must supply template or brandStyleId
+        content: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
-      if (!templateResponse.data?.id) {
+      if (!template.id) {
         throw new RuleApiError('Failed to create template - no ID returned', 500);
       }
 
-      const templateId = templateResponse.data.id;
+      const templateId = template.id;
 
       createdResources.push({ type: 'template', id: templateId });
 
@@ -1026,19 +979,17 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      const templateResponse = await this.templates.create({
-        message_id: messageId,
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const template = await this.templates.createEmailTemplate({
         name: `${config.name} - ${Date.now()}`,
-        message_type: 'email',
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        template: resolvedTemplate!, // caller must supply template or brandStyleId
+        content: resolvedTemplate!, // caller must supply template or brandStyleId
       });
 
-      if (!templateResponse.data?.id) {
+      if (!template.id) {
         throw new RuleApiError('Failed to create template - no ID returned', 500);
       }
 
-      const templateId = templateResponse.data.id;
+      const templateId = template.id;
 
       createdResources.push({ type: 'template', id: templateId });
 

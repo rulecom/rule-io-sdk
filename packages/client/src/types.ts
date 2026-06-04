@@ -82,12 +82,12 @@ export type {
 
 // ── Templates ────────────────────────────────────────────────────────────────
 export type {
-  RuleRenderTemplateParams,
-  RuleTemplate,
-  RuleTemplateCreateRequest,
-  RuleTemplateListParams,
-  RuleTemplateListResponse,
-  RuleTemplateResponse,
+  CreateEmailTemplatePayload,
+  EmailTemplate,
+  ListTemplatesParams,
+  RenderTemplateParams,
+  Template,
+  UpdateEmailTemplatePayload,
 } from './resources/templates/templates.types.js';
 
 // ── Dynamic sets ─────────────────────────────────────────────────────────────
