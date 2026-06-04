@@ -179,27 +179,6 @@ describe('RuleClient — deprecated-alias delegation', () => {
     fetchMock = createMockFetch();
   });
 
-  it('createAutomation delegates to automations.create', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.automations, 'create');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'X' } }));
-    await client.createAutomation({ name: 'X' });
-
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith({ name: 'X' });
-  });
-
-  it('createAutomail delegates to automations.create (legacy alias)', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.automations, 'create');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'X' } }));
-    await client.createAutomail({ name: 'X' });
-
-    expect(spy).toHaveBeenCalledWith({ name: 'X' });
-  });
-
   it('syncSubscriber delegates to subscribers.sync with the new signature', async () => {
     const client = makeClient(fetchMock);
     const spy = vi.spyOn(client.subscribers, 'sync');
@@ -942,34 +921,6 @@ describe('RuleClient — deprecated tags/automation/message delegations', () => 
     expect(await client.getTagIdByName('missing')).toBeNull();
   });
 
-  it('getAutomation delegates to automations.get', async () => {
-    const spy = vi.spyOn(client.automations, 'get').mockResolvedValueOnce(null);
-
-    await client.getAutomation(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateAutomation delegates to automations.update', async () => {
-    const spy = vi.spyOn(client.automations, 'update').mockResolvedValueOnce({ data: { id: 1, name: 'A' } });
-
-    await client.updateAutomation(1, { name: 'A' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'A' });
-  });
-
-  it('deleteAutomation delegates to automations.delete', async () => {
-    const spy = vi.spyOn(client.automations, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteAutomation(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listAutomations delegates to automations.list', async () => {
-    const spy = vi.spyOn(client.automations, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listAutomations();
-    expect(spy).toHaveBeenCalled();
-  });
-
 });
 
 
@@ -1145,48 +1096,3 @@ describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports d
   });
 });
 
-describe('Deprecated automail aliases', () => {
-  let fetchMock: MockFetch;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-  });
-
-  it('createAutomail produces the same HTTP call as createAutomation', async () => {
-    fetchMock.mockResolvedValueOnce(
-      createMockResponse({ data: { id: 1, name: 'Test' } })
-    );
-    const client = makeClient(fetchMock);
-
-    const result = await client.createAutomail({ name: 'Test' });
-
-    expect(result.data?.id).toBe(1);
-    const url = fetchMock.mock.calls[0]![0] as string;
-
-    expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
-  });
-
-  it('getAutomail / updateAutomail / deleteAutomail / listAutomails all forward correctly', async () => {
-    fetchMock
-      .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'A' } }))
-      // updateAutomail with full body takes the fast path — no internal GET
-      .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'Updated' } }))
-      .mockResolvedValueOnce(createMock204Response())
-      .mockResolvedValueOnce(createMockResponse({ data: [] }));
-    const client = makeClient(fetchMock);
-
-    expect((await client.getAutomail(1))?.data?.id).toBe(1);
-    expect(
-      (
-        await client.updateAutomail(1, {
-          name: 'Updated',
-          active: true,
-          trigger: { type: 'TAG', id: 42 },
-          sendout_type: 2,
-        })
-      ).data?.name
-    ).toBe('Updated');
-    expect((await client.deleteAutomail(1)).success).toBe(true);
-    expect((await client.listAutomails()).data).toEqual([]);
-  });
-});

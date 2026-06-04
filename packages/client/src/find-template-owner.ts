@@ -15,7 +15,7 @@
 
 import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
-import type { RuleAutomation } from './types.js';
+import type { Automation } from './resources/automations/automations.types.js';
 import type { Campaign } from './resources/campaigns/campaigns.types.js';
 import type { Message } from './resources/messages/messages.types.js';
 
@@ -296,9 +296,11 @@ async function listDispatchers(
     return campaigns as DispatcherListEntry[];
   }
 
-  const response = await client.listAutomations({ page, per_page: PER_PAGE });
+  const automations = await client.automations.listAutomations({
+    pagination: { page, pageSize: PER_PAGE },
+  });
 
-  return (response.data ?? []) as DispatcherListEntry[];
+  return automations as DispatcherListEntry[];
 }
 
 async function probeDispatcher(
@@ -409,7 +411,7 @@ function toOwner(
     };
   }
 
-  const auto = dispatcher as RuleAutomation;
+  const auto = dispatcher as Automation;
 
   return {
     kind: 'automation',

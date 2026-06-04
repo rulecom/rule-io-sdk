@@ -11,6 +11,17 @@ import {
 } from '../../core/mock-fetch.js';
 import { AutomationsClient } from './automations.client.js';
 
+const WIRE_AUTOMATION = {
+  id: 123,
+  name: 'Welcome email',
+  description: 'Sends on signup',
+  active: true,
+  trigger: { type: 'TAG', id: 42, name: 'signup' },
+  sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
+  created_at: '2024-01-01 10:00:00',
+  updated_at: '2024-01-02 10:00:00',
+};
+
 function createClient(fetchMock: MockFetch): AutomationsClient {
   return new AutomationsClient(createMockTransport(fetchMock));
 }
@@ -22,63 +33,66 @@ describe('AutomationsClient', () => {
     fetchMock = createMockFetch();
   });
 
-  describe('create', () => {
-    it('POSTs to v3 /editor/automail with json content-type', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 123, name: 'Test Automation' } })
-      );
+  describe('createEmailAutomation', () => {
+    it('POSTs to v3 /editor/automail and maps response to camelCase', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      const result = await client.create({ name: 'Test Automation' });
+      const result = await client.createEmailAutomation({
+        name: 'Welcome email',
+        trigger: { type: 'TAG', id: 42 },
+        sendoutType: 'marketing',
+      });
 
-      expect(result.data?.id).toBe(123);
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
       expect((init as RequestInit).method).toBe('POST');
-      const headers = (init as RequestInit).headers as Record<string, string>;
 
-      expect(headers['Content-Type']).toBe('application/json;charset=utf-8');
+      const body = JSON.parse((init as RequestInit).body as string);
+
+      // sendout_type is integer in automations (unlike campaigns which uses string)
+      expect(body.sendout_type).toBe(1);
+      expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
+      expect(body).not.toHaveProperty('sendoutType');
+
+      // response normalised to camelCase
+      expect(result.id).toBe(123);
+      expect(result.name).toBe('Welcome email');
+      expect(result.sendoutType).toBe('marketing');
+      expect(result.active).toBe(true);
+      expect(result.trigger).toEqual({ type: 'TAG', id: 42, name: 'signup' });
+      expect(result.createdAt).toBe('2024-01-01 10:00:00');
+      expect(result).not.toHaveProperty('sendout_type');
+      expect(result).not.toHaveProperty('created_at');
     });
 
-    it('forwards trigger and sendout_type in the body', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: { id: 456, name: 'Triggered', trigger: { type: 'TAG', id: 42 } },
-        })
-      );
+    it('maps sendoutType: transactional → sendout_type: 2', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      await client.create({
-        name: 'Triggered',
-        trigger: { type: 'TAG', id: 42 },
-        sendout_type: 2,
-      });
+      await client.createEmailAutomation({ name: 'T', sendoutType: 'transactional' });
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
 
-      expect(body.trigger).toEqual({ type: 'TAG', id: 42 });
       expect(body.sendout_type).toBe(2);
     });
   });
 
   describe('get', () => {
-    it('returns the automation on 200', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'A' } })
-      );
+    it('returns the automation as a camelCase entity on 200', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      const result = await client.get(1);
+      const result = await client.get(123);
 
-      expect(result?.data?.id).toBe(1);
-      const url = fetchMock.mock.calls[0]![0] as string;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(123);
+      expect(result!.sendoutType).toBe('marketing');
     });
 
     it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
       expect(await client.get(99999)).toBeNull();
@@ -92,187 +106,229 @@ describe('AutomationsClient', () => {
     });
   });
 
-  describe('update', () => {
-    it('PUTs the full update body when provided', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Updated', active: true } })
-      );
+  describe('setEmailAutomation', () => {
+    it('PUTs full body in snake_case when automation exists', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      await client.update(1, {
-        name: 'Updated',
+      const result = await client.setEmailAutomation(123, {
+        name: 'Welcome email',
         active: true,
         trigger: { type: 'TAG', id: 42 },
-        sendout_type: 2,
+        sendoutType: 'transactional',
       });
 
+      expect(fetchMock.mock.calls).toHaveLength(1);
       const [url, init] = fetchMock.mock.calls[0]!;
 
-      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
+      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/123');
       expect((init as RequestInit).method).toBe('PUT');
+
       const body = JSON.parse((init as RequestInit).body as string);
 
       expect(body).toEqual({
-        name: 'Updated',
+        name: 'Welcome email',
         active: true,
         trigger: { type: 'TAG', id: 42 },
         sendout_type: 2,
       });
+      expect(result.id).toBe(123);
     });
 
-    it('does a read-modify-write for a partial update (only name provided)', async () => {
-      // GET call: returns existing automation with all required fields
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'Old Name',
-            active: true,
-            trigger: { type: 'TAG', id: 10 },
-            sendout_type: { value: 1, key: 'CAMPAIGN', description: 'Campaign' },
-          },
-        })
-      );
-      // PUT call: returns updated automation
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Renamed' } })
-      );
+    it('falls back to POST when automation does not exist (404)', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockErrorResponse({}, 404))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      await client.update(1, { name: 'Renamed' });
+      await client.setEmailAutomation(1, {
+        name: 'New',
+        active: true,
+        trigger: { type: 'TAG', id: 5 },
+        sendoutType: 'marketing',
+      });
 
-      // First call should be the GET
-      const [getUrl] = fetchMock.mock.calls[0]!;
+      expect(fetchMock.mock.calls).toHaveLength(2);
+      expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('PUT');
+      expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('POST');
+      expect(fetchMock.mock.calls[1]![0]).toBe('https://app.rule.io/api/v3/editor/automail');
+    });
 
-      expect((getUrl as string)).toContain('/editor/automail/1');
+    it('rethrows non-404 errors', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 500));
+      const client = createClient(fetchMock);
+
+      await expect(
+        client.setEmailAutomation(1, { name: 'N', active: true, trigger: { type: 'TAG', id: 5 }, sendoutType: 'marketing' })
+      ).rejects.toBeInstanceOf(RuleApiError);
+    });
+  });
+
+  describe('updateEmailAutomation', () => {
+    it('always does read-modify-write (GET + PUT)', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
+      const client = createClient(fetchMock);
+
+      await client.updateEmailAutomation(123, { name: 'Renamed' });
+
+      expect(fetchMock.mock.calls).toHaveLength(2);
       expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
+      expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('PUT');
+    });
 
-      // Second call should be the PUT with the merged full body
-      const [putUrl, putInit] = fetchMock.mock.calls[1]!;
+    it('merges partial input — name-only update preserves existing fields', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
+      const client = createClient(fetchMock);
 
-      expect(putUrl as string).toContain('/editor/automail/1');
-      expect((putInit as RequestInit).method).toBe('PUT');
-      const body = JSON.parse((putInit as RequestInit).body as string);
+      await client.updateEmailAutomation(123, { name: 'Renamed' });
 
-      expect(body).toEqual({
+      const putBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
+
+      expect(putBody).toEqual({
         name: 'Renamed',
         active: true,
-        trigger: { type: 'TAG', id: 10 },
-        sendout_type: 1,
+        trigger: { type: 'TAG', id: 42, name: 'signup' },
+        sendout_type: 1,  // numeric integer for automations
       });
     });
 
-    it('throws RuleApiError when the automation to update is not found (404)', async () => {
-      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not found' }, 404));
+    it('maps sendoutType string to integer wire value', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_AUTOMATION }));
       const client = createClient(fetchMock);
 
-      await expect(client.update(99, { name: 'X' })).rejects.toThrow(RuleApiError);
+      await client.updateEmailAutomation(123, { sendoutType: 'transactional' });
+
+      const putBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
+
+      expect(putBody.sendout_type).toBe(2);
     });
 
-    it('throws RuleApiError when get() returns a response with no data', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    it('throws RuleApiError(404) when automation does not exist', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      await expect(client.update(1, { name: 'X' })).rejects.toThrow(RuleApiError);
+      await expect(client.updateEmailAutomation(999, { name: 'X' })).rejects.toBeInstanceOf(RuleApiError);
     });
 
     it('throws RuleClientError when existing automation has no trigger and update omits it', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: { id: 1, name: 'No-trigger', active: true, sendout_type: 1 },
-        })
+        createMockResponse({ data: { id: 1, name: 'No-trigger', active: true, sendout_type: { value: 1, key: 'marketing', description: '' } } })
       );
       const client = createClient(fetchMock);
 
-      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
+      await expect(client.updateEmailAutomation(1, { name: 'Rename' })).rejects.toBeInstanceOf(RuleClientError);
     });
 
     it('throws RuleClientError when existing automation has no sendout_type and update omits it', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: { id: 1, name: 'No-sendout', active: true, trigger: { type: 'TAG', id: 5 } },
-        })
+        createMockResponse({ data: { id: 1, name: 'No-sendout', active: true, trigger: { type: 'TAG', id: 5 } } })
       );
       const client = createClient(fetchMock);
 
-      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
+      await expect(client.updateEmailAutomation(1, { name: 'Rename' })).rejects.toBeInstanceOf(RuleClientError);
     });
 
     it('throws RuleClientError when existing automation has no active state and update omits it', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'No-active',
-            trigger: { type: 'TAG', id: 5 },
-            sendout_type: 1,
-          },
-        })
+        createMockResponse({ data: { id: 1, name: 'No-active', trigger: { type: 'TAG', id: 5 }, sendout_type: { value: 1, key: 'marketing', description: '' } } })
       );
       const client = createClient(fetchMock);
 
-      await expect(client.update(1, { name: 'Rename' })).rejects.toThrow(RuleClientError);
+      await expect(client.updateEmailAutomation(1, { name: 'Rename' })).rejects.toBeInstanceOf(RuleClientError);
     });
   });
 
   describe('delete', () => {
-    it('DELETEs the automation', async () => {
+    it('DELETEs the automation and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
-      const result = await client.delete(1);
+      const result = await client.delete(123);
 
-      expect(result.success).toBe(true);
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/automail/1');
-      expect((init as RequestInit).method).toBe('DELETE');
+      expect(result).toBeUndefined();
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/editor/automail/123');
     });
   });
 
-  describe('list', () => {
-    it('serializes filtering params into the query string', async () => {
+  describe('listAutomations', () => {
+    it('returns Automation[] and maps nested params to flat wire params', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: [{ id: 1, name: 'Auto 1' }, { id: 2, name: 'Auto 2' }],
-        })
+        createMockResponse({ data: [WIRE_AUTOMATION] })
       );
       const client = createClient(fetchMock);
 
-      const result = await client.list({ page: 2, per_page: 20, active: true });
+      const result = await client.listAutomations({
+        filters: { active: true, messageType: 'email' },
+        pagination: { page: 2, pageSize: 20 },
+      });
 
-      expect(result.data).toHaveLength(2);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.sendoutType).toBe('marketing');
+
       const url = fetchMock.mock.calls[0]![0] as string;
 
-      expect(url).toContain('/editor/automail?');
       expect(url).toContain('page=2');
       expect(url).toContain('per_page=20');
       expect(url).toContain('active=true');
+      expect(url).toContain('message_type=1');
+      expect(url).not.toContain('messageType');
+      expect(url).not.toContain('pageSize');
     });
 
-    it('omits the query string when no params are provided', async () => {
+    it('omits query string when no params provided', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
       const client = createClient(fetchMock);
 
-      await client.list();
+      await client.listAutomations();
 
-      const url = fetchMock.mock.calls[0]![0] as string;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
-      expect(url).not.toContain('?');
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/editor/automail');
     });
 
-    it('passes the `query` filter through', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: [{ id: 1, name: 'Welcome' }] })
-      );
+    it('passes query filter through', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
       const client = createClient(fetchMock);
 
-      await client.list({ query: 'Welcome' });
+      await client.listAutomations({ filters: { query: 'Welcome' } });
 
-      const url = fetchMock.mock.calls[0]![0] as string;
+      expect(fetchMock.mock.calls[0]![0] as string).toContain('query=Welcome');
+    });
+  });
 
-      expect(url).toContain('query=Welcome');
+  describe('iterateAutomationsPages', () => {
+    it('yields page arrays and stops when a page is smaller than pageSize', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_AUTOMATION, WIRE_AUTOMATION] }))
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_AUTOMATION] }));
+      const client = createClient(fetchMock);
+
+      const pages: number[] = [];
+
+      for await (const page of client.iterateAutomationsPages({ pagination: { pageSize: 2 } })) {
+        pages.push(page.length);
+      }
+
+      expect(pages).toEqual([2, 1]);
+    });
+  });
+
+  describe('listAllAutomations', () => {
+    it('collects all automations from all pages', async () => {
+      const a2 = { ...WIRE_AUTOMATION, id: 456 };
+
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_AUTOMATION, a2] }))
+        .mockResolvedValueOnce(createMockResponse({ data: [] }));
+      const client = createClient(fetchMock);
+
+      const result = await client.listAllAutomations({ pagination: { pageSize: 2 } });
+
+      expect(result.map((a) => a.id)).toEqual([123, 456]);
     });
   });
 });

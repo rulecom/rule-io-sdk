@@ -58,13 +58,6 @@ import type {
   RuleApiKeyUpdateRequest,
 } from './resources/api-keys/api-keys.types.js';
 import type {
-  RuleAutomationCreateRequest,
-  RuleAutomationListParams,
-  RuleAutomationListResponse,
-  RuleAutomationResponse,
-  RuleAutomationUpdateRequest,
-} from './resources/automations/automations.types.js';
-import type {
   RuleBrandStyleCreateRequest,
   RuleBrandStyleFromDomainRequest,
   RuleBrandStyleListResponse,
@@ -403,64 +396,6 @@ export class RuleClient extends BaseResource {
     return tag?.id ?? null;
   }
 
-  // ── Automations (incl. legacy `Automail` aliases) ─────────────────────────
-
-  /** @deprecated Use `client.automations.create()` instead. */
-  createAutomation(req: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
-    return this.automations.create(req);
-  }
-
-  /** @deprecated Use `client.automations.get()` instead. */
-  getAutomation(id: number): Promise<RuleAutomationResponse | null> {
-    return this.automations.get(id);
-  }
-
-  /** @deprecated Use `client.automations.update()` instead. */
-  updateAutomation(
-    id: number,
-    update: Partial<RuleAutomationUpdateRequest>
-  ): Promise<RuleAutomationResponse> {
-    return this.automations.update(id, update);
-  }
-
-  /** @deprecated Use `client.automations.delete()` instead. */
-  deleteAutomation(id: number): Promise<RuleApiResponse> {
-    return this.automations.delete(id);
-  }
-
-  /** @deprecated Use `client.automations.list()` instead. */
-  listAutomations(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
-    return this.automations.list(params);
-  }
-
-  /** @deprecated Use `client.automations.create()` instead. */
-  createAutomail(req: RuleAutomationCreateRequest): Promise<RuleAutomationResponse> {
-    return this.automations.create(req);
-  }
-
-  /** @deprecated Use `client.automations.get()` instead. */
-  getAutomail(id: number): Promise<RuleAutomationResponse | null> {
-    return this.automations.get(id);
-  }
-
-  /** @deprecated Use `client.automations.update()` instead. */
-  updateAutomail(
-    id: number,
-    update: Partial<RuleAutomationUpdateRequest>
-  ): Promise<RuleAutomationResponse> {
-    return this.automations.update(id, update);
-  }
-
-  /** @deprecated Use `client.automations.delete()` instead. */
-  deleteAutomail(id: number): Promise<RuleApiResponse> {
-    return this.automations.delete(id);
-  }
-
-  /** @deprecated Use `client.automations.list()` instead. */
-  listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
-    return this.automations.list(params);
-  }
-
   // ── Suppressions ──────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.suppressions.create()` instead. */
@@ -727,18 +662,18 @@ export class RuleClient extends BaseResource {
         );
       }
 
-      const automationResponse = await this.automations.create({
+      const automation = await this.automations.createEmailAutomation({
         name: config.name,
         description: config.description,
-        sendout_type: config.sendoutType || 2,
+        sendoutType: config.sendoutType || 'transactional',
         ...(trigger ? { trigger } : {}),
       });
 
-      if (!automationResponse.data?.id) {
+      if (!automation.id) {
         throw new RuleApiError('Failed to create automation - no ID returned', 500);
       }
 
-      const automationId = automationResponse.data.id;
+      const automationId = automation.id;
 
       createdResources.push({ type: 'automail', id: automationId });
 

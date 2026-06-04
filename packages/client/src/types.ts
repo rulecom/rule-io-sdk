@@ -50,21 +50,13 @@ export type {
 
 // ── Automations ──────────────────────────────────────────────────────────────
 export type {
-  RuleAutomation,
-  RuleAutomationCreateRequest,
-  RuleAutomationListParams,
-  RuleAutomationListResponse,
-  RuleAutomationResponse,
-  RuleAutomationTrigger,
-  RuleAutomationUpdateRequest,
-  RuleAutomail,
-  RuleAutomailCreateRequest,
-  RuleAutomailListParams,
-  RuleAutomailListResponse,
-  RuleAutomailResponse,
-  RuleAutomailTrigger,
-  RuleAutomailUpdateRequest,
-  RuleSendoutType,
+  Automation,
+  AutomationSendoutType,
+  AutomationTrigger,
+  CreateEmailAutomationPayload,
+  ListAutomationsParams,
+  SetEmailAutomationPayload,
+  UpdateEmailAutomationPayload,
 } from './resources/automations/automations.types.js';
 
 // ── Messages ─────────────────────────────────────────────────────────────────

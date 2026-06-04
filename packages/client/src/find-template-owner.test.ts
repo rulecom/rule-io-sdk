@@ -53,11 +53,13 @@ function buildClient(opts: {
 
     return data.map((d) => ({ id: d.id, name: d.name })) as never;
   });
-  vi.spyOn(client, 'listAutomations').mockImplementation(async ({ page = 1 } = {}) => {
+  vi.spyOn(client.automations, 'listAutomations').mockImplementation(async (params) => {
+    const page = params?.pagination?.page ?? 1;
+
     callLog?.push(`listAutomations:${String(page)}`);
     const data = automationsPages[page - 1] ?? [];
 
-    return { data: data.map((d) => ({ id: d.id, name: d.name, active: true })) } as never;
+    return data.map((d) => ({ id: d.id, name: d.name, active: true })) as never;
   });
 
   const mockListMessages = async (id: number, kind: 'campaign' | 'automation') => {
@@ -309,7 +311,7 @@ describe('findTemplateOwner', () => {
     const dispatchers = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     let inFlight = 0;
     let peakInFlight = 0;
 
@@ -337,7 +339,7 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
       [{ id: 1, name: 'Promo' }] as never
     );
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'm' },
     ]);
@@ -372,7 +374,7 @@ describe('findTemplateOwner', () => {
     const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async (id) => {
       await new Promise((r) => setTimeout(r, 5));
       if (id === 1) return [{ id: 101, subject: 's', name: 'm' }];
@@ -400,7 +402,7 @@ describe('findTemplateOwner', () => {
     const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     let listMessagesCalls = 0;
 
     vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async (id) => {
@@ -433,7 +435,7 @@ describe('findTemplateOwner', () => {
     const dispatchers = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     let inFlight = 0;
     let peakInFlight = 0;
 
@@ -475,8 +477,8 @@ describe('findTemplateOwner', () => {
       return [] as never;
     });
     const automationsSpy = vi
-      .spyOn(client, 'listAutomations')
-      .mockResolvedValue({ data: [] } as never);
+      .spyOn(client.automations, 'listAutomations')
+      .mockResolvedValue([] as never);
 
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([]);
     vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
@@ -493,7 +495,7 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
       [{ name: 'no-id' } as never, { id: 2, name: 'has-id' } as never] as never
     );
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     const listCampaignMessages = vi
       .spyOn(client.messages, 'listCampaignMessages')
       .mockResolvedValue([]);
@@ -512,7 +514,7 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
       [{ id: 1, name: 'Promo', status: 'sent' }] as never
     );
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'Hi' },
     ]);
@@ -531,7 +533,7 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
       [{ id: 1, name: 'Promo', status: { key: 'scheduled' } }] as never
     );
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'Hi' },
     ]);
@@ -550,7 +552,7 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client.campaigns, 'listCampaigns').mockRejectedValue(
       new RuleApiError('forbidden', 403)
     );
-    vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.automations, 'listAutomations').mockResolvedValue([] as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([]);
     vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client.dynamicSets, 'listDynamicSets').mockResolvedValue([]);
