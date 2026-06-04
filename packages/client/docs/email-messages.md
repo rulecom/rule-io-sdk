@@ -1,29 +1,36 @@
 # Email Messages
 
-A message holds the subject line and sender settings for an email. Every email sent by Rule.io — whether via a campaign or an automation — goes through the same three-layer structure:
+A message holds the subject line, sender settings, and delivery configuration for an email. It sits between a dispatcher and a template in the email chain:
 
 ```
 Dispatcher (campaign or automation)
-  └── Message  (subject, sender info)
+  └── Message  (subject, sender)
         └── Dynamic Set
-              └── Template  (the RCML email body)
+              └── Template  (RCML email body)
 ```
 
-The message belongs to a dispatcher and is shared across both dispatchers. You create it the same way regardless of whether the dispatcher is a campaign or an automation.
+Each dispatcher has its own message. Once you have a message ID, create a template and connect them with a dynamic set to complete the chain. See [Email Templates](./email-templates) and [Dynamic Sets](./dynamic-sets).
 
-## Creating a message
+## Creating a campaign message
 
-Use the dispatcher-specific method — it sets the dispatcher reference and email type automatically:
+Use `createEmailCampaignMessage()` to create a message attached to a campaign. Provide at minimum a subject line — sender details default to your account settings if omitted.
 
 ```typescript
-// For a campaign
 const message = await client.messages.createEmailCampaignMessage(campaignId, {
   subject: 'Your order is on its way',
   fromName: 'Jane from Acme',
   fromEmail: 'jane@acme.com',
 });
+const messageId = message.id!;
+```
 
-// For an automation
+*→ [`CreateEmailCampaignMessagePayload`](/api/client/src/interfaces/CreateEmailCampaignMessagePayload)*
+
+## Creating an automation message
+
+Use `createEmailAutomationMessage()` to create a message attached to an automation. You can also configure when the automation fires via `automailSetting`.
+
+```typescript
 const message = await client.messages.createEmailAutomationMessage(automationId, {
   subject: 'Welcome to Acme!',
   fromName: 'Jane from Acme',
@@ -31,39 +38,86 @@ const message = await client.messages.createEmailAutomationMessage(automationId,
   // Optional: control when the automation fires
   automailSetting: { active: true, delayInSeconds: '0' },
 });
-
 const messageId = message.id!;
 ```
 
-*→ [`CreateEmailCampaignMessagePayload`](/api/client/src/interfaces/CreateEmailCampaignMessagePayload) · [`CreateEmailAutomationMessagePayload`](/api/client/src/interfaces/CreateEmailAutomationMessagePayload)*
+Pass `delayInSeconds: '3600'` to delay the send by one hour after the trigger fires. Pass `active: false` to create the message in a paused state.
 
-Once you have a message, create a template and link them with a dynamic set to complete the chain:
+*→ [`CreateEmailAutomationMessagePayload`](/api/client/src/interfaces/CreateEmailAutomationMessagePayload)*
 
-- [Email Templates](./email-templates) — create the RCML email body
-- [Dynamic Sets](./dynamic-sets) — link the template to the message
+## Fetching a message
 
-## Managing messages
+Use `get()` to retrieve a single message by ID. Returns `null` if the message does not exist.
 
 ```typescript
-// List messages for a campaign
-const campaignMessages = await client.messages.listCampaignMessages(campaignId);
-
-// List messages for an automation
-const automationMessages = await client.messages.listAutomationMessages(automationId);
-
-// Fetch a single message
 const message = await client.messages.get(messageId);
 
-// Update a campaign message
-await client.messages.updateEmailCampaignMessage(messageId, { subject: 'New subject line', fromName: 'Bob' });
+if (!message) {
+  console.log('Message not found');
+} else {
+  console.log(message.subject);
+  console.log(message.fromName, message.fromEmail);
+  console.log(message.dispatcher); // { id, type }
+}
+```
 
-// Update an automation message (can also change automail delivery settings)
+## Updating a campaign message
+
+Use `updateEmailCampaignMessage()` to change the subject, sender, or tracking parameters. Pass only the fields you want to change — omitted fields are left as-is.
+
+```typescript
+// Change the subject
+await client.messages.updateEmailCampaignMessage(messageId, {
+  subject: 'Your order has shipped!',
+});
+
+// Update sender and UTM tracking
+await client.messages.updateEmailCampaignMessage(messageId, {
+  fromName: 'Support Team',
+  fromEmail: 'support@acme.com',
+  utmCampaign: 'spring-sale',
+});
+```
+
+*→ [`UpdateEmailCampaignMessagePayload`](/api/client/src/interfaces/UpdateEmailCampaignMessagePayload)*
+
+## Updating an automation message
+
+Use `updateEmailAutomationMessage()` to change subject, sender, or delivery settings. Automation messages additionally support changing the `automailSetting` to adjust the active state or send delay.
+
+```typescript
+// Update subject copy
 await client.messages.updateEmailAutomationMessage(messageId, {
-  subject: 'Updated welcome',
+  subject: 'Welcome — updated',
+});
+
+// Change the send delay to 1 hour
+await client.messages.updateEmailAutomationMessage(messageId, {
   automailSetting: { active: true, delayInSeconds: '3600' },
 });
 
-// Delete
+// Pause the automation without deleting it
+await client.messages.updateEmailAutomationMessage(messageId, {
+  automailSetting: { active: false, delayInSeconds: '0' },
+});
+```
+
+*→ [`UpdateEmailAutomationMessagePayload`](/api/client/src/interfaces/UpdateEmailAutomationMessagePayload)*
+
+## Listing messages
+
+Retrieve all messages for a campaign or automation. A dispatcher typically has one message, but the API supports multiple (e.g. for A/B variants).
+
+```typescript
+const campaignMessages = await client.messages.listCampaignMessages(campaignId);
+const automationMessages = await client.messages.listAutomationMessages(automationId);
+```
+
+## Deleting a message
+
+Deleting a message also removes the dynamic sets linked to it, which breaks the connection to any templates. The templates themselves are not deleted. See [Dynamic Sets](./dynamic-sets) for details.
+
+```typescript
 await client.messages.delete(messageId);
 ```
 
