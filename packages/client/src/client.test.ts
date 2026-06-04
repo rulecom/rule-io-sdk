@@ -981,41 +981,6 @@ describe('RuleClient — deprecated dynamic-set/campaign delegations', () => {
     client = makeClient(fetchMock);
   });
 
-  it('createDynamicSet delegates to dynamicSets.create', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createDynamicSet({ message_id: 1, template_id: 2 });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getDynamicSet delegates to dynamicSets.get', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'get').mockResolvedValueOnce(null);
-
-    await client.getDynamicSet(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateDynamicSet delegates to dynamicSets.update', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateDynamicSet(1, { template_id: 2 });
-    expect(spy).toHaveBeenCalledWith(1, { template_id: 2 });
-  });
-
-  it('deleteDynamicSet delegates to dynamicSets.delete', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteDynamicSet(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listDynamicSets delegates to dynamicSets.list', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listDynamicSets({ message_id: 1 });
-    expect(spy).toHaveBeenCalled();
-  });
-
   it('listCampaigns delegates to campaigns.list', async () => {
     const spy = vi.spyOn(client.campaigns, 'list').mockResolvedValueOnce({ data: [] });
 

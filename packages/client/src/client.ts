@@ -90,13 +90,6 @@ import type {
   CustomFieldGroupDataRecord,
 } from './resources/subscribers/subscribers.types.js';
 import type {
-  RuleDynamicSetCreateRequest,
-  RuleDynamicSetListParams,
-  RuleDynamicSetListResponse,
-  RuleDynamicSetResponse,
-  RuleDynamicSetUpdateRequest,
-} from './resources/dynamic-sets/dynamic-sets.types.js';
-import type {
   RuleExportDispatcherParams,
   RuleExportDispatcherResponse,
   RuleExportStatisticsParams,
@@ -476,36 +469,6 @@ export class RuleClient extends BaseResource {
     return this.automations.list(params);
   }
 
-  // ── Dynamic sets ──────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.dynamicSets.create()` instead. */
-  createDynamicSet(req: RuleDynamicSetCreateRequest): Promise<RuleDynamicSetResponse> {
-    return this.dynamicSets.create(req);
-  }
-
-  /** @deprecated Use `client.dynamicSets.get()` instead. */
-  getDynamicSet(id: number): Promise<RuleDynamicSetResponse | null> {
-    return this.dynamicSets.get(id);
-  }
-
-  /** @deprecated Use `client.dynamicSets.update()` instead. */
-  updateDynamicSet(
-    id: number,
-    update: RuleDynamicSetUpdateRequest
-  ): Promise<RuleDynamicSetResponse> {
-    return this.dynamicSets.update(id, update);
-  }
-
-  /** @deprecated Use `client.dynamicSets.delete()` instead. */
-  deleteDynamicSet(id: number): Promise<RuleApiResponse> {
-    return this.dynamicSets.delete(id);
-  }
-
-  /** @deprecated Use `client.dynamicSets.list()` instead. */
-  listDynamicSets(params: RuleDynamicSetListParams): Promise<RuleDynamicSetListResponse> {
-    return this.dynamicSets.list(params);
-  }
-
   // ── Campaigns ─────────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.campaigns.list()` instead. */
@@ -863,16 +826,16 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'template', id: templateId });
 
-      const dynamicSetResponse = await this.dynamicSets.create({
-        message_id: messageId,
-        template_id: templateId,
+      const dynamicSet = await this.dynamicSets.create({
+        messageId,
+        templateId,
       });
 
-      if (!dynamicSetResponse.data?.id) {
+      if (!dynamicSet.id) {
         throw new RuleApiError('Failed to create dynamic set - no ID returned', 500);
       }
 
-      const dynamicSetId = dynamicSetResponse.data.id;
+      const dynamicSetId = dynamicSet.id;
 
       return {
         automationId,
@@ -993,12 +956,12 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'template', id: templateId });
 
-      const dynamicSetResponse = await this.dynamicSets.create({
-        message_id: messageId,
-        template_id: templateId,
+      const dynamicSet = await this.dynamicSets.create({
+        messageId,
+        templateId,
       });
 
-      if (!dynamicSetResponse.data?.id) {
+      if (!dynamicSet.id) {
         throw new RuleApiError('Failed to create dynamic set - no ID returned', 500);
       }
 
@@ -1006,7 +969,7 @@ export class RuleClient extends BaseResource {
         campaignId,
         messageId,
         templateId,
-        dynamicSetId: dynamicSetResponse.data.id,
+        dynamicSetId: dynamicSet.id,
       };
     } catch (error) {
       for (const resource of createdResources.reverse()) {

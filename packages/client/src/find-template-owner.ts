@@ -377,10 +377,10 @@ async function messageOwnsTemplate(
   messageId: number,
   templateId: number
 ): Promise<boolean> {
-  const response = await client.listDynamicSets({ message_id: messageId });
+  const dynamicSets = await client.dynamicSets.listDynamicSets(messageId);
 
-  for (const ds of response.data ?? []) {
-    if (ds.template_id === templateId) return true;
+  for (const ds of dynamicSets) {
+    if (ds.templateId === templateId) return true;
   }
 
   return false;

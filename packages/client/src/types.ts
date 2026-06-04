@@ -92,12 +92,11 @@ export type {
 
 // ── Dynamic sets ─────────────────────────────────────────────────────────────
 export type {
-  RuleDynamicSet,
-  RuleDynamicSetCreateRequest,
-  RuleDynamicSetListParams,
-  RuleDynamicSetListResponse,
-  RuleDynamicSetResponse,
-  RuleDynamicSetUpdateRequest,
+  CreateDynamicSetPayload,
+  DynamicSet,
+  DynamicSetSender,
+  DynamicSetTrigger,
+  UpdateDynamicSetPayload,
 } from './resources/dynamic-sets/dynamic-sets.types.js';
 
 // ── Campaigns ────────────────────────────────────────────────────────────────
