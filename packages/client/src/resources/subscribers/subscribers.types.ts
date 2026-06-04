@@ -165,6 +165,18 @@ export interface BulkTagsPayload {
   tags: (string | number)[];
 }
 
+/**
+ * Options shared by all suppression and unsuppression methods.
+ */
+export interface SuppressOptions {
+  /**
+   * Webhook URL Rule.io will call when async processing completes.
+   *
+   * See [Asynchronous Operations](../docs/async-operations.md) for details.
+   */
+  callbackUrl?: string;
+}
+
 // ── Custom field data ─────────────────────────────────────────────────────────
 
 /** Raw value that can be stored in a custom field. */

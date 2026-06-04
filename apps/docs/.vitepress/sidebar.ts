@@ -85,6 +85,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Organizing with Tags', link: '/packages/client/organizing-with-tags' },
           { text: 'Triggering Tag Automations', link: '/packages/client/tag-automation-modes' },
           { text: 'Blocking Subscribers', link: '/packages/client/blocking-subscribers' },
+          { text: 'Managing Suppressions', link: '/packages/client/managing-suppressions' },
           { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
         ],
       },
@@ -112,7 +113,6 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         collapsed: true,
         items: [
           { text: 'Managing Brand Styles', link: '/packages/client/managing-brand-styles' },
-          { text: 'Managing Suppressions', link: '/packages/client/managing-suppressions' },
           { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },
         ],
       },

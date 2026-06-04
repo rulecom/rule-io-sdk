@@ -1,62 +1,118 @@
 # Managing Suppressions
 
-Suppressions prevent Rule.io from sending emails to specific subscribers. Use them to honour opt-out requests, comply with unsubscribe workflows, or block specific addresses from receiving certain message types.
+Suppressions prevent Rule.io from sending marketing emails or SMS to specific subscribers. Use them to honour opt-out requests, comply with unsubscribe workflows, or exclude addresses from specific channels.
 
-Suppression operations run **asynchronously** — the API returns immediately and processes the list in the background. Pass a `callback_url` if you need confirmation when processing is complete.
+This is different from [blocking](./blocking-subscribers.md) — blocking prevents a subscriber from receiving any emails; suppressions are channel-specific and reversible.
+
+All suppression operations are **asynchronous** (see [Asynchronous Operations](./async-operations)). Up to 1000 subscribers can be included in a single request.
 
 ## Suppressing subscribers
 
-```typescript
-await client.suppressions.create({
-  subscribers: [
-    { email: 'opted-out@example.com' },
-    { email: 'complaint@example.com' },
-    { phone_number: '+46701234567' },
-  ],
-});
-```
-
-Up to 1000 subscribers can be included in a single request.
-
-### Limiting suppression to a message type
-
-By default, suppressions apply to all message types. To suppress only for specific channels:
+`suppressSubscribers(subscribers, messageTypes?, opts?)` accepts an optional `messageTypes` argument that controls which channels are suppressed. Omit it to suppress all channels; pass `['email']` or `['text_message']` to suppress one channel only.
 
 ```typescript
-await client.suppressions.create({
-  subscribers: [{ email: 'opted-out@example.com' }],
-  message_types: ['email'],  // only suppress email, not SMS
-});
+// Suppress all channels (email + SMS)
+await client.subscribers.suppressSubscribers([
+  { email: 'opted-out@example.com' },
+  { email: 'complaint@example.com' },
+  { phoneNumber: '+46701234567' },
+]);
+
+// Suppress email channel only
+await client.subscribers.suppressSubscribers(
+  [{ email: 'no-email@example.com' }],
+  ['email'],
+);
+
+// Suppress SMS channel only
+await client.subscribers.suppressSubscribers(
+  [{ phoneNumber: '+46701234567' }],
+  ['text_message'],
+);
 ```
 
-### Using a callback URL
+For a single subscriber, use `suppressSubscriber(subscriber, messageTypes?, opts?)`:
 
 ```typescript
-await client.suppressions.create({
-  subscribers: [{ email: 'opted-out@example.com' }],
-  callback_url: 'https://your-app.com/webhooks/suppression-done',
-});
+// All channels
+await client.subscribers.suppressSubscriber({ email: 'opted-out@example.com' });
+
+// Email only
+await client.subscribers.suppressSubscriber({ email: 'opted-out@example.com' }, ['email']);
 ```
 
-Rule.io will POST to this URL when the suppression is applied.
+Already-suppressed subscribers are silently skipped — the operation is idempotent.
 
-*→ [`RuleSuppressionRequest`](/api/client/src/interfaces/RuleSuppressionRequest) · [`RuleSuppressionSubscriberIdentifier`](/api/client/src/interfaces/RuleSuppressionSubscriberIdentifier)*
+## Focused suppress methods
 
-## Removing suppressions (reactivation)
-
-To allow emails to a previously suppressed subscriber again:
+For the most common cases, named shortcut methods are available. These are equivalent to passing the specific `messageTypes` value to `suppressSubscribers`:
 
 ```typescript
-await client.suppressions.delete({
-  subscribers: [
-    { email: 'resubscribed@example.com' },
-  ],
-});
+// Email channel only
+await client.subscribers.suppressEmailsForSubscribers([{ email: 'no-email@example.com' }]);
+await client.subscribers.suppressEmailsForSubscriber({ email: 'no-email@example.com' });
+
+// SMS channel only
+await client.subscribers.suppressSmsForSubscribers([{ phoneNumber: '+46701234567' }]);
+await client.subscribers.suppressSmsForSubscriber({ phoneNumber: '+46701234567' });
 ```
 
-The same `message_types` and `callback_url` options are available on `delete()`.
+## Removing suppressions
+
+`unsuppressSubscribers(subscribers, messageTypes?, opts?)` follows the same pattern. Omit `messageTypes` to remove all channel suppressions; pass a specific channel to remove only that one.
+
+```typescript
+// Remove all suppressions
+await client.subscribers.unsuppressSubscribers([
+  { email: 'resubscribed@example.com' },
+]);
+
+// Remove email suppression only (SMS suppression remains)
+await client.subscribers.unsuppressSubscribers(
+  [{ email: 'resubscribed@example.com' }],
+  ['email'],
+);
+```
+
+For a single subscriber, use `unsuppressSubscriber(subscriber, messageTypes?, opts?)`:
+
+```typescript
+// Remove all suppressions
+await client.subscribers.unsuppressSubscriber({ email: 'resubscribed@example.com' });
+
+// Remove SMS suppression only
+await client.subscribers.unsuppressSubscriber({ phoneNumber: '+46701234567' }, ['text_message']);
+```
+
+## Focused unsuppress methods
+
+Named shortcuts are available for the common cases:
+
+```typescript
+// Email channel only
+await client.subscribers.unsuppressEmailsForSubscribers([{ email: 'resubscribed@example.com' }]);
+await client.subscribers.unsuppressEmailsForSubscriber({ email: 'resubscribed@example.com' });
+
+// SMS channel only
+await client.subscribers.unsuppressSmsForSubscribers([{ phoneNumber: '+46701234567' }]);
+await client.subscribers.unsuppressSmsForSubscriber({ phoneNumber: '+46701234567' });
+```
+
+## Async notifications
+
+Pass a `callbackUrl` on any suppression or unsuppression method to receive a webhook notification when Rule.io finishes processing. This is useful when suppressing large lists.
+
+```typescript
+await client.subscribers.suppressSubscribers(
+  [{ email: 'opted-out@example.com' }, { email: 'complaint@example.com' }],
+  undefined,          // suppress all channels
+  { callbackUrl: 'https://your-app.com/webhooks/suppression-done' },
+);
+```
+
+Rule.io will call the URL via GET when the operation completes. See [Asynchronous Operations](./async-operations) for details.
 
 ## Next steps
 
-- Bulk block subscribers without suppressing them: [Bulk Operations](./bulk-operations)
+- Block subscribers from receiving any emails: [Blocking Subscribers](./blocking-subscribers)
 - Export subscriber data for audit: [Exporting Data](./exporting-data)

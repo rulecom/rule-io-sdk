@@ -34,6 +34,7 @@ export type {
   SubscriberSegment,
   CreateSubscriberPayload,
   BulkTagsPayload,
+  SuppressOptions,
   TagRef,
   TagAutomationMode,
   AddSubscriberTagsOptions,
@@ -110,11 +111,6 @@ export type {
   UpdateEmailCampaignPayload,
 } from './resources/campaigns/campaigns.types.js';
 
-// ── Suppressions ─────────────────────────────────────────────────────────────
-export type {
-  RuleSuppressionRequest,
-  RuleSuppressionSubscriberIdentifier,
-} from './resources/suppressions/suppressions.types.js';
 
 // ── Brand styles ─────────────────────────────────────────────────────────────
 export type {

@@ -40,7 +40,6 @@ import { ExportsClient } from './resources/exports/exports.client.js';
 import { MessagesClient } from './resources/messages/messages.client.js';
 import { RecipientsClient } from './resources/recipients/recipients.client.js';
 import { SubscribersClient } from './resources/subscribers/subscribers.client.js';
-import { SuppressionsClient } from './resources/suppressions/suppressions.client.js';
 import { TagsClient } from './resources/tags/tags.client.js';
 import { TemplatesClient } from './resources/templates/templates.client.js';
 
@@ -95,7 +94,6 @@ import type {
   BulkTagsPayload,
   CreateSubscriberPayload,
 } from './resources/subscribers/subscribers.types.js';
-import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
 import type {
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
@@ -170,10 +168,6 @@ export class RuleClient extends BaseResource {
 
   get campaigns(): CampaignsClient {
     return this.lazy('campaigns', () => new CampaignsClient(this.transport));
-  }
-
-  get suppressions(): SuppressionsClient {
-    return this.lazy('suppressions', () => new SuppressionsClient(this.transport));
   }
 
   get brandStyles(): BrandStylesClient {
@@ -379,18 +373,6 @@ export class RuleClient extends BaseResource {
       :                                        { email: String(subscriber) };
 
     return this.subscribers.removeSubscriberTag(id, tag);
-  }
-
-  // ── Suppressions ──────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.suppressions.create()` instead. */
-  createSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
-    return this.suppressions.create(request);
-  }
-
-  /** @deprecated Use `client.suppressions.delete()` instead. */
-  deleteSuppressions(request: RuleSuppressionRequest): Promise<RuleApiResponse> {
-    return this.suppressions.delete(request);
   }
 
   // ── Brand styles ──────────────────────────────────────────────────────────

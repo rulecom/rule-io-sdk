@@ -43,7 +43,6 @@ import { RecipientSubscribersClient } from './resources/recipients/subscribers/r
 import { RecipientTagsClient } from './resources/recipients/tags/recipient-tags.client.js';
 import { SegmentsClient } from './resources/recipients/segments/segments.client.js';
 import { SubscribersClient } from './resources/subscribers/subscribers.client.js';
-import { SuppressionsClient } from './resources/suppressions/suppressions.client.js';
 import { TagsClient } from './resources/tags/tags.client.js';
 import { TemplatesClient } from './resources/templates/templates.client.js';
 import { RuleClient } from './client.js';
@@ -70,7 +69,6 @@ describe('RuleClient — namespaced API', () => {
       expect(client.templates).toBeInstanceOf(TemplatesClient);
       expect(client.dynamicSets).toBeInstanceOf(DynamicSetsClient);
       expect(client.campaigns).toBeInstanceOf(CampaignsClient);
-      expect(client.suppressions).toBeInstanceOf(SuppressionsClient);
       expect(client.brandStyles).toBeInstanceOf(BrandStylesClient);
       expect(client.apiKeys).toBeInstanceOf(ApiKeysClient);
       expect(client.exports).toBeInstanceOf(ExportsClient);
@@ -146,7 +144,6 @@ describe('RuleClient — namespaced API', () => {
         client.templates,
         client.dynamicSets,
         client.campaigns,
-        client.suppressions,
         client.brandStyles,
         client.apiKeys,
         client.exports,
@@ -891,27 +888,13 @@ describe('RuleClient — deprecated subscriber delegations', () => {
   });
 });
 
-describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports delegations', () => {
+describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', () => {
   let fetchMock: MockFetch;
   let client: RuleClient;
 
   beforeEach(() => {
     fetchMock = createMockFetch();
     client = makeClient(fetchMock);
-  });
-
-  it('createSuppressions delegates to suppressions.create', async () => {
-    const spy = vi.spyOn(client.suppressions, 'create').mockResolvedValueOnce({ success: true });
-
-    await client.createSuppressions({ subscribers: [{ email: 'a@b.c' }] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('deleteSuppressions delegates to suppressions.delete', async () => {
-    const spy = vi.spyOn(client.suppressions, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteSuppressions({ subscribers: [{ email: 'a@b.c' }] });
-    expect(spy).toHaveBeenCalled();
   });
 
   it('getBrandStyle delegates to brandStyles.get', async () => {

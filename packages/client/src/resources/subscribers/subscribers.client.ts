@@ -10,6 +10,7 @@ import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
   BulkTagsPayload,
+  SuppressOptions,
   AddSubscriberTagOptions,
   SubscriberSyncPayload,
   CustomFieldGroupData,
@@ -1208,6 +1209,299 @@ export class SubscribersClient extends BaseResource {
     });
 
     return { success: true };
+  }
+
+  // ── Suppressions ─────────────────────────────────────────────────────────
+
+  /**
+   * Suppress multiple subscribers from receiving marketing sendouts.
+   *
+   * Prevents the listed subscribers from receiving Rule.io marketing emails
+   * and/or SMS. Pass `messageTypes` to limit the suppression to specific
+   * channels; omit it to suppress all channels. Already-suppressed
+   * subscribers are silently skipped (idempotent).
+   *
+   * Processed **asynchronously** — see {@link SuppressOptions.callbackUrl}
+   * to receive a notification when complete. Maximum 1000 subscribers per
+   * request.
+   *
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param messageTypes - Channels to suppress. Omit to suppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * // Suppress all channels
+   * await client.subscribers.suppressSubscribers([
+   *   { email: 'opted-out@example.com' },
+   *   { email: 'complaint@example.com' },
+   * ]);
+   *
+   * // Suppress email channel only
+   * await client.subscribers.suppressSubscribers(
+   *   [{ email: 'no-email@example.com' }],
+   *   ['email'],
+   * );
+   * ```
+   */
+  async suppressSubscribers(
+    subscribers: SubscriberIdentifier[],
+    messageTypes?: ('email' | 'text_message')[],
+    opts: SuppressOptions = {}
+  ): Promise<void> {
+    if (!subscribers.length) throw new RuleClientError('subscribers array must not be empty');
+    if (subscribers.length > 1000) throw new RuleClientError('subscribers array must not exceed 1000 items');
+
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
+
+    if (messageTypes?.length) payload.message_types = messageTypes;
+    if (opts.callbackUrl) payload.callback_url = opts.callbackUrl;
+
+    await this.transport.fetchRaw('POST', '/suppressions/', { body: JSON.stringify(payload) });
+  }
+
+  /**
+   * Suppress a single subscriber from receiving marketing sendouts.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param messageTypes - Channels to suppress. Omit to suppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressSubscriber({ email: 'opted-out@example.com' });
+   * ```
+   */
+  suppressSubscriber(
+    subscriber: SubscriberIdentifier,
+    messageTypes?: ('email' | 'text_message')[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], messageTypes, opts);
+  }
+
+  /**
+   * Suppress multiple subscribers from receiving marketing emails only.
+   *
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressEmailsForSubscribers([
+   *   { email: 'opted-out@example.com' },
+   * ]);
+   * ```
+   */
+  suppressEmailsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers(subscribers, ['email'], opts);
+  }
+
+  /**
+   * Suppress a single subscriber from receiving marketing emails only.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressEmailsForSubscriber({ email: 'no-email@example.com' });
+   * ```
+   */
+  suppressEmailsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], ['email'], opts);
+  }
+
+  /**
+   * Suppress multiple subscribers from receiving marketing SMS only.
+   *
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressSmsForSubscribers([
+   *   { phoneNumber: '+46701234567' },
+   * ]);
+   * ```
+   */
+  suppressSmsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers(subscribers, ['text_message'], opts);
+  }
+
+  /**
+   * Suppress a single subscriber from receiving marketing SMS only.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressSmsForSubscriber({ phoneNumber: '+46701234567' });
+   * ```
+   */
+  suppressSmsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], ['text_message'], opts);
+  }
+
+  /**
+   * Remove suppressions from multiple subscribers so they can receive
+   * marketing sendouts again.
+   *
+   * Pass `messageTypes` to remove suppressions for specific channels only;
+   * omit it to remove all channel suppressions for each subscriber. Maximum
+   * 1000 subscribers per request.
+   *
+   * @param subscribers - Subscriber identifiers to unsuppress (max 1000).
+   * @param messageTypes - Channels to unsuppress. Omit to unsuppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * // Remove all suppressions
+   * await client.subscribers.unsuppressSubscribers([
+   *   { email: 'resubscribed@example.com' },
+   * ]);
+   *
+   * // Remove email suppression only
+   * await client.subscribers.unsuppressSubscribers(
+   *   [{ email: 'resubscribed@example.com' }],
+   *   ['email'],
+   * );
+   * ```
+   */
+  async unsuppressSubscribers(
+    subscribers: SubscriberIdentifier[],
+    messageTypes?: ('email' | 'text_message')[],
+    opts: SuppressOptions = {}
+  ): Promise<void> {
+    if (!subscribers.length) throw new RuleClientError('subscribers array must not be empty');
+    if (subscribers.length > 1000) throw new RuleClientError('subscribers array must not exceed 1000 items');
+
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
+
+    if (messageTypes?.length) payload.message_types = messageTypes;
+    if (opts.callbackUrl) payload.callback_url = opts.callbackUrl;
+
+    await this.transport.fetchRaw('DELETE', '/suppressions/', { body: JSON.stringify(payload) });
+  }
+
+  /**
+   * Remove suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param messageTypes - Channels to unsuppress. Omit to unsuppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSubscriber({ email: 'resubscribed@example.com' });
+   * ```
+   */
+  unsuppressSubscriber(
+    subscriber: SubscriberIdentifier,
+    messageTypes?: ('email' | 'text_message')[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], messageTypes, opts);
+  }
+
+  /**
+   * Remove email suppressions from multiple subscribers.
+   *
+   * @param subscribers - Subscriber identifiers (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressEmailsForSubscribers([
+   *   { email: 'resubscribed@example.com' },
+   * ]);
+   * ```
+   */
+  unsuppressEmailsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers(subscribers, ['email'], opts);
+  }
+
+  /**
+   * Remove email suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressEmailsForSubscriber({ email: 'resubscribed@example.com' });
+   * ```
+   */
+  unsuppressEmailsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], ['email'], opts);
+  }
+
+  /**
+   * Remove SMS suppressions from multiple subscribers.
+   *
+   * @param subscribers - Subscriber identifiers (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSmsForSubscribers([
+   *   { phoneNumber: '+46701234567' },
+   * ]);
+   * ```
+   */
+  unsuppressSmsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers(subscribers, ['text_message'], opts);
+  }
+
+  /**
+   * Remove SMS suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSmsForSubscriber({ phoneNumber: '+46701234567' });
+   * ```
+   */
+  unsuppressSmsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], ['text_message'], opts);
   }
 
   /** @deprecated Use `client.subscribers.bulkAddSubscriberTags()` instead. */
