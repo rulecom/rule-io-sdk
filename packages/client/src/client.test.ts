@@ -891,39 +891,6 @@ describe('RuleClient — deprecated subscriber delegations', () => {
   });
 });
 
-describe('RuleClient — deprecated tags/automation/message delegations', () => {
-  let fetchMock: MockFetch;
-  let client: RuleClient;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-    client = makeClient(fetchMock);
-  });
-
-  it('getTags delegates to tags.list', async () => {
-    const spy = vi.spyOn(client.tags, 'list').mockResolvedValueOnce({ tags: [] });
-
-    await client.getTags();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getTagIdByName delegates to tags.getByName and extracts id', async () => {
-    const spy = vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce({ id: 42, name: 'vip' });
-
-    const id = await client.getTagIdByName('vip');
-
-    expect(id).toBe(42);
-    expect(spy).toHaveBeenCalledWith('vip');
-  });
-
-  it('getTagIdByName returns null when tag not found', async () => {
-    vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce(null);
-    expect(await client.getTagIdByName('missing')).toBeNull();
-  });
-
-});
-
-
 describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports delegations', () => {
   let fetchMock: MockFetch;
   let client: RuleClient;

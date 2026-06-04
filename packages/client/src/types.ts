@@ -44,8 +44,10 @@ export type {
 
 // ── Tags ─────────────────────────────────────────────────────────────────────
 export type {
-  RuleTagEntity,
-  RuleTagsResponse,
+  ListTagsParams,
+  Tag,
+  TagDetail,
+  UpdateTagPayload,
 } from './resources/tags/tags.types.js';
 
 // ── Automations ──────────────────────────────────────────────────────────────

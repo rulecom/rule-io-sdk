@@ -96,7 +96,6 @@ import type {
   CreateSubscriberPayload,
 } from './resources/subscribers/subscribers.types.js';
 import type { RuleSuppressionRequest } from './resources/suppressions/suppressions.types.js';
-import type { RuleTagsResponse } from './resources/tags/tags.types.js';
 import type {
   CreateAutomationEmailConfig,
   CreateAutomationEmailResult,
@@ -380,20 +379,6 @@ export class RuleClient extends BaseResource {
       :                                        { email: String(subscriber) };
 
     return this.subscribers.removeSubscriberTag(id, tag);
-  }
-
-  // ── Tags ──────────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.tags.list()` instead. */
-  getTags(): Promise<RuleTagsResponse> {
-    return this.tags.list();
-  }
-
-  /** @deprecated Use `client.tags.getByName()` instead. */
-  async getTagIdByName(name: string): Promise<number | null> {
-    const tag = await this.tags.getByName(name);
-
-    return tag?.id ?? null;
   }
 
   // ── Suppressions ──────────────────────────────────────────────────────────
