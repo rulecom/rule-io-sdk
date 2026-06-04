@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RuleApiError } from '../../errors.js';
 
@@ -11,6 +11,23 @@ import {
 } from '../../core/mock-fetch.js';
 import { CampaignsClient } from './campaigns.client.js';
 
+const WIRE_CAMPAIGN = {
+  id: 100,
+  name: 'Spring Newsletter',
+  status: { value: 1, key: 'draft', description: 'Draft' },
+  message_type: { value: 1, key: 'email', description: 'Email' },
+  sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
+  number_of_recipients: 500,
+  total_sent: null,
+  recipients: {
+    tags: [{ id: 42, name: 'VIP', negative: false }],
+    segments: [],
+    subscribers: [{ id: 1, email: 'a@b.com', phone_number: '+1234567890' }],
+  },
+  created_at: '2024-01-01 10:00:00',
+  updated_at: '2024-01-02 10:00:00',
+};
+
 function createClient(fetchMock: MockFetch): CampaignsClient {
   return new CampaignsClient(createMockTransport(fetchMock));
 }
@@ -22,39 +39,55 @@ describe('CampaignsClient', () => {
     fetchMock = createMockFetch();
   });
 
-  describe('create', () => {
-    it('POSTs to v3 /editor/campaign', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 100, name: 'C' } })
-      );
+  describe('createEmailCampaign', () => {
+    it('POSTs with message_type=1 hardcoded and maps response to camelCase', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      const result = await client.create({
-        name: 'C',
-        message_type: 1,
-        sendout_type: 1,
+      const result = await client.createEmailCampaign({
+        sendoutType: 'marketing',
         tags: [{ id: 42, negative: false }],
       });
 
-      expect(result.data?.id).toBe(100);
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
       expect((init as RequestInit).method).toBe('POST');
+
       const body = JSON.parse((init as RequestInit).body as string);
 
-      expect(body.tags).toEqual([{ id: 42, negative: false }]);
+      expect(body.message_type).toBe('1');
+      expect(body.sendout_type).toBe('1');
+      expect(body).not.toHaveProperty('messageType');
+      expect(body).not.toHaveProperty('sendoutType');
+
+      expect(result.id).toBe(100);
+      expect(result.messageType.key).toBe('email');
+      expect(result.sendoutType.key).toBe('marketing');
+    });
+
+    it('maps sendoutType: transactional → sendout_type: 2', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
+      const client = createClient(fetchMock);
+
+      await client.createEmailCampaign({ sendoutType: 'transactional' });
+
+      const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+
+      expect(body.sendout_type).toBe('2');
     });
   });
 
   describe('get', () => {
-    it('returns the campaign on 200', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'C' } })
-      );
+    it('returns the campaign as a camelCase entity on 200', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      expect((await client.get(1))?.data?.id).toBe(1);
+      const result = await client.get(100);
+
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(100);
+      expect(result!.messageType.key).toBe('email');
     });
 
     it('returns null on 404', async () => {
@@ -72,121 +105,60 @@ describe('CampaignsClient', () => {
     });
   });
 
-  describe('set', () => {
-    it('PUTs full body when campaign exists', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Updated' } })
-      );
+  describe('setEmailCampaign', () => {
+    it('PUTs full body in snake_case — no messageType in payload or body', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      await client.set(1, {
+      const result = await client.setEmailCampaign(100, {
         name: 'Updated',
-        sendout_type: 1,
+        sendoutType: 'marketing',
         tags: [{ id: 42, negative: false }],
         segments: [{ id: 7, negative: false }],
         subscribers: [101, 102],
       });
 
-      expect(fetchMock.mock.calls.length).toBe(1);
+      expect(fetchMock.mock.calls).toHaveLength(1);
       const [url, init] = fetchMock.mock.calls[0]!;
 
-      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/1');
+      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/100');
       expect((init as RequestInit).method).toBe('PUT');
+
       const body = JSON.parse((init as RequestInit).body as string);
 
       expect(body).toEqual({
         name: 'Updated',
-        sendout_type: 1,
+        sendout_type: '1',
         tags: [{ id: 42, negative: false }],
         segments: [{ id: 7, negative: false }],
         subscribers: [101, 102],
       });
+      // messageType must NOT appear in the wire body (it's hardcoded as 1 on create only)
+      expect(body).not.toHaveProperty('message_type');
+      expect(result.id).toBe(100);
     });
 
-    it('coerces sendout_type wrapper object to numeric', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Updated' } })
-      );
-      const client = createClient(fetchMock);
-
-      await client.set(1, {
-        name: 'Updated',
-        sendout_type: { value: 2, key: 'transactional', description: 'T' } as unknown as 1 | 2,
-        tags: [{ id: 42, negative: false }],
-        segments: [],
-        subscribers: [],
-      });
-
-      const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
-
-      expect(body.sendout_type).toBe(2);
-    });
-
-    it('falls back to POST when campaign does not exist (404)', async () => {
+    it('falls back to POST with message_type=1 when campaign does not exist (404)', async () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 99, name: 'New' } })
-      );
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      const result = await client.set(1, {
+      await client.setEmailCampaign(1, {
         name: 'New',
-        message_type: 1,
-        sendout_type: 1,
+        sendoutType: 'marketing',
         tags: [],
         segments: [],
         subscribers: [],
       });
 
-      expect(result.data?.id).toBe(99);
-      expect(fetchMock.mock.calls.length).toBe(2);
+      expect(fetchMock.mock.calls).toHaveLength(2);
       expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('PUT');
       expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('POST');
-      expect(fetchMock.mock.calls[1]![0]).toBe('https://app.rule.io/api/v3/editor/campaign');
-    });
-
-    it('includes message_type in POST body on create', async () => {
-      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 5, name: 'New' } })
-      );
-      const client = createClient(fetchMock);
-
-      await client.set(1, {
-        name: 'New',
-        message_type: 2,
-        sendout_type: 1,
-        tags: [],
-        segments: [],
-        subscribers: [],
-      });
 
       const postBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
 
-      expect(postBody.message_type).toBe(2);
-    });
-
-    it('throws RuleClientError when 404 and message_type is absent', async () => {
-      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
-      const client = createClient(fetchMock);
-
-      await expect(
-        client.set(1, { name: 'N', sendout_type: 1, tags: [], segments: [], subscribers: [] })
-      ).rejects.toThrow(/message_type is required/);
-    });
-
-    it('throws RuleClientError when sendout_type is not coercible', async () => {
-      const client = createClient(fetchMock);
-
-      await expect(
-        client.set(1, {
-          name: 'N',
-          sendout_type: 'garbage' as unknown as 1 | 2,
-          tags: [],
-          segments: [],
-          subscribers: [],
-        })
-      ).rejects.toThrow(/sendout_type is not a valid numeric value/);
+      // hardcoded email create
+      expect(postBody.message_type).toBe('1');
     });
 
     it('rethrows non-404 errors', async () => {
@@ -194,267 +166,168 @@ describe('CampaignsClient', () => {
       const client = createClient(fetchMock);
 
       await expect(
-        client.set(1, { name: 'N', sendout_type: 1, tags: [], segments: [], subscribers: [] })
+        client.setEmailCampaign(1, { name: 'N', sendoutType: 'marketing', tags: [], segments: [], subscribers: [] })
       ).rejects.toBeInstanceOf(RuleApiError);
     });
   });
 
-  describe('update', () => {
+  describe('updateEmailCampaign', () => {
     it('always does read-modify-write (GET + PUT)', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'Old Name',
-            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
-            recipients: {
-              tags: [{ id: 42, negative: false }],
-              segments: [],
-              subscribers: [],
-            },
-          },
-        })
-      );
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'New Name' } })
-      );
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      await client.update(1, {
-        name: 'New Name',
-        sendout_type: 1,
-        tags: [{ id: 42, negative: false }],
-        segments: [],
-        subscribers: [],
-      });
+      await client.updateEmailCampaign(100, { name: 'New Name' });
 
-      expect(fetchMock.mock.calls.length).toBe(2);
+      expect(fetchMock.mock.calls).toHaveLength(2);
       expect((fetchMock.mock.calls[0]![1] as RequestInit).method).toBe('GET');
       expect((fetchMock.mock.calls[1]![1] as RequestInit).method).toBe('PUT');
     });
 
     it('merges partial input — name-only update preserves existing recipients', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'Old Name',
-            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
-            recipients: {
-              tags: [{ id: 42, negative: false }],
-              segments: [],
-              subscribers: [],
-            },
-          },
-        })
-      );
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'New Name' } })
-      );
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      await client.update(1, { name: 'New Name' });
+      await client.updateEmailCampaign(100, { name: 'New Name' });
 
-      const [putUrl, putInit] = fetchMock.mock.calls[1]!;
-
-      expect(putUrl).toBe('https://app.rule.io/api/v3/editor/campaign/1');
-      expect((putInit as RequestInit).method).toBe('PUT');
-      const putBody = JSON.parse((putInit as RequestInit).body as string);
+      const putBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
 
       expect(putBody).toEqual({
         name: 'New Name',
-        sendout_type: 1,
-        tags: [{ id: 42, negative: false }],
+        sendout_type: '1',
+        tags: [{ id: 42, name: 'VIP', negative: false }],
         segments: [],
-        subscribers: [],
+        subscribers: [1],
       });
     });
 
-    it('preserves existing recipients when caller omits segments/subscribers', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'Old Name',
-            sendout_type: { value: 1, key: 'marketing', description: 'M' },
-            recipients: {
-              tags: [{ id: 42, negative: false }],
-              segments: [{ id: 7, negative: false }],
-              subscribers: [{ id: 101 }, { id: 102 }],
-            },
-          },
-        })
-      );
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Updated' } })
-      );
+    it('maps sendoutType string to numeric wire value', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({
+          data: { ...WIRE_CAMPAIGN, sendout_type: { value: 1, key: 'marketing', description: 'Marketing' } },
+        }))
+        .mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
       const client = createClient(fetchMock);
 
-      await client.update(1, {
-        name: 'Updated',
-        sendout_type: 1,
-        tags: [{ id: 42, negative: false }],
-      });
+      await client.updateEmailCampaign(100, { sendoutType: 'transactional' });
 
-      const putBody = JSON.parse(
-        (fetchMock.mock.calls[1]![1] as RequestInit).body as string
-      );
+      const putBody = JSON.parse((fetchMock.mock.calls[1]![1] as RequestInit).body as string);
 
-      expect(putBody.segments).toEqual([{ id: 7, negative: false }]);
-      expect(putBody.subscribers).toEqual([101, 102]);
+      expect(putBody.sendout_type).toBe('2');
     });
 
     it('throws RuleApiError(404) when campaign does not exist', async () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      await expect(client.update(999, { name: 'New' })).rejects.toThrow(
-        /Campaign 999 not found/
-      );
+      await expect(client.updateEmailCampaign(999, { name: 'New' })).rejects.toThrow(/Campaign 999 not found/);
     });
 
-    it('throws RuleClientError when merged record lacks sendout_type', async () => {
+    it('throws RuleClientError when existing record has no sendoutType', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'C',
-            recipients: { tags: [{ id: 42, negative: false }] },
-          },
-        })
+        createMockResponse({ data: { id: 1, name: 'C', recipients: { tags: [] } } })
       );
       const client = createClient(fetchMock);
 
-      await expect(client.update(1, { name: 'New' })).rejects.toThrow(
-        /existing record has no sendout_type/
-      );
+      await expect(client.updateEmailCampaign(1, { name: 'New' })).rejects.toThrow(/no sendout_type/);
+    });
+  });
+
+  describe('convenience methods', () => {
+    it('renameCampaign delegates to updateEmailCampaign with {name}', async () => {
+      const client = createClient(fetchMock);
+      const spy = vi.spyOn(client, 'updateEmailCampaign').mockResolvedValueOnce({} as never);
+
+      await client.renameCampaign(42, 'New Name');
+
+      expect(spy).toHaveBeenCalledWith(42, { name: 'New Name' });
     });
 
-    it('throws RuleClientError when merged record lacks tags', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'C',
-            sendout_type: { value: 1, key: 'marketing', description: 'Marketing' },
-            recipients: {},
-          },
-        })
-      );
+    it('setCampaignSendoutType delegates to updateEmailCampaign with {sendoutType}', async () => {
       const client = createClient(fetchMock);
+      const spy = vi.spyOn(client, 'updateEmailCampaign').mockResolvedValueOnce({} as never);
 
-      await expect(client.update(1, { name: 'New' })).rejects.toThrow(
-        /existing record has no tags/
-      );
+      await client.setCampaignSendoutType(42, 'transactional');
+
+      expect(spy).toHaveBeenCalledWith(42, { sendoutType: 'transactional' });
     });
 
-    it('coerces response wrapper sendout_type in merged body', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          data: {
-            id: 1,
-            name: 'C',
-            sendout_type: { value: 2, key: 'transactional', description: 'Transactional' },
-            recipients: { tags: [] },
-          },
-        })
-      );
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 1, name: 'Updated' } })
-      );
+    it('setCampaignTags delegates to updateEmailCampaign with {tags}', async () => {
       const client = createClient(fetchMock);
+      const spy = vi.spyOn(client, 'updateEmailCampaign').mockResolvedValueOnce({} as never);
+      const tags = [{ id: 10, negative: false }];
 
-      await client.update(1, { name: 'Updated' });
+      await client.setCampaignTags(42, tags);
 
-      const putBody = JSON.parse(
-        (fetchMock.mock.calls[1]![1] as RequestInit).body as string,
-      );
+      expect(spy).toHaveBeenCalledWith(42, { tags });
+    });
 
-      expect(putBody.sendout_type).toBe(2);
+    it('setCampaignSegments delegates to updateEmailCampaign with {segments}', async () => {
+      const client = createClient(fetchMock);
+      const spy = vi.spyOn(client, 'updateEmailCampaign').mockResolvedValueOnce({} as never);
+      const segments = [{ id: 5, negative: false }];
+
+      await client.setCampaignSegments(42, segments);
+
+      expect(spy).toHaveBeenCalledWith(42, { segments });
+    });
+
+    it('setCampaignSubscribers delegates to updateEmailCampaign with {subscribers}', async () => {
+      const client = createClient(fetchMock);
+      const spy = vi.spyOn(client, 'updateEmailCampaign').mockResolvedValueOnce({} as never);
+
+      await client.setCampaignSubscribers(42, [101, 102]);
+
+      expect(spy).toHaveBeenCalledWith(42, { subscribers: [101, 102] });
     });
   });
 
   describe('delete', () => {
-    it('DELETEs the campaign', async () => {
+    it('DELETEs the campaign and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
       const result = await client.delete(1);
 
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('list', () => {
-    it('serializes pagination + filter params', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: [{ id: 1, name: 'A' }] })
-      );
-      const client = createClient(fetchMock);
-
-      await client.list({ page: 2, per_page: 20, message_type: 1 });
-
-      const url = fetchMock.mock.calls[0]![0] as string;
-
-      expect(url).toContain('/editor/campaign?');
-      expect(url).toContain('page=2');
-      expect(url).toContain('per_page=20');
-      expect(url).toContain('message_type=1');
-    });
-
-    it('omits the query string when no params are provided', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-      const client = createClient(fetchMock);
-
-      await client.list();
-
-      const url = fetchMock.mock.calls[0]![0] as string;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign');
+      expect(result).toBeUndefined();
     });
   });
 
   describe('copy', () => {
-    it('POSTs to /editor/campaign/{id}/copy', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ data: { id: 2, name: 'C copy' } })
-      );
+    it('POSTs to /editor/campaign/{id}/copy and returns camelCase entity', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: { ...WIRE_CAMPAIGN, id: 200 } }));
       const client = createClient(fetchMock);
 
-      const result = await client.copy(1);
+      const result = await client.copy(100);
 
-      expect(result.data?.id).toBe(2);
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/1/copy');
-      expect((init as RequestInit).method).toBe('POST');
+      expect(result.id).toBe(200);
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/editor/campaign/100/copy');
     });
   });
 
   describe('schedule', () => {
-    it('sends now', async () => {
+    it('sends now and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
-      await client.schedule(1, { type: 'now' });
+      const result = await client.schedule(1, { type: 'now' });
 
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v3/editor/campaign/1/schedule');
-      const body = JSON.parse((init as RequestInit).body as string);
-
-      expect(body).toEqual({ type: 'now' });
+      expect(result).toBeUndefined();
+      expect(JSON.parse((fetchMock.mock.calls[0]![1]!.body as string))).toEqual({ type: 'now' });
     });
 
     it('schedules with a datetime', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
       const client = createClient(fetchMock);
 
-      await client.schedule(1, { type: 'schedule', datetime: '2025-06-15 10:00:00' });
+      await client.schedule(1, { type: 'schedule', datetime: '2025-06-15T10:00:00+02:00' });
 
       const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
 
-      expect(body).toEqual({ type: 'schedule', datetime: '2025-06-15 10:00:00' });
+      expect(body).toEqual({ type: 'schedule', datetime: '2025-06-15T10:00:00+02:00' });
     });
 
     it('cancels with type: null', async () => {
@@ -463,9 +336,69 @@ describe('CampaignsClient', () => {
 
       await client.schedule(1, { type: null });
 
-      const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string);
+      expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ type: null });
+    });
+  });
 
-      expect(body).toEqual({ type: null });
+  describe('listCampaigns', () => {
+    it('returns Campaign[] and maps nested params to flat wire params', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: [WIRE_CAMPAIGN] }));
+      const client = createClient(fetchMock);
+
+      const result = await client.listCampaigns({
+        filters: { messageType: 'email' },
+        pagination: { page: 2, pageSize: 20 },
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]!.messageType.key).toBe('email');
+
+      const url = fetchMock.mock.calls[0]![0] as string;
+
+      expect(url).toContain('page=2');
+      expect(url).toContain('per_page=20');
+      expect(url).toContain('message_type=1');
+    });
+
+    it('omits query string when no params provided', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
+      const client = createClient(fetchMock);
+
+      await client.listCampaigns();
+
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/editor/campaign');
+    });
+  });
+
+  describe('iterateCampaignsPages', () => {
+    it('yields page arrays and stops when a page is smaller than pageSize', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_CAMPAIGN, WIRE_CAMPAIGN] }))
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_CAMPAIGN] }));
+      const client = createClient(fetchMock);
+
+      const pages: number[] = [];
+
+      for await (const page of client.iterateCampaignsPages({ pagination: { pageSize: 2 } })) {
+        pages.push(page.length);
+      }
+
+      expect(pages).toEqual([2, 1]);
+    });
+  });
+
+  describe('listAllCampaigns', () => {
+    it('collects all campaigns from all pages', async () => {
+      const c2 = { ...WIRE_CAMPAIGN, id: 200 };
+
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ data: [WIRE_CAMPAIGN, c2] }))
+        .mockResolvedValueOnce(createMockResponse({ data: [] }));
+      const client = createClient(fetchMock);
+
+      const result = await client.listAllCampaigns({ pagination: { pageSize: 2 } });
+
+      expect(result.map((c) => c.id)).toEqual([100, 200]);
     });
   });
 });

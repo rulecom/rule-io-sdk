@@ -1,93 +1,98 @@
 /**
- * Campaigns namespace client.
+ * Campaigns namespace client for the `@rulecom/client` package.
  *
  * Wraps the v3 `/editor/campaign` endpoints, including the auxiliary
  * `/copy` and `/schedule` actions.
+ *
+ * Typical email campaign lifecycle:
+ * ```
+ * createEmailCampaign()  →  updateEmailCampaign() (name, recipients)  →  schedule()
+ * ```
+ *
+ * Use {@link setEmailCampaign} for full replacement and
+ * {@link updateEmailCampaign} for partial updates via read-modify-write.
+ * For single-field changes, prefer the focused convenience methods
+ * ({@link renameCampaign}, {@link setCampaignSendoutType}, etc.).
  */
 
 import { RuleApiError, RuleClientError } from '../../errors.js';
-
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
-import type { RuleApiResponse } from '../../shared.types.js';
-
 import type {
-  RuleCampaignCreateRequest,
-  RuleCampaignListParams,
-  RuleCampaignListResponse,
-  RuleCampaignResponse,
-  RuleCampaignScheduleRequest,
-  RuleCampaignSetRequest,
-  RuleCampaignUpdateRequest,
+  Campaign,
+  CampaignListResponse,
+  CampaignMessageType,
+  CampaignRecipientSegment,
+  CampaignRecipientTag,
+  CampaignResponse,
+  CampaignSendoutType,
+  CampaignStatus,
+  CampaignWire,
+  CreateEmailCampaignPayload,
+  ListCampaignsParams,
+  ScheduleCampaignPayload,
+  SetEmailCampaignPayload,
+  UpdateEmailCampaignPayload,
 } from './campaigns.types.js';
-import { toNumericSendout } from '../../utils/index.js';
+
+// ── Client ────────────────────────────────────────────────────────────────────
 
 export class CampaignsClient extends BaseResource {
   /**
-   * List campaigns with optional filtering and pagination.
+   * Create an email campaign.
    *
-   * @param params - Optional query parameters for filtering and pagination.
-   * @returns List of campaigns.
+   * The campaign starts with no name and no recipients. Use
+   * {@link updateEmailCampaign} to add a name and recipients before scheduling.
    *
-   * @example
-   * ```typescript
-   * // List all campaigns
-   * const all = await client.campaigns.list();
-   *
-   * // List email campaigns, page 2
-   * const filtered = await client.campaigns.list({
-   *   message_type: 1,
-   *   page: 2,
-   *   per_page: 20,
-   * });
-   * ```
-   */
-  list(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
-    const qs = params ? buildQueryString({ ...params }) : '';
-
-    return this.transport.get<RuleCampaignListResponse>(`/editor/campaign${qs}`);
-  }
-
-  /**
-   * Create a campaign (one-off email send).
-   *
-   * @param campaign - Campaign creation request.
+   * @param payload - Campaign creation options.
    * @returns The created campaign.
    *
    * @example
    * ```typescript
-   * const result = await client.campaigns.create({
-   *   message_type: 1, // email
-   *   sendout_type: 1, // marketing
-   *   tags: [{ id: 42, negative: false }],
+   * const campaign = await client.campaigns.createEmailCampaign({
+   *   sendoutType: 'marketing',
    * });
-   * console.log(result.data?.id);
    * ```
    */
-  create(campaign: RuleCampaignCreateRequest): Promise<RuleCampaignResponse> {
-    return this.transport.post<RuleCampaignResponse>('/editor/campaign', {
-      body: JSON.stringify(campaign),
+  async createEmailCampaign(payload: CreateEmailCampaignPayload): Promise<Campaign> {
+    const res = await this.transport.post<CampaignResponse>('/editor/campaign', {
+      body: JSON.stringify({
+        name: payload.name,
+        message_type: '1',  // string — API requires string enum
+        sendout_type: payload.sendoutType
+          ? mapSendoutTypeToWire(payload.sendoutType)
+          : undefined,
+        tags: payload.tags,
+        segments: payload.segments,
+        subscribers: payload.subscribers,
+      }),
     });
+
+    return mapCampaignWireToEntity(res.data);
   }
 
   /**
-   * Get a campaign by ID.
+   * Fetch a campaign by ID.
+   *
+   * Returns `null` instead of throwing when the campaign does not exist (HTTP
+   * 404). All other API errors are rethrown.
    *
    * @param id - Campaign ID.
-   * @returns The campaign, or `null` if no campaign with that ID exists
-   *   (HTTP 404).
+   * @returns The campaign, or `null` if no campaign with that ID exists.
    *
    * @example
    * ```typescript
-   * const campaign = await client.campaigns.get(123);
+   * const campaign = await client.campaigns.get(campaignId);
    * if (campaign) {
-   *   console.log(campaign.data?.name);
+   *   console.log(campaign.name, campaign.status?.key);
    * }
    * ```
    */
-  async get(id: number): Promise<RuleCampaignResponse | null> {
+  async get(id: number): Promise<Campaign | null> {
     try {
-      return await this.transport.get<RuleCampaignResponse>(`/editor/campaign/${id}`);
+      const res = await this.transport.get<CampaignResponse>(`/editor/campaign/${id}`);
+
+      return mapCampaignWireToEntity(res.data);
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
@@ -98,124 +103,108 @@ export class CampaignsClient extends BaseResource {
   }
 
   /**
-   * Set (upsert) a campaign — replaces it if it exists, creates it if not.
+   * Set (upsert) an email campaign — fully replaces it if it exists, creates
+   * it if not.
    *
-   * All five core fields are required. If the campaign does not exist and
-   * `message_type` is omitted, a `RuleClientError` is thrown.
+   * All five fields are required and fully replace the existing values. This is
+   * a complete replacement, not a merge. If the campaign does not exist, it is
+   * created as an email campaign.
    *
    * @param id - Campaign ID.
-   * @param campaign - Full replacement body.
+   * @param payload - Full replacement body. No `messageType` field — fixed to
+   *   `'email'` by the method.
    * @returns The updated or newly created campaign.
-   * @throws RuleClientError if `sendout_type` cannot be coerced to a number.
-   * @throws RuleClientError if the campaign does not exist and `message_type`
-   *   was not provided.
    *
    * @example
    * ```typescript
-   * // Replace an existing campaign (message_type not needed)
-   * await client.campaigns.set(123, {
-   *   name: 'Spring Sale',
-   *   sendout_type: 1,
-   *   tags: [{ id: 42, negative: false }],
-   *   segments: [],
-   *   subscribers: [],
-   * });
-   *
-   * // Upsert — create if absent
-   * await client.campaigns.set(123, {
-   *   name: 'Spring Sale',
-   *   message_type: 1,
-   *   sendout_type: 1,
+   * await client.campaigns.setEmailCampaign(campaignId, {
+   *   name: 'Spring Newsletter',
+   *   sendoutType: 'marketing',
    *   tags: [{ id: 42, negative: false }],
    *   segments: [],
    *   subscribers: [],
    * });
    * ```
    */
-  async set(id: number, campaign: RuleCampaignSetRequest): Promise<RuleCampaignResponse> {
-    const sendoutType = toNumericSendout(campaign.sendout_type);
-
-    if (sendoutType == null) {
-      throw new RuleClientError(
-        `Cannot set campaign ${id}: sendout_type is not a valid numeric value`
-      );
-    }
-
+  async setEmailCampaign(id: number, payload: SetEmailCampaignPayload): Promise<Campaign> {
     const body = {
-      name: campaign.name,
-      sendout_type: sendoutType,
-      tags: campaign.tags,
-      segments: campaign.segments,
-      subscribers: campaign.subscribers,
+      name: payload.name,
+      sendout_type: mapSendoutTypeToWire(payload.sendoutType),
+      tags: payload.tags,
+      segments: payload.segments,
+      subscribers: payload.subscribers,
     };
 
     try {
-      return await this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
+      const res = await this.transport.put<CampaignResponse>(`/editor/campaign/${id}`, {
         body: JSON.stringify(body),
       });
+
+      return mapCampaignWireToEntity(res.data);
     } catch (error) {
       if (!(error instanceof RuleApiError) || error.statusCode !== 404) throw error;
 
-      if (campaign.message_type == null) {
-        throw new RuleClientError(
-          `Cannot create campaign ${id}: message_type is required when the campaign does not exist`
-        );
-      }
-
-      return this.transport.post<RuleCampaignResponse>('/editor/campaign', {
-        body: JSON.stringify({ ...body, message_type: campaign.message_type }),
+      const createRes = await this.transport.post<CampaignResponse>('/editor/campaign', {
+        body: JSON.stringify({ ...body, message_type: '1' }),  // string — API requires string enum
       });
+
+      return mapCampaignWireToEntity(createRes.data);
     }
   }
 
   /**
-   * Update a campaign. Accepts a partial body — only include the fields you
-   * want to change. The client fetches the existing record, merges your
-   * changes over it, and writes the full merged body back.
+   * Update an email campaign with a partial body.
    *
-   * Unlike `set`, this method never creates a campaign. If the campaign does
-   * not exist a `RuleApiError` with status 404 is thrown.
+   * Only the fields you include are changed — omitted fields are preserved from
+   * the existing record. The client fetches the current campaign, merges your
+   * changes over it, and writes the complete merged body back to the API.
+   *
+   * For single-field updates prefer the focused convenience methods:
+   * {@link renameCampaign}, {@link setCampaignSendoutType},
+   * {@link setCampaignTags}, {@link setCampaignSegments},
+   * {@link setCampaignSubscribers}.
    *
    * @param id - Campaign ID.
-   * @param partial - Partial update (all fields optional).
+   * @param partial - Fields to update. All fields are optional.
    * @returns The updated campaign.
-   * @throws RuleApiError with 404 if the campaign doesn't exist.
-   * @throws RuleClientError if the merged record still lacks `sendout_type`
+   * @throws `RuleApiError` with 404 if the campaign does not exist.
+   * @throws `RuleClientError` if the merged record still lacks `sendoutType`
    *   or `tags` after merging.
    *
    * @example
    * ```typescript
-   * // Change only the name
-   * await client.campaigns.update(123, { name: 'Spring Sale' });
+   * await client.campaigns.updateEmailCampaign(campaignId, {
+   *   name: 'Spring Newsletter 2025',
+   *   tags: [{ id: 42, negative: false }],
+   * });
    * ```
    */
-  async update(
-    id: number,
-    partial: Partial<RuleCampaignUpdateRequest>
-  ): Promise<RuleCampaignResponse> {
+  async updateEmailCampaign(id: number, partial: UpdateEmailCampaignPayload): Promise<Campaign> {
     const existing = await this.get(id);
 
     if (existing === null) {
       throw new RuleApiError(`Campaign ${id} not found`, 404);
     }
 
-    if (!existing.data) {
-      const detail = existing.error ?? existing.message ?? 'response had no data';
-
-      throw new RuleApiError(
-        `Cannot update campaign ${id}: unexpected response from get (${detail})`,
-        500
-      );
-    }
-
-    const current = existing.data;
-    const updateSendout = toNumericSendout(partial.sendout_type);
-    const currentSendout = toNumericSendout(current.sendout_type);
-
-    const sendoutType = updateSendout ?? currentSendout;
-    const tags = partial.tags ?? current.recipients?.tags;
-    const segments = partial.segments ?? current.recipients?.segments;
-    const subscribers = partial.subscribers ?? current.recipients?.subscribers?.map(s => s.id);
+    // Always send sendout_type as a string — the API requires string enum ("1"/"2").
+    // existing.sendoutType.value is guaranteed by the API but may be absent in
+    // malformed or test-stubbed responses, so guard defensively.
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const existingSendoutNum = existing.sendoutType?.value;
+     
+    const sendoutType: '1' | '2' | undefined = partial.sendoutType
+      ? mapSendoutTypeToWire(partial.sendoutType)
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      : existingSendoutNum != null
+        ? (String(existingSendoutNum) as '1' | '2')
+        : undefined;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const tags = partial.tags ?? existing.recipients?.tags;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const segments = partial.segments ?? existing.recipients?.segments;
+    const subscribers = partial.subscribers
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      ?? existing.recipients?.subscribers?.map((s) => s.id);
 
     if (sendoutType == null) {
       throw new RuleClientError(
@@ -229,43 +218,135 @@ export class CampaignsClient extends BaseResource {
       );
     }
 
-    const fullBody: RuleCampaignUpdateRequest = {
-      name: partial.name ?? current.name,
+    const fullBody = {
+      name: partial.name ?? existing.name,
       sendout_type: sendoutType,
       tags,
       segments: segments ?? [],
       subscribers: subscribers ?? [],
     };
 
-    return this.transport.put<RuleCampaignResponse>(`/editor/campaign/${id}`, {
+    const res = await this.transport.put<CampaignResponse>(`/editor/campaign/${id}`, {
       body: JSON.stringify(fullBody),
     });
+
+    return mapCampaignWireToEntity(res.data);
+  }
+
+  /**
+   * Rename a campaign.
+   *
+   * @param id - Campaign ID.
+   * @param name - New campaign name.
+   * @returns The updated campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.renameCampaign(campaignId, 'Spring Newsletter 2025');
+   * ```
+   */
+  renameCampaign(id: number, name: string): Promise<Campaign> {
+    return this.updateEmailCampaign(id, { name });
+  }
+
+  /**
+   * Change the sendout type of a campaign.
+   *
+   * @param id - Campaign ID.
+   * @param sendoutType - New sendout type (`'marketing'` or `'transactional'`).
+   * @returns The updated campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.setCampaignSendoutType(campaignId, 'transactional');
+   * ```
+   */
+  setCampaignSendoutType(id: number, sendoutType: CampaignSendoutType): Promise<Campaign> {
+    return this.updateEmailCampaign(id, { sendoutType });
+  }
+
+  /**
+   * Replace all tag-based recipient filters on a campaign.
+   *
+   * @param id - Campaign ID.
+   * @param tags - New tag recipient filters. Use `negative: true` to exclude subscribers with that tag.
+   * @returns The updated campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.setCampaignTags(campaignId, [
+   *   { id: 42, negative: false },  // include tag 42
+   *   { id: 7,  negative: true },   // exclude tag 7
+   * ]);
+   * ```
+   */
+  setCampaignTags(id: number, tags: CampaignRecipientTag[]): Promise<Campaign> {
+    return this.updateEmailCampaign(id, { tags });
+  }
+
+  /**
+   * Replace all segment-based recipient filters on a campaign.
+   *
+   * @param id - Campaign ID.
+   * @param segments - New segment recipient filters.
+   * @returns The updated campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.setCampaignSegments(campaignId, [
+   *   { id: 12, negative: false },
+   * ]);
+   * ```
+   */
+  setCampaignSegments(id: number, segments: CampaignRecipientSegment[]): Promise<Campaign> {
+    return this.updateEmailCampaign(id, { segments });
+  }
+
+  /**
+   * Replace the individual subscriber targets on a campaign.
+   *
+   * @param id - Campaign ID.
+   * @param subscribers - Subscriber IDs to target. Pass an empty array to clear all.
+   * @returns The updated campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.setCampaignSubscribers(campaignId, [101, 102, 103]);
+   * ```
+   */
+  setCampaignSubscribers(id: number, subscribers: number[]): Promise<Campaign> {
+    return this.updateEmailCampaign(id, { subscribers });
   }
 
   /**
    * Delete a campaign.
    *
    * @param id - Campaign ID.
-   * @returns A success response.
+   * @returns Resolves when the campaign has been deleted.
    */
-  delete(id: number): Promise<RuleApiResponse> {
-    return this.transport.delete<RuleApiResponse>(`/editor/campaign/${id}`);
+  async delete(id: number): Promise<void> {
+    await this.transport.delete(`/editor/campaign/${id}`);
   }
 
   /**
    * Copy (duplicate) a campaign.
    *
-   * @param id - Campaign ID to copy.
+   * Useful for recurring newsletters where the structure stays the same but
+   * the content changes each time.
+   *
+   * @param id - ID of the campaign to copy.
    * @returns The newly created campaign copy.
    *
    * @example
    * ```typescript
-   * const copy = await client.campaigns.copy(123);
-   * console.log(copy.data?.id); // new campaign ID
+   * const copy = await client.campaigns.copy(campaignId);
+   * const newCampaignId = copy.id!;
    * ```
    */
-  copy(id: number): Promise<RuleCampaignResponse> {
-    return this.transport.post<RuleCampaignResponse>(`/editor/campaign/${id}/copy`);
+  async copy(id: number): Promise<Campaign> {
+    const res = await this.transport.post<CampaignResponse>(`/editor/campaign/${id}/copy`);
+
+    return mapCampaignWireToEntity(res.data);
   }
 
   /**
@@ -273,33 +354,190 @@ export class CampaignsClient extends BaseResource {
    *
    * - `type: 'now'` sends the campaign immediately
    * - `type: 'schedule'` with a `datetime` schedules it for later
-   * - `type: null` cancels a previously scheduled send
+   * - `type: null` cancels a previously scheduled send (moves back to draft)
    *
    * @param id - Campaign ID.
-   * @param schedule - Schedule configuration.
-   * @returns A success response.
+   * @param payload - Schedule configuration.
+   * @returns Resolves when the schedule has been applied.
    *
    * @example
    * ```typescript
-   * // Send now
-   * await client.campaigns.schedule(123, { type: 'now' });
-   *
-   * // Schedule for later
-   * await client.campaigns.schedule(123, {
-   *   type: 'schedule',
-   *   datetime: '2025-06-15 10:00:00',
-   * });
-   *
-   * // Cancel schedule
-   * await client.campaigns.schedule(123, { type: null });
+   * await client.campaigns.schedule(campaignId, { type: 'now' });
    * ```
    */
-  schedule(
-    id: number,
-    schedule: RuleCampaignScheduleRequest
-  ): Promise<RuleApiResponse> {
-    return this.transport.post<RuleApiResponse>(`/editor/campaign/${id}/schedule`, {
-      body: JSON.stringify(schedule),
+  async schedule(id: number, payload: ScheduleCampaignPayload): Promise<void> {
+    await this.transport.post(`/editor/campaign/${id}/schedule`, {
+      body: JSON.stringify(payload),
     });
   }
+
+  /**
+   * Fetch one page of campaigns.
+   *
+   * This is the primitive list method. For auto-pagination use
+   * {@link iterateCampaigns}, {@link iterateCampaignsPages}, or
+   * {@link listAllCampaigns}.
+   *
+   * @param params - Optional pagination and filter parameters.
+   * @returns Campaigns on the requested page.
+   *
+   * @example
+   * ```typescript
+   * const page = await client.campaigns.listCampaigns({
+   *   filters: { messageType: 'email' },
+   *   pagination: { page: 1, pageSize: 20 },
+   * });
+   * ```
+   */
+  async listCampaigns(params?: ListCampaignsParams): Promise<Campaign[]> {
+    const wireParams = params
+      ? {
+          page: params.pagination?.page,
+          per_page: params.pagination?.pageSize,
+          message_type: params.filters?.messageType
+            ? mapMessageTypeToWire(params.filters.messageType)
+            : undefined,
+        }
+      : undefined;
+    const qs = wireParams ? buildQueryString(wireParams) : '';
+    const res = await this.transport.get<CampaignListResponse>(`/editor/campaign${qs}`);
+
+    return res.data.map(mapCampaignWireToEntity);
+  }
+
+  /**
+   * Iterate through all campaigns page by page.
+   *
+   * Automatically requests additional pages as needed and yields each full
+   * page as an array.
+   *
+   * @param params - Optional pagination and filter parameters.
+   * @returns An async iterable of campaign arrays, one array per page.
+   *
+   * @example
+   * ```typescript
+   * for await (const page of client.campaigns.iterateCampaignsPages()) {
+   *   console.log(`Page: ${page.length} campaigns`);
+   * }
+   * ```
+   */
+  async *iterateCampaignsPages(params: ListCampaignsParams = {}): AsyncIterable<Campaign[]> {
+    const pageSize = params.pagination?.pageSize ?? 15;
+    let page = params.pagination?.page ?? 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const campaigns = await this.listCampaigns({
+        ...params,
+        pagination: { ...params.pagination, page, pageSize },
+      });
+
+      yield campaigns;
+
+      hasMore = campaigns.length >= pageSize;
+      page += 1;
+    }
+  }
+
+  /**
+   * Iterate through all campaigns one by one.
+   *
+   * Automatically requests additional pages as needed and yields individual
+   * campaigns one at a time.
+   *
+   * @param params - Optional pagination and filter parameters.
+   * @returns An async iterable of individual {@link Campaign} objects.
+   *
+   * @example
+   * ```typescript
+   * for await (const campaign of client.campaigns.iterateCampaigns()) {
+   *   console.log(campaign.name, campaign.status?.key);
+   * }
+   * ```
+   */
+  async *iterateCampaigns(params: ListCampaignsParams = {}): AsyncIterable<Campaign> {
+    for await (const page of this.iterateCampaignsPages(params)) {
+      yield* page;
+    }
+  }
+
+  /**
+   * Collect all campaigns into a single array.
+   *
+   * Automatically paginates through all pages. Prefer {@link iterateCampaigns}
+   * for large campaign lists.
+   *
+   * @param params - Optional pagination and filter parameters.
+   * @returns All campaigns.
+   *
+   * @example
+   * ```typescript
+   * const all = await client.campaigns.listAllCampaigns();
+   * ```
+   */
+  async listAllCampaigns(params: ListCampaignsParams = {}): Promise<Campaign[]> {
+    const results: Campaign[] = [];
+
+    for await (const campaign of this.iterateCampaigns(params)) {
+      results.push(campaign);
+    }
+
+    return results;
+  }
+}
+
+// ── Wire ↔ entity mappers ─────────────────────────────────────────────────────
+
+/**
+ * Maps a raw wire-format campaign to a public SDK {@link Campaign} entity.
+ * @internal
+ */
+function mapCampaignWireToEntity(wire: CampaignWire): Campaign {
+  // The API guarantees status, messageType, sendoutType, recipients, createdAt,
+  // updatedAt in every response. The wire type keeps these optional so that
+  // partial test stubs and create/copy responses (which may lack some fields)
+  // still type-check. We cast here — real API data always includes them.
+  return {
+    id: wire.id,
+    name: wire.name,
+    status: wire.status as CampaignStatus,
+    messageType: wire.message_type as CampaignStatus,
+    sendoutType: wire.sendout_type as CampaignStatus,
+    numberOfRecipients: wire.number_of_recipients,
+    totalSent: wire.total_sent,
+    recipients: {
+      tags: wire.recipients?.tags,
+      segments: wire.recipients?.segments,
+      subscribers: wire.recipients?.subscribers?.map((s) => ({
+        id: s.id,
+        email: s.email,
+        phoneNumber: s.phone_number,
+      })),
+    },
+    createdAt: wire.created_at as string,
+    updatedAt: wire.updated_at as string,
+  };
+}
+
+/**
+ * Maps a public {@link CampaignSendoutType} to the API string enum value.
+ *
+ * The POST/PUT `/editor/campaign` request body expects `sendout_type` as a
+ * string (`"1"` or `"2"`), not a numeric value.
+ * @internal
+ */
+function mapSendoutTypeToWire(type: CampaignSendoutType): '1' | '2' {
+  return type === 'marketing' ? '1' : '2';
+}
+
+/**
+ * Maps a public {@link CampaignMessageType} to a numeric value for the list
+ * query string parameter.
+ *
+ * The GET `/editor/campaign` query parameter expects an integer for
+ * `message_type`, unlike the POST/PUT request body which uses a string enum.
+ * @internal
+ */
+function mapMessageTypeToWire(type: CampaignMessageType): number {
+  return type === 'email' ? 1 : 2;
 }

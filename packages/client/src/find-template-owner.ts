@@ -15,7 +15,8 @@
 
 import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
-import type { RuleAutomation, RuleCampaign } from './types.js';
+import type { RuleAutomation } from './types.js';
+import type { Campaign } from './resources/campaigns/campaigns.types.js';
 import type { Message } from './resources/messages/messages.types.js';
 
 type DispatcherKind = 'campaign' | 'automation';
@@ -288,9 +289,11 @@ async function listDispatchers(
   page: number
 ): Promise<DispatcherListEntry[]> {
   if (kind === 'campaign') {
-    const response = await client.listCampaigns({ page, per_page: PER_PAGE });
+    const campaigns = await client.campaigns.listCampaigns({
+      pagination: { page, pageSize: PER_PAGE },
+    });
 
-    return (response.data ?? []) as DispatcherListEntry[];
+    return campaigns as DispatcherListEntry[];
   }
 
   const response = await client.listAutomations({ page, per_page: PER_PAGE });
@@ -394,7 +397,7 @@ function toOwner(
   messageId: number
 ): TemplateOwner {
   if (kind === 'campaign') {
-    const camp = dispatcher as RuleCampaign;
+    const camp = dispatcher as Campaign;
 
     return {
       kind: 'campaign',
@@ -417,8 +420,8 @@ function toOwner(
   };
 }
 
-function extractCampaignStatus(camp: RuleCampaign): string | null {
-  const status = camp.status as RuleCampaign['status'] | string | undefined;
+function extractCampaignStatus(camp: Campaign): string | null {
+  const status = camp.status as Campaign['status'] | string | undefined;
 
   if (status == null) return null;
   if (typeof status === 'string') return status;

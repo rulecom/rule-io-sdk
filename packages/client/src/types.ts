@@ -101,16 +101,19 @@ export type {
 
 // ── Campaigns ────────────────────────────────────────────────────────────────
 export type {
-  RuleCampaign,
-  RuleCampaignCreateRequest,
-  RuleCampaignListParams,
-  RuleCampaignListResponse,
-  RuleCampaignRecipientSegment,
-  RuleCampaignRecipientTag,
-  RuleCampaignResponse,
-  RuleCampaignScheduleRequest,
-  RuleCampaignStatus,
-  RuleCampaignUpdateRequest,
+  Campaign,
+  CampaignMessageType,
+  CampaignRecipientSegment,
+  CampaignRecipientSubscriber,
+  CampaignRecipientTag,
+  CampaignRecipients,
+  CampaignSendoutType,
+  CampaignStatus,
+  CreateEmailCampaignPayload,
+  ListCampaignsParams,
+  ScheduleCampaignPayload,
+  SetEmailCampaignPayload,
+  UpdateEmailCampaignPayload,
 } from './resources/campaigns/campaigns.types.js';
 
 // ── Suppressions ─────────────────────────────────────────────────────────────

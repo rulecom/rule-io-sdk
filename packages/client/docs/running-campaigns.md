@@ -1,67 +1,95 @@
 # Running Email Campaigns
 
-A campaign is a one-time or scheduled email blast sent to a defined set of recipients. This guide walks through the full lifecycle: creating a campaign, attaching email content, selecting who receives it, and sending.
+A campaign is a one-time or scheduled email blast sent to a defined set of recipients. The full lifecycle has four stages:
 
-## Campaign lifecycle
+1. **Create** the campaign shell
+2. **Attach email content** — message, template, dynamic set
+3. **Set recipients** — tags, segments, or individual subscribers
+4. **Schedule** — send immediately or at a specific time
 
-```
-campaigns.create()
-    ↓
-messages.create()  →  templates.create()  →  dynamicSets.create()
-    ↓
-campaigns.update()  (set name, recipients)
-    ↓
-campaigns.schedule()  (send now or at a specific time)
-```
-
-For building the email itself (messages, templates, dynamic sets) see [Email Messages](./email-messages).
+For building the email content (stage 2), see [Email Messages](./email-messages), [Email Templates](./email-templates), and [Dynamic Sets](./dynamic-sets).
 
 ## Creating a campaign
 
+Use `createEmailCampaign()` to create a new email campaign shell. The campaign starts with no name and no recipients — add those separately before scheduling.
+
 ```typescript
-const campaign = await client.campaigns.create({
-  message_type: 1,  // 1 = email
-  sendout_type: 1,  // 1 = regular campaign
+const campaign = await client.campaigns.createEmailCampaign({
+  sendoutType: 'marketing',
 });
-const campaignId = campaign.data!.id!;
+const campaignId = campaign.id!;
 ```
 
-The campaign starts with no name and no recipients — you add those with `update()`.
+*→ [`CreateEmailCampaignPayload`](/api/client/src/interfaces/CreateEmailCampaignPayload)*
 
-*→ [`RuleCampaignCreateRequest`](/api/client/src/interfaces/RuleCampaignCreateRequest)*
+## Attaching email content
 
-## Selecting recipients {#selecting-recipients}
+After creating a campaign, attach a message, template, and dynamic set before scheduling. See [Email Messages](./email-messages) for the full walkthrough — the process is the same regardless of whether the dispatcher is a campaign or an automation.
 
-Recipients can be tags, dynamic segments, or specific subscriber IDs. Update the campaign with whichever combination applies:
+## Renaming a campaign
 
 ```typescript
-await client.campaigns.update(campaignId, {
+await client.campaigns.renameCampaign(campaignId, 'Spring Newsletter 2025');
+```
+
+## Setting sendout type
+
+```typescript
+// Marketing (default) — standard bulk email
+await client.campaigns.setCampaignSendoutType(campaignId, 'marketing');
+
+// Transactional — for order confirmations, receipts, etc.
+await client.campaigns.setCampaignSendoutType(campaignId, 'transactional');
+```
+
+## Setting recipients
+
+### Tags
+
+Use tags to target groups of subscribers. Set `negative: true` to exclude subscribers with that tag.
+
+```typescript
+await client.campaigns.setCampaignTags(campaignId, [
+  { id: 42, negative: false },  // include subscribers with tag 42
+  { id: 7,  negative: true },   // exclude subscribers with tag 7
+]);
+```
+
+To find available tag IDs use `client.tags.list()`.
+
+### Segments
+
+```typescript
+await client.campaigns.setCampaignSegments(campaignId, [
+  { id: 12, negative: false },
+]);
+```
+
+To find segment IDs use `client.recipients.segments.list()`.
+
+### Individual subscribers
+
+```typescript
+await client.campaigns.setCampaignSubscribers(campaignId, [101, 102, 103]);
+```
+
+You can combine all three types on the same campaign — set whichever combination applies.
+
+## Updating multiple fields
+
+Use `updateEmailCampaign()` when you want to change several fields in a single operation. It fetches the existing record, merges your changes, and writes the full merged body back. Omitted fields are left as-is.
+
+```typescript
+await client.campaigns.updateEmailCampaign(campaignId, {
   name: 'Spring Newsletter',
-  sendout_type: 1,
-  tags: [
-    { id: 42, negative: false },   // include subscribers with tag 42
-    { id: 7,  negative: true },    // exclude subscribers with tag 7
-  ],
+  sendoutType: 'marketing',
+  tags: [{ id: 42, negative: false }],
   segments: [],
   subscribers: [],
 });
 ```
 
-To find available tag IDs: `client.tags.list()`. To find segment IDs: `client.recipients.segments.list()`.
-
-You can mix tags, segments, and individual subscribers in the same campaign. Use `negative: true` on a tag to exclude that audience from receiving the campaign.
-
-*→ [`RuleCampaignUpdateRequest`](/api/client/src/interfaces/RuleCampaignUpdateRequest) · [`RuleCampaignRecipientTag`](/api/client/src/interfaces/RuleCampaignRecipientTag)*
-
-## Browsing available recipients
-
-The `recipients` namespace gives you list-only views of tags, segments, and subscribers as they appear in the targeting UI:
-
-```typescript
-const tags = await client.recipients.tags.list({ page: 1, per_page: 50 });
-const segments = await client.recipients.segments.list({ page: 1, per_page: 50 });
-const subscribers = await client.recipients.subscribers.list({ page: 1, per_page: 50 });
-```
+*→ [`UpdateEmailCampaignPayload`](/api/client/src/interfaces/UpdateEmailCampaignPayload)*
 
 ## Scheduling a campaign
 
@@ -80,35 +108,60 @@ await client.campaigns.schedule(campaignId, {
 });
 ```
 
-Cancel a scheduled send:
+Cancel a scheduled send (moves the campaign back to draft):
 
 ```typescript
 await client.campaigns.schedule(campaignId, { type: null });
 ```
 
-*→ [`RuleCampaignScheduleRequest`](/api/client/src/interfaces/RuleCampaignScheduleRequest)*
+*→ [`ScheduleCampaignPayload`](/api/client/src/interfaces/ScheduleCampaignPayload)*
 
 ## Duplicating a campaign
 
-Copy an existing campaign — useful for recurring newsletters where the structure stays the same but the content changes:
+Copy an existing campaign — useful for recurring newsletters where the structure stays the same but the content changes each time.
 
 ```typescript
 const copy = await client.campaigns.copy(campaignId);
-const newCampaignId = copy.data!.id!;
+const newCampaignId = copy.id!;
 ```
 
-## Listing and finding campaigns
+## Fetching a campaign
+
+Retrieve a single campaign by ID. Returns `null` if the campaign does not exist.
 
 ```typescript
-const campaigns = await client.campaigns.list({ page: 1, per_page: 20 });
 const campaign = await client.campaigns.get(campaignId);
+if (campaign) {
+  console.log(campaign.name, campaign.status?.key);
+}
 ```
 
-Filter by message type:
+## Listing campaigns
+
+The API returns campaigns of all message types. Use the method that fits your use case:
 
 ```typescript
-const emailCampaigns = await client.campaigns.list({ message_type: 1 });
+// One page — for UI tables, manual pagination, or retrying a specific page
+const page = await client.campaigns.listCampaigns({
+  filters: { messageType: 'email' },
+  pagination: { page: 1, pageSize: 20 },
+});
+
+// All campaigns as a single array
+const all = await client.campaigns.listAllCampaigns({ filters: { messageType: 'email' } });
+
+// Stream individual campaigns — memory-efficient for large lists
+for await (const campaign of client.campaigns.iterateCampaigns()) {
+  console.log(campaign.name, campaign.status?.key);
+}
+
+// Stream page by page — useful for batched processing
+for await (const page of client.campaigns.iterateCampaignsPages({ pagination: { pageSize: 50 } })) {
+  console.log(`Batch of ${page.length} campaigns`);
+}
 ```
+
+`listCampaigns()` fetches exactly one page. The iterators auto-paginate until all campaigns have been yielded.
 
 ## Deleting a campaign
 

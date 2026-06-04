@@ -972,64 +972,6 @@ describe('RuleClient — deprecated tags/automation/message delegations', () => 
 
 });
 
-describe('RuleClient — deprecated dynamic-set/campaign delegations', () => {
-  let fetchMock: MockFetch;
-  let client: RuleClient;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-    client = makeClient(fetchMock);
-  });
-
-  it('listCampaigns delegates to campaigns.list', async () => {
-    const spy = vi.spyOn(client.campaigns, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listCampaigns();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('createCampaign delegates to campaigns.create', async () => {
-    const spy = vi.spyOn(client.campaigns, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createCampaign({ name: 'C', message_type_id: 1, subject: 'S' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCampaign delegates to campaigns.get', async () => {
-    const spy = vi.spyOn(client.campaigns, 'get').mockResolvedValueOnce(null);
-
-    await client.getCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateCampaign delegates to campaigns.update', async () => {
-    const spy = vi.spyOn(client.campaigns, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateCampaign(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteCampaign delegates to campaigns.delete', async () => {
-    const spy = vi.spyOn(client.campaigns, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('copyCampaign delegates to campaigns.copy', async () => {
-    const spy = vi.spyOn(client.campaigns, 'copy').mockResolvedValueOnce({ data: { id: 2 } });
-
-    await client.copyCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('scheduleCampaign delegates to campaigns.schedule', async () => {
-    const spy = vi.spyOn(client.campaigns, 'schedule').mockResolvedValueOnce({ success: true });
-
-    await client.scheduleCampaign(1, { start_date: '2024-01-01' });
-    expect(spy).toHaveBeenCalled();
-  });
-});
 
 describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports delegations', () => {
   let fetchMock: MockFetch;

@@ -2,7 +2,7 @@
  * Unit tests for findTemplateOwner.
  *
  * These tests stub the methods that the scanner consults
- * (listCampaigns, listAutomations, messages.listCampaignMessages,
+ * (campaigns.listCampaigns, listAutomations, messages.listCampaignMessages,
  * messages.listAutomationMessages, dynamicSets.listDynamicSets) rather than
  * the underlying fetch — that lets us assert directly on scan order,
  * concurrency behaviour, and error-collection without recreating the HTTP
@@ -45,11 +45,13 @@ function buildClient(opts: {
   for (const page of campaignsPages) for (const d of page) dispatcherById.set(`campaign:${String(d.id)}`, d);
   for (const page of automationsPages) for (const d of page) dispatcherById.set(`automation:${String(d.id)}`, d);
 
-  vi.spyOn(client, 'listCampaigns').mockImplementation(async ({ page = 1 } = {}) => {
+  vi.spyOn(client.campaigns, 'listCampaigns').mockImplementation(async (params) => {
+    const page = params?.pagination?.page ?? 1;
+
     callLog?.push(`listCampaigns:${String(page)}`);
     const data = campaignsPages[page - 1] ?? [];
 
-    return { data: data.map((d) => ({ id: d.id, name: d.name })) } as never;
+    return data.map((d) => ({ id: d.id, name: d.name })) as never;
   });
   vi.spyOn(client, 'listAutomations').mockImplementation(async ({ page = 1 } = {}) => {
     callLog?.push(`listAutomations:${String(page)}`);
@@ -306,7 +308,7 @@ describe('findTemplateOwner', () => {
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     let inFlight = 0;
     let peakInFlight = 0;
@@ -332,9 +334,9 @@ describe('findTemplateOwner', () => {
     // template was later in the array — this test locks that fix in.
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
-      data: [{ id: 1, name: 'Promo' }],
-    } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
+      [{ id: 1, name: 'Promo' }] as never
+    );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'm' },
@@ -369,7 +371,7 @@ describe('findTemplateOwner', () => {
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async (id) => {
       await new Promise((r) => setTimeout(r, 5));
@@ -397,7 +399,7 @@ describe('findTemplateOwner', () => {
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 10 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     let listMessagesCalls = 0;
 
@@ -430,7 +432,7 @@ describe('findTemplateOwner', () => {
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(dispatchers as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     let inFlight = 0;
     let peakInFlight = 0;
@@ -466,11 +468,11 @@ describe('findTemplateOwner', () => {
     const ac = new AbortController();
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockImplementation(async () => {
+    vi.spyOn(client.campaigns, 'listCampaigns').mockImplementation(async () => {
       // Trigger abort during the campaigns list, then return a no-match page.
       ac.abort();
 
-      return { data: [] } as never;
+      return [] as never;
     });
     const automationsSpy = vi
       .spyOn(client, 'listAutomations')
@@ -488,9 +490,9 @@ describe('findTemplateOwner', () => {
   it('skips dispatchers with id == null', async () => {
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
-      data: [{ name: 'no-id' } as never, { id: 2, name: 'has-id' } as never],
-    } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
+      [{ name: 'no-id' } as never, { id: 2, name: 'has-id' } as never] as never
+    );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     const listCampaignMessages = vi
       .spyOn(client.messages, 'listCampaignMessages')
@@ -507,9 +509,9 @@ describe('findTemplateOwner', () => {
   it('reports string campaign status in the owner result', async () => {
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
-      data: [{ id: 1, name: 'Promo', status: 'sent' } as never],
-    } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
+      [{ id: 1, name: 'Promo', status: 'sent' }] as never
+    );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'Hi' },
@@ -526,9 +528,9 @@ describe('findTemplateOwner', () => {
   it('reports object-keyed campaign status in the owner result', async () => {
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockResolvedValue({
-      data: [{ id: 1, name: 'Promo', status: { key: 'scheduled' } } as never],
-    } as never);
+    vi.spyOn(client.campaigns, 'listCampaigns').mockResolvedValue(
+      [{ id: 1, name: 'Promo', status: { key: 'scheduled' } }] as never
+    );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
       { id: 101, subject: 'Hi', name: 'Hi' },
@@ -545,7 +547,7 @@ describe('findTemplateOwner', () => {
   it('records a synthetic partial_error when a top-level listCampaigns call fails', async () => {
     const client = new RuleClient('test-key');
 
-    vi.spyOn(client, 'listCampaigns').mockRejectedValue(
+    vi.spyOn(client.campaigns, 'listCampaigns').mockRejectedValue(
       new RuleApiError('forbidden', 403)
     );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);

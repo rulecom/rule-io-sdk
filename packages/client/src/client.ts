@@ -72,14 +72,6 @@ import type {
   RuleBrandStyleUpdateRequest,
 } from './resources/brand-styles/brand-styles.types.js';
 import type {
-  RuleCampaignCreateRequest,
-  RuleCampaignListParams,
-  RuleCampaignListResponse,
-  RuleCampaignResponse,
-  RuleCampaignScheduleRequest,
-  RuleCampaignUpdateRequest,
-} from './resources/campaigns/campaigns.types.js';
-import type {
   WriteCustomFieldDataPayload,
   PatchCustomFieldDataPayload,
   ListCustomFieldDataByGroupParams,
@@ -467,49 +459,6 @@ export class RuleClient extends BaseResource {
   /** @deprecated Use `client.automations.list()` instead. */
   listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     return this.automations.list(params);
-  }
-
-  // ── Campaigns ─────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.campaigns.list()` instead. */
-  listCampaigns(params?: RuleCampaignListParams): Promise<RuleCampaignListResponse> {
-    return this.campaigns.list(params);
-  }
-
-  /** @deprecated Use `client.campaigns.create()` instead. */
-  createCampaign(req: RuleCampaignCreateRequest): Promise<RuleCampaignResponse> {
-    return this.campaigns.create(req);
-  }
-
-  /** @deprecated Use `client.campaigns.get()` instead. */
-  getCampaign(id: number): Promise<RuleCampaignResponse | null> {
-    return this.campaigns.get(id);
-  }
-
-  /** @deprecated Use `client.campaigns.update()` instead. */
-  updateCampaign(
-    id: number,
-    update: Partial<RuleCampaignUpdateRequest>
-  ): Promise<RuleCampaignResponse> {
-    return this.campaigns.update(id, update);
-  }
-
-  /** @deprecated Use `client.campaigns.delete()` instead. */
-  deleteCampaign(id: number): Promise<RuleApiResponse> {
-    return this.campaigns.delete(id);
-  }
-
-  /** @deprecated Use `client.campaigns.copy()` instead. */
-  copyCampaign(id: number): Promise<RuleCampaignResponse> {
-    return this.campaigns.copy(id);
-  }
-
-  /** @deprecated Use `client.campaigns.schedule()` instead. */
-  scheduleCampaign(
-    id: number,
-    schedule: RuleCampaignScheduleRequest
-  ): Promise<RuleApiResponse> {
-    return this.campaigns.schedule(id, schedule);
   }
 
   // ── Suppressions ──────────────────────────────────────────────────────────
@@ -910,20 +859,19 @@ export class RuleClient extends BaseResource {
     const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
 
     try {
-      const campaignResponse = await this.campaigns.create({
+      const campaign = await this.campaigns.createEmailCampaign({
         name: config.name,
-        message_type: 1,
-        sendout_type: config.sendoutType || 1,
+        sendoutType: config.sendoutType || 'marketing',
         ...(config.tags ? { tags: config.tags } : {}),
         ...(config.segments ? { segments: config.segments } : {}),
         ...(config.subscribers ? { subscribers: config.subscribers } : {}),
       });
 
-      if (!campaignResponse.data?.id) {
+      if (!campaign.id) {
         throw new RuleApiError('Failed to create campaign - no ID returned', 500);
       }
 
-      const campaignId = campaignResponse.data.id;
+      const campaignId = campaign.id;
 
       createdResources.push({ type: 'campaign', id: campaignId });
 
