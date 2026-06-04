@@ -34,7 +34,6 @@ import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
 import { AutomationsClient } from './resources/automations/automations.client.js';
 import { BrandStylesClient } from './resources/brand-styles/brand-styles.client.js';
 import { CampaignsClient } from './resources/campaigns/campaigns.client.js';
-import { CustomFieldDataClient } from './resources/custom-field-data/custom-field-data.client.js';
 import { DynamicSetsClient } from './resources/dynamic-sets/dynamic-sets.client.js';
 import { ExportsClient } from './resources/exports/exports.client.js';
 import { MessagesClient } from './resources/messages/messages.client.js';
@@ -64,13 +63,6 @@ import type {
   RuleBrandStyleUpdateRequest,
 } from './resources/brand-styles/brand-styles.types.js';
 import type {
-  WriteCustomFieldDataPayload,
-  PatchCustomFieldDataPayload,
-  ListCustomFieldDataByGroupParams,
-  ListCustomFieldDataParams,
-  CustomFieldDataListResult,
-  SearchCustomFieldDataParams,
-  CustomFieldDataResult,
   CustomFieldGroupDataRecord,
 } from './resources/subscribers/subscribers.types.js';
 import type {
@@ -188,11 +180,6 @@ export class RuleClient extends BaseResource {
 
   get recipients(): RecipientsClient {
     return this.lazy('recipients', () => new RecipientsClient(this.transport));
-  }
-
-  /** @deprecated Use `client.subscribers.listCustomFieldData()`, `writeCustomFieldData()`, etc. instead. */
-  get customFieldData(): CustomFieldDataClient {
-    return this.lazy('customFieldData', () => new CustomFieldDataClient(this.subscribers));
   }
 
   get customField(): CustomFieldClient {
@@ -491,55 +478,6 @@ export class RuleClient extends BaseResource {
   }
 
   // ── Custom field data ─────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.subscribers.listCustomFieldData()` instead. */
-  getCustomFieldData(
-    subscriberId: number,
-    params?: ListCustomFieldDataParams
-  ): Promise<CustomFieldDataListResult> {
-    return this.subscribers.listCustomFieldData(subscriberId, params);
-  }
-
-  /** @deprecated Use `client.subscribers.writeCustomFieldData()` instead. */
-  createCustomFieldData(
-    subscriberId: number,
-    request: WriteCustomFieldDataPayload
-  ): Promise<RuleApiResponse> {
-    return this.subscribers.writeCustomFieldData(subscriberId, request);
-  }
-
-  /** @deprecated Use `client.subscribers.patchCustomFieldData()` instead. */
-  updateCustomFieldData(
-    subscriberId: number,
-    request: PatchCustomFieldDataPayload
-  ): Promise<RuleApiResponse> {
-    return this.subscribers.patchCustomFieldData(subscriberId, request);
-  }
-
-  /** @deprecated Use `client.subscribers.listCustomFieldDataByGroup()` instead. */
-  getCustomFieldDataByGroup(
-    subscriberId: number,
-    group: number | string,
-    params?: ListCustomFieldDataByGroupParams
-  ): Promise<CustomFieldDataListResult> {
-    return this.subscribers.listCustomFieldDataByGroup(subscriberId, group, params);
-  }
-
-  /** @deprecated Use `client.subscribers.deleteCustomFieldDataByGroup()` instead. */
-  deleteCustomFieldDataByGroup(
-    subscriberId: number,
-    group: number | string
-  ): Promise<RuleApiResponse> {
-    return this.subscribers.deleteCustomFieldDataByGroup(subscriberId, group);
-  }
-
-  /** @deprecated Use `client.subscribers.findCustomFieldData()` instead. */
-  searchCustomFieldData(
-    subscriberId: number,
-    params: SearchCustomFieldDataParams
-  ): Promise<CustomFieldDataResult | null> {
-    return this.subscribers.findCustomFieldData(subscriberId, params);
-  }
 
   // ──────────────────────────────────────────────────────────────────────────
   // Orchestration helpers — kept here as deprecated for back-compat. These

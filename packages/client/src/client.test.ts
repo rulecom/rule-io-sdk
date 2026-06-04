@@ -34,7 +34,6 @@ import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
 import { AutomationsClient } from './resources/automations/automations.client.js';
 import { BrandStylesClient } from './resources/brand-styles/brand-styles.client.js';
 import { CampaignsClient } from './resources/campaigns/campaigns.client.js';
-import { CustomFieldDataClient } from './resources/custom-field-data/custom-field-data.client.js';
 import { DynamicSetsClient } from './resources/dynamic-sets/dynamic-sets.client.js';
 import { ExportsClient } from './resources/exports/exports.client.js';
 import { MessagesClient } from './resources/messages/messages.client.js';
@@ -74,7 +73,6 @@ describe('RuleClient — namespaced API', () => {
       expect(client.exports).toBeInstanceOf(ExportsClient);
       expect(client.analytics).toBeInstanceOf(AnalyticsClient);
       expect(client.recipients).toBeInstanceOf(RecipientsClient);
-      expect(client.customFieldData).toBeInstanceOf(CustomFieldDataClient);
     });
 
     it('exposes nested recipient namespaces of the right type', () => {
@@ -992,48 +990,6 @@ describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', 
     const spy = vi.spyOn(client.recipients.tags, 'list').mockResolvedValueOnce({ data: [] });
 
     await client.listRecipientTags();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCustomFieldData delegates to subscribers.listCustomFieldData', async () => {
-    const spy = vi.spyOn(client.subscribers, 'listCustomFieldData').mockResolvedValueOnce({ groups: [] });
-
-    await client.getCustomFieldData(1);
-    expect(spy).toHaveBeenCalledWith(1, undefined);
-  });
-
-  it('createCustomFieldData delegates to subscribers.writeCustomFieldData', async () => {
-    const spy = vi.spyOn(client.subscribers, 'writeCustomFieldData').mockResolvedValueOnce({ success: true });
-
-    await client.createCustomFieldData(1, { groups: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('updateCustomFieldData delegates to subscribers.patchCustomFieldData', async () => {
-    const spy = vi.spyOn(client.subscribers, 'patchCustomFieldData').mockResolvedValueOnce({ success: true });
-
-    await client.updateCustomFieldData(1, { identifier: { dataId: 1 }, values: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCustomFieldDataByGroup delegates to subscribers.listCustomFieldDataByGroup', async () => {
-    const spy = vi.spyOn(client.subscribers, 'listCustomFieldDataByGroup').mockResolvedValueOnce({ groups: [] });
-
-    await client.getCustomFieldDataByGroup(1, 'Booking');
-    expect(spy).toHaveBeenCalledWith(1, 'Booking', undefined);
-  });
-
-  it('deleteCustomFieldDataByGroup delegates to subscribers.deleteCustomFieldDataByGroup', async () => {
-    const spy = vi.spyOn(client.subscribers, 'deleteCustomFieldDataByGroup').mockResolvedValueOnce({ success: true });
-
-    await client.deleteCustomFieldDataByGroup(1, 'Booking');
-    expect(spy).toHaveBeenCalledWith(1, 'Booking');
-  });
-
-  it('searchCustomFieldData delegates to subscribers.findCustomFieldData', async () => {
-    const spy = vi.spyOn(client.subscribers, 'findCustomFieldData').mockResolvedValueOnce(null);
-
-    await client.searchCustomFieldData(1, { group: 'Booking', field: 'Name', value: 'A' });
     expect(spy).toHaveBeenCalled();
   });
 
