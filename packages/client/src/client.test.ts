@@ -970,40 +970,6 @@ describe('RuleClient — deprecated tags/automation/message delegations', () => 
     expect(spy).toHaveBeenCalled();
   });
 
-  it('createMessage delegates to messages.create', async () => {
-    const spy = vi.spyOn(client.messages, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createMessage({ dispatcher_id: 1, dispatcher_type: 'automail', subject: 'S' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getMessage delegates to messages.get', async () => {
-    const spy = vi.spyOn(client.messages, 'get').mockResolvedValueOnce(null);
-
-    await client.getMessage(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateMessage delegates to messages.update', async () => {
-    const spy = vi.spyOn(client.messages, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateMessage(1, { subject: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { subject: 'New' });
-  });
-
-  it('deleteMessage delegates to messages.delete', async () => {
-    const spy = vi.spyOn(client.messages, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteMessage(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listMessages delegates to messages.list', async () => {
-    const spy = vi.spyOn(client.messages, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listMessages({ id: 1, dispatcher_type: 'automail' });
-    expect(spy).toHaveBeenCalled();
-  });
 });
 
 describe('RuleClient — deprecated template/dynamic-set/campaign delegations', () => {

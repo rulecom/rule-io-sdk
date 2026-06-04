@@ -14,7 +14,7 @@ campaigns.update()  (set name, recipients)
 campaigns.schedule()  (send now or at a specific time)
 ```
 
-For building the email itself (messages, templates, dynamic sets) see [Building Email Content](./email-content).
+For building the email itself (messages, templates, dynamic sets) see [Email Messages](./email-messages).
 
 ## Creating a campaign
 
@@ -118,6 +118,6 @@ await client.campaigns.delete(campaignId);
 
 ## Next steps
 
-- Build the email content: [Building Email Content](./email-content)
+- Build the email content: [Email Messages](./email-messages)
 - Set up a recurring trigger-based email instead: [Setting Up Automations](./setting-up-automations)
 - Review campaign performance after sending: [Tracking Performance](./tracking-performance)

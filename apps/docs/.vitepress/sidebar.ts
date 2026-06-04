@@ -94,7 +94,9 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Running Campaigns', link: '/packages/client/running-campaigns' },
           { text: 'Setting Up Automations', link: '/packages/client/setting-up-automations' },
-          { text: 'Building Email Content', link: '/packages/client/email-content' },
+          { text: 'Email Messages', link: '/packages/client/email-messages' },
+          { text: 'Email Templates', link: '/packages/client/email-templates' },
+          { text: 'Dynamic Sets', link: '/packages/client/dynamic-sets' },
         ],
       },
       {

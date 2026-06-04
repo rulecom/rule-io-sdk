@@ -45,29 +45,27 @@ To find segment IDs, call `client.recipients.segments.list()`.
 
 ## Attaching email content
 
-Once you have an automation ID, attach a message and template the same way as for campaigns — use `dispatcher_type: 'automail'`:
+Once you have an automation ID, attach a message and template using the automation-specific method:
 
 ```typescript
-const message = await client.messages.create({
-  dispatcher: { id: automationId, type: 'automail' },
-  type: 1,
+const message = await client.messages.createEmailAutomationMessage(automationId, {
   subject: 'Welcome to Acme!',
 });
 
 const template = await client.templates.create({
-  message_id: message.data!.id!,
+  message_id: message.id!,
   name: 'Welcome template',
   message_type: 'email',
   template: rcml,
 });
 
 await client.dynamicSets.create({
-  message_id: message.data!.id!,
+  message_id: message.id!,
   template_id: template.data!.id!,
 });
 ```
 
-See [Building Email Content](./email-content) for the full walkthrough.
+See [Email Messages](./email-messages) for the full walkthrough.
 
 ## Listing automations
 
@@ -131,6 +129,6 @@ For a full breakdown of each mode's behaviour — including what happens when an
 ## Next steps
 
 - Control automation firing in detail: [Triggering Tag Automations](./tag-automation-modes)
-- Build the email body: [Building Email Content](./email-content)
+- Build the email body: [Email Messages](./email-messages)
 - Assign trigger tags to subscribers: [Organizing with Tags](./organizing-with-tags)
 - Send a one-off blast instead: [Running Campaigns](./running-campaigns)

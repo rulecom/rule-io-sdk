@@ -1,9 +1,10 @@
 /**
  * Unit tests for findTemplateOwner.
  *
- * These tests stub the four RuleClient methods that the scanner consults
- * (listCampaigns, listAutomations, listMessages, listDynamicSets) rather
- * than the underlying fetch — that lets us assert directly on scan order,
+ * These tests stub the methods that the scanner consults
+ * (listCampaigns, listAutomations, messages.listCampaignMessages,
+ * messages.listAutomationMessages, listDynamicSets) rather than the
+ * underlying fetch — that lets us assert directly on scan order,
  * concurrency behaviour, and error-collection without recreating the HTTP
  * envelope for every fixture.
  */
@@ -56,8 +57,8 @@ function buildClient(opts: {
 
     return { data: data.map((d) => ({ id: d.id, name: d.name, active: true })) } as never;
   });
-  vi.spyOn(client, 'listMessages').mockImplementation(async ({ id, dispatcher_type }) => {
-    const kind = dispatcher_type === 'automail' ? 'automation' : 'campaign';
+
+  const mockListMessages = async (id: number, kind: 'campaign' | 'automation') => {
     const key = `${kind}:${String(id)}`;
 
     callLog?.push(`listMessages:${key}`);
@@ -66,10 +67,16 @@ function buildClient(opts: {
     if (err) throw err;
     const dispatcher = dispatcherById.get(key);
 
-    return {
-      data: (dispatcher?.messages ?? []).map((m) => ({ id: m.id, subject: m.subject, name: m.subject })),
-    } as never;
-  });
+    return (dispatcher?.messages ?? []).map((m) => ({ id: m.id, subject: m.subject, name: m.subject }));
+  };
+
+  vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation((id) =>
+    mockListMessages(id, 'campaign') as never
+  );
+  vi.spyOn(client.messages, 'listAutomationMessages').mockImplementation((id) =>
+    mockListMessages(id, 'automation') as never
+  );
+
   vi.spyOn(client, 'listDynamicSets').mockImplementation(async ({ message_id }) => {
     callLog?.push(`listDynamicSets:${String(message_id)}`);
     const err = listDynamicSetsErrors.get(message_id);
@@ -295,7 +302,7 @@ describe('findTemplateOwner', () => {
   });
 
   it('runs probes in parallel when concurrency > 1', async () => {
-    // Stub listMessages to take a measurable amount of time per call.
+    // Stub listCampaignMessages to take a measurable amount of time per call.
     const client = new RuleClient('test-key');
     const dispatchers = Array.from({ length: 5 }, (_, i) => ({ id: i + 1, name: `d${String(i + 1)}` }));
 
@@ -304,14 +311,15 @@ describe('findTemplateOwner', () => {
     let inFlight = 0;
     let peakInFlight = 0;
 
-    vi.spyOn(client, 'listMessages').mockImplementation(async () => {
+    vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async () => {
       inFlight += 1;
       peakInFlight = Math.max(peakInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 20));
       inFlight -= 1;
 
-      return { data: [] } as never;
+      return [];
     });
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     await findTemplateOwner(client, 42, { concurrency: 5 });
     expect(peakInFlight).toBeGreaterThanOrEqual(2);
@@ -328,9 +336,10 @@ describe('findTemplateOwner', () => {
       data: [{ id: 1, name: 'Promo' }],
     } as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    vi.spyOn(client, 'listMessages').mockResolvedValue({
-      data: [{ id: 101, subject: 'Hi', name: 'm' }],
-    } as never);
+    vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
+      { id: 101, subject: 'Hi', name: 'm' },
+    ]);
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     // Three dynamic sets: target template_id (42) is in the SECOND entry,
     // not the first. The previous boolean-skip-first-non-null logic would
     // have returned 99 from entry 0 and missed the match entirely.
@@ -364,12 +373,13 @@ describe('findTemplateOwner', () => {
 
     vi.spyOn(client, 'listCampaigns').mockResolvedValue({ data: dispatchers } as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    vi.spyOn(client, 'listMessages').mockImplementation(async ({ id }) => {
+    vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async (id) => {
       await new Promise((r) => setTimeout(r, 5));
-      if (id === 1) return { data: [{ id: 101, subject: 's', name: 'm' }] } as never;
+      if (id === 1) return [{ id: 101, subject: 's', name: 'm' }];
 
-      return { data: [] } as never;
+      return [];
     });
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
       data: [{ id: 1, message_id: 101, template_id: 42 }],
     } as never);
@@ -393,16 +403,17 @@ describe('findTemplateOwner', () => {
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
     let listMessagesCalls = 0;
 
-    vi.spyOn(client, 'listMessages').mockImplementation(async ({ id }) => {
+    vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async (id) => {
       listMessagesCalls += 1;
       // Tiny delay so workers actually overlap.
       await new Promise((r) => setTimeout(r, 5));
 
       // First dispatcher has the matching message; rest don't.
-      if (id === 1) return { data: [{ id: 101, subject: 's', name: 'm' }] } as never;
+      if (id === 1) return [{ id: 101, subject: 's', name: 'm' }];
 
-      return { data: [] } as never;
+      return [];
     });
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
       data: [{ id: 1, message_id: 101, template_id: 42 }],
     } as never);
@@ -426,14 +437,15 @@ describe('findTemplateOwner', () => {
     let inFlight = 0;
     let peakInFlight = 0;
 
-    vi.spyOn(client, 'listMessages').mockImplementation(async () => {
+    vi.spyOn(client.messages, 'listCampaignMessages').mockImplementation(async () => {
       inFlight += 1;
       peakInFlight = Math.max(peakInFlight, inFlight);
       await new Promise((r) => setTimeout(r, 10));
       inFlight -= 1;
 
-      return { data: [] } as never;
+      return [];
     });
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     await findTemplateOwner(client, 42, { concurrency: 3 });
     expect(peakInFlight).toBeLessThanOrEqual(3);
@@ -466,7 +478,8 @@ describe('findTemplateOwner', () => {
       .spyOn(client, 'listAutomations')
       .mockResolvedValue({ data: [] } as never);
 
-    vi.spyOn(client, 'listMessages').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([]);
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     const result = await findTemplateOwner(client, 42, { signal: ac.signal });
 
@@ -481,15 +494,16 @@ describe('findTemplateOwner', () => {
       data: [{ name: 'no-id' } as never, { id: 2, name: 'has-id' } as never],
     } as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    const listMessages = vi
-      .spyOn(client, 'listMessages')
-      .mockResolvedValue({ data: [] } as never);
+    const listCampaignMessages = vi
+      .spyOn(client.messages, 'listCampaignMessages')
+      .mockResolvedValue([]);
 
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     await findTemplateOwner(client, 42);
-    // Only the dispatcher with id=2 should have triggered a listMessages call.
-    expect(listMessages).toHaveBeenCalledTimes(1);
-    expect(listMessages).toHaveBeenCalledWith({ id: 2, dispatcher_type: 'campaign' });
+    // Only the dispatcher with id=2 should have triggered a listCampaignMessages call.
+    expect(listCampaignMessages).toHaveBeenCalledTimes(1);
+    expect(listCampaignMessages).toHaveBeenCalledWith(2);
   });
 
   it('reports string campaign status in the owner result', async () => {
@@ -499,9 +513,10 @@ describe('findTemplateOwner', () => {
       data: [{ id: 1, name: 'Promo', status: 'sent' } as never],
     } as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    vi.spyOn(client, 'listMessages').mockResolvedValue({
-      data: [{ id: 101, subject: 'Hi', name: 'Hi' }],
-    } as never);
+    vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
+      { id: 101, subject: 'Hi', name: 'Hi' },
+    ]);
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
       data: [{ id: 1, message_id: 101, template_id: 42 }],
     } as never);
@@ -517,9 +532,10 @@ describe('findTemplateOwner', () => {
       data: [{ id: 1, name: 'Promo', status: { key: 'scheduled' } } as never],
     } as never);
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    vi.spyOn(client, 'listMessages').mockResolvedValue({
-      data: [{ id: 101, subject: 'Hi', name: 'Hi' }],
-    } as never);
+    vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([
+      { id: 101, subject: 'Hi', name: 'Hi' },
+    ]);
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({
       data: [{ id: 1, message_id: 101, template_id: 42 }],
     } as never);
@@ -535,7 +551,8 @@ describe('findTemplateOwner', () => {
       new RuleApiError('forbidden', 403)
     );
     vi.spyOn(client, 'listAutomations').mockResolvedValue({ data: [] } as never);
-    vi.spyOn(client, 'listMessages').mockResolvedValue({ data: [] } as never);
+    vi.spyOn(client.messages, 'listCampaignMessages').mockResolvedValue([]);
+    vi.spyOn(client.messages, 'listAutomationMessages').mockResolvedValue([]);
     vi.spyOn(client, 'listDynamicSets').mockResolvedValue({ data: [] } as never);
     const result = await findTemplateOwner(client, 42);
 

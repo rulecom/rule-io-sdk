@@ -24,7 +24,6 @@ export interface CreateAutomationEmailConfig {
   preheader?: string;
   fromName?: string;
   fromEmail?: string;
-  replyTo?: string;
   delayInSeconds?: string;
   /**
    * Sendout type for the automation.
@@ -79,7 +78,6 @@ export interface CreateCampaignEmailConfig {
   preheader?: string;
   fromName?: string;
   fromEmail?: string;
-  replyTo?: string;
   /** 1: Marketing (default), 2: Transactional */
   sendoutType?: RuleSendoutType;
   tags?: RuleCampaignRecipientTag[];

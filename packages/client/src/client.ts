@@ -105,12 +105,6 @@ import type {
   RuleExportSubscriberResponse,
 } from './resources/exports/exports.types.js';
 import type {
-  RuleMessageCreateRequest,
-  RuleMessageListParams,
-  RuleMessageListResponse,
-  RuleMessageResponse,
-} from './resources/messages/messages.types.js';
-import type {
   RuleRecipientSubscriberListResponse,
   RuleRecipientTagListResponse,
   RuleRecipientsListParams,
@@ -487,36 +481,6 @@ export class RuleClient extends BaseResource {
   /** @deprecated Use `client.automations.list()` instead. */
   listAutomails(params?: RuleAutomationListParams): Promise<RuleAutomationListResponse> {
     return this.automations.list(params);
-  }
-
-  // ── Messages ──────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.messages.create()` instead. */
-  createMessage(req: RuleMessageCreateRequest): Promise<RuleMessageResponse> {
-    return this.messages.create(req);
-  }
-
-  /** @deprecated Use `client.messages.get()` instead. */
-  getMessage(id: number): Promise<RuleMessageResponse | null> {
-    return this.messages.get(id);
-  }
-
-  /** @deprecated Use `client.messages.update()` instead. */
-  updateMessage(
-    id: number,
-    message: Partial<RuleMessageCreateRequest>
-  ): Promise<RuleMessageResponse> {
-    return this.messages.update(id, message);
-  }
-
-  /** @deprecated Use `client.messages.delete()` instead. */
-  deleteMessage(id: number): Promise<RuleApiResponse> {
-    return this.messages.delete(id);
-  }
-
-  /** @deprecated Use `client.messages.list()` instead. */
-  listMessages(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
-    return this.messages.list(params);
   }
 
   // ── Templates ─────────────────────────────────────────────────────────────
@@ -911,25 +875,22 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'automail', id: automationId });
 
-      const messageResponse = await this.messages.create({
-        dispatcher: { id: automationId, type: 'automail' },
-        type: 1,
+      const message = await this.messages.createEmailAutomationMessage(automationId, {
         subject: config.subject,
         preheader: config.preheader,
-        from_name: config.fromName,
-        from_email: config.fromEmail,
-        reply_to: config.replyTo,
-        automail_setting: {
+        fromName: config.fromName,
+        fromEmail: config.fromEmail,
+        automailSetting: {
           active: true,
-          delay_in_seconds: config.delayInSeconds || '0',
+          delayInSeconds: config.delayInSeconds || '0',
         },
       });
 
-      if (!messageResponse.data?.id) {
+      if (!message.id) {
         throw new RuleApiError('Failed to create message - no ID returned', 500);
       }
 
-      const messageId = messageResponse.data.id;
+      const messageId = message.id;
 
       createdResources.push({ type: 'message', id: messageId });
 
@@ -1050,21 +1011,18 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'campaign', id: campaignId });
 
-      const messageResponse = await this.messages.create({
-        dispatcher: { id: campaignId, type: 'campaign' },
-        type: 1,
+      const message = await this.messages.createEmailCampaignMessage(campaignId, {
         subject: config.subject,
         preheader: config.preheader,
-        from_name: config.fromName,
-        from_email: config.fromEmail,
-        reply_to: config.replyTo,
+        fromName: config.fromName,
+        fromEmail: config.fromEmail,
       });
 
-      if (!messageResponse.data?.id) {
+      if (!message.id) {
         throw new RuleApiError('Failed to create message - no ID returned', 500);
       }
 
-      const messageId = messageResponse.data.id;
+      const messageId = message.id;
 
       createdResources.push({ type: 'message', id: messageId });
 

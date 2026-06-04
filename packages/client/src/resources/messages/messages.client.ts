@@ -1,48 +1,120 @@
 /**
- * Messages namespace client.
+ * Messages namespace client for the `@rulecom/client` package.
  *
- * Wraps the v3 `/editor/message` endpoints.
+ * Wraps the v3 `/editor/message` endpoints. A message belongs to a single
+ * dispatcher (campaign or automation) and holds the subject, sender settings,
+ * and optional delivery configuration for the email or SMS.
+ *
+ * Use the type-and-dispatcher-specific methods
+ * (`createEmailCampaignMessage`, `createEmailAutomationMessage`, etc.)
+ * rather than a generic create/update — they enforce the right payload shape
+ * for each scenario.
  */
 
 import { RuleApiError } from '../../errors.js';
-
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
-import type { RuleApiResponse } from '../../shared.types.js';
-
 import type {
-  RuleMessageCreateRequest,
-  RuleMessageListParams,
-  RuleMessageListResponse,
-  RuleMessageResponse,
+  AutomailSetting,
+  AutomailSettingWire,
+  CreateEmailAutomationMessagePayload,
+  CreateEmailCampaignMessagePayload,
+  CreateMessageBody,
+  EmailAutomationMessage,
+  EmailCampaignMessage,
+  Message,
+  MessageListResponse,
+  MessageResponse,
+  MessageSenderWire,
+  MessageWire,
+  UpdateEmailAutomationMessagePayload,
+  UpdateEmailCampaignMessagePayload,
+  UpdateMessageBody,
 } from './messages.types.js';
+
+// ── Client ────────────────────────────────────────────────────────────────────
 
 export class MessagesClient extends BaseResource {
   /**
-   * Create a message attached to a dispatcher (automation or campaign).
+   * Create an email message attached to a campaign.
    *
-   * @param message - Message create request (dispatcher reference, type,
-   *   subject, sender, automail_setting, etc.).
-   * @returns The created message.
+   * The message holds the subject and sender settings for the campaign email.
+   * After creating a message, create a template and link them with a dynamic
+   * set to complete the email chain.
    *
-   * @see https://app.rule.io/redoc/v3#tag/New-Editor.-Message
+   * @param campaignId - ID of the campaign this message belongs to.
+   * @param payload - Subject, sender details, and optional UTM tracking fields.
+   * @returns The created campaign email message.
+   *
+   * @example
+   * ```typescript
+   * const message = await client.messages.createEmailCampaignMessage(campaignId, {
+   *   subject: 'Your order is on its way',
+   *   fromName: 'Jane from Acme',
+   *   fromEmail: 'jane@acme.com',
+   * });
+   * ```
    */
-  create(message: RuleMessageCreateRequest): Promise<RuleMessageResponse> {
-    return this.transport.post<RuleMessageResponse>('/editor/message', {
-      body: JSON.stringify(message),
+  async createEmailCampaignMessage(
+    campaignId: number,
+    payload: CreateEmailCampaignMessagePayload
+  ): Promise<EmailCampaignMessage> {
+    const body = mapCampaignPayloadToBody(campaignId, payload);
+    const res = await this.transport.post<MessageResponse>('/editor/message', {
+      body: JSON.stringify(body),
     });
+
+    return mapMessageWireToEntity(res.data);
   }
 
   /**
-   * Get a message by ID.
+   * Create an email message attached to an automation.
+   *
+   * The message holds the subject, sender settings, and automail delivery
+   * configuration for the automation email. After creating a message, create a
+   * template and link them with a dynamic set to complete the email chain.
+   *
+   * @param automationId - ID of the automation this message belongs to.
+   * @param payload - Subject, sender details, optional UTM fields, and automail
+   *   delivery settings (active flag and delay).
+   * @returns The created automation email message.
+   *
+   * @example
+   * ```typescript
+   * const message = await client.messages.createEmailAutomationMessage(automationId, {
+   *   subject: 'Welcome to Acme!',
+   *   fromName: 'Jane from Acme',
+   *   fromEmail: 'jane@acme.com',
+   *   automailSetting: { active: true, delayInSeconds: '0' },
+   * });
+   * ```
+   */
+  async createEmailAutomationMessage(
+    automationId: number,
+    payload: CreateEmailAutomationMessagePayload
+  ): Promise<EmailAutomationMessage> {
+    const body = mapAutomationPayloadToBody(automationId, payload);
+    const res = await this.transport.post<MessageResponse>('/editor/message', {
+      body: JSON.stringify(body),
+    });
+
+    return mapMessageWireToEntity(res.data);
+  }
+
+  /**
+   * Fetch a message by ID.
+   *
+   * Returns `null` instead of throwing when the message does not exist (HTTP
+   * 404). All other API errors are rethrown.
    *
    * @param id - Message ID.
-   * @returns The message, or `null` if no message with that ID exists
-   *   (HTTP 404).
+   * @returns The message, or `null` if no message with that ID exists.
    */
-  async get(id: number): Promise<RuleMessageResponse | null> {
+  async get(id: number): Promise<Message | null> {
     try {
-      return await this.transport.get<RuleMessageResponse>(`/editor/message/${id}`);
+      const res = await this.transport.get<MessageResponse>(`/editor/message/${id}`);
+
+      return mapMessageWireToEntity(res.data);
     } catch (error) {
       if (error instanceof RuleApiError && error.statusCode === 404) {
         return null;
@@ -53,51 +125,188 @@ export class MessagesClient extends BaseResource {
   }
 
   /**
-   * Update a message.
+   * Update an email campaign message.
+   *
+   * Only the fields you include are changed — omitted fields are left as-is.
+   * Campaign messages do not have automail delivery settings; use
+   * {@link updateEmailAutomationMessage} for automation messages.
    *
    * @param id - Message ID.
-   * @param message - Partial update body — any subset of the create-request
-   *   fields.
-   * @returns The updated message.
+   * @param payload - Fields to update. All fields are optional.
+   * @returns The updated campaign email message.
+   *
+   * @example
+   * ```typescript
+   * await client.messages.updateEmailCampaignMessage(messageId, {
+   *   subject: 'Updated subject line',
+   * });
+   * ```
    */
-  update(
+  async updateEmailCampaignMessage(
     id: number,
-    message: Partial<RuleMessageCreateRequest>
-  ): Promise<RuleMessageResponse> {
-    return this.transport.put<RuleMessageResponse>(`/editor/message/${id}`, {
-      body: JSON.stringify(message),
+    payload: UpdateEmailCampaignMessagePayload
+  ): Promise<EmailCampaignMessage> {
+    const body = mapUpdatePayloadToBody(payload);
+    const res = await this.transport.put<MessageResponse>(`/editor/message/${id}`, {
+      body: JSON.stringify(body),
     });
+
+    return mapMessageWireToEntity(res.data);
+  }
+
+  /**
+   * Update an email automation message.
+   *
+   * Only the fields you include are changed — omitted fields are left as-is.
+   * Use `automailSetting` to change the active flag or send delay. For
+   * campaign messages use {@link updateEmailCampaignMessage}.
+   *
+   * @param id - Message ID.
+   * @param payload - Fields to update. All fields are optional.
+   * @returns The updated automation email message.
+   *
+   * @example
+   * ```typescript
+   * await client.messages.updateEmailAutomationMessage(messageId, {
+   *   subject: 'Welcome — updated copy',
+   *   automailSetting: { active: true, delayInSeconds: '3600' },
+   * });
+   * ```
+   */
+  async updateEmailAutomationMessage(
+    id: number,
+    payload: UpdateEmailAutomationMessagePayload
+  ): Promise<EmailAutomationMessage> {
+    const body = mapUpdatePayloadToBody(payload);
+    const res = await this.transport.put<MessageResponse>(`/editor/message/${id}`, {
+      body: JSON.stringify(body),
+    });
+
+    return mapMessageWireToEntity(res.data);
   }
 
   /**
    * Delete a message.
    *
+   * This permanently removes the message. Templates linked via dynamic sets
+   * are not deleted and can be reused on a new message.
+   *
    * @param id - Message ID.
-   * @returns A success response.
    */
-  delete(id: number): Promise<RuleApiResponse> {
-    return this.transport.delete<RuleApiResponse>(`/editor/message/${id}`);
+  async delete(id: number): Promise<void> {
+    await this.transport.delete(`/editor/message/${id}`);
   }
 
   /**
-   * List messages for a dispatcher (automation or campaign).
+   * List all messages attached to a campaign.
    *
-   * Both `id` and `dispatcher_type` are required by the API.
+   * A campaign typically has one message, but the API supports multiple
+   * messages per dispatcher (e.g. for A/B variants).
    *
-   * @param params - Dispatcher ID and type.
-   * @returns List of messages for the dispatcher.
-   *
-   * @example
-   * ```typescript
-   * const messages = await client.messages.list({
-   *   id: 123,
-   *   dispatcher_type: 'automail',
-   * });
-   * ```
+   * @param campaignId - ID of the campaign whose messages to retrieve.
+   * @returns All messages belonging to the campaign.
    */
-  list(params: RuleMessageListParams): Promise<RuleMessageListResponse> {
-    const qs = buildQueryString({ ...params });
+  async listCampaignMessages(campaignId: number): Promise<EmailCampaignMessage[]> {
+    const qs = buildQueryString({ id: campaignId, dispatcher_type: 'campaign' });
+    const res = await this.transport.get<MessageListResponse>(`/editor/message${qs}`);
 
-    return this.transport.get<RuleMessageListResponse>(`/editor/message${qs}`);
+    return res.data.map(mapMessageWireToEntity);
   }
+
+  /**
+   * List all messages attached to an automation.
+   *
+   * An automation typically has one message, but the API supports multiple
+   * messages per dispatcher (e.g. for A/B variants).
+   *
+   * @param automationId - ID of the automation whose messages to retrieve.
+   * @returns All messages belonging to the automation.
+   */
+  async listAutomationMessages(automationId: number): Promise<EmailAutomationMessage[]> {
+    const qs = buildQueryString({ id: automationId, dispatcher_type: 'automail' });
+    const res = await this.transport.get<MessageListResponse>(`/editor/message${qs}`);
+
+    return res.data.map(mapMessageWireToEntity);
+  }
+}
+
+// ── Wire ↔ entity mappers ─────────────────────────────────────────────────────
+
+function mapMessageWireToEntity(wire: MessageWire): Message {
+  return {
+    id: wire.id,
+    subject: wire.subject,
+    preheader: wire.pre_header,
+    fromName: wire.sender?.name,
+    fromEmail: wire.sender?.email,
+    utmCampaign: wire.utm_campaign,
+    utmTerm: wire.utm_term,
+    messageType: wire.type,
+    dispatcher: wire.dispatcher,
+    createdAt: wire.created_at,
+    updatedAt: wire.updated_at,
+  };
+}
+
+function mapSender(
+  fromName: string | null | undefined,
+  fromEmail: string | null | undefined
+): MessageSenderWire | undefined {
+  if (fromName === undefined && fromEmail === undefined) return undefined;
+
+  return { name: fromName, email: fromEmail };
+}
+
+function mapAutomailSetting(s: AutomailSetting): AutomailSettingWire {
+  return {
+    active: s.active,
+    delay_in_seconds: parseInt(s.delayInSeconds, 10),
+  };
+}
+
+function mapCampaignPayloadToBody(
+  campaignId: number,
+  p: CreateEmailCampaignMessagePayload
+): CreateMessageBody {
+  return {
+    dispatcher: { id: campaignId, type: 'campaign' },
+    type: 1,
+    subject: p.subject,
+    pre_header: p.preheader,
+    sender: mapSender(p.fromName, p.fromEmail),
+    utm_campaign: p.utmCampaign,
+    utm_term: p.utmTerm,
+  };
+}
+
+function mapAutomationPayloadToBody(
+  automationId: number,
+  p: CreateEmailAutomationMessagePayload
+): CreateMessageBody {
+  return {
+    dispatcher: { id: automationId, type: 'automail' },
+    type: 1,
+    subject: p.subject,
+    pre_header: p.preheader,
+    sender: mapSender(p.fromName, p.fromEmail),
+    utm_campaign: p.utmCampaign,
+    utm_term: p.utmTerm,
+    automail_setting: p.automailSetting ? mapAutomailSetting(p.automailSetting) : undefined,
+  };
+}
+
+function mapUpdatePayloadToBody(
+  p: UpdateEmailCampaignMessagePayload | UpdateEmailAutomationMessagePayload
+): UpdateMessageBody {
+  return {
+    subject: p.subject,
+    pre_header: p.preheader,
+    sender: mapSender(p.fromName, p.fromEmail),
+    utm_campaign: p.utmCampaign,
+    utm_term: p.utmTerm,
+    automail_setting:
+      'automailSetting' in p && p.automailSetting
+        ? mapAutomailSetting(p.automailSetting)
+        : undefined,
+  };
 }

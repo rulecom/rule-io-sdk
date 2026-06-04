@@ -43,10 +43,11 @@ email-snapshots/
 .claude/
 CLAUDE.md
 
+# MCP
+.mcp.json
+
 # AI context documents (architecture docs, not tracked in git)
 ai-context/
-
-
 
 .nx/cache
 .nx/workspace-data

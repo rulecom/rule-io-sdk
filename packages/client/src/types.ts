@@ -69,11 +69,15 @@ export type {
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 export type {
-  RuleMessage,
-  RuleMessageCreateRequest,
-  RuleMessageListParams,
-  RuleMessageListResponse,
-  RuleMessageResponse,
+  AutomailSetting,
+  CreateEmailAutomationMessagePayload,
+  CreateEmailCampaignMessagePayload,
+  EmailAutomationMessage,
+  EmailCampaignMessage,
+  Message,
+  MessageDispatcher,
+  UpdateEmailAutomationMessagePayload,
+  UpdateEmailCampaignMessagePayload,
 } from './resources/messages/messages.types.js';
 
 // ── Templates ────────────────────────────────────────────────────────────────

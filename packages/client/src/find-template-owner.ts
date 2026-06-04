@@ -15,7 +15,8 @@
 
 import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
-import type { RuleAutomation, RuleCampaign, RuleMessage } from './types.js';
+import type { RuleAutomation, RuleCampaign } from './types.js';
+import type { Message } from './resources/messages/messages.types.js';
 
 type DispatcherKind = 'campaign' | 'automation';
 
@@ -314,17 +315,14 @@ async function probeDispatcher(
   pageScanned.count += 1;
 
   const dispatcherId = dispatcher.id;
-  const dispatcherType = kind === 'campaign' ? 'campaign' : 'automail';
 
-  let messages: readonly RuleMessage[];
+  let messages: readonly Message[];
 
   try {
-    const response = await client.listMessages({
-      id: dispatcherId,
-      dispatcher_type: dispatcherType,
-    });
-
-    messages = response.data ?? [];
+    messages =
+      kind === 'campaign'
+        ? await client.messages.listCampaignMessages(dispatcherId)
+        : await client.messages.listAutomationMessages(dispatcherId);
   } catch (error) {
     partialErrors.push({
       dispatcher_kind: kind,
@@ -392,7 +390,7 @@ function toOwner(
   kind: DispatcherKind,
   dispatcher: DispatcherListEntry,
   dispatcherId: number,
-  message: RuleMessage,
+  message: Message,
   messageId: number
 ): TemplateOwner {
   if (kind === 'campaign') {
