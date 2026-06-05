@@ -10,7 +10,7 @@ npm install @rulecom/sdk
 
 ## Authentication
 
-Get your API key from [Rule.io Settings → API](https://app.rule.io/settings/api). Store it in an environment variable — never commit it to source control.
+Get your API key from [Rule.io Settings → API](https://app.rule.io/v5/#/app/settings/developer). Store it in an environment variable — never commit it to source control.
 
 ## Quick Start
 
