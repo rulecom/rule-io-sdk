@@ -4,8 +4,10 @@
 
 import type { RuleApiResponse } from '../../shared.types.js';
 
+// ── Public SDK types ──────────────────────────────────────────────────────────
+
 /** Object type for analytics queries. */
-export type RuleAnalyticsObjectType =
+export type AnalyticsObjectType =
   | 'AB_TEST'
   | 'CAMPAIGN'
   | 'AUTOMAIL'
@@ -13,7 +15,7 @@ export type RuleAnalyticsObjectType =
   | 'JOURNEY';
 
 /** Available metrics for analytics queries. */
-export type RuleAnalyticsMetric =
+export type AnalyticsMetric =
   | 'open'
   | 'open_uniq'
   | 'sent'
@@ -27,54 +29,75 @@ export type RuleAnalyticsMetric =
   | 'spam';
 
 /** Message type filter for analytics queries. */
-export type RuleAnalyticsMessageType = 'email' | 'text_message';
+export type AnalyticsMessageType = 'email' | 'text_message';
 
 /**
- * Base date range shared by all analytics queries.
+ * Base date range params shared by all analytics queries.
  * All date strings must be in `YYYY-MM-DD` format.
+ * The time portion is stripped automatically if a datetime string is provided.
  */
-export interface RuleAnalyticsDateRange {
-  /** Start date (inclusive), e.g. "2024-01-01" */
-  date_from: string;
-  /** End date (inclusive), e.g. "2024-01-31" */
-  date_to: string;
-  /** Optional filter by message type */
-  message_type?: RuleAnalyticsMessageType;
+export interface AnalyticsDateRangeParams {
+  /** Start date (inclusive), e.g. `'2024-01-01'`. */
+  dateFrom: string;
+  /** End date (inclusive), e.g. `'2024-01-31'`. */
+  dateTo: string;
+  /** Optional filter by message type. */
+  messageType?: AnalyticsMessageType;
 }
 
 /**
- * Full analytics query with object type, IDs, and metrics.
- * `object_ids` are strings (not numbers), matching the OpenAPI spec.
- */
-export interface RuleAnalyticsFullQuery extends RuleAnalyticsDateRange {
-  /** The type of object to query analytics for */
-  object_type: RuleAnalyticsObjectType;
-  /** IDs of the objects to query (string array, not numbers) */
-  object_ids: string[];
-  /** Metrics to retrieve (at least one required) */
-  metrics: RuleAnalyticsMetric[];
-}
-
-/**
- * Query parameters for the analytics endpoint.
+ * Full analytics query params with object type, IDs, and metrics.
  *
- * Either provide just a date range, or a full query with object_type,
- * object_ids, and metrics together.
+ * `objectIds` are strings (not numbers), matching the OpenAPI spec.
+ * When `objectType` is provided, both `objectIds` and `metrics` must
+ * be non-empty arrays.
  */
-export type RuleAnalyticsParams = RuleAnalyticsDateRange | RuleAnalyticsFullQuery;
+export interface AnalyticsQueryParams extends AnalyticsDateRangeParams {
+  /** The type of object to query analytics for. */
+  objectType: AnalyticsObjectType;
+  /** IDs of the objects to query (string array, not numbers). */
+  objectIds: string[];
+  /** Metrics to retrieve (at least one required). */
+  metrics: AnalyticsMetric[];
+}
+
+/**
+ * Params for the analytics endpoint.
+ *
+ * Either provide just a date range ({@link AnalyticsDateRangeParams}),
+ * or a full query with `objectType`, `objectIds`, and `metrics`
+ * ({@link AnalyticsQueryParams}).
+ */
+export type AnalyticsParams = AnalyticsDateRangeParams | AnalyticsQueryParams;
+
+/** A single metric value within an {@link AnalyticsStat}. */
+export interface AnalyticsMetricValue {
+  metric: AnalyticsMetric;
+  value: number;
+}
 
 /** A single object's analytics statistics. */
-export interface RuleAnalyticsStat {
-  /** The object ID */
+export interface AnalyticsStat {
+  /** The object ID. */
   id: string | number;
-  /** Metric values for this object */
-  metrics: Array<{
-    metric: RuleAnalyticsMetric;
-    value: number;
-  }>;
+  /** Metric values for this object. */
+  metrics: AnalyticsMetricValue[];
 }
 
-/** Response from the analytics endpoint. */
-export interface RuleAnalyticsResponse extends RuleApiResponse {
-  data?: RuleAnalyticsStat[];
+/** Result from the analytics endpoint. */
+export interface AnalyticsResult {
+  data: AnalyticsStat[];
+}
+
+// ── Internal wire types ───────────────────────────────────────────────────────
+
+/** @internal */
+export interface AnalyticsStatWire {
+  id: string | number;
+  metrics: Array<{ metric: string; value: number }>;
+}
+
+/** @internal */
+export interface AnalyticsWireResponse extends RuleApiResponse {
+  data?: AnalyticsStatWire[];
 }

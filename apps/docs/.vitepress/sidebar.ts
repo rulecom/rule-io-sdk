@@ -102,13 +102,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Dynamic Sets', link: '/packages/client/dynamic-sets' },
         ],
       },
-      {
-        text: 'Analytics & Data',
-        collapsed: true,
-        items: [
-          { text: 'Tracking Performance', link: '/packages/client/tracking-performance' },
-        ],
-      },
+      { text: 'Analytics', link: '/packages/client/analytics' },
       { text: 'Exporting Data', link: '/packages/client/exporting-data' },
       { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },

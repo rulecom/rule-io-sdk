@@ -168,14 +168,15 @@ export type {
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 export type {
-  RuleAnalyticsDateRange,
-  RuleAnalyticsFullQuery,
-  RuleAnalyticsMessageType,
-  RuleAnalyticsMetric,
-  RuleAnalyticsObjectType,
-  RuleAnalyticsParams,
-  RuleAnalyticsResponse,
-  RuleAnalyticsStat,
+  AnalyticsObjectType,
+  AnalyticsMetric,
+  AnalyticsMessageType,
+  AnalyticsDateRangeParams,
+  AnalyticsQueryParams,
+  AnalyticsParams,
+  AnalyticsMetricValue,
+  AnalyticsStat,
+  AnalyticsResult,
 } from './resources/analytics/analytics.types.js';
 
 // ── Recipients ───────────────────────────────────────────────────────────────

@@ -173,7 +173,7 @@ describe('RuleClient — deprecated-alias delegation', () => {
     const spy = vi.spyOn(client.analytics, 'get');
 
     fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.getAnalytics({ date_from: '2024-01-01', date_to: '2024-01-31' });
+    await client.getAnalytics({ dateFrom: '2024-01-01', dateTo: '2024-01-31' });
 
     expect(spy).toHaveBeenCalledTimes(1);
   });

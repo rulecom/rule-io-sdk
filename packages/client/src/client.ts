@@ -46,8 +46,8 @@ import { buildDefaultBrandedTemplate } from './default-branded-template.js';
 
 import type { RuleApiResponse } from './shared.types.js';
 import type {
-  RuleAnalyticsParams,
-  RuleAnalyticsResponse,
+  AnalyticsParams,
+  AnalyticsResult,
 } from './resources/analytics/analytics.types.js';
 import type {
   ApiKey,
@@ -390,7 +390,7 @@ export class RuleClient extends BaseResource {
   // ── Analytics ─────────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.analytics.get()` instead. */
-  getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
+  getAnalytics(params: AnalyticsParams): Promise<AnalyticsResult> {
     return this.analytics.get(params);
   }
 

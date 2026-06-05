@@ -2,7 +2,7 @@
 
 > **Enterprise feature.** The exports API is available on Enterprise Rule.io plans.
 
-Exports give you raw event and subscriber data in bulk — useful for populating a data warehouse, building custom reports, or auditing delivery history. This is different from the [analytics API](./tracking-performance), which returns pre-aggregated summaries. Exports return the underlying records.
+Exports give you raw event and subscriber data in bulk — useful for populating a data warehouse, building custom reports, or auditing delivery history. This is different from the [analytics API](./analytics), which returns pre-aggregated summaries. Exports return the underlying records.
 
 ## Exporting dispatcher data
 
@@ -81,5 +81,5 @@ const records = await client.exports.subscribers({
 
 ## Next steps
 
-- For aggregated summaries without raw event data: [Tracking Performance](./tracking-performance)
+- For aggregated summaries without raw event data: [Analytics](./analytics)
 - To suppress exported unsubscribers: [Managing Suppressions](./managing-suppressions)
