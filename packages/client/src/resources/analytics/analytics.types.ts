@@ -6,30 +6,38 @@ import type { RuleApiResponse } from '../../shared.types.js';
 
 // ── Public SDK types ──────────────────────────────────────────────────────────
 
-/** Object type for analytics queries. */
-export type AnalyticsObjectType =
-  | 'AB_TEST'
-  | 'CAMPAIGN'
-  | 'AUTOMAIL'
-  | 'TRANSACTIONAL_NAME'
-  | 'JOURNEY';
+/** Object type constants for analytics queries. */
+export const AnalyticsObjectTypes = {
+  abTest:            'AB_TEST',
+  campaign:          'CAMPAIGN',
+  automail:          'AUTOMAIL',
+  transactionalName: 'TRANSACTIONAL_NAME',
+  journey:           'JOURNEY',
+} as const;
+export type AnalyticsObjectType = (typeof AnalyticsObjectTypes)[keyof typeof AnalyticsObjectTypes];
 
-/** Available metrics for analytics queries. */
-export type AnalyticsMetric =
-  | 'open'
-  | 'open_uniq'
-  | 'sent'
-  | 'delivered'
-  | 'click'
-  | 'click_uniq'
-  | 'total_bounce'
-  | 'soft_bounce'
-  | 'hard_bounce'
-  | 'unsubscribe'
-  | 'spam';
+/** Metric constants for analytics queries. */
+export const AnalyticsMetrics = {
+  sent:        'sent',
+  delivered:   'delivered',
+  open:        'open',
+  openUniq:    'open_uniq',
+  click:       'click',
+  clickUniq:   'click_uniq',
+  totalBounce: 'total_bounce',
+  hardBounce:  'hard_bounce',
+  softBounce:  'soft_bounce',
+  unsubscribe: 'unsubscribe',
+  spam:        'spam',
+} as const;
+export type AnalyticsMetric = (typeof AnalyticsMetrics)[keyof typeof AnalyticsMetrics];
 
-/** Message type filter for analytics queries. */
-export type AnalyticsMessageType = 'email' | 'text_message';
+/** Message type constants for analytics queries. */
+export const AnalyticsMessageTypes = {
+  email:       'email',
+  textMessage: 'text_message',
+} as const;
+export type AnalyticsMessageType = (typeof AnalyticsMessageTypes)[keyof typeof AnalyticsMessageTypes];
 
 /**
  * Base date range params shared by all analytics queries.

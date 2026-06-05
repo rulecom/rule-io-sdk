@@ -12,6 +12,7 @@ export { RuleApiError, RuleClientError } from './errors.js';
 export type { RuleValidationErrors } from './errors.js';
 export { RULE_API_V2_BASE_URL, RULE_API_V3_BASE_URL, RuleTags } from './constants.js';
 export type { RuleTag } from './constants.js';
+export { AnalyticsMetrics, AnalyticsObjectTypes, AnalyticsMessageTypes } from './resources/analytics/analytics.types.js';
 export type * from './types.js';
 export * from './brand-style-to-theme.js';
 export { findTemplateOwner } from './find-template-owner.js';
