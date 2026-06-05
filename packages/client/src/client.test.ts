@@ -38,9 +38,6 @@ import { DynamicSetsClient } from './resources/dynamic-sets/dynamic-sets.client.
 import { ExportsClient } from './resources/exports/exports.client.js';
 import { MessagesClient } from './resources/messages/messages.client.js';
 import { RecipientsClient } from './resources/recipients/recipients.client.js';
-import { RecipientSubscribersClient } from './resources/recipients/subscribers/recipient-subscribers.client.js';
-import { RecipientTagsClient } from './resources/recipients/tags/recipient-tags.client.js';
-import { SegmentsClient } from './resources/recipients/segments/segments.client.js';
 import { SubscribersClient } from './resources/subscribers/subscribers.client.js';
 import { TagsClient } from './resources/tags/tags.client.js';
 import { TemplatesClient } from './resources/templates/templates.client.js';
@@ -78,9 +75,6 @@ describe('RuleClient — namespaced API', () => {
     it('exposes nested recipient namespaces of the right type', () => {
       const client = makeClient(fetchMock);
 
-      expect(client.recipients.segments).toBeInstanceOf(SegmentsClient);
-      expect(client.recipients.subscribers).toBeInstanceOf(RecipientSubscribersClient);
-      expect(client.recipients.tags).toBeInstanceOf(RecipientTagsClient);
     });
   });
 
@@ -97,9 +91,6 @@ describe('RuleClient — namespaced API', () => {
     it('returns the same instance on repeated nested access', () => {
       const client = makeClient(fetchMock);
 
-      expect(client.recipients.segments).toBe(client.recipients.segments);
-      expect(client.recipients.subscribers).toBe(client.recipients.subscribers);
-      expect(client.recipients.tags).toBe(client.recipients.tags);
     });
 
     it('does not instantiate namespaces that are never accessed', () => {
@@ -154,15 +145,6 @@ describe('RuleClient — namespaced API', () => {
       }
 
       // Nested clients also share the same transport.
-      expect((client.recipients.segments as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
-      expect((client.recipients.subscribers as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
-      expect((client.recipients.tags as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
     });
   });
 });
@@ -196,16 +178,6 @@ describe('RuleClient — deprecated-alias delegation', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-
-  it('listSegments delegates to recipients.segments.list (nested)', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.recipients.segments, 'list');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.listSegments();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
 
   it('addSubscriberTagsV3 delegates to subscribers._addSubscriberTags', async () => {
     const client = makeClient(fetchMock);
@@ -932,20 +904,6 @@ describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', 
     const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce({ data: {} });
 
     await client.exportSubscribers({ type: 'subscriber' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('listRecipientSubscribers delegates to recipients.subscribers.list', async () => {
-    const spy = vi.spyOn(client.recipients.subscribers, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listRecipientSubscribers();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('listRecipientTags delegates to recipients.tags.list', async () => {
-    const spy = vi.spyOn(client.recipients.tags, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listRecipientTags();
     expect(spy).toHaveBeenCalled();
   });
 

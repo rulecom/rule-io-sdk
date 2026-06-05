@@ -67,12 +67,6 @@ import type {
   RuleExportSubscriberResponse,
 } from './resources/exports/exports.types.js';
 import type {
-  RuleRecipientSubscriberListResponse,
-  RuleRecipientTagListResponse,
-  RuleRecipientsListParams,
-  RuleSegmentListResponse,
-} from './resources/recipients/recipients.types.js';
-import type {
   Subscriber,
   SubscriberIdentifier,
   SubscriberTag,
@@ -409,29 +403,6 @@ export class RuleClient extends BaseResource {
   getAnalytics(params: RuleAnalyticsParams): Promise<RuleAnalyticsResponse> {
     return this.analytics.get(params);
   }
-
-  // ── Recipients ────────────────────────────────────────────────────────────
-
-  /** @deprecated Use `client.recipients.segments.list()` instead. */
-  listSegments(params?: RuleRecipientsListParams): Promise<RuleSegmentListResponse> {
-    return this.recipients.segments.list(params);
-  }
-
-  /** @deprecated Use `client.recipients.subscribers.list()` instead. */
-  listRecipientSubscribers(
-    params?: RuleRecipientsListParams
-  ): Promise<RuleRecipientSubscriberListResponse> {
-    return this.recipients.subscribers.list(params);
-  }
-
-  /** @deprecated Use `client.recipients.tags.list()` instead. */
-  listRecipientTags(
-    params?: RuleRecipientsListParams
-  ): Promise<RuleRecipientTagListResponse> {
-    return this.recipients.tags.list(params);
-  }
-
-  // ── Custom field data ─────────────────────────────────────────────────────
 
   // ──────────────────────────────────────────────────────────────────────────
   // Orchestration helpers — kept here as deprecated for back-compat. These

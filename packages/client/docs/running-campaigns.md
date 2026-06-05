@@ -55,7 +55,7 @@ await client.campaigns.setCampaignTags(campaignId, [
 ]);
 ```
 
-To find available tag IDs use `client.tags.list()`.
+To find available tag IDs use `client.recipients.listAllTags()`.
 
 ### Segments
 
@@ -65,7 +65,7 @@ await client.campaigns.setCampaignSegments(campaignId, [
 ]);
 ```
 
-To find segment IDs use `client.recipients.segments.list()`.
+To find segment IDs use `client.recipients.listAllSegments()`.
 
 ### Individual subscribers
 

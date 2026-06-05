@@ -90,6 +90,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         ],
       },
       { text: 'Managing Brand Styles', link: '/packages/client/managing-brand-styles' },
+      { text: 'Recipient Targeting', link: '/packages/client/recipient-targeting' },
       {
         text: 'Sending Emails',
         collapsed: true,

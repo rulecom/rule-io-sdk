@@ -1,27 +1,83 @@
 /**
- * Recipients types (v3 `/editor/recipients/*` endpoints).
+ * Recipients types for the `@rulecom/client` recipients namespace.
  *
- * The recipients namespace exposes nested `segments`, `subscribers`, and
- * `tags` clients; these types are shared across all three.
+ * These endpoints return lightweight lists of segments, tags, and subscribers
+ * for use when setting up campaign or automation recipient targeting. They are
+ * distinct from the main subscriber and tag management endpoints.
  */
 
-import type { RuleListResponse, RulePaginationParams } from '../../shared.types.js';
+import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
 
-/** A tag or segment as returned by the recipients endpoints. */
-export interface RuleTagSegment {
+// ── Public SDK types ──────────────────────────────────────────────────────────
+
+/**
+ * A segment available for campaign recipient targeting.
+ *
+ * Use segment IDs from this endpoint when calling
+ * `client.campaigns.updateEmailCampaign()` or creating automations.
+ */
+export interface RecipientSegment {
+  id: number;
+  name: string;
+}
+
+/**
+ * A tag available for campaign recipient targeting.
+ *
+ * Use tag IDs from this endpoint when calling
+ * `client.campaigns.setCampaignTags()` or `updateEmailCampaign()`.
+ */
+export interface RecipientTag {
+  id: number;
+  name: string;
+}
+
+/**
+ * A subscriber as returned by the recipient targeting endpoint.
+ *
+ * This is intentionally distinct from the main `Subscriber` entity — the
+ * recipients endpoint returns a lightweight shape optimised for targeting
+ * lookups rather than full subscriber management.
+ */
+export interface RecipientSubscriber {
+  id: number;
+  email?: string | null;
+  /** Phone number. */
+  phone?: string | null;
+  customIdentifier?: string | null;
+  accountId?: number;
+  status?: string;
+  language?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Parameters for all recipient listing methods.
+ *
+ * The API defaults to 15 items per page.
+ */
+export interface ListRecipientsParams {
+  pagination?: PagePaginationParams;
+}
+
+// ── Internal wire types ───────────────────────────────────────────────────────
+
+/**
+ * Wire-format segment/tag from the v3 recipients endpoints.
+ * @internal
+ */
+export interface RecipientSegmentWire {
   id: number;
   name: string;
   has_next_item?: boolean;
 }
 
 /**
- * A subscriber as returned by the recipients endpoint.
- *
- * This is intentionally separate from `Subscriber` despite field overlap.
- * The recipients endpoint includes `has_next_item` (pagination cursor hint) and
- * `account_id`, which are absent from the standard v3 subscriber response.
+ * Wire-format subscriber from the v3 `/editor/recipients/subscribers` endpoint.
+ * @internal
  */
-export interface RuleRecipientSubscriber {
+export interface RecipientSubscriberWire {
   id: number;
   email?: string | null;
   phone?: string | null;
@@ -34,14 +90,10 @@ export interface RuleRecipientSubscriber {
   language?: string;
 }
 
-/** Pagination query parameters for the recipients list endpoints. */
-export type RuleRecipientsListParams = RulePaginationParams;
-
-/** Response from the segments recipients endpoint. */
-export type RuleSegmentListResponse = RuleListResponse<RuleTagSegment>;
-
-/** Response from the subscribers recipients endpoint. */
-export type RuleRecipientSubscriberListResponse = RuleListResponse<RuleRecipientSubscriber>;
-
-/** Response from the tags recipients endpoint. */
-export type RuleRecipientTagListResponse = RuleListResponse<RuleTagSegment>;
+/**
+ * Wire response wrapper for all recipients list endpoints.
+ * @internal
+ */
+export interface RecipientListResponseWire<T> extends RuleApiResponse {
+  data?: T[];
+}

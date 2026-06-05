@@ -184,12 +184,10 @@ export type {
 
 // ── Recipients ───────────────────────────────────────────────────────────────
 export type {
-  RuleRecipientSubscriber,
-  RuleRecipientSubscriberListResponse,
-  RuleRecipientTagListResponse,
-  RuleRecipientsListParams,
-  RuleSegmentListResponse,
-  RuleTagSegment,
+  ListRecipientsParams,
+  RecipientSegment,
+  RecipientSubscriber,
+  RecipientTag,
 } from './resources/recipients/recipients.types.js';
 
 // ── Custom field data ────────────────────────────────────────────────────────
