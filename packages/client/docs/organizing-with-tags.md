@@ -26,7 +26,7 @@ await client.subscribers.removeSubscriberTag(
 );
 ```
 
-> **Known issue:** Segment membership is not recalculated after removal. See [Known Issues — Subscribers API](./known-issues-subscribers#tag-removal-does-not-sync-segment-membership) for details and the available workaround.
+> **Known issue:** Segment membership is not recalculated after tag removal.
 
 ## Adding multiple tags to a subscriber
 
@@ -60,7 +60,7 @@ await client.subscribers.removeSubscriberTags(
 );
 ```
 
-> **Known issue:** Same segment sync gap as `removeSubscriberTag`. See [Known Issues — Subscribers API](./known-issues-subscribers#tag-removal-does-not-sync-segment-membership).
+> **Known issue:** Same segment sync gap as `removeSubscriberTag`.
 
 ## Tagging multiple subscribers at once
 

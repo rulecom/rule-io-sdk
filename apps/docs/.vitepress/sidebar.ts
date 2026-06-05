@@ -107,13 +107,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },
       { text: 'Error Handling', link: '/packages/client/error-handling' },
-      {
-        text: 'Known Issues',
-        collapsed: true,
-        items: [
-          { text: 'Subscribers API', link: '/packages/client/known-issues-subscribers' },
-        ],
-      },
+
     ],
   },
   {
