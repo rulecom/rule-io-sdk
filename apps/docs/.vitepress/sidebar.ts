@@ -109,6 +109,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Exporting Data', link: '/packages/client/exporting-data' },
         ],
       },
+      { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       {
         text: 'Account',
         collapsed: true,

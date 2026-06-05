@@ -19,6 +19,15 @@ export type {
   PagePaginationParams,
 } from './shared.types.js';
 
+// ── Custom field schema ───────────────────────────────────────────────────────
+export type {
+  CreateCustomFieldEntry,
+  CustomFieldDefinition,
+  CustomFieldGroup,
+  CustomFieldValueType,
+  ListCustomFieldGroupsParams,
+} from './resources/custom-field/custom-field.types.js';
+
 // ── Client configuration ─────────────────────────────────────────────────────
 export type { RuleClientConfig } from './config.js';
 export type { RateLimitOptions, RetryInfo } from './core/rate-limit.js';
