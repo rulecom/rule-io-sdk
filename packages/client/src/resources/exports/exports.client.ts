@@ -11,45 +11,55 @@ import { buildQueryString } from '../../core/query-string.js';
 import { decodeStatisticMessageName } from '../../core/statistic-name-decoder.js';
 
 import type {
-  RuleExportDispatcherParams,
-  RuleExportDispatcherResponse,
-  RuleExportStatisticsParams,
-  RuleExportStatisticsResponse,
-  RuleExportSubscriberParams,
-  RuleExportSubscriberResponse,
+  ExportDispatcherRecord,
+  ExportDispatcherWire,
+  ExportDispatchersParams,
+  ExportDispatchersWireResponse,
+  ExportStatisticRecord,
+  ExportStatisticWire,
+  ExportStatisticsParams,
+  ExportStatisticsResult,
+  ExportStatisticsWireResponse,
+  ExportSubscriberRecord,
+  ExportSubscriberWire,
+  ExportSubscribersParams,
+  ExportSubscribersWireResponse,
 } from './exports.types.js';
 
 export class ExportsClient extends BaseResource {
   /**
    * Export dispatchers for a given date range.
    *
-   * Note: The API enforces a maximum 1-day range between `date_from` and
-   * `date_to`.
+   * Note: The API enforces a maximum 1-day range between `dateFrom` and
+   * `dateTo`.
    *
    * @param params - Date range (both required).
-   * @returns List of dispatcher records.
+   * @returns Array of dispatcher records.
    *
    * @example
    * ```typescript
-   * const result = await client.exports.dispatchers({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-02',
+   * const records = await client.exports.dispatchers({
+   *   dateFrom: '2024-01-01',
+   *   dateTo:   '2024-01-01',  // same day — max range is 1 day
    * });
-   * console.log(result.data); // RuleExportDispatcherRecord[]
    * ```
    */
-  dispatchers(
-    params: RuleExportDispatcherParams
-  ): Promise<RuleExportDispatcherResponse> {
-    const qs = buildQueryString({ ...params });
+  async dispatchers(params: ExportDispatchersParams): Promise<ExportDispatcherRecord[]> {
+    const qs = buildQueryString({
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+    });
+    const res = await this.transport.get<ExportDispatchersWireResponse>(
+      `/export/dispatcher${qs}`
+    );
 
-    return this.transport.get<RuleExportDispatcherResponse>(`/export/dispatcher${qs}`);
+    return (res.data ?? []).map(mapDispatcherWireToEntity);
   }
 
   /**
    * Export statistics for a given date range with optional type filters.
    *
-   * Uses token-based pagination: if the response includes a `next_page_token`,
+   * Uses token-based pagination: if the result includes a `nextPageToken`,
    * pass it in the next call to retrieve the following page.
    *
    * ## `object.name` decoding
@@ -63,69 +73,125 @@ export class ExportsClient extends BaseResource {
    * base64 — pass `decodeNames: false` to preserve raw API values exactly
    * (for debugging or if upstream behavior changes).
    *
-   * @param params - Date range (required), optional `statistic_types`
-   *   filter, optional `next_page_token`, optional `decodeNames`.
-   * @returns List of statistic records and an optional `next_page_token`.
+   * @param params - Date range (required), optional `statisticTypes`
+   *   filter, optional `nextPageToken`, optional `decodeNames`.
+   * @returns List of statistic records and an optional `nextPageToken`.
    *
    * @example
    * ```typescript
    * // First page
    * let result = await client.exports.statistics({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-31',
-   *   statistic_types: ['open', 'link'],
+   *   dateFrom: '2024-01-01',
+   *   dateTo:   '2024-01-31',
+   *   statisticTypes: ['open', 'link'],
    * });
    *
    * // Subsequent pages
-   * while (result.next_page_token) {
+   * while (result.nextPageToken) {
    *   result = await client.exports.statistics({
-   *     date_from: '2024-01-01',
-   *     date_to: '2024-01-31',
-   *     next_page_token: result.next_page_token,
+   *     dateFrom: '2024-01-01',
+   *     dateTo:   '2024-01-31',
+   *     nextPageToken: result.nextPageToken,
    *   });
    * }
    * ```
    */
-  async statistics(
-    params: RuleExportStatisticsParams
-  ): Promise<RuleExportStatisticsResponse> {
+  async statistics(params: ExportStatisticsParams): Promise<ExportStatisticsResult> {
     const qs = buildQueryString({
-      date_from: params.date_from,
-      date_to: params.date_to,
-      'statistic_types[]': params.statistic_types,
-      next_page_token: params.next_page_token || undefined,
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+      'statistic_types[]': params.statisticTypes,
+      next_page_token: params.nextPageToken || undefined,
     });
-    const response = await this.transport.get<RuleExportStatisticsResponse>(
+    const res = await this.transport.get<ExportStatisticsWireResponse>(
       `/export/statistics${qs}`
     );
 
-    if (params.decodeNames === false || !response.data) {
-      return response;
-    }
+    const mapped = (res.data ?? []).map(mapStatisticWireToEntity);
+    const data =
+      params.decodeNames === false ? mapped : mapped.map(decodeStatisticMessageName);
 
-    return { ...response, data: response.data.map(decodeStatisticMessageName) };
+    return { data, nextPageToken: res.next_page_token };
   }
 
   /**
    * Export subscribers for a given date range.
    *
    * @param params - Date range (both required).
-   * @returns List of subscriber records.
+   * @returns Array of subscriber records.
    *
    * @example
    * ```typescript
-   * const result = await client.exports.subscribers({
-   *   date_from: '2024-01-01',
-   *   date_to: '2024-01-31',
+   * const records = await client.exports.subscribers({
+   *   dateFrom: '2024-01-01',
+   *   dateTo:   '2024-01-31',
    * });
-   * console.log(result.data); // RuleExportSubscriberRecord[]
    * ```
    */
-  subscribers(
-    params: RuleExportSubscriberParams
-  ): Promise<RuleExportSubscriberResponse> {
-    const qs = buildQueryString({ ...params });
+  async subscribers(params: ExportSubscribersParams): Promise<ExportSubscriberRecord[]> {
+    const qs = buildQueryString({
+      date_from: params.dateFrom,
+      date_to: params.dateTo,
+    });
+    const res = await this.transport.get<ExportSubscribersWireResponse>(
+      `/export/subscriber${qs}`
+    );
 
-    return this.transport.get<RuleExportSubscriberResponse>(`/export/subscriber${qs}`);
+    return (res.data ?? []).map(mapSubscriberWireToEntity);
   }
+}
+
+// ── Wire ↔ entity mappers ─────────────────────────────────────────────────────
+
+/** @internal */
+function mapDispatcherWireToEntity(w: ExportDispatcherWire): ExportDispatcherRecord {
+  return {
+    createdAt: w.created_at,
+    updatedAt: w.updated_at,
+    accountId: w.account_id,
+    accountName: w.account_name,
+    dispatcherId: w.dispatcher_id,
+    dispatcherName: w.dispatcher_name,
+    dispatcherType: w.dispatcher_type,
+    channel: w.channel,
+    tags: w.tags,
+    filters: w.filters,
+    utmCampaign: w.utm_campaign,
+    utmTerm: w.utm_term,
+    utmContent: w.utm_content,
+    journeyId: w.journey_id,
+    journeyName: w.journey_name,
+    variableSetIds: w.variable_set_ids,
+  };
+}
+
+/** @internal */
+function mapStatisticWireToEntity(w: ExportStatisticWire): ExportStatisticRecord {
+  return {
+    statisticId: w.statistic_id,
+    statisticType: w.statistic_type,
+    eventId: w.event_id,
+    subscriberId: w.subscriber_id,
+    messageType: w.message_type,
+    createdAt: w.created_at,
+    object: {
+      id: w.object.id,
+      name: w.object.name,
+      type: w.object.type,
+    },
+  };
+}
+
+/** @internal */
+function mapSubscriberWireToEntity(w: ExportSubscriberWire): ExportSubscriberRecord {
+  return {
+    createdAt: w.created_at,
+    updatedAt: w.updated_at,
+    accountId: w.account_id,
+    accountName: w.account_name,
+    subscriberId: w.subscriber_id,
+    email: w.email,
+    phoneNumber: w.phone_number,
+    optInDate: w.opt_in_date,
+  };
 }

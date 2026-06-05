@@ -107,9 +107,9 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         collapsed: true,
         items: [
           { text: 'Tracking Performance', link: '/packages/client/tracking-performance' },
-          { text: 'Exporting Data', link: '/packages/client/exporting-data' },
         ],
       },
+      { text: 'Exporting Data', link: '/packages/client/exporting-data' },
       { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       { text: 'Managing API Keys', link: '/packages/client/managing-api-keys' },
       { text: 'Error Handling', link: '/packages/client/error-handling' },

@@ -58,12 +58,12 @@ import type {
   CustomFieldGroupDataRecord,
 } from './resources/subscribers/subscribers.types.js';
 import type {
-  RuleExportDispatcherParams,
-  RuleExportDispatcherResponse,
-  RuleExportStatisticsParams,
-  RuleExportStatisticsResponse,
-  RuleExportSubscriberParams,
-  RuleExportSubscriberResponse,
+  ExportDispatcherRecord,
+  ExportDispatchersParams,
+  ExportStatisticsParams,
+  ExportStatisticsResult,
+  ExportSubscriberRecord,
+  ExportSubscribersParams,
 } from './resources/exports/exports.types.js';
 import type {
   Subscriber,
@@ -373,23 +373,17 @@ export class RuleClient extends BaseResource {
   // ── Exports ───────────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.exports.dispatchers()` instead. */
-  exportDispatchers(
-    params: RuleExportDispatcherParams
-  ): Promise<RuleExportDispatcherResponse> {
+  exportDispatchers(params: ExportDispatchersParams): Promise<ExportDispatcherRecord[]> {
     return this.exports.dispatchers(params);
   }
 
   /** @deprecated Use `client.exports.statistics()` instead. */
-  exportStatistics(
-    params: RuleExportStatisticsParams
-  ): Promise<RuleExportStatisticsResponse> {
+  exportStatistics(params: ExportStatisticsParams): Promise<ExportStatisticsResult> {
     return this.exports.statistics(params);
   }
 
   /** @deprecated Use `client.exports.subscribers()` instead. */
-  exportSubscribers(
-    params: RuleExportSubscriberParams
-  ): Promise<RuleExportSubscriberResponse> {
+  exportSubscribers(params: ExportSubscribersParams): Promise<ExportSubscriberRecord[]> {
     return this.exports.subscribers(params);
   }
 

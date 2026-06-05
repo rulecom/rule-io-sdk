@@ -9,15 +9,15 @@ Exports give you raw event and subscriber data in bulk — useful for populating
 A "dispatcher" is a campaign or automation. This export returns a list of dispatchers and their basic metadata for a given date range:
 
 ```typescript
-const result = await client.exports.dispatchers({
-  date_from: '2025-01-15',
-  date_to:   '2025-01-15',  // same day — max range is 1 day
+const records = await client.exports.dispatchers({
+  dateFrom: '2025-01-15',
+  dateTo:   '2025-01-15',  // same day — max range is 1 day
 });
 ```
 
 > **The date range is limited to 1 day.** To export data for a longer period, make multiple requests with consecutive single-day ranges.
 
-*→ [`RuleExportDispatcherRecord`](/api/client/src/interfaces/RuleExportDispatcherRecord)*
+*→ [`ExportDispatcherRecord`](/api/client/src/interfaces/ExportDispatcherRecord)*
 
 ## Exporting statistics
 
@@ -25,9 +25,9 @@ The statistics export returns per-subscriber engagement events (opens, clicks, b
 
 ```typescript
 const result = await client.exports.statistics({
-  date_from: '2025-01-15',
-  date_to:   '2025-01-15',
-  statistic_types: ['open', 'click'],
+  dateFrom: '2025-01-15',
+  dateTo:   '2025-01-15',
+  statisticTypes: ['open', 'link'],
 });
 ```
 
@@ -40,45 +40,44 @@ let nextPageToken: string | undefined;
 
 do {
   const result = await client.exports.statistics({
-    date_from: '2025-01-15',
-    date_to:   '2025-01-15',
-    statistic_types: ['open', 'click'],
-    next_page_token: nextPageToken,
+    dateFrom: '2025-01-15',
+    dateTo:   '2025-01-15',
+    statisticTypes: ['open', 'link'],
+    nextPageToken,
   });
 
-  const rows = result.data?.rows ?? [];
-  // process rows...
+  // process result.data...
 
-  nextPageToken = result.data?.next_page_token ?? undefined;
+  nextPageToken = result.nextPageToken ?? undefined;
 } while (nextPageToken);
 ```
 
 ### Decoded message names
 
-The API encodes `message_name` fields in base64. The SDK decodes them automatically by default (`decodeNames: true`). Set `decodeNames: false` if you need the raw encoded values:
+Rule.io returns `object.name` base64-encoded for records where `object.type === 'message'`. The SDK decodes these automatically by default (`decodeNames: true`). Set `decodeNames: false` if you need the raw encoded values:
 
 ```typescript
 const result = await client.exports.statistics({
-  date_from: '2025-01-15',
-  date_to:   '2025-01-15',
+  dateFrom: '2025-01-15',
+  dateTo:   '2025-01-15',
   decodeNames: false,  // keep base64 encoding
 });
 ```
 
-*→ [`RuleExportStatisticsParams`](/api/client/src/interfaces/RuleExportStatisticsParams) · [`RuleExportStatisticRecord`](/api/client/src/interfaces/RuleExportStatisticRecord)*
+*→ [`ExportStatisticsParams`](/api/client/src/interfaces/ExportStatisticsParams) · [`ExportStatisticRecord`](/api/client/src/interfaces/ExportStatisticRecord)*
 
 ## Exporting subscribers
 
 Export a list of subscribers created or updated in a date range:
 
 ```typescript
-const result = await client.exports.subscribers({
-  date_from: '2025-01-01',
-  date_to:   '2025-01-01',
+const records = await client.exports.subscribers({
+  dateFrom: '2025-01-01',
+  dateTo:   '2025-01-01',
 });
 ```
 
-*→ [`RuleExportSubscriberRecord`](/api/client/src/interfaces/RuleExportSubscriberRecord)*
+*→ [`ExportSubscriberRecord`](/api/client/src/interfaces/ExportSubscriberRecord)*
 
 ## Next steps
 

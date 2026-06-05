@@ -887,23 +887,23 @@ describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', 
   });
 
   it('exportDispatchers delegates to exports.dispatchers', async () => {
-    const spy = vi.spyOn(client.exports, 'dispatchers').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'dispatchers').mockResolvedValueOnce([]);
 
-    await client.exportDispatchers({ type: 'automail', id: 1 });
+    await client.exportDispatchers({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 
   it('exportStatistics delegates to exports.statistics', async () => {
-    const spy = vi.spyOn(client.exports, 'statistics').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'statistics').mockResolvedValueOnce({ data: [] });
 
-    await client.exportStatistics({ type: 'automail', id: 1 });
+    await client.exportStatistics({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 
   it('exportSubscribers delegates to exports.subscribers', async () => {
-    const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce([]);
 
-    await client.exportSubscribers({ type: 'subscriber' });
+    await client.exportSubscribers({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 

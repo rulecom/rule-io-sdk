@@ -4,30 +4,32 @@
 
 import type { RuleApiResponse } from '../../shared.types.js';
 
+// ── Public SDK types ──────────────────────────────────────────────────────────
+
 /**
- * Date range parameters for export endpoints.
+ * Date range input shared by all export endpoints.
  * Both fields are required ISO 8601 date strings.
  */
-export interface RuleExportDateParams {
-  date_from: string;
-  date_to: string;
+export interface ExportDateRange {
+  dateFrom: string;
+  dateTo: string;
 }
 
 /**
  * Parameters for the dispatcher export endpoint.
  *
- * Note: The API enforces a maximum 1-day range between date_from and date_to.
+ * Note: The API enforces a maximum 1-day range between `dateFrom` and `dateTo`.
  */
-export type RuleExportDispatcherParams = RuleExportDateParams;
+export type ExportDispatchersParams = ExportDateRange;
 
 /**
- * Filter types for the statistics export `statistic_types` query parameter.
+ * Filter types for the statistics export `statisticTypes` parameter.
  *
- * Note: This differs from `RuleExportStatisticType` (response) intentionally.
+ * Note: This differs from {@link ExportStatisticType} (response) intentionally.
  * The API accepts different values for filtering vs what it returns.
- * Filter includes 'browser'/'received'; response includes 'sent'.
+ * Filter includes `'browser'` and `'received'`; response includes `'sent'`.
  */
-export type RuleExportStatisticFilterType =
+export type ExportStatisticFilterType =
   | 'open'
   | 'link'
   | 'browser'
@@ -41,14 +43,14 @@ export type RuleExportStatisticFilterType =
 /**
  * Parameters for the statistics export endpoint.
  *
- * Supports token-based pagination via `next_page_token`. Pass the token from
+ * Supports token-based pagination via `nextPageToken`. Pass the token from
  * the previous response to fetch the next page of results.
  */
-export interface RuleExportStatisticsParams extends RuleExportDateParams {
-  /** Filter by statistic types */
-  statistic_types?: RuleExportStatisticFilterType[];
-  /** Pagination token from the previous response */
-  next_page_token?: string;
+export interface ExportStatisticsParams extends ExportDateRange {
+  /** Filter by statistic types. */
+  statisticTypes?: ExportStatisticFilterType[];
+  /** Pagination token from the previous response. */
+  nextPageToken?: string;
   /**
    * Automatically decode base64-encoded `object.name` for records where
    * `object.type === 'message'`. Rule.io currently returns these names
@@ -67,10 +69,103 @@ export interface RuleExportStatisticsParams extends RuleExportDateParams {
 }
 
 /** Parameters for the subscriber export endpoint. */
-export type RuleExportSubscriberParams = RuleExportDateParams;
+export type ExportSubscribersParams = ExportDateRange;
+
+/**
+ * Statistic type values returned in export statistic records.
+ *
+ * Note: This differs from {@link ExportStatisticFilterType} (query parameter) intentionally.
+ * The API returns different values than it accepts for filtering.
+ * Response includes `'sent'`; filter includes `'browser'` and `'received'`.
+ */
+export type ExportStatisticType =
+  | 'open'
+  | 'sent'
+  | 'spam'
+  | 'soft_bounce'
+  | 'hard_bounce'
+  | 'link'
+  | 'unsubscribed'
+  | 'resubscribe';
+
+/** Object types that can appear in export statistic records. */
+export type ExportStatisticObjectType =
+  | 'campaign'
+  | 'transaction'
+  | 'automation'
+  | 'journey'
+  | 'lane'
+  | 'content_set'
+  | 'variable_set'
+  | 'message'
+  | 'link'
+  | 'subscriber';
+
+/** A related object referenced from an export statistic record. */
+export interface ExportStatisticObject {
+  id: string;
+  name: string;
+  type: ExportStatisticObjectType;
+}
 
 /** A single dispatcher record from the export API. */
-export interface RuleExportDispatcherRecord {
+export interface ExportDispatcherRecord {
+  createdAt: string | null;
+  updatedAt: string | null;
+  accountId: number;
+  accountName: string;
+  dispatcherId: number;
+  dispatcherName: string;
+  dispatcherType: string;
+  channel: string;
+  tags?: string | null;
+  filters: string;
+  utmCampaign: string;
+  utmTerm: string;
+  utmContent?: string | null;
+  journeyId: string;
+  journeyName: string;
+  variableSetIds: string;
+}
+
+/** A single statistic record from the export API. */
+export interface ExportStatisticRecord {
+  statisticId: string;
+  statisticType: ExportStatisticType;
+  eventId: string;
+  subscriberId: string;
+  messageType: string;
+  createdAt: string;
+  object: ExportStatisticObject;
+}
+
+/** A single subscriber record from the export API. */
+export interface ExportSubscriberRecord {
+  createdAt: string;
+  updatedAt: string;
+  accountId: number;
+  accountName: string;
+  subscriberId: number;
+  email: string;
+  phoneNumber: string;
+  optInDate: string;
+}
+
+/**
+ * Result from the statistics export endpoint.
+ *
+ * Includes an optional `nextPageToken` for retrieving subsequent pages.
+ */
+export interface ExportStatisticsResult {
+  data: ExportStatisticRecord[];
+  /** Token to pass as `nextPageToken` to fetch the next page. */
+  nextPageToken?: string | null;
+}
+
+// ── Internal wire types ───────────────────────────────────────────────────────
+
+/** @internal */
+export interface ExportDispatcherWire {
   created_at: string | null;
   updated_at: string | null;
   account_id: number;
@@ -89,56 +184,26 @@ export interface RuleExportDispatcherRecord {
   variable_set_ids: string;
 }
 
-/**
- * Statistic type values returned in export statistic records.
- *
- * Note: This differs from `RuleExportStatisticFilterType` (query parameter) intentionally.
- * The API returns different values than it accepts for filtering.
- * Response includes 'sent'; filter includes 'browser'/'received'.
- */
-export type RuleExportStatisticType =
-  | 'open'
-  | 'sent'
-  | 'spam'
-  | 'soft_bounce'
-  | 'hard_bounce'
-  | 'link'
-  | 'unsubscribed'
-  | 'resubscribe';
-
-/** Object types that can appear in export statistic records. */
-export type RuleExportStatisticObjectType =
-  | 'campaign'
-  | 'transaction'
-  | 'automation'
-  | 'journey'
-  | 'lane'
-  | 'content_set'
-  | 'variable_set'
-  | 'message'
-  | 'link'
-  | 'subscriber';
-
-/** A related object referenced from an export statistic record. */
-export interface RuleExportStatisticObject {
+/** @internal */
+export interface ExportStatisticObjectWire {
   id: string;
   name: string;
-  type: RuleExportStatisticObjectType;
+  type: ExportStatisticObjectType;
 }
 
-/** A single statistic record from the export API. */
-export interface RuleExportStatisticRecord {
+/** @internal */
+export interface ExportStatisticWire {
   statistic_id: string;
-  statistic_type: RuleExportStatisticType;
+  statistic_type: ExportStatisticType;
   event_id: string;
   subscriber_id: string;
   message_type: string;
   created_at: string;
-  object: RuleExportStatisticObject;
+  object: ExportStatisticObjectWire;
 }
 
-/** A single subscriber record from the export API. */
-export interface RuleExportSubscriberRecord {
+/** @internal */
+export interface ExportSubscriberWire {
   created_at: string;
   updated_at: string;
   account_id: number;
@@ -149,23 +214,18 @@ export interface RuleExportSubscriberRecord {
   opt_in_date: string;
 }
 
-/** Response from the dispatcher export endpoint. */
-export interface RuleExportDispatcherResponse extends RuleApiResponse {
-  data?: RuleExportDispatcherRecord[];
+/** @internal */
+export interface ExportDispatchersWireResponse extends RuleApiResponse {
+  data?: ExportDispatcherWire[];
 }
 
-/**
- * Response from the statistics export endpoint.
- *
- * Includes an optional `next_page_token` for retrieving subsequent pages.
- */
-export interface RuleExportStatisticsResponse extends RuleApiResponse {
-  data?: RuleExportStatisticRecord[];
-  /** Token to pass as a parameter to fetch the next page of results */
+/** @internal */
+export interface ExportStatisticsWireResponse extends RuleApiResponse {
+  data?: ExportStatisticWire[];
   next_page_token?: string | null;
 }
 
-/** Response from the subscriber export endpoint. */
-export interface RuleExportSubscriberResponse extends RuleApiResponse {
-  data?: RuleExportSubscriberRecord[];
+/** @internal */
+export interface ExportSubscribersWireResponse extends RuleApiResponse {
+  data?: ExportSubscriberWire[];
 }

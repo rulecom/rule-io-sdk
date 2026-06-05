@@ -152,20 +152,18 @@ export type {
 
 // ── Exports ──────────────────────────────────────────────────────────────────
 export type {
-  RuleExportDateParams,
-  RuleExportDispatcherParams,
-  RuleExportDispatcherRecord,
-  RuleExportDispatcherResponse,
-  RuleExportStatisticFilterType,
-  RuleExportStatisticObject,
-  RuleExportStatisticObjectType,
-  RuleExportStatisticRecord,
-  RuleExportStatisticType,
-  RuleExportStatisticsParams,
-  RuleExportStatisticsResponse,
-  RuleExportSubscriberParams,
-  RuleExportSubscriberRecord,
-  RuleExportSubscriberResponse,
+  ExportDateRange,
+  ExportDispatchersParams,
+  ExportStatisticsParams,
+  ExportSubscribersParams,
+  ExportStatisticFilterType,
+  ExportStatisticObjectType,
+  ExportStatisticObject,
+  ExportStatisticType,
+  ExportDispatcherRecord,
+  ExportStatisticRecord,
+  ExportSubscriberRecord,
+  ExportStatisticsResult,
 } from './resources/exports/exports.types.js';
 
 // ── Analytics ────────────────────────────────────────────────────────────────
