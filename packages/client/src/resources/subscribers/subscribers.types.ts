@@ -172,7 +172,7 @@ export interface SuppressOptions {
   /**
    * Webhook URL Rule.io will call when async processing completes.
    *
-   * See [Asynchronous Operations](../docs/async-operations.md) for details.
+   * See the Asynchronous Operations guide in the documentation for details.
    */
   callbackUrl?: string;
 }

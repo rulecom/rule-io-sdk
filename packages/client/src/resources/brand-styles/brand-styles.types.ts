@@ -48,7 +48,7 @@ export type BrandStyleImageType = 'logo' | 'icon' | 'symbol' | 'banner';
 
 // ── Entity sub-types ──────────────────────────────────────────────────────────
 
-/** A colour entry embedded in a {@link BrandStyle}. */
+/** A colour entry embedded in a `BrandStyle`. */
 export interface BrandStyleColour {
   id: number;
   /** ID of the brand style this colour belongs to. */
@@ -62,7 +62,7 @@ export interface BrandStyleColour {
   updatedAt: string;
 }
 
-/** A social or web link embedded in a {@link BrandStyle}. */
+/** A social or web link embedded in a `BrandStyle`. */
 export interface BrandStyleLink {
   id: number;
   brandStyleId: number;
@@ -73,7 +73,7 @@ export interface BrandStyleLink {
   updatedAt: string;
 }
 
-/** A font entry embedded in a {@link BrandStyle}. */
+/** A font entry embedded in a `BrandStyle`. */
 export interface BrandStyleFont {
   id: number;
   brandStyleId: number;
@@ -94,7 +94,7 @@ export interface BrandStyleFont {
   updatedAt: string;
 }
 
-/** An image (logo, banner, etc.) embedded in a {@link BrandStyle}. */
+/** An image (logo, banner, etc.) embedded in a `BrandStyle`. */
 export interface BrandStyleImage {
   id: number;
   brandStyleId: number;
@@ -108,7 +108,7 @@ export interface BrandStyleImage {
 // ── Entities ──────────────────────────────────────────────────────────────────
 
 /**
- * Full brand style detail as returned by {@link BrandStylesClient.get}.
+ * Full brand style detail as returned by `BrandStylesClient.get`.
  */
 export interface BrandStyle {
   id: number;
@@ -128,7 +128,7 @@ export interface BrandStyle {
   /**
    * Whether the brand assets can be re-fetched from the domain.
    *
-   * Only relevant for styles created via {@link BrandStylesClient.createFromDomain}.
+   * Only relevant for styles created via `BrandStylesClient.createFromDomain`.
    */
   isFetchable?: boolean | null;
   colours?: BrandStyleColour[] | null;
@@ -140,9 +140,9 @@ export interface BrandStyle {
 }
 
 /**
- * Simplified brand style summary returned by {@link BrandStylesClient.list}.
+ * Simplified brand style summary returned by `BrandStylesClient.list`.
  *
- * Use {@link BrandStylesClient.get} to fetch the full detail including
+ * Use `BrandStylesClient.get` to fetch the full detail including
  * colours, fonts, links, and images.
  */
 export interface BrandStyleListItem {
@@ -195,7 +195,7 @@ export interface BrandStyleImageEntry {
 // ── Create / update payloads ──────────────────────────────────────────────────
 
 /**
- * Payload for {@link BrandStylesClient.createFromDomain}.
+ * Payload for `BrandStylesClient.createFromDomain`.
  *
  * @example
  * ```typescript
@@ -208,7 +208,7 @@ export interface CreateBrandStyleFromDomainPayload {
 }
 
 /**
- * Payload for {@link BrandStylesClient.createManually}.
+ * Payload for `BrandStylesClient.createManually`.
  *
  * @example
  * ```typescript
@@ -244,7 +244,7 @@ export interface CreateBrandStylePayload {
 }
 
 /**
- * Payload for {@link BrandStylesClient.update} (PATCH — all fields optional).
+ * Payload for `BrandStylesClient.update` (PATCH — all fields optional).
  *
  * Only the fields you include are changed.
  *

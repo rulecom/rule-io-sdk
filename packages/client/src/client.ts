@@ -203,6 +203,7 @@ export class RuleClient extends BaseResource {
   /** @deprecated Use `client.subscribers.listCustomFieldData()` instead. */
   getSubscriberFields(email: string): Promise<CustomFieldGroupDataRecord | null> {
     void email;
+
     return Promise.reject(new Error('getSubscriberFields is no longer supported. Use client.subscribers.listCustomFieldData() instead.'));
   }
 
@@ -282,6 +283,7 @@ export class RuleClient extends BaseResource {
     if (identifiedBy === 'id') return this.subscribers.deleteById(subscriber as number);
     if (identifiedBy === 'phone_number') return this.subscribers.deleteByPhoneNumber(subscriber as string);
     if (identifiedBy === 'custom_identifier') return this.subscribers.deleteByCustomIdentifier(subscriber as string);
+
     return this.subscribers.deleteByEmail(subscriber as string);
   }
 
@@ -516,7 +518,7 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const template = await this.templates.createEmailTemplate({
         name: `${config.name} - ${Date.now()}`,
         content: resolvedTemplate!, // caller must supply template or brandStyleId
@@ -645,7 +647,7 @@ export class RuleClient extends BaseResource {
 
       createdResources.push({ type: 'message', id: messageId });
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+       
       const template = await this.templates.createEmailTemplate({
         name: `${config.name} - ${Date.now()}`,
         content: resolvedTemplate!, // caller must supply template or brandStyleId

@@ -123,7 +123,7 @@ export interface DynamicSet {
 // ── Create payload ────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link DynamicSetsClient.create}.
+ * Payload for `DynamicSetsClient.create`.
  *
  * At minimum, provide `messageId` to attach the dynamic set to a message.
  * Provide `templateId` to immediately link a template. Omit `trigger` to
@@ -143,7 +143,7 @@ export interface CreateDynamicSetPayload {
   /**
    * ID of the template to attach.
    *
-   * Can be set later via {@link DynamicSetsClient.update}.
+   * Can be set later via `DynamicSetsClient.update`.
    */
   templateId?: number | null;
   /** Name for the dynamic set. Defaults to the trigger name or `'Default'`. */
@@ -171,7 +171,7 @@ export interface CreateDynamicSetPayload {
 // ── Update payload ────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link DynamicSetsClient.update}.
+ * Payload for `DynamicSetsClient.update`.
  *
  * All fields are optional — only the fields you include are changed.
  *

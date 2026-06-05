@@ -43,7 +43,7 @@ export interface MessageDispatcher {
  *
  * This is the base return type for all message methods. For dispatcher- and
  * message-type-specific call sites, prefer the named aliases
- * ({@link EmailCampaignMessage}, {@link EmailAutomationMessage}) which make
+ * (`EmailCampaignMessage`, `EmailAutomationMessage`) which make
  * the method signature self-documenting.
  *
  * Properties use camelCase; the wire format is normalised by the SDK.
@@ -88,7 +88,7 @@ export interface Message {
 /**
  * A message belonging to an email campaign.
  *
- * Structurally identical to {@link Message}; the named alias makes method
+ * Structurally identical to `Message`; the named alias makes method
  * signatures and variable declarations self-documenting at the call site.
  *
  * @example
@@ -102,7 +102,7 @@ export type EmailCampaignMessage = Message;
 /**
  * A message belonging to an email automation.
  *
- * Structurally identical to {@link Message}; the named alias makes method
+ * Structurally identical to `Message`; the named alias makes method
  * signatures and variable declarations self-documenting at the call site.
  *
  * @example
@@ -142,7 +142,7 @@ export interface AutomailSetting {
 // ── Create payloads ───────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link MessagesClient.createEmailCampaignMessage}.
+ * Payload for `MessagesClient.createEmailCampaignMessage`.
  *
  * Provides the subject, sender details, and optional tracking parameters for
  * an email message attached to a campaign. The campaign ID is passed as a
@@ -176,7 +176,7 @@ export interface CreateEmailCampaignMessagePayload {
 }
 
 /**
- * Payload for {@link MessagesClient.createEmailAutomationMessage}.
+ * Payload for `MessagesClient.createEmailAutomationMessage`.
  *
  * Extends the campaign message payload with `automailSetting` which controls
  * when the automation fires and whether it is active. The automation ID is
@@ -220,11 +220,11 @@ export interface CreateEmailAutomationMessagePayload {
 // ── Update payloads ───────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link MessagesClient.updateEmailCampaignMessage}.
+ * Payload for `MessagesClient.updateEmailCampaignMessage`.
  *
  * All fields are optional — only the fields you include are changed. Campaign
  * messages do not have automail delivery settings; use
- * {@link UpdateEmailAutomationMessagePayload} for automation messages.
+ * `UpdateEmailAutomationMessagePayload` for automation messages.
  *
  * @example
  * ```typescript
@@ -249,11 +249,11 @@ export interface UpdateEmailCampaignMessagePayload {
 }
 
 /**
- * Payload for {@link MessagesClient.updateEmailAutomationMessage}.
+ * Payload for `MessagesClient.updateEmailAutomationMessage`.
  *
  * All fields are optional — only the fields you include are changed.
  * Automation messages additionally support updating the automail delivery
- * settings via `automailSetting`. Use {@link UpdateEmailCampaignMessagePayload}
+ * settings via `automailSetting`. Use `UpdateEmailCampaignMessagePayload`
  * for campaign messages.
  *
  * @example

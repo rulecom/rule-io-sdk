@@ -41,7 +41,7 @@ export interface Tag {
 /**
  * A tag with an optional subscriber count.
  *
- * Returned by {@link TagsClient.getById} and {@link TagsClient.getByName}
+ * Returned by `TagsClient.getById` and `TagsClient.getByName`
  * when `withCount: true` is requested.
  */
 export interface TagDetail extends Tag {
@@ -54,9 +54,9 @@ export interface TagDetail extends Tag {
 }
 
 /**
- * Parameters for {@link TagsClient.listTags} and the auto-pagination helpers
- * ({@link TagsClient.iterateTags}, {@link TagsClient.iterateTagsPages},
- * {@link TagsClient.listAllTags}).
+ * Parameters for `TagsClient.listTags` and the auto-pagination helpers
+ * (`TagsClient.iterateTags`, `TagsClient.iterateTagsPages`,
+ * `TagsClient.listAllTags`).
  *
  * The API supports up to 100 tags per page (`pageSize` ≤ 100, default 100).
  *
@@ -70,7 +70,7 @@ export interface ListTagsParams {
 }
 
 /**
- * Payload for {@link TagsClient.updateById} and {@link TagsClient.updateByName}.
+ * Payload for `TagsClient.updateById` and `TagsClient.updateByName`.
  *
  * Both fields are optional — only the fields you include are changed.
  *

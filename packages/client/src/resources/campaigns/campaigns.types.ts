@@ -8,7 +8,7 @@
  * create()  →  update() (name, recipients)  →  schedule() (send now or later)
  * ```
  *
- * Use {@link CampaignsClient.copy} to duplicate an existing campaign when the
+ * Use `CampaignsClient.copy` to duplicate an existing campaign when the
  * structure stays the same but the content changes (e.g. recurring newsletters).
  */
 
@@ -131,7 +131,7 @@ export interface Campaign {
 }
 
 /**
- * Recipient targeting configuration embedded in a {@link Campaign}.
+ * Recipient targeting configuration embedded in a `Campaign`.
  */
 export interface CampaignRecipients {
   /** Tag-based recipient filters. */
@@ -155,11 +155,11 @@ export interface CampaignRecipientSubscriber {
 // ── Create payloads ───────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link CampaignsClient.createEmailCampaign}.
+ * Payload for `CampaignsClient.createEmailCampaign`.
  *
  * The message type is fixed to `'email'` by the method — do not include it
  * here. A campaign starts with no name and no recipients; add those with
- * {@link CampaignsClient.update} before scheduling.
+ * `CampaignsClient.update` before scheduling.
  *
  * @example
  * ```typescript
@@ -189,7 +189,7 @@ export interface CreateEmailCampaignPayload {
 // ── Set payload ───────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link CampaignsClient.setEmailCampaign} (full replacement).
+ * Payload for `CampaignsClient.setEmailCampaign` (full replacement).
  *
  * All five fields are required — the API replaces the entire campaign body.
  * Omitted fields revert to API defaults, not the previous values.
@@ -230,7 +230,7 @@ export interface SetEmailCampaignPayload {
 // ── Update payload ────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link CampaignsClient.updateEmailCampaign} (partial update via
+ * Payload for `CampaignsClient.updateEmailCampaign` (partial update via
  * read-modify-write).
  *
  * All fields are optional — only the fields you include are changed.
@@ -270,10 +270,10 @@ export interface UpdateEmailCampaignPayload {
 // ── List params ───────────────────────────────────────────────────────────────
 
 /**
- * Parameters for {@link CampaignsClient.listCampaigns} and the auto-pagination
- * helpers ({@link CampaignsClient.iterateCampaigns},
- * {@link CampaignsClient.iterateCampaignsPages},
- * {@link CampaignsClient.listAllCampaigns}).
+ * Parameters for `CampaignsClient.listCampaigns` and the auto-pagination
+ * helpers (`CampaignsClient.iterateCampaigns`,
+ * `CampaignsClient.iterateCampaignsPages`,
+ * `CampaignsClient.listAllCampaigns`).
  *
  * @example
  * ```typescript
@@ -299,7 +299,7 @@ export interface ListCampaignsParams {
 // ── Schedule payload ──────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link CampaignsClient.schedule}.
+ * Payload for `CampaignsClient.schedule`.
  *
  * Valid combinations:
  * - `{ type: 'now' }` — send immediately

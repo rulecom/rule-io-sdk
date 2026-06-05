@@ -41,8 +41,8 @@ export interface CustomFieldDefinition {
 }
 
 /**
- * A custom field group, as returned by {@link CustomFieldClient.getGroup}
- * and {@link CustomFieldClient.listGroups}.
+ * A custom field group, as returned by `CustomFieldClient.getGroup`
+ * and `CustomFieldClient.listGroups`.
  */
 export interface CustomFieldGroup {
   /** Group ID. */
@@ -58,10 +58,10 @@ export interface CustomFieldGroup {
 }
 
 /**
- * Parameters for {@link CustomFieldClient.listGroups} and the auto-pagination
- * helpers ({@link CustomFieldClient.iterateGroups},
- * {@link CustomFieldClient.iterateGroupsPages},
- * {@link CustomFieldClient.listAllGroups}).
+ * Parameters for `CustomFieldClient.listGroups` and the auto-pagination
+ * helpers (`CustomFieldClient.iterateGroups`,
+ * `CustomFieldClient.iterateGroupsPages`,
+ * `CustomFieldClient.listAllGroups`).
  */
 export interface ListCustomFieldGroupsParams {
   /**
@@ -71,7 +71,7 @@ export interface ListCustomFieldGroupsParams {
 }
 
 /**
- * An entry for {@link CustomFieldClient.createGroups}.
+ * An entry for `CustomFieldClient.createGroups`.
  *
  * Specifies one field to create using the `"GroupName.FieldName"` key
  * format. Both the group and the field are created if they do not already

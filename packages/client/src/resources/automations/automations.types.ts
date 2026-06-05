@@ -89,10 +89,10 @@ export interface Automation {
 // ── Create payload ────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link AutomationsClient.createEmailAutomation}.
+ * Payload for `AutomationsClient.createEmailAutomation`.
  *
  * At minimum, provide a `name`. You can set the trigger at creation time or
- * add it later with {@link AutomationsClient.updateAutomation}.
+ * add it later with `AutomationsClient.updateAutomation`.
  *
  * @example
  * ```typescript
@@ -111,7 +111,7 @@ export interface CreateEmailAutomationPayload {
   /**
    * Trigger that activates this automation.
    *
-   * Can be added later via {@link AutomationsClient.updateAutomation}.
+   * Can be added later via `AutomationsClient.updateAutomation`.
    * `type` must be uppercase.
    */
   trigger?: AutomationTrigger;
@@ -127,7 +127,7 @@ export interface CreateEmailAutomationPayload {
 // ── Set payload ───────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link AutomationsClient.setEmailAutomation} (full replacement).
+ * Payload for `AutomationsClient.setEmailAutomation` (full replacement).
  *
  * All four fields are required — the API replaces the entire automation body.
  * Omitted fields revert to API defaults, not the previous values.
@@ -172,7 +172,7 @@ export interface SetEmailAutomationPayload {
 // ── Update payload ────────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link AutomationsClient.updateEmailAutomation}.
+ * Payload for `AutomationsClient.updateEmailAutomation`.
  *
  * All fields are optional — only the fields you include are changed.
  * The client fetches the existing record, merges your changes over it, and
@@ -216,10 +216,10 @@ export interface UpdateEmailAutomationPayload {
 // ── List params ───────────────────────────────────────────────────────────────
 
 /**
- * Parameters for {@link AutomationsClient.listAutomations} and the
- * auto-pagination helpers ({@link AutomationsClient.iterateAutomations},
- * {@link AutomationsClient.iterateAutomationsPages},
- * {@link AutomationsClient.listAllAutomations}).
+ * Parameters for `AutomationsClient.listAutomations` and the
+ * auto-pagination helpers (`AutomationsClient.iterateAutomations`,
+ * `AutomationsClient.iterateAutomationsPages`,
+ * `AutomationsClient.listAllAutomations`).
  *
  * @example
  * ```typescript

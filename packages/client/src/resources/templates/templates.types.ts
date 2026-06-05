@@ -57,7 +57,7 @@ export interface Template {
 /**
  * An email template (messageType = `'email'`).
  *
- * Structurally identical to {@link Template}; the named alias makes method
+ * Structurally identical to `Template`; the named alias makes method
  * signatures and variable declarations self-documenting at the call site.
  *
  * @example
@@ -71,7 +71,7 @@ export type EmailTemplate = Template;
 // ── Create payloads ───────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link TemplatesClient.createEmailTemplate}.
+ * Payload for `TemplatesClient.createEmailTemplate`.
  *
  * The message type is fixed to `'email'` by the method — do not include it
  * here. The `name` defaults to `"Template - <timestamp>"` server-side if
@@ -104,7 +104,7 @@ export interface CreateEmailTemplatePayload {
 // ── Update payloads ───────────────────────────────────────────────────────────
 
 /**
- * Payload for {@link TemplatesClient.updateEmailTemplate}.
+ * Payload for `TemplatesClient.updateEmailTemplate`.
  *
  * All fields are optional — only the fields you include are changed.
  *
@@ -126,10 +126,10 @@ export interface UpdateEmailTemplatePayload {
 // ── List params ───────────────────────────────────────────────────────────────
 
 /**
- * Parameters for {@link TemplatesClient.listTemplates} and the auto-pagination
- * helpers ({@link TemplatesClient.iterateTemplates},
- * {@link TemplatesClient.iterateTemplatesPages},
- * {@link TemplatesClient.listAllTemplates}).
+ * Parameters for `TemplatesClient.listTemplates` and the auto-pagination
+ * helpers (`TemplatesClient.iterateTemplates`,
+ * `TemplatesClient.iterateTemplatesPages`,
+ * `TemplatesClient.listAllTemplates`).
  *
  * The API supports up to 100 templates per page (`pageSize` ≤ 100, default 15).
  *
@@ -145,7 +145,7 @@ export interface ListTemplatesParams {
 // ── Render params ─────────────────────────────────────────────────────────────
 
 /**
- * Parameters for {@link TemplatesClient.render}.
+ * Parameters for `TemplatesClient.render`.
  *
  * @example
  * ```typescript

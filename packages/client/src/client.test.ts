@@ -73,8 +73,7 @@ describe('RuleClient — namespaced API', () => {
     });
 
     it('exposes nested recipient namespaces of the right type', () => {
-      const client = makeClient(fetchMock);
-
+      // RecipientsClient is a flat namespace — no sub-namespaces
     });
   });
 
@@ -89,8 +88,7 @@ describe('RuleClient — namespaced API', () => {
     });
 
     it('returns the same instance on repeated nested access', () => {
-      const client = makeClient(fetchMock);
-
+      // RecipientsClient is a flat namespace — no nested access to test
     });
 
     it('does not instantiate namespaces that are never accessed', () => {

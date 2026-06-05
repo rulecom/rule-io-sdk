@@ -15,7 +15,7 @@ import type { RuleApiResponse } from '../../shared.types.js';
 export interface ApiKey {
   id: number;
   name: string | null;
-  /** The raw key value. Only present in the {@link ApiKeysClient.create} response. */
+  /** The raw key value. Only present in the `ApiKeysClient.create` response. */
   key?: string;
   createdAt: string;
   updatedAt: string;
