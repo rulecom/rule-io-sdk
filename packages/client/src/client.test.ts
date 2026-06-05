@@ -759,7 +759,7 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     const spy = vi.spyOn(client.subscribers, 'getSubscriberTags').mockResolvedValueOnce([]);
 
     await client.getSubscriberTags('a@b.c');
-    expect(spy).toHaveBeenCalledWith('a@b.c');
+    expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' });
   });
 
   it('removeSubscriberTags sends one DELETE per tag via v2', async () => {
