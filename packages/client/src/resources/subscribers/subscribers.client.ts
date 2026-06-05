@@ -1620,11 +1620,20 @@ export class SubscribersClient extends BaseResource {
     if (entity !== undefined) return entity;
 
     // POST /v3/subscribers fails when the subscriber already exists.
-    // The exact status code is undocumented; fall back to v2 GET by email.
-    if (payload.email && apiError) {
-      const existing = await this.getByEmail(payload.email);
-
-      if (existing) return existing;
+    // The exact status code is undocumented; fall back to v2 GET by each available identifier.
+    if (apiError) {
+      if (payload.email) {
+        const existing = await this.getByEmail(payload.email);
+        if (existing) return existing;
+      }
+      if (payload.phoneNumber) {
+        const existing = await this.getByPhone(payload.phoneNumber);
+        if (existing) return existing;
+      }
+      if (payload.customIdentifier) {
+        const existing = await this.getByCustomIdentifier(payload.customIdentifier);
+        if (existing) return existing;
+      }
     }
 
     throw apiError ?? new RuleApiError('v3 POST /subscribers returned no entity', 0);

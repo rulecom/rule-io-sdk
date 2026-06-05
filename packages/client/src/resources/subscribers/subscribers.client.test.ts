@@ -176,6 +176,36 @@ describe('SubscribersClient', () => {
       expect(fetchMock.mock.calls[2]![0]).toBe('https://app.rule.io/api/v3/custom-field-data/999');
     });
 
+    it('falls back to v2 GET by phone when v3 create fails and no email is present', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Duplicate' }, 422));
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '888', email: null, phone_number: '+46701234567' } })
+      );
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.sync({ subscriber: { phoneNumber: '+46701234567' } });
+
+      expect(result.phone).toBe('+46701234567');
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/subscribers');
+      expect(fetchMock.mock.calls[1]![0]).toMatch(/identified_by=phone/);
+    });
+
+    it('falls back to v2 GET by customIdentifier when v3 create fails and no email is present', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Duplicate' }, 422));
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: '777', email: null, custom_identifier: 'ext-42' } })
+      );
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.sync({ subscriber: { customIdentifier: 'ext-42' } });
+
+      expect(result.customIdentifier).toBe('ext-42');
+      expect(fetchMock.mock.calls[0]![0]).toBe('https://app.rule.io/api/v3/subscribers');
+      expect(fetchMock.mock.calls[1]![0]).toMatch(/identified_by=custom_identifier/);
+    });
+
     it('rethrows the API error when v3 create fails and v2 fallback also fails (404)', async () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Conflict' }, 409));
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Not Found' }, 404));
