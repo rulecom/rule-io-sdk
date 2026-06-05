@@ -1,6 +1,6 @@
 {
   "name": "@rulecom/sdk",
-  "version": "0.4.0-beta.5",
+  "version": "0.4.0-beta.6",
   "description": "TypeScript SDK for Rule.io email marketing API with RCML template builders — meta-package re-exporting @rulecom/rcml and @rulecom/client.",
   "type": "module",
   "main": "./src/index.js",
@@ -32,8 +32,8 @@
     "directory": "packages/sdk"
   },
   "dependencies": {
-    "@rulecom/rcml": "0.4.0-beta.5",
-    "@rulecom/client": "0.4.0-beta.5"
+    "@rulecom/rcml": "0.4.0-beta.6",
+    "@rulecom/client": "0.4.0-beta.6"
   },
   "engines": {
     "node": ">=20"

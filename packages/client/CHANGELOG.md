@@ -1,3 +1,39 @@
+## 0.4.0-beta.6 (2026-06-05)
+
+### 🚀 Features
+
+- **client:** accept SubscriberIdentifier in getSubscriberTags ([796f33a](https://github.com/rulecom/rule-io-sdk/commit/796f33a))
+- **client:** expose AnalyticsMetrics, AnalyticsObjectTypes, AnalyticsMessageTypes constants ([189c6a2](https://github.com/rulecom/rule-io-sdk/commit/189c6a2))
+- **client:** refactor custom-field namespace with full paginated list family ([2c6e0db](https://github.com/rulecom/rule-io-sdk/commit/2c6e0db))
+- **client:** refactor brand-styles namespace with camelCase types and wire mappers ([f066591](https://github.com/rulecom/rule-io-sdk/commit/f066591))
+- **client:** move suppressions into subscribers namespace with focused methods ([c88fba3](https://github.com/rulecom/rule-io-sdk/commit/c88fba3))
+- **client:** refactor tags namespace with camelCase types and paginated list family ([5f1c619](https://github.com/rulecom/rule-io-sdk/commit/5f1c619))
+- **client:** refactor automations namespace with email-specific methods and paginated list family ([1956152](https://github.com/rulecom/rule-io-sdk/commit/1956152))
+- **client:** refactor campaigns namespace with email-specific methods and string literals ([161370a](https://github.com/rulecom/rule-io-sdk/commit/161370a))
+- **client:** refactor dynamic-sets namespace with camelCase types and wire corrections ([a3ed01b](https://github.com/rulecom/rule-io-sdk/commit/a3ed01b))
+- **client:** refactor templates namespace with email-specific methods and paginated list family ([7013b01](https://github.com/rulecom/rule-io-sdk/commit/7013b01))
+- **client:** refactor messages namespace with dispatcher-specific types and OpenAPI wire fixes ([4c160f1](https://github.com/rulecom/rule-io-sdk/commit/4c160f1))
+- **client:** add tag automation methods, syncSegments option, and docs ([851a97d](https://github.com/rulecom/rule-io-sdk/commit/851a97d))
+- **client:** add getByCustomIdentifier() subscriber lookup method ([e1c6d41](https://github.com/rulecom/rule-io-sdk/commit/e1c6d41))
+- **client:** refactor subscriber tag API and add @rulecom/client docs ([b302c59](https://github.com/rulecom/rule-io-sdk/commit/b302c59))
+
+### 🩹 Fixes
+
+- **client:** update getSubscriberTags test for SubscriberIdentifier argument ([16eb34e](https://github.com/rulecom/rule-io-sdk/commit/16eb34e))
+- **client:** fix three TS errors breaking CI build ([659d812](https://github.com/rulecom/rule-io-sdk/commit/659d812))
+- **client:** add missing blank line for ESLint padding rule ([33f550b](https://github.com/rulecom/rule-io-sdk/commit/33f550b))
+- **client:** issues 8/9/10 — bookzen comment, delete tests, list result type ([83b72e6](https://github.com/rulecom/rule-io-sdk/commit/83b72e6))
+- **client:** coerce non-string custom field values in buildCustomFieldDataPayload ([0fae538](https://github.com/rulecom/rule-io-sdk/commit/0fae538))
+- **client:** extend _ensureSubscriber fallback to phone and customIdentifier ([448e99e](https://github.com/rulecom/rule-io-sdk/commit/448e99e))
+- **client:** map custom_identifier from v2 subscriber wire responses ([15567bb](https://github.com/rulecom/rule-io-sdk/commit/15567bb))
+- **client:** fix CI dead links, Vue interpolation, and vendor-bookzen API migration ([d426f7f](https://github.com/rulecom/rule-io-sdk/commit/d426f7f))
+- **client:** resolve CI failures in ESLint and TypeDoc checks ([3d967f5](https://github.com/rulecom/rule-io-sdk/commit/3d967f5))
+
+### ❤️ Thank You
+
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.5 (2026-05-29)
 
 ### 🩹 Fixes
