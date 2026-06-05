@@ -68,7 +68,7 @@ function buildCustomFieldDataPayload(
       createIfNotExists: options.createIfNotExists,
       values: Object.entries(values).map(([field, value]) => ({
         field,
-        value: (value instanceof Date ? value.toISOString() : value) as unknown as string,
+        value: value instanceof Date ? value.toISOString() : String(value ?? ''),
         createIfNotExists: options.createIfNotExists,
       })),
     })),

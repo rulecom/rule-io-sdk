@@ -1380,6 +1380,22 @@ describe('SubscribersClient', () => {
         expect(body.groups[0].values).toHaveLength(2);
         expect(body.groups[0].values[0].create_if_not_exists).toBe(true);
       });
+
+      it('coerces boolean, null, and number values to strings', async () => {
+        fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
+        const client = createClient(fetchMock);
+
+        await client.upsertCustomFieldData(42, {
+          Profile: { Active: true, Score: 42, Opt: null },
+        });
+
+        const body = JSON.parse((fetchMock.mock.calls[0]![1] as RequestInit).body as string);
+        const values: Array<{ field: string; value: string }> = body.groups[0].values;
+
+        expect(values.find((v) => v.field === 'Active')?.value).toBe('true');
+        expect(values.find((v) => v.field === 'Score')?.value).toBe('42');
+        expect(values.find((v) => v.field === 'Opt')?.value).toBe('');
+      });
     });
 
     describe('updateCustomFieldData', () => {
