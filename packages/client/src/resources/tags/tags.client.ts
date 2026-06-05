@@ -218,25 +218,6 @@ export class TagsClient extends BaseResource {
   }
 
   /**
-   * Fetch a single tag by ID or name.
-   *
-   * Dispatches to {@link getById} when `identifier` is a number,
-   * {@link getByName} when it is a string.
-   *
-   * @param identifier - Tag ID (number) or name (string).
-   * @param opts - Optional request options.
-   * @returns The tag entity, or `null` if not found.
-   */
-  get(
-    identifier: string | number,
-    opts?: { withCount?: boolean }
-  ): Promise<TagDetail | null> {
-    return typeof identifier === 'number'
-      ? this.getById(identifier, opts)
-      : this.getByName(identifier, opts);
-  }
-
-  /**
    * Update a tag identified by its numeric ID.
    *
    * Only the fields you include are changed.
@@ -301,22 +282,6 @@ export class TagsClient extends BaseResource {
   }
 
   /**
-   * Update a tag by ID or name.
-   *
-   * Dispatches to {@link updateById} when `identifier` is a number,
-   * {@link updateByName} when it is a string.
-   *
-   * @param identifier - Tag ID (number) or name (string).
-   * @param payload - Fields to update.
-   * @returns The updated tag entity, or `null` if not found.
-   */
-  update(identifier: string | number, payload: UpdateTagPayload): Promise<Tag | null> {
-    return typeof identifier === 'number'
-      ? this.updateById(identifier, payload)
-      : this.updateByName(identifier, payload);
-  }
-
-  /**
    * Delete a tag by its numeric ID.
    *
    * Resolves without error when the tag does not exist (HTTP 404 is swallowed).
@@ -354,20 +319,6 @@ export class TagsClient extends BaseResource {
 
       throw error;
     }
-  }
-
-  /**
-   * Delete a tag by ID or name.
-   *
-   * Dispatches to {@link deleteById} when `identifier` is a number,
-   * {@link deleteByName} when it is a string.
-   *
-   * @param identifier - Tag ID (number) or name (string).
-   */
-  delete(identifier: string | number): Promise<void> {
-    return typeof identifier === 'number'
-      ? this.deleteById(identifier)
-      : this.deleteByName(identifier);
   }
 
   /**
@@ -412,19 +363,6 @@ export class TagsClient extends BaseResource {
     }
   }
 
-  /**
-   * Remove all subscriber associations from a tag by ID or name.
-   *
-   * Dispatches to {@link clearById} when `identifier` is a number,
-   * {@link clearByName} when it is a string.
-   *
-   * @param identifier - Tag ID (number) or name (string).
-   */
-  clear(identifier: string | number): Promise<void> {
-    return typeof identifier === 'number'
-      ? this.clearById(identifier)
-      : this.clearByName(identifier);
-  }
 }
 
 // ── Wire ↔ entity mappers ─────────────────────────────────────────────────────

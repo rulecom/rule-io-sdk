@@ -32,13 +32,9 @@ for await (const page of client.tags.iterateTagsPages({ pagination: { pageSize: 
 
 ## Finding a tag
 
-`tags.get()` accepts a name or a numeric ID and returns `null` when no match is found:
+Use `getById()` or `getByName()`. Both return `null` when the tag does not exist.
 
 ```typescript
-const tag = await client.tags.get('VIP');    // by name
-const tag = await client.tags.get(42);       // by ID
-
-// or explicitly:
 const tag = await client.tags.getByName('VIP');
 const tag = await client.tags.getById(42);
 ```
@@ -54,24 +50,27 @@ console.log(tag?.recipientCount); // e.g. 1204
 ## Updating a tag
 
 ```typescript
-await client.tags.update('VIP', { name: 'Platinum', description: 'Platinum tier customers' });
+// By name
+await client.tags.updateByName('VIP', { name: 'Platinum', description: 'Platinum tier customers' });
 
-// or by ID:
-await client.tags.update(42, { name: 'Platinum' });
+// By ID
+await client.tags.updateById(42, { name: 'Platinum' });
 ```
 
 Throws a `409 DuplicateTag` error if the new name is already taken.
 
 ## Clearing a tag
 
-`tags.clear()` removes all subscriber associations from a tag without deleting the tag itself. Use this to reset a seasonal or campaign tag between runs while keeping the tag definition in place.
+Removes all subscriber associations from a tag without deleting the tag itself. Use this to reset a seasonal or campaign tag between runs while keeping the tag definition in place.
 
 Resolves without error when the tag does not exist.
 
 ```typescript
-await client.tags.clear('summer-2024');
+// By name
+await client.tags.clearByName('summer-2024');
 
-await client.tags.clear(42); // by ID
+// By ID
+await client.tags.clearById(42);
 ```
 
 ## Deleting a tag
@@ -79,9 +78,11 @@ await client.tags.clear(42); // by ID
 Resolves without error when the tag does not exist.
 
 ```typescript
-await client.tags.delete('old-tag');
+// By name
+await client.tags.deleteByName('old-tag');
 
-await client.tags.delete(42); // by ID
+// By ID
+await client.tags.deleteById(42);
 ```
 
 ## Next steps
