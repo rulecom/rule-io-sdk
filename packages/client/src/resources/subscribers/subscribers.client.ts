@@ -1,11 +1,5 @@
 /**
  * Subscribers namespace client.
- *
- * Combines the historical v2 subscriber endpoints (sync, get, getFields,
- * getTagNames) with the v3 endpoints (create, delete, addTags, removeTag,
- * bulk operations, block/unblock). Where v2 and v3 cover the same operation
- * the v3 endpoint is used; v2 endpoints are retained only when no v3
- * equivalent exists.
  */
 
 import { RuleApiError, RuleClientError } from '../../errors.js';
@@ -15,87 +9,1149 @@ import { buildQueryString } from '../../core/query-string.js';
 import type { RuleApiResponse } from '../../shared.types.js';
 
 import type {
-  RuleBulkSubscriberIdentifier,
-  RuleBulkTagsRequest,
-  RuleSubscriber,
-  GetSubscriberV2Response,
-  RuleSubscriberFieldsResponse,
-  RuleSubscriberTagsResponse,
-  RuleSubscriberTagsV3Request,
-  CreateSubscriberV3Request,
-  CreateSubscriberV3Response,
-  RuleSubscribersV2ListResponse,
+  BulkTagsPayload,
+  SuppressOptions,
+  AddSubscriberTagOptions,
+  SubscriberSyncPayload,
+  CustomFieldGroupData,
+  CustomFieldGroupDataRecord,
+  GetSubscriberResponse,
+  SubscriberTagsResponse,
+  TagRef,
+  AddSubscriberTagsOptions,
+  CreateSubscriberPayload,
+  CreateSubscriberResponse,
+  SubscribersListResponse,
+  SubscriberListWire,
   ListSubscribersByTagIdsParams,
+  ListAllSubscribersByTagIdsParams,
   ListSubscribersByTagIdsResult,
+  ListCustomFieldDataParams,
+  ListAllCustomFieldDataParams,
+  ListCustomFieldDataByGroupParams,
+  ListAllCustomFieldDataByGroupParams,
+  CustomFieldDataListResult,
+  CustomFieldData,
+  WriteCustomFieldDataPayload,
+  PatchCustomFieldDataPayload,
+  CustomFieldDataInput,
+  CustomFieldDataWriteResult,
+  CustomFieldDataResult,
+  SearchCustomFieldDataParams,
+  CustomFieldGroupEntry,
+  CustomFieldEntry,
+  Subscriber,
+  SubscriberTag,
+  SubscriberIdentifier,
+  CustomFieldValueEntryWire,
+  CustomFieldDataRecordWire,
+  CustomFieldDataListResponseWire,
+  CustomFieldDataResponseWire,
 } from './subscribers.types.js';
 
+/** @internal */
 export type SubscriberIdentifierBy = 'id' | 'email' | 'phone_number' | 'custom_identifier';
 
+interface BuildCustomFieldDataPayloadOptions {
+  historical: boolean;
+  createIfNotExists: boolean;
+}
+
+function buildCustomFieldDataPayload(
+  data: CustomFieldDataInput,
+  options: BuildCustomFieldDataPayloadOptions
+): WriteCustomFieldDataPayload {
+  return {
+    groups: Object.entries(data).map(([group, values]) => ({
+      group,
+      historical: options.historical,
+      createIfNotExists: options.createIfNotExists,
+      values: Object.entries(values).map(([field, value]) => ({
+        field,
+        value: value instanceof Date ? value.toISOString() : String(value ?? ''),
+        createIfNotExists: options.createIfNotExists,
+      })),
+    })),
+  };
+}
+
+function mapSubscriberIdentifier(identifier: SubscriberIdentifier): {
+  value: string;
+  identifiedBy: SubscriberIdentifierBy;
+} {
+  if ('email' in identifier) return { value: identifier.email, identifiedBy: 'email' };
+  if ('phoneNumber' in identifier) return { value: identifier.phoneNumber, identifiedBy: 'phone_number' };
+  if ('id' in identifier) return { value: String(identifier.id), identifiedBy: 'id' };
+
+  return { value: identifier.customIdentifier, identifiedBy: 'custom_identifier' };
+}
+
 export class SubscribersClient extends BaseResource {
-  // ── v3 endpoints (primary API) ─────────────────────────────────────────────
+  // ── Create ─────────────────────────────────────────────────────────────────
 
   /**
    * Create a subscriber via the v3 API.
    *
-   * @param subscriber - Subscriber data (email, phone_number, status, etc.).
-   * @returns API response with the created subscriber data.
+   * @param payload - Subscriber data (email, phoneNumber, status, etc.).
+   * @returns The created subscriber entity.
    *
    * @example
    * ```typescript
-   * const result = await client.subscribers.create({
+   * const sub = await client.subscribers.create({
    *   email: 'customer@example.com',
    *   status: 'ACTIVE',
    *   language: 'sv',
    * });
-   * console.log(result.id);
+   * console.log(sub.id);
    * ```
    */
-  create(subscriber: CreateSubscriberV3Request): Promise<CreateSubscriberV3Response> {
-    return this.transport.post<CreateSubscriberV3Response>('/subscribers', {
-      body: JSON.stringify(subscriber),
+  async create(payload: CreateSubscriberPayload): Promise<Subscriber> {
+    const response = await this.transport.post<CreateSubscriberResponse>('/subscribers', {
+      body: JSON.stringify(mapCreateRequestToWire(payload)),
     });
+
+    return mapCreateDataToEntity(response.data);
+  }
+
+  // ── Look up ────────────────────────────────────────────────────────────────
+
+  /**
+   * Get subscriber by numeric ID.
+   *
+   * @returns The subscriber entity, or `null` if not found (HTTP 404).
+   */
+  getById(id: number): Promise<Subscriber | null> {
+    return this._getSubscriber(String(id), 'id');
   }
 
   /**
-   * Delete a subscriber via the v3 API. Returns `{ success: true }` on
-   * successful deletion (HTTP 204).
+   * Get subscriber by email address.
    *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or
-   *   custom identifier).
-   * @param identifiedBy - How the `subscriber` parameter should be
-   *   interpreted (default: `'email'`).
+   * @returns The subscriber entity, or `null` if not found (HTTP 404).
+   */
+  getByEmail(email: string): Promise<Subscriber | null> {
+    return this._getSubscriber(email, 'email');
+  }
+
+  /**
+   * Get subscriber by phone number. The value is URL-encoded automatically
+   * (e.g. `+46123456789` → `%2B46123456789`).
+   *
+   * @returns The subscriber entity, or `null` if not found (HTTP 404).
+   */
+  getByPhone(phone: string): Promise<Subscriber | null> {
+    return this._getSubscriber(phone, 'phone_number');
+  }
+
+  /**
+   * Get subscriber by custom identifier via the v2 API.
+   *
+   * @param identifier - The subscriber's custom identifier value.
+   * @returns The subscriber entity, or `null` if not found (HTTP 404).
+   *
+   * @example
+   * ```typescript
+   * const sub = await client.subscribers.getByCustomIdentifier('ext-user-123');
+   * ```
+   */
+  getByCustomIdentifier(identifier: string): Promise<Subscriber | null> {
+    return this._getSubscriber(identifier, 'custom_identifier');
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
+
+  /** Delete a subscriber by email address. */
+  deleteByEmail(email: string): Promise<RuleApiResponse> {
+    return this._deleteSubscriber(email, 'email');
+  }
+
+  /** Delete a subscriber by numeric Rule.io ID. */
+  deleteById(id: number): Promise<RuleApiResponse> {
+    return this._deleteSubscriber(id, 'id');
+  }
+
+  /** Delete a subscriber by phone number. */
+  deleteByPhoneNumber(phone: string): Promise<RuleApiResponse> {
+    return this._deleteSubscriber(phone, 'phone_number');
+  }
+
+  /** Delete a subscriber by custom identifier. */
+  deleteByCustomIdentifier(identifier: string): Promise<RuleApiResponse> {
+    return this._deleteSubscriber(identifier, 'custom_identifier');
+  }
+
+  // ── Tags ───────────────────────────────────────────────────────────────────
+
+  // Single-tag add/remove (mirrored pair)
+
+  /**
+   * Add a single tag to a subscriber via the v3 API.
+   *
+   * @param subscriber - Who to tag: `{ email }`, `{ id }`, `{ phoneNumber }`, or `{ customIdentifier }`.
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
    * @returns A success response.
    *
    * @example
    * ```typescript
-   * // Delete by email (default)
-   * await client.subscribers.delete('customer@example.com');
-   *
-   * // Delete by ID
-   * await client.subscribers.delete(12345, 'id');
+   * await client.subscribers.addSubscriberTag({ email: 'customer@example.com' }, 'vip');
    * ```
    */
-  async delete(
-    subscriber: string | number,
-    identifiedBy: SubscriberIdentifierBy = 'email'
+  async addSubscriberTag(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
   ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  /**
+   * Remove a single tag from a subscriber via the v3 API.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or
+   *   custom identifier).
+   * @param tag - Tag name or ID to remove.
+   * @returns A success response.
+   *
+   * @remarks **Segment membership is not recalculated after removal.** The V3
+   * API does not queue a segment sync, so subscribers may remain in (or be
+   * excluded from) tag-based segments until something else triggers a sync.
+   * See [Known Issues — Subscribers API](../docs/known-issues-subscribers.md)
+   * for the available workaround.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.removeSubscriberTag({ email: 'customer@example.com' }, 'old-promo');
+   * ```
+   */
+  async removeSubscriberTag(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+  ): Promise<RuleApiResponse> {
+    const { value, identifiedBy } = mapSubscriberIdentifier(subscriber);
+
     await this.transport.fetchRaw(
       'DELETE',
-      `/subscribers/${encodeURIComponent(subscriber)}?identified_by=${identifiedBy}`
+      `/subscribers/${encodeURIComponent(value)}/tags/${encodeURIComponent(String(tag))}?identified_by=${identifiedBy}`
     );
 
     return { success: true };
   }
 
+  // Automation-aware single-tag methods
+
   /**
-   * Block multiple subscribers in bulk via the v3 API.
+   * Add a tag to a subscriber and trigger its automation once — if the
+   * automation has not already been triggered for this subscriber.
+   *
+   * This is the **idempotent trigger**: safe to call multiple times.
+   * If the subscriber already received the automation (or has the tag and the
+   * automation is in progress), this call is a no-op — no extra messages are
+   * sent and no pending messages are cancelled.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation not yet sent | Tag already held (no-op); automation triggered |
+   * | Has the tag; automation in progress | No-op — pending messages still send on schedule |
+   * | Has the tag; automation completed | No-op — automation does NOT re-fire |
+   *
+   * Use `forceTagAutomation()` to re-fire an already-completed automation.
+   * Use `resetTagAutomation()` to cancel pending messages and restart.
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Trigger the welcome sequence for a new subscriber.
+   * await client.subscribers.triggerTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'onboarding',
+   * );
+   * ```
+   */
+  async triggerTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'trigger',
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  /**
+   * Add a tag to a subscriber and unconditionally start a new automation pass —
+   * regardless of whether the automation has run before and regardless of any
+   * messages currently in the queue from a previous pass.
+   *
+   * **Pending messages from the current pass are NOT cancelled.** If the
+   * subscriber is mid-sequence (e.g. message 1 of 3 was sent), messages 2 and 3
+   * will still send on their original schedule, and a fresh pass (messages 1, 2,
+   * 3 again) will also start. The subscriber will receive both sets.
+   *
+   * Use `resetTagAutomation()` to cancel the pending messages before restarting.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation in progress | Pending messages stay; a second full pass starts |
+   * | Has the tag; automation completed | A new full pass starts |
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Re-send a promotional sequence to all subscribers, even those who already received it.
+   * await client.subscribers.forceTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'promo-spring',
+   * );
+   * ```
+   */
+  async forceTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'force',
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  /**
+   * Add a tag to a subscriber, cancel any messages from an in-progress automation
+   * pass, and start a fresh pass from step 1.
+   *
+   * This is the **clean-restart**: pending messages are deleted from the queue
+   * before the new pass begins, so the subscriber receives a single complete
+   * sequence — not duplicates from overlapping passes.
+   *
+   * Use `forceTagAutomation()` to start a new pass without cancelling pending messages.
+   *
+   * | Subscriber state | What happens |
+   * |---|---|
+   * | Does not have the tag | Tag added; automation triggered from step 1 |
+   * | Has the tag; automation in progress | Pending messages cancelled; fresh pass starts from step 1 |
+   * | Has the tag; automation completed | A new full pass starts |
+   *
+   * @param subscriber - Subscriber identifier (email, id, phoneNumber, or customIdentifier).
+   * @param tag - Tag name or numeric ID to add.
+   * @param options - Optional settings.
+   * @param options.syncSegments - Set to `false` to skip segment membership
+   *   recalculation after the tag is added.
+   * @returns A success response.
+   *
+   * @example
+   * ```typescript
+   * // Restart the onboarding flow after a subscriber's plan changed.
+   * await client.subscribers.resetTagAutomation(
+   *   { email: 'customer@example.com' },
+   *   'onboarding',
+   * );
+   * ```
+   */
+  async resetTagAutomation(
+    subscriber: SubscriberIdentifier,
+    tag: TagRef,
+    options?: AddSubscriberTagOptions,
+  ): Promise<RuleApiResponse> {
+    return this._addSubscriberTags(subscriber, [tag], {
+      automation: 'reset',
+      syncSegments: options?.syncSegments,
+    });
+  }
+
+  // Multi-tag add/remove (mirrored pair, single subscriber, async)
+
+  /**
+   * Add tags to a subscriber via the v3 API.
+   *
+   * Asynchronous (HTTP 204) — tags are applied in the background by Rule.io.
+   *
+   * @param subscriber - Who to tag: `{ email }`, `{ id }`, `{ phoneNumber }`, or `{ customIdentifier }`.
+   * @param tags - Tag names or numeric IDs to add.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.addSubscriberTags(
+   *   { email: 'customer@example.com' },
+   *   ['vip', 'returning'],
+   * );
+   * ```
+   */
+  async addSubscriberTags(
+    subscriber: SubscriberIdentifier,
+    tags: TagRef[],
+    options: { callbackUrl?: string } = {},
+  ): Promise<RuleApiResponse> {
+    const wireBody: Record<string, unknown> = {
+      subscribers: [mapSubscriberIdentifierToWire(subscriber)],
+      tags,
+    };
+
+    if (options.callbackUrl) wireBody.callback_url = options.callbackUrl;
+    await this.transport.fetchRaw('POST', '/subscribers/tags', { body: JSON.stringify(wireBody) });
+
+    return { success: true };
+  }
+
+  /**
+   * Remove tags from a subscriber via the v3 API.
+   *
+   * Asynchronous (HTTP 204) — tags are removed in the background by Rule.io.
+   *
+   * @param subscriber - Subscriber identifier (email, phone number, ID, or custom identifier).
+   * @param tags - Tag names or numeric IDs to remove.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
+   * Segment membership is not recalculated after removal — see
+   * [Known Issues — Subscribers API](../docs/known-issues-subscribers.md).
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.removeSubscriberTags(
+   *   { email: 'customer@example.com' },
+   *   ['old-promo'],
+   * );
+   * ```
+   */
+  async removeSubscriberTags(
+    subscriber: SubscriberIdentifier,
+    tags: TagRef[],
+    options: { callbackUrl?: string } = {},
+  ): Promise<RuleApiResponse> {
+    const wireBody: Record<string, unknown> = {
+      subscribers: [mapSubscriberIdentifierToWire(subscriber)],
+      tags,
+    };
+
+    if (options.callbackUrl) wireBody.callback_url = options.callbackUrl;
+    await this.transport.fetchRaw('DELETE', '/subscribers/tags', { body: JSON.stringify(wireBody) });
+
+    return { success: true };
+  }
+
+  // Bulk add/remove (mirrored pair, multiple subscribers, async)
+
+  /**
+   * Add tags to multiple subscribers in bulk via the v3 API.
+   *
+   * Asynchronous (HTTP 204) — tags are applied in the background by Rule.io.
+   *
+   * @param subscribers - Subscribers to tag.
+   * @param tags - Tag names or numeric IDs to add.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.bulkAddSubscriberTags(
+   *   [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+   *   ['newsletter', 'promo-2024'],
+   * );
+   * ```
+   */
+  async bulkAddSubscriberTags(
+    subscribers: SubscriberIdentifier[],
+    tags: TagRef[],
+    options: { callbackUrl?: string } = {},
+  ): Promise<RuleApiResponse> {
+    const wireBody: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+      tags,
+    };
+
+    if (options.callbackUrl) wireBody.callback_url = options.callbackUrl;
+    await this.transport.fetchRaw('POST', '/subscribers/tags', { body: JSON.stringify(wireBody) });
+
+    return { success: true };
+  }
+
+  /**
+   * Remove tags from multiple subscribers in bulk via the v3 API.
+   *
+   * Asynchronous (HTTP 204) — tags are removed in the background by Rule.io.
+   *
+   * @param subscribers - Subscribers to remove tags from.
+   * @param tags - Tag names or numeric IDs to remove.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
+   * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.bulkRemoveSubscriberTags(
+   *   [{ email: 'a@example.com' }, { email: 'b@example.com' }],
+   *   ['old-campaign'],
+   * );
+   * ```
+   */
+  async bulkRemoveSubscriberTags(
+    subscribers: SubscriberIdentifier[],
+    tags: TagRef[],
+    options: { callbackUrl?: string } = {},
+  ): Promise<RuleApiResponse> {
+    const wireBody: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+      tags,
+    };
+
+    if (options.callbackUrl) wireBody.callback_url = options.callbackUrl;
+    await this.transport.fetchRaw('DELETE', '/subscribers/tags', { body: JSON.stringify(wireBody) });
+
+    return { success: true };
+  }
+
+  /**
+   * Get all tags attached to a subscriber.
+   *
+   * @param subscriber - Subscriber identifier (email, phone, id, or customIdentifier).
+   * @returns Array of `{ id, name }` tag objects, or `null` if no subscriber
+   *   with that identifier exists (HTTP 404). Returns an empty array when the
+   *   subscriber exists but has no tags.
+   */
+  async getSubscriberTags(subscriber: SubscriberIdentifier): Promise<SubscriberTag[] | null> {
+    const { value, identifiedBy } = mapSubscriberIdentifier(subscriber);
+
+    try {
+      const response = await this.transport.get<SubscriberTagsResponse>(
+        `/subscribers/${encodeURIComponent(value)}/tags?identified_by=${identifiedBy}`,
+        { version: 'v2' }
+      );
+
+      return response.tags ?? [];
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  /**
+   * Get one page of subscribers that have ALL the specified tag IDs (intersection
+   * filter). Paginates one page at a time — pass `nextPage` back as `pagination.page`
+   * until it returns `null`.
+   *
+   * Note: filtering is performed client-side. A raw page of `pageSize` subscribers
+   * may yield fewer matched results after filtering. Use `iterateSubscribersByTagIds()`
+   * to iterate all pages transparently.
+   *
+   * @param params - `tagIds` (required, non-empty), optional `pagination`.
+   * @returns `{ subscribers, matched, scanned, nextPage }` for the page.
+   *
+   * @example
+   * ```typescript
+   * let page: number | null = 1;
+   * const all: Subscriber[] = [];
+   * while (page) {
+   *   const res = await client.subscribers.listSubscribersByTagIds({
+   *     tagIds: [42, 99],
+   *     pagination: { page, pageSize: 500 },
+   *   });
+   *   all.push(...res.subscribers);
+   *   page = res.nextPage;
+   * }
+   * ```
+   */
+  async listSubscribersByTagIds(
+    params: ListSubscribersByTagIdsParams
+  ): Promise<ListSubscribersByTagIdsResult> {
+    if (params.tagIds.length === 0) {
+      throw new RuleClientError('tagIds must not be empty');
+    }
+
+    const qs = buildQueryString({
+      page: params.pagination?.page,
+      limit: params.pagination?.pageSize,
+    });
+    const response = await this.transport.get<SubscribersListResponse>(
+      `/subscribers${qs}`,
+      { version: 'v2' }
+    );
+
+    const scanned = response.subscribers ?? [];
+    const required = params.tagIds;
+    const matched = scanned.filter((sub) => {
+      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
+
+      return required.every((id) => subTagIds.has(id));
+    });
+
+    return {
+      subscribers: matched.map(mapSubscriberListWireToEntity),
+      matched: matched.length,
+      scanned: scanned.length,
+      nextPage: parseNextPage(response.meta?.next ?? null),
+    };
+  }
+
+  /**
+   * Iterate through pages of subscribers matching all specified tag IDs.
+   *
+   * Automatically requests additional pages as needed and yields each full
+   * page response. `pagination.page` controls the starting page.
+   *
+   * @param params - `tagIds` (required, non-empty), optional `pagination`.
+   *
+   * @example
+   * ```typescript
+   * for await (const page of client.subscribers.iterateSubscribersByTagIdsPages({ tagIds: [42] })) {
+   *   console.log(page.subscribers, page.nextPage);
+   * }
+   * ```
+   */
+  async *iterateSubscribersByTagIdsPages(
+    params: ListSubscribersByTagIdsParams
+  ): AsyncIterable<ListSubscribersByTagIdsResult> {
+    let page: number | null = params.pagination?.page ?? 1;
+
+    while (page !== null) {
+      const result = await this.listSubscribersByTagIds({
+        ...params,
+        pagination: { ...params.pagination, page },
+      });
+
+      yield result;
+      page = result.nextPage;
+    }
+  }
+
+  /**
+   * Iterate through all subscribers matching all specified tag IDs.
+   *
+   * Automatically requests additional pages as needed and yields individual
+   * `Subscriber` items one by one. `pagination.page` controls the starting page.
+   * `pagination.pageSize` controls the batch size per request.
+   *
+   * @param params - `tagIds` (required, non-empty), optional `pagination`.
+   *
+   * @example
+   * ```typescript
+   * for await (const sub of client.subscribers.iterateSubscribersByTagIds({ tagIds: [42] })) {
+   *   console.log(sub.email);
+   * }
+   * ```
+   */
+  async *iterateSubscribersByTagIds(
+    params: ListSubscribersByTagIdsParams
+  ): AsyncIterable<Subscriber> {
+    for await (const page of this.iterateSubscribersByTagIdsPages(params)) {
+      yield* page.subscribers;
+    }
+  }
+
+  /**
+   * Get all subscribers matching all specified tag IDs as a single array.
+   *
+   * Prefer `iterateSubscribersByTagIds()` for large datasets.
+   *
+   * @param params - `tagIds` (required, non-empty), optional `pagination` and `maxItems`.
+   *
+   * @example
+   * ```typescript
+   * const subscribers = await client.subscribers.listAllSubscribersByTagIds({
+   *   tagIds: [42],
+   *   maxItems: 500,
+   * });
+   * ```
+   */
+  async listAllSubscribersByTagIds(
+    params: ListAllSubscribersByTagIdsParams = { tagIds: [] }
+  ): Promise<Subscriber[]> {
+    const maxItems = params.maxItems ?? Infinity;
+    const subscribers: Subscriber[] = [];
+
+    for await (const sub of this.iterateSubscribersByTagIds(params)) {
+      subscribers.push(sub);
+
+      if (subscribers.length >= maxItems) {
+        break;
+      }
+    }
+
+    return subscribers;
+  }
+
+  // ── Custom field data ─────────────────────────────────────────────────────
+
+  /**
+   * Get one page of custom field data records for a subscriber.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Optional pagination and group filters.
+   *
+   * @example
+   * ```typescript
+   * const page = await client.subscribers.listCustomFieldData(subscriberId, {
+   *   pagination: { page: 2, pageSize: 20 },
+   *   filters: { groupNames: ['Order'] },
+   * });
+   * ```
+   */
+  async listCustomFieldData(
+    subscriberId: number,
+    params?: ListCustomFieldDataParams
+  ): Promise<CustomFieldDataListResult> {
+    const qs = params
+      ? buildQueryString({
+          page: params.pagination?.page,
+          per_page: params.pagination?.pageSize,
+          'groups_id[]': params.filters?.groupIds,
+          'groups_name[]': params.filters?.groupNames,
+        })
+      : '';
+
+    const wire = await this.transport.get<CustomFieldDataListResponseWire>(
+      `/custom-field-data/${subscriberId}${qs}`
+    );
+
+    return {
+      success: wire.success,
+      data: wire.data?.map(mapCustomFieldDataRecord) ?? [],
+      meta: wire.meta ? { page: wire.meta.page, pageSize: wire.meta.per_page } : undefined,
+    };
+  }
+
+  /**
+   * Iterate through pages of custom field data records for a subscriber.
+   *
+   * Automatically requests additional pages as needed and yields each full page
+   * response. `pagination.page` controls the starting page.
+   * `pagination.pageSize` controls the number of records fetched per request.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Optional pagination and filtering options.
+   *
+   * @example
+   * ```typescript
+   * for await (const page of client.subscribers.iterateCustomFieldDataPages(subscriberId)) {
+   *   console.log(page.data, page.meta);
+   * }
+   * ```
+   */
+  async *iterateCustomFieldDataPages(
+    subscriberId: number,
+    params: ListCustomFieldDataParams = {}
+  ): AsyncIterable<CustomFieldDataListResult> {
+    const pageSize = params.pagination?.pageSize ?? 100;
+    let page = params.pagination?.page ?? 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const result = await this.listCustomFieldData(subscriberId, {
+        ...params,
+        pagination: { ...params.pagination, page, pageSize },
+      });
+
+      yield result;
+
+      hasMore = result.data.length >= pageSize;
+      page += 1;
+    }
+  }
+
+  /**
+   * Iterate through all custom field data records for a subscriber.
+   *
+   * Automatically requests additional pages as needed and yields individual
+   * records one by one. `pagination.page` controls the starting page.
+   * `pagination.pageSize` controls the number of records fetched per request.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Optional pagination and filtering options.
+   *
+   * @example
+   * ```typescript
+   * for await (const record of client.subscribers.iterateCustomFieldData(subscriberId)) {
+   *   console.log(record.groupName, record.values);
+   * }
+   * ```
+   */
+  async *iterateCustomFieldData(
+    subscriberId: number,
+    params: ListCustomFieldDataParams = {}
+  ): AsyncIterable<CustomFieldData> {
+    for await (const page of this.iterateCustomFieldDataPages(subscriberId, params)) {
+      yield* page.data;
+    }
+  }
+
+  /**
+   * Get all custom field data records for a subscriber as a single array.
+   *
+   * Prefer `iterateCustomFieldData()` for large datasets.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Optional pagination, filtering options, and max item limit.
+   *
+   * @example
+   * ```typescript
+   * const records = await client.subscribers.listAllCustomFieldData(subscriberId, {
+   *   filters: { groupNames: ['Order'] },
+   *   maxItems: 200,
+   * });
+   * ```
+   */
+  async listAllCustomFieldData(
+    subscriberId: number,
+    params: ListAllCustomFieldDataParams = {}
+  ): Promise<CustomFieldData[]> {
+    const maxItems = params.maxItems ?? Infinity;
+    const records: CustomFieldData[] = [];
+
+    for await (const record of this.iterateCustomFieldData(subscriberId, params)) {
+      records.push(record);
+
+      if (records.length >= maxItems) {
+        break;
+      }
+    }
+
+    return records;
+  }
+
+  /**
+   * Write custom field data using the raw API-shaped payload.
+   *
+   * This is the advanced method for callers who need full control over
+   * group creation, field creation, historical behavior, and values.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param payload - Groups of field data to write.
+   */
+  async writeCustomFieldData(
+    subscriberId: number,
+    payload: WriteCustomFieldDataPayload
+  ): Promise<CustomFieldDataWriteResult> {
+    await this.transport.fetchRaw('POST', `/custom-field-data/${subscriberId}`, {
+      body: JSON.stringify({ groups: payload.groups.map(mapCustomFieldGroupEntryToWire) }),
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Upsert non-historical custom field data for a subscriber.
+   *
+   * Missing groups and fields are created automatically.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param data - Two-level record of group names → field names → values.
+   */
+  async upsertCustomFieldData(
+    subscriberId: number,
+    data: CustomFieldDataInput
+  ): Promise<CustomFieldDataWriteResult> {
+    return this.writeCustomFieldData(
+      subscriberId,
+      buildCustomFieldDataPayload(data, { historical: false, createIfNotExists: true })
+    );
+  }
+
+  /**
+   * Update existing non-historical custom field data for a subscriber.
+   *
+   * Missing groups and fields are ignored.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param data - Two-level record of group names → field names → values.
+   */
+  async updateCustomFieldData(
+    subscriberId: number,
+    data: CustomFieldDataInput
+  ): Promise<CustomFieldDataWriteResult> {
+    return this.writeCustomFieldData(
+      subscriberId,
+      buildCustomFieldDataPayload(data, { historical: false, createIfNotExists: false })
+    );
+  }
+
+  /**
+   * Upsert historical custom field data for a subscriber.
+   *
+   * Missing historical groups and fields are created automatically.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param data - Two-level record of group names → field names → values.
+   */
+  async upsertHistoricalCustomFieldData(
+    subscriberId: number,
+    data: CustomFieldDataInput
+  ): Promise<CustomFieldDataWriteResult> {
+    return this.writeCustomFieldData(
+      subscriberId,
+      buildCustomFieldDataPayload(data, { historical: true, createIfNotExists: true })
+    );
+  }
+
+  /**
+   * Update existing historical custom field data for a subscriber.
+   *
+   * Missing historical groups and fields are ignored.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param data - Two-level record of group names → field names → values.
+   */
+  async updateHistoricalCustomFieldData(
+    subscriberId: number,
+    data: CustomFieldDataInput
+  ): Promise<CustomFieldDataWriteResult> {
+    return this.writeCustomFieldData(
+      subscriberId,
+      buildCustomFieldDataPayload(data, { historical: true, createIfNotExists: false })
+    );
+  }
+
+  /**
+   * Update field values in an existing custom field data record.
+   *
+   * Locates the record by `dataId` or by group + field + value lookup.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param payload - Identifier of the record to update and new field values.
+   */
+  async patchCustomFieldData(
+    subscriberId: number,
+    payload: PatchCustomFieldDataPayload
+  ): Promise<CustomFieldDataWriteResult> {
+    const wireBody = {
+      identifier: {
+        ...(payload.identifier.dataId !== undefined ? { data_id: payload.identifier.dataId } : {}),
+        ...(payload.identifier.group !== undefined ? { group: payload.identifier.group } : {}),
+        ...(payload.identifier.field !== undefined ? { field: payload.identifier.field } : {}),
+        ...(payload.identifier.value !== undefined ? { value: payload.identifier.value } : {}),
+      },
+      values: payload.values.map(v => ({
+        field: v.field,
+        ...(v.createIfNotExists !== undefined ? { create_if_not_exists: v.createIfNotExists } : {}),
+        value: v.value,
+      })),
+    };
+
+    await this.transport.fetchRaw('PUT', `/custom-field-data/${subscriberId}`, {
+      body: JSON.stringify(wireBody),
+    });
+
+    return { success: true };
+  }
+
+  /**
+   * Get one page of custom field data records for a subscriber filtered by group.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @param params - Optional pagination and field filters.
+   *
+   * @example
+   * ```typescript
+   * const page = await client.subscribers.listCustomFieldDataByGroup(subscriberId, 'Order', {
+   *   pagination: { pageSize: 50 },
+   *   filters: { fields: ['OrderRef', 'Total'] },
+   * });
+   * ```
+   */
+  async listCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string,
+    params?: ListCustomFieldDataByGroupParams
+  ): Promise<CustomFieldDataListResult> {
+    const qs = params
+      ? buildQueryString({
+          page: params.pagination?.page,
+          per_page: params.pagination?.pageSize,
+          'fields[]': params.filters?.fields,
+        })
+      : '';
+
+    const wire = await this.transport.get<CustomFieldDataListResponseWire>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}${qs}`
+    );
+
+    return {
+      success: wire.success,
+      data: wire.data?.map(mapCustomFieldDataRecord) ?? [],
+      meta: wire.meta ? { page: wire.meta.page, pageSize: wire.meta.per_page } : undefined,
+    };
+  }
+
+  /**
+   * Iterate through pages of custom field data records for a subscriber filtered by group.
+   *
+   * Automatically requests additional pages as needed and yields each full page
+   * response. `pagination.page` controls the starting page.
+   * `pagination.pageSize` controls the number of records fetched per request.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @param params - Optional pagination and filtering options.
+   */
+  async *iterateCustomFieldDataByGroupPages(
+    subscriberId: number,
+    group: number | string,
+    params: ListCustomFieldDataByGroupParams = {}
+  ): AsyncIterable<CustomFieldDataListResult> {
+    const pageSize = params.pagination?.pageSize ?? 100;
+    let page = params.pagination?.page ?? 1;
+    let hasMore = true;
+
+    while (hasMore) {
+      const result = await this.listCustomFieldDataByGroup(subscriberId, group, {
+        ...params,
+        pagination: { ...params.pagination, page, pageSize },
+      });
+
+      yield result;
+
+      hasMore = result.data.length >= pageSize;
+      page += 1;
+    }
+  }
+
+  /**
+   * Iterate through all custom field data records for a subscriber filtered by group.
+   *
+   * Automatically requests additional pages as needed and yields individual
+   * records one by one. `pagination.page` controls the starting page.
+   * `pagination.pageSize` controls the number of records fetched per request.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @param params - Optional pagination and filtering options.
+   */
+  async *iterateCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string,
+    params: ListCustomFieldDataByGroupParams = {}
+  ): AsyncIterable<CustomFieldData> {
+    for await (const page of this.iterateCustomFieldDataByGroupPages(subscriberId, group, params)) {
+      yield* page.data;
+    }
+  }
+
+  /**
+   * Get all custom field data records for a subscriber filtered by group as a single array.
+   *
+   * Prefer `iterateCustomFieldDataByGroup()` for large datasets.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   * @param params - Optional pagination, filtering options, and max item limit.
+   */
+  async listAllCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string,
+    params: ListAllCustomFieldDataByGroupParams = {}
+  ): Promise<CustomFieldData[]> {
+    const maxItems = params.maxItems ?? Infinity;
+    const records: CustomFieldData[] = [];
+
+    for await (const record of this.iterateCustomFieldDataByGroup(subscriberId, group, params)) {
+      records.push(record);
+
+      if (records.length >= maxItems) {
+        break;
+      }
+    }
+
+    return records;
+  }
+
+  /**
+   * Delete all custom field data for a subscriber in a specific group.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param group - Group ID (number) or group name (string).
+   */
+  deleteCustomFieldDataByGroup(
+    subscriberId: number,
+    group: number | string
+  ): Promise<RuleApiResponse> {
+    return this.transport.delete<RuleApiResponse>(
+      `/custom-field-data/${subscriberId}/group/${encodeURIComponent(String(group))}`
+    );
+  }
+
+  /**
+   * Find a single custom field data record for a subscriber.
+   *
+   * @param subscriberId - The subscriber's numeric ID.
+   * @param params - Lookup parameters (`dataId`, `group`, `field`, `value`).
+   * @returns A single matching record, or `null` if not found (HTTP 404).
+   */
+  async findCustomFieldData(
+    subscriberId: number,
+    params: SearchCustomFieldDataParams
+  ): Promise<CustomFieldDataResult | null> {
+    const qs = buildQueryString({
+      data_id: params.dataId,
+      group: params.group,
+      field: params.field,
+      value: params.value,
+    });
+
+    try {
+      const wire = await this.transport.get<CustomFieldDataResponseWire>(
+        `/custom-field-data/${subscriberId}/search${qs}`
+      );
+
+      return {
+        success: wire.success,
+        data: wire.data ? mapCustomFieldDataRecord(wire.data) : undefined,
+      };
+    } catch (error) {
+      if (error instanceof RuleApiError && error.statusCode === 404) {
+        return null;
+      }
+
+      throw error;
+    }
+  }
+
+  // ── Block / Unblock ───────────────────────────────────────────────────────
+
+  /**
+   * Block multiple subscribers via the v3 API.
    *
    * Asynchronous (HTTP 204) — Rule.io processes the block in the background.
    *
    * @param subscribers - Array of subscriber identifiers to block.
-   * @param callbackUrl - Optional webhook URL to notify when the async
-   *   operation completes.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
    * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
    *
    * @example
    * ```typescript
@@ -106,12 +1162,14 @@ export class SubscribersClient extends BaseResource {
    * ```
    */
   async block(
-    subscribers: RuleBulkSubscriberIdentifier[],
-    callbackUrl?: string
+    subscribers: SubscriberIdentifier[],
+    options: { callbackUrl?: string } = {},
   ): Promise<RuleApiResponse> {
-    const payload: Record<string, unknown> = { subscribers };
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
 
-    if (callbackUrl) payload.callback_url = callbackUrl;
+    if (options.callbackUrl) payload.callback_url = options.callbackUrl;
     await this.transport.fetchRaw('POST', '/subscribers/block', {
       body: JSON.stringify(payload),
     });
@@ -120,30 +1178,34 @@ export class SubscribersClient extends BaseResource {
   }
 
   /**
-   * Unblock multiple subscribers in bulk via the v3 API.
+   * Unblock multiple subscribers via the v3 API.
    *
    * Asynchronous (HTTP 204) — Rule.io processes the unblock in the background.
    *
    * @param subscribers - Array of subscriber identifiers to unblock.
-   * @param callbackUrl - Optional webhook URL to notify when the async
-   *   operation completes.
+   * @param options - Optional settings.
+   * @param options.callbackUrl - URL Rule.io will POST to when the operation completes.
    * @returns A success response indicating the request was accepted.
+   *
+   * @remarks Asynchronous — see [Asynchronous Operations](../docs/async-operations.md).
    *
    * @example
    * ```typescript
    * await client.subscribers.unblock([
    *   { email: 'restored@example.com' },
-   *   { phone_number: '+46701234567' },
+   *   { phoneNumber: '+46701234567' },
    * ]);
    * ```
    */
   async unblock(
-    subscribers: RuleBulkSubscriberIdentifier[],
-    callbackUrl?: string
+    subscribers: SubscriberIdentifier[],
+    options: { callbackUrl?: string } = {},
   ): Promise<RuleApiResponse> {
-    const payload: Record<string, unknown> = { subscribers };
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
 
-    if (callbackUrl) payload.callback_url = callbackUrl;
+    if (options.callbackUrl) payload.callback_url = options.callbackUrl;
     await this.transport.fetchRaw('POST', '/subscribers/unblock', {
       body: JSON.stringify(payload),
     });
@@ -151,321 +1213,507 @@ export class SubscribersClient extends BaseResource {
     return { success: true };
   }
 
+  // ── Suppressions ─────────────────────────────────────────────────────────
+
   /**
-   * Add tags to multiple subscribers in bulk via the v3 API.
+   * Suppress multiple subscribers from receiving marketing sendouts.
    *
-   * Asynchronous (HTTP 204) — tags are applied in the background by Rule.io.
+   * Prevents the listed subscribers from receiving Rule.io marketing emails
+   * and/or SMS. Pass `messageTypes` to limit the suppression to specific
+   * channels; omit it to suppress all channels. Already-suppressed
+   * subscribers are silently skipped (idempotent).
    *
-   * @param request - Subscribers and tags to apply.
-   * @returns A success response indicating the request was accepted.
+   * Processed **asynchronously** — see {@link SuppressOptions.callbackUrl}
+   * to receive a notification when complete. Maximum 1000 subscribers per
+   * request.
+   *
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param messageTypes - Channels to suppress. Omit to suppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
    *
    * @example
    * ```typescript
-   * await client.subscribers.bulkAddTags({
-   *   subscribers: [{ email: 'a@example.com' }, { email: 'b@example.com' }],
-   *   tags: ['newsletter', 'promo-2024'],
-   * });
+   * // Suppress all channels
+   * await client.subscribers.suppressSubscribers([
+   *   { email: 'opted-out@example.com' },
+   *   { email: 'complaint@example.com' },
+   * ]);
+   *
+   * // Suppress email channel only
+   * await client.subscribers.suppressSubscribers(
+   *   [{ email: 'no-email@example.com' }],
+   *   ['email'],
+   * );
    * ```
    */
-  async bulkAddTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
-    await this.transport.fetchRaw('POST', '/subscribers/tags', {
-      body: JSON.stringify(request),
-    });
+  async suppressSubscribers(
+    subscribers: SubscriberIdentifier[],
+    messageTypes?: ('email' | 'text_message')[],
+    opts: SuppressOptions = {}
+  ): Promise<void> {
+    if (!subscribers.length) throw new RuleClientError('subscribers array must not be empty');
+    if (subscribers.length > 1000) throw new RuleClientError('subscribers array must not exceed 1000 items');
 
-    return { success: true };
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
+
+    if (messageTypes?.length) payload.message_types = messageTypes;
+    if (opts.callbackUrl) payload.callback_url = opts.callbackUrl;
+
+    await this.transport.fetchRaw('POST', '/suppressions/', { body: JSON.stringify(payload) });
   }
 
   /**
-   * Remove tags from multiple subscribers in bulk via the v3 API.
+   * Suppress a single subscriber from receiving marketing sendouts.
    *
-   * Asynchronous (HTTP 204). Sends a DELETE request with a JSON body.
-   *
-   * @param request - Subscribers and tags to remove.
-   * @returns A success response indicating the request was accepted.
+   * @param subscriber - Subscriber identifier.
+   * @param messageTypes - Channels to suppress. Omit to suppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
    *
    * @example
    * ```typescript
-   * await client.subscribers.bulkRemoveTags({
-   *   subscribers: [{ email: 'a@example.com' }],
-   *   tags: ['old-campaign'],
-   * });
+   * await client.subscribers.suppressSubscriber({ email: 'opted-out@example.com' });
    * ```
    */
-  async bulkRemoveTags(request: RuleBulkTagsRequest): Promise<RuleApiResponse> {
-    await this.transport.fetchRaw('DELETE', '/subscribers/tags', {
-      body: JSON.stringify(request),
-    });
-
-    return { success: true };
+  suppressSubscriber(
+    subscriber: SubscriberIdentifier,
+    messageTypes?: ('email' | 'text_message')[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], messageTypes, opts);
   }
 
   /**
-   * Add tags to a single subscriber via the v3 API.
+   * Suppress multiple subscribers from receiving marketing emails only.
    *
-   * Supports automation triggering and optional subscriber sync.
-   *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or
-   *   custom identifier).
-   * @param request - Tags to add and optional automation/sync settings.
-   * @param identifiedBy - How the `subscriber` parameter should be
-   *   interpreted (default: `'email'`).
-   * @returns A success response.
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
    *
    * @example
    * ```typescript
-   * await client.subscribers.addTags('customer@example.com', {
-   *   tags: ['vip', 'returning'],
-   *   automation: 'force',
-   * });
+   * await client.subscribers.suppressEmailsForSubscribers([
+   *   { email: 'opted-out@example.com' },
+   * ]);
    * ```
    */
-  async addTags(
-    subscriber: string | number,
-    request: RuleSubscriberTagsV3Request,
-    identifiedBy: SubscriberIdentifierBy = 'email'
-  ): Promise<RuleApiResponse> {
-    await this.transport.fetchRaw(
-      'PUT',
-      `/subscribers/${encodeURIComponent(subscriber)}/tags?identified_by=${identifiedBy}`,
-      { body: JSON.stringify(request), version: 'v3' },
-    );
-
-    return { success: true };
+  suppressEmailsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers(subscribers, ['email'], opts);
   }
 
   /**
-   * Remove a single tag from a subscriber via the v3 API.
+   * Suppress a single subscriber from receiving marketing emails only.
    *
-   * @param subscriber - Subscriber identifier (email, phone number, ID, or
-   *   custom identifier).
-   * @param tag - Tag name or ID to remove.
-   * @param identifiedBy - How the `subscriber` parameter should be
-   *   interpreted (default: `'email'`).
-   * @returns A success response.
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
    *
    * @example
    * ```typescript
-   * await client.subscribers.removeTag('customer@example.com', 'old-promo');
+   * await client.subscribers.suppressEmailsForSubscriber({ email: 'no-email@example.com' });
    * ```
    */
-  async removeTag(
-    subscriber: string | number,
-    tag: string | number,
-    identifiedBy: SubscriberIdentifierBy = 'email'
-  ): Promise<RuleApiResponse> {
-    await this.transport.fetchRaw(
-      'DELETE',
-      `/subscribers/${encodeURIComponent(subscriber)}/tags/${encodeURIComponent(String(tag))}?identified_by=${identifiedBy}`
-    );
-
-    return { success: true };
+  suppressEmailsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], ['email'], opts);
   }
 
   /**
-   * Create or update a subscriber via the v3 API, writing custom field data
-   * and assigning tags in a single logical operation.
+   * Suppress multiple subscribers from receiving marketing SMS only.
    *
-   * Internally makes up to three v3 requests:
+   * @param subscribers - Subscriber identifiers to suppress (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressSmsForSubscribers([
+   *   { phoneNumber: '+46701234567' },
+   * ]);
+   * ```
+   */
+  suppressSmsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers(subscribers, ['text_message'], opts);
+  }
+
+  /**
+   * Suppress a single subscriber from receiving marketing SMS only.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.suppressSmsForSubscriber({ phoneNumber: '+46701234567' });
+   * ```
+   */
+  suppressSmsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.suppressSubscribers([subscriber], ['text_message'], opts);
+  }
+
+  /**
+   * Remove suppressions from multiple subscribers so they can receive
+   * marketing sendouts again.
+   *
+   * Pass `messageTypes` to remove suppressions for specific channels only;
+   * omit it to remove all channel suppressions for each subscriber. Maximum
+   * 1000 subscribers per request.
+   *
+   * @param subscribers - Subscriber identifiers to unsuppress (max 1000).
+   * @param messageTypes - Channels to unsuppress. Omit to unsuppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * // Remove all suppressions
+   * await client.subscribers.unsuppressSubscribers([
+   *   { email: 'resubscribed@example.com' },
+   * ]);
+   *
+   * // Remove email suppression only
+   * await client.subscribers.unsuppressSubscribers(
+   *   [{ email: 'resubscribed@example.com' }],
+   *   ['email'],
+   * );
+   * ```
+   */
+  async unsuppressSubscribers(
+    subscribers: SubscriberIdentifier[],
+    messageTypes?: ('email' | 'text_message')[],
+    opts: SuppressOptions = {}
+  ): Promise<void> {
+    if (!subscribers.length) throw new RuleClientError('subscribers array must not be empty');
+    if (subscribers.length > 1000) throw new RuleClientError('subscribers array must not exceed 1000 items');
+
+    const payload: Record<string, unknown> = {
+      subscribers: subscribers.map(mapSubscriberIdentifierToWire),
+    };
+
+    if (messageTypes?.length) payload.message_types = messageTypes;
+    if (opts.callbackUrl) payload.callback_url = opts.callbackUrl;
+
+    await this.transport.fetchRaw('DELETE', '/suppressions/', { body: JSON.stringify(payload) });
+  }
+
+  /**
+   * Remove suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param messageTypes - Channels to unsuppress. Omit to unsuppress all channels.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSubscriber({ email: 'resubscribed@example.com' });
+   * ```
+   */
+  unsuppressSubscriber(
+    subscriber: SubscriberIdentifier,
+    messageTypes?: ('email' | 'text_message')[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], messageTypes, opts);
+  }
+
+  /**
+   * Remove email suppressions from multiple subscribers.
+   *
+   * @param subscribers - Subscriber identifiers (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressEmailsForSubscribers([
+   *   { email: 'resubscribed@example.com' },
+   * ]);
+   * ```
+   */
+  unsuppressEmailsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers(subscribers, ['email'], opts);
+  }
+
+  /**
+   * Remove email suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressEmailsForSubscriber({ email: 'resubscribed@example.com' });
+   * ```
+   */
+  unsuppressEmailsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], ['email'], opts);
+  }
+
+  /**
+   * Remove SMS suppressions from multiple subscribers.
+   *
+   * @param subscribers - Subscriber identifiers (max 1000).
+   * @param opts - Optional `callbackUrl` for async notification.
+   * @throws `RuleClientError` if the array is empty or exceeds 1000 items.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSmsForSubscribers([
+   *   { phoneNumber: '+46701234567' },
+   * ]);
+   * ```
+   */
+  unsuppressSmsForSubscribers(
+    subscribers: SubscriberIdentifier[],
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers(subscribers, ['text_message'], opts);
+  }
+
+  /**
+   * Remove SMS suppressions from a single subscriber.
+   *
+   * @param subscriber - Subscriber identifier.
+   * @param opts - Optional `callbackUrl` for async notification.
+   *
+   * @example
+   * ```typescript
+   * await client.subscribers.unsuppressSmsForSubscriber({ phoneNumber: '+46701234567' });
+   * ```
+   */
+  unsuppressSmsForSubscriber(
+    subscriber: SubscriberIdentifier,
+    opts?: SuppressOptions
+  ): Promise<void> {
+    return this.unsuppressSubscribers([subscriber], ['text_message'], opts);
+  }
+
+  /** @deprecated Use `client.subscribers.bulkAddSubscriberTags()` instead. */
+  async bulkAddTags(payload: BulkTagsPayload): Promise<RuleApiResponse> {
+    return this.bulkAddSubscriberTags(payload.subscribers, payload.tags);
+  }
+
+  /** @deprecated Use `client.subscribers.bulkRemoveSubscriberTags()` instead. */
+  async bulkRemoveTags(payload: BulkTagsPayload): Promise<RuleApiResponse> {
+    return this.bulkRemoveSubscriberTags(payload.subscribers, payload.tags);
+  }
+
+  // ── Sync (upsert with fields and tags) ────────────────────────────────────
+
+  /**
+   * Create or update a subscriber, writing custom field data and assigning
+   * tags in a single logical operation.
+   *
+   * Internally makes up to three requests:
    * 1. `POST /subscribers` — create subscriber (or fetch numeric id if they
    *    already exist).
    * 2. `POST /custom-field-data/{id}` — write field values (skipped when
-   *    `subscriber.fields` is empty).
-   * 3. `PUT /subscribers/{email}/tags` — assign tags (skipped when
-   *    `subscriber.tags` is empty).
+   *    both `fields` and `historicalFields` are empty). Regular and historical
+   *    groups are combined into a single request.
+   * 3. `PUT /subscribers/{identifier}/tags` — assign tags (skipped when
+   *    `tags` is empty).
    *
    * Requests 2 and 3 are issued in parallel once the subscriber id is known.
    *
-   * @param subscriber - Subscriber data including email, fields, and tags.
-   *   Field keys must be bare names — the SDK adds the group prefix
-   *   automatically.
-   * @param fieldGroupPrefix - Group prefix for custom fields (e.g. `'Booking'`).
-   *   Must be non-empty and must not contain dots.
-   * @returns A success response.
-   * @throws {RuleClientError} If `fieldGroupPrefix` is empty or contains a dot,
-   *   or if any field key already contains a dot.
+   * @param payload - Subscriber data including identity fields, custom fields
+   *   (organised by group), and tags. Group names and field keys must not be
+   *   empty or contain dots.
+   *   - `customFieldData` — regular groups; existing values are overwritten on each sync.
+   *   - `historicalCustomFieldData` — historical groups; a new entry is appended on each
+   *     sync, preserving history.
+   * @returns The resolved subscriber entity (id is always populated).
+   * @throws {RuleClientError} If any group name or field key is empty or
+   *   contains a dot.
    *
    * @example
    * ```typescript
-   * await client.subscribers.sync({
-   *   email: 'customer@example.com',
-   *   fields: { FirstName: 'Anna', OrderRef: 'ORD-456' },
+   * const sub = await client.subscribers.sync({
+   *   subscriber: { email: 'customer@example.com' },
+   *   customFieldData: {
+   *     Profile: { MemberTier: 'Gold', City: 'Stockholm' },
+   *   },
+   *   historicalCustomFieldData: {
+   *     Purchases: { OrderRef: 'ORD-456', Total: '149.00' },
+   *   },
    *   tags: ['OrderCompleted', 'Newsletter'],
-   * }, 'Booking');
+   * });
+   * console.log(sub.id);
    * ```
    */
-  async sync(subscriber: RuleSubscriber, fieldGroupPrefix: string): Promise<RuleApiResponse> {
-    const prefix = fieldGroupPrefix.trim();
+  async sync(payload: SubscriberSyncPayload): Promise<Subscriber> {
+    this._validateSyncFields(payload.customFieldData);
+    this._validateSyncFields(payload.historicalCustomFieldData);
 
-    if (!prefix) {
-      throw new RuleClientError('fieldGroupPrefix must not be empty');
-    }
+    const entity = await this._ensureSubscriber(payload.subscriber);
 
-    if (prefix.includes('.')) {
-      throw new RuleClientError('fieldGroupPrefix must not contain dots');
-    }
+    await Promise.all([
+      this._writeSyncFields(entity.id, payload.customFieldData, payload.historicalCustomFieldData),
+      this._applyTags(entity.id, payload.subscriber, payload.tags),
+    ]);
 
-    if (subscriber.fields) {
-      const dottedKey = Object.keys(subscriber.fields).find((k) => k.includes('.'));
+    return entity;
+  }
 
-      if (dottedKey) {
-        throw new RuleClientError(
-          `Field key "${dottedKey}" contains a dot. Pass bare field names (e.g. "${dottedKey.split('.').pop()}") — the SDK adds the group prefix automatically.`
-        );
+  // ── Private internals ─────────────────────────────────────────────────────
+
+  /** @internal */
+  private _validateSyncFields(fields: CustomFieldGroupDataRecord | undefined): void {
+    if (!fields) return;
+
+    for (const group of Object.keys(fields)) {
+      const trimmedGroup = group.trim();
+
+      if (!trimmedGroup) {
+        throw new RuleClientError('Field group names must not be empty');
+      }
+
+      if (trimmedGroup.includes('.')) {
+        throw new RuleClientError(`Field group "${trimmedGroup}" must not contain dots`);
+      }
+
+      // TypeScript 5.x collapses nested index-signature types in Object.entries inference;
+      // cast to bypass that and access the correct shape.
+      const groupFields = fields[group] as CustomFieldGroupData;
+
+      for (const field of Object.keys(groupFields)) {
+        if (field.includes('.')) {
+          throw new RuleClientError(
+            `Field key "${field}" in group "${trimmedGroup}" must not contain dots`
+          );
+        }
       }
     }
+  }
 
-    // Step 1: ensure subscriber exists and obtain their numeric id.
-    // POST /v3/subscribers creates the subscriber if new (returns id).
-    // On any API error (the exact code for "already exists" is undocumented),
-    // fall back to the v2 GET to retrieve the id of the existing subscriber.
-    let subscriberId: number | undefined;
+  /** @internal */
+  private async _ensureSubscriber(payload: CreateSubscriberPayload): Promise<Subscriber> {
+    let entity: Subscriber | undefined;
+    let apiError: RuleApiError | undefined;
 
     try {
-      const created = await this.transport.post<CreateSubscriberV3Response>('/subscribers', {
-        body: JSON.stringify({ email: subscriber.email }),
+      const created = await this.transport.post<CreateSubscriberResponse>('/subscribers', {
+        body: JSON.stringify(mapCreateRequestToWire(payload)),
       });
 
-      subscriberId = created.data.id;
+      entity = mapCreateDataToEntity(created.data);
     } catch (error) {
-      if (error instanceof RuleApiError) {
-        const existing = await this.getByEmail(subscriber.email);
+      if (!(error instanceof RuleApiError)) throw error;
+      apiError = error;
+    }
 
-        if (existing?.subscriber?.id) {
-          subscriberId = existing.subscriber.id;
-        } else {
-          throw error;
-        }
-      } else {
-        throw error;
+    if (entity !== undefined) return entity;
+
+    // POST /v3/subscribers fails when the subscriber already exists.
+    // The exact status code is undocumented; fall back to v2 GET by each available identifier.
+    if (apiError) {
+      if (payload.email) {
+        const existing = await this.getByEmail(payload.email);
+
+        if (existing) return existing;
+      }
+
+      if (payload.phoneNumber) {
+        const existing = await this.getByPhone(payload.phoneNumber);
+
+        if (existing) return existing;
+      }
+
+      if (payload.customIdentifier) {
+        const existing = await this.getByCustomIdentifier(payload.customIdentifier);
+
+        if (existing) return existing;
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (subscriberId === undefined) { // defensive guard: API could return unexpected data
-      throw new RuleApiError('v3 POST /subscribers returned no id', 0);
+    throw apiError ?? new RuleApiError('v3 POST /subscribers returned no entity', 0);
+  }
+
+  /** @internal */
+  private async _writeSyncFields(
+    subscriberId: number,
+    fields: CustomFieldGroupDataRecord | undefined,
+    historicalFields: CustomFieldGroupDataRecord | undefined,
+  ): Promise<void> {
+    const groups: CustomFieldGroupEntry[] = [];
+
+    for (const [source, historical] of [[fields, false], [historicalFields, true]] as const) {
+      if (!source) continue;
+
+      for (const groupName of Object.keys(source)) {
+        const groupFields = source[groupName] as CustomFieldGroupData;
+        const values: CustomFieldGroupEntry['values'] = [];
+
+        for (const fieldName of Object.keys(groupFields)) {
+          const rawValue = groupFields[fieldName];
+
+          if (rawValue !== undefined && String(rawValue) !== '') {
+            values.push({ field: fieldName, value: String(rawValue) });
+          }
+        }
+
+        if (values.length > 0) {
+          groups.push(historical
+            ? { group: groupName.trim(), historical: true, values }
+            : { group: groupName.trim(), values }
+          );
+        }
+      }
     }
 
-    // Steps 2 & 3: write custom fields and assign tags in parallel.
-    const ops: Promise<unknown>[] = [];
-
-    const fields = subscriber.fields
-      ? Object.entries(subscriber.fields)
-          .filter(([, value]) => value !== undefined && value !== '')
-          .map(([key, value]) => ({ field: key, value: String(value) }))
-      : [];
-
-    if (fields.length > 0) {
-      ops.push(
-        this.transport.post<RuleApiResponse>(`/custom-field-data/${subscriberId}`, {
-          body: JSON.stringify({ groups: [{ group: prefix, values: fields }] }),
-        })
-      );
+    if (groups.length > 0) {
+      await this.writeCustomFieldData(subscriberId, { groups });
     }
-
-    if (subscriber.tags?.length) {
-      ops.push(this.addTags(subscriber.email, { tags: subscriber.tags }));
-    }
-
-    await Promise.all(ops);
-
-    return { success: true };
   }
 
-  // ── v2 endpoints (no v3 equivalent) ────────────────────────────────────────
+  /** @internal */
+  private async _applyTags(
+    subscriberId: number,
+    payload: CreateSubscriberPayload,
+    tags: string[] | undefined
+  ): Promise<void> {
+    if (!tags?.length) return;
 
-  /**
-   * List all subscribers that have ALL the specified tag IDs (intersection
-   * filter). Paginates one page at a time — pass `next_page` back as `page`
-   * until it returns `null`.
-   *
-   * @param params - `tag_ids` (required, non-empty), optional `page`/`limit`.
-   * @returns `{ subscribers, matched, scanned, next_page }` for the page.
-   *
-   * @example
-   * ```typescript
-   * let page: number | null = 1;
-   * const all: RuleSubscriberV2[] = [];
-   * while (page) {
-   *   const res = await client.subscribers.listSubscribersByTagIds({
-   *     tag_ids: [42, 99],
-   *     page,
-   *     limit: 500,
-   *   });
-   *   all.push(...res.subscribers);
-   *   page = res.next_page;
-   * }
-   * ```
-   */
-  async listSubscribersByTagIds(
-    params: ListSubscribersByTagIdsParams
-  ): Promise<ListSubscribersByTagIdsResult> {
-    if (params.tag_ids.length === 0) {
-      throw new RuleClientError('tag_ids must not be empty');
-    }
+    const subscriber: SubscriberIdentifier = payload.email
+      ? { email: payload.email }
+      : payload.phoneNumber
+        ? { phoneNumber: payload.phoneNumber }
+        : payload.customIdentifier
+          ? { customIdentifier: payload.customIdentifier }
+          : { id: subscriberId };
 
-    const qs = buildQueryString({
-      page: params.page,
-      limit: params.limit,
-    });
-    const response = await this.transport.get<RuleSubscribersV2ListResponse>(
-      `/subscribers${qs}`,
-      { version: 'v2' }
-    );
-
-    const scanned = response.subscribers ?? [];
-    const required = params.tag_ids;
-    const matched = scanned.filter((sub) => {
-      const subTagIds = new Set(sub.tags?.map((t) => t.id) ?? []);
-
-      return required.every((id) => subTagIds.has(id));
-    });
-
-    return {
-      subscribers: matched,
-      matched: matched.length,
-      scanned: scanned.length,
-      next_page: parseNextPage(response.meta?.next ?? null),
-    };
+    await this._addSubscriberTags(subscriber, tags);
   }
 
-  /**
-   * Get subscriber by numeric ID.
-   *
-   * @returns The subscriber payload, or `null` if not found (HTTP 404).
-   */
-  getById(id: number): Promise<GetSubscriberV2Response | null> {
-    return this._getSubscriber(String(id), 'id');
-  }
-
-  /**
-   * Get subscriber by email address.
-   *
-   * @returns The subscriber payload, or `null` if not found (HTTP 404).
-   */
-  getByEmail(email: string): Promise<GetSubscriberV2Response | null> {
-    return this._getSubscriber(email, 'email');
-  }
-
-  /**
-   * Get subscriber by phone number. Make sure the value is URL-encoded if
-   * passed directly (e.g. `+46123456789` → `%2B46123456789`); this method
-   * handles encoding automatically.
-   *
-   * @returns The subscriber payload, or `null` if not found (HTTP 404).
-   */
-  getByPhone(phone: string): Promise<GetSubscriberV2Response | null> {
-    return this._getSubscriber(phone, 'phone_number');
-  }
-
+  /** @internal */
   private async _getSubscriber(
     identifier: string,
-    identifiedBy: 'id' | 'email' | 'phone_number',
-  ): Promise<GetSubscriberV2Response | null> {
+    identifiedBy: SubscriberIdentifierBy,
+  ): Promise<Subscriber | null> {
     try {
-      return await this.transport.get<GetSubscriberV2Response>(
+      const response = await this.transport.get<GetSubscriberResponse>(
         `/subscribers/${encodeURIComponent(identifier)}?identified_by=${identifiedBy}`,
         { version: 'v2' }
       );
+
+      return mapGetSubscriberToEntity(response.subscriber);
     } catch (error) {
       if (error instanceof RuleApiError && error.isNotFound()) return null;
 
@@ -473,65 +1721,50 @@ export class SubscribersClient extends BaseResource {
     }
   }
 
-  /**
-   * Get a subscriber's custom-field values, flattened to a `Group.Field` map.
-   *
-   * Note: Uses the `/subscriber/` (singular) endpoint, not `/subscribers/`.
-   *
-   * @param email - Subscriber email address.
-   * @returns Map of field keys to values (e.g.
-   *   `{ "Group.FirstName": "Anna" }`), or an empty object if no subscriber
-   *   with that email exists (HTTP 404).
-   */
-  async getFields(email: string): Promise<Record<string, string | null>> {
-    try {
-      const response = await this.transport.get<RuleSubscriberFieldsResponse>(
-        `/subscriber/${encodeURIComponent(email)}/fields?identified_by=email`,
-        { version: 'v2' }
-      );
-      const fields: Record<string, string | null> = {};
+  /** @internal */
+  private async _addSubscriberTags(
+    subscriber: SubscriberIdentifier,
+    tags: TagRef[],
+    options: AddSubscriberTagsOptions = {},
+  ): Promise<RuleApiResponse> {
+    const { value, identifiedBy } = mapSubscriberIdentifier(subscriber);
 
-      for (const group of response.groups || []) {
-        for (const field of group.fields) {
-          fields[`${group.name}.${field.name}`] = field.value;
-        }
-      }
+    const wireBody: Record<string, unknown> = { tags };
 
-      return fields;
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return {};
-      }
-
-      throw error;
+    if (options.automation !== undefined) {
+      wireBody.automation = options.automation === 'trigger' ? 'send' : options.automation;
     }
+
+    if (options.syncSegments === false) {
+      wireBody.sync_subscriber = false;
+    }
+
+    await this.transport.fetchRaw(
+      'PUT',
+      `/subscribers/${encodeURIComponent(value)}/tags?identified_by=${identifiedBy}`,
+      { body: JSON.stringify(wireBody), version: 'v3' },
+    );
+
+    return { success: true };
   }
 
-  /**
-   * Get the names of every tag attached to a subscriber.
-   *
-   * @param email - Subscriber email address.
-   * @returns Array of tag names, or an empty array if no subscriber with that
-   *   email exists (HTTP 404).
-   */
-  async getTagNames(email: string): Promise<string[]> {
-    try {
-      const response = await this.transport.get<RuleSubscriberTagsResponse>(
-        `/subscribers/${encodeURIComponent(email)}/tags?identified_by=email`,
-        { version: 'v2' }
-      );
+  /** @internal */
+  private async _deleteSubscriber(
+    subscriber: string | number,
+    identifiedBy: SubscriberIdentifierBy
+  ): Promise<RuleApiResponse> {
+    await this.transport.fetchRaw(
+      'DELETE',
+      `/subscribers/${encodeURIComponent(subscriber)}?identified_by=${identifiedBy}`
+    );
 
-      return response.tags?.map((t) => t.name) ?? [];
-    } catch (error) {
-      if (error instanceof RuleApiError && error.statusCode === 404) {
-        return [];
-      }
-
-      throw error;
-    }
+    return { success: true };
   }
 }
 
+// ── Module-level helpers ───────────────────────────────────────────────────
+
+/** @internal */
 function parseNextPage(nextUrl: string | null): number | null {
   if (!nextUrl) return null;
 
@@ -545,4 +1778,111 @@ function parseNextPage(nextUrl: string | null): number | null {
   } catch {
     return null;
   }
+}
+
+/** @internal */
+function mapCreateDataToEntity(data: CreateSubscriberResponse['data']): Subscriber {
+  return {
+    id: data.id,
+    email: data.email,
+    phone: data.phone,
+    customIdentifier: data.custom_identifier ?? null,
+    status: data.status,
+    language: data.language,
+    createdAt: data.created_at,
+    updatedAt: data.updated_at,
+  };
+}
+
+/** @internal */
+function mapGetSubscriberToEntity(sub: GetSubscriberResponse['subscriber']): Subscriber {
+  return {
+    id: sub.id,
+    email: sub.email ?? null,
+    phone: sub.phone_number ?? null,
+    customIdentifier: sub.custom_identifier ?? null,
+    language: sub.language,
+    optedIn: sub.opted_in,
+    tags: sub.tags,
+    syncAtSegments: sub.syncAtSegments,
+    createdAt: sub.created_at,
+    updatedAt: sub.updated_at,
+  };
+}
+
+/** @internal */
+function mapSubscriberListWireToEntity(record: SubscriberListWire): Subscriber {
+  return {
+    id: record.id,
+    email: record.email,
+    phone: record.phone_number,
+    customIdentifier: record.custom_identifier ?? null,
+    language: record.language,
+    optedIn: record.opted_in,
+    suppressed: record.suppressed,
+    tags: record.tags ?? undefined,
+    createdAt: record.created_at,
+    updatedAt: record.updated_at,
+  };
+}
+
+/** @internal */
+function mapCustomFieldValueEntry(w: CustomFieldValueEntryWire) {
+  return {
+    fieldId: w.field_id,
+    fieldName: w.field_name,
+    fieldType: w.field_type,
+    fieldValue: w.field_value,
+  };
+}
+
+/** @internal */
+function mapCustomFieldDataRecord(w: CustomFieldDataRecordWire) {
+  return {
+    id: w.id,
+    groupId: w.group_id,
+    groupName: w.group_name,
+    historical: w.historical,
+    createdAt: w.created_at,
+    values: w.values.map(mapCustomFieldValueEntry),
+  };
+}
+
+/** @internal */
+function mapCreateRequestToWire(payload: CreateSubscriberPayload): object {
+  return {
+    ...(payload.email !== undefined ? { email: payload.email } : {}),
+    ...(payload.phoneNumber !== undefined ? { phone_number: payload.phoneNumber } : {}),
+    ...(payload.customIdentifier !== undefined ? { custom_identifier: payload.customIdentifier } : {}),
+    ...(payload.status !== undefined ? { status: payload.status } : {}),
+    ...(payload.language !== undefined ? { language: payload.language } : {}),
+  };
+}
+
+/** @internal */
+function mapSubscriberIdentifierToWire(id: SubscriberIdentifier): object {
+  if ('email' in id) return { email: id.email };
+  if ('phoneNumber' in id) return { phone_number: id.phoneNumber };
+  if ('id' in id) return { id: id.id };
+
+  return { custom_identifier: id.customIdentifier };
+}
+
+/** @internal */
+function mapCustomFieldEntryToWire(entry: CustomFieldEntry): object {
+  return {
+    field: entry.field,
+    ...(entry.createIfNotExists !== undefined ? { create_if_not_exists: entry.createIfNotExists } : {}),
+    value: entry.value,
+  };
+}
+
+/** @internal */
+function mapCustomFieldGroupEntryToWire(entry: CustomFieldGroupEntry): object {
+  return {
+    group: entry.group,
+    ...(entry.createIfNotExists !== undefined ? { create_if_not_exists: entry.createIfNotExists } : {}),
+    ...(entry.historical !== undefined ? { historical: entry.historical } : {}),
+    values: entry.values.map(mapCustomFieldEntryToWire),
+  };
 }

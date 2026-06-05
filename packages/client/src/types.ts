@@ -16,191 +16,199 @@ export type {
   RuleApiResponse,
   RuleListResponse,
   RulePaginationParams,
+  PagePaginationParams,
 } from './shared.types.js';
+
+// ── Custom field schema ───────────────────────────────────────────────────────
+export type {
+  CreateCustomFieldEntry,
+  CustomFieldDefinition,
+  CustomFieldGroup,
+  CustomFieldValueType,
+  ListCustomFieldGroupsParams,
+} from './resources/custom-field/custom-field.types.js';
 
 // ── Client configuration ─────────────────────────────────────────────────────
 export type { RuleClientConfig } from './config.js';
 export type { RateLimitOptions, RetryInfo } from './core/rate-limit.js';
 
-// ── Subscribers (v2 + v3) ────────────────────────────────────────────────────
+// ── Subscribers ──────────────────────────────────────────────────────────────
 export type {
-  RuleSubscriber,
-  RuleSubscriberFields,
-  RuleSubscriberFieldsResponse,
-  GetSubscriberV2Response,
-  SubscriberSegmentV2,
-  RuleSubscriberTagsResponse,
-  RuleSubscriberV3,
-  CreateSubscriberV3Request,
-  CreateSubscriberV3Response,
-  RuleBulkSubscriberIdentifier,
-  RuleBulkTagsRequest,
-  RuleSubscriberTagsV3Request,
-  RuleSubscriberV2,
-  RuleSubscribersV2ListResponse,
+  Subscriber,
+  SubscriberTag,
+  SubscriberIdentifier,
+  SubscriberSyncPayload,
+  CustomFieldGroupData,
+  CustomFieldGroupDataRecord,
+  SubscriberSegment,
+  CreateSubscriberPayload,
+  BulkTagsPayload,
+  SuppressOptions,
+  TagRef,
+  TagAutomationMode,
+  AddSubscriberTagsOptions,
   ListSubscribersByTagIdsParams,
+  ListAllSubscribersByTagIdsParams,
   ListSubscribersByTagIdsResult,
 } from './resources/subscribers/subscribers.types.js';
 
 // ── Tags ─────────────────────────────────────────────────────────────────────
 export type {
-  RuleTagEntity,
-  RuleTagsResponse,
+  ListTagsParams,
+  Tag,
+  TagDetail,
+  UpdateTagPayload,
 } from './resources/tags/tags.types.js';
 
 // ── Automations ──────────────────────────────────────────────────────────────
 export type {
-  RuleAutomation,
-  RuleAutomationCreateRequest,
-  RuleAutomationListParams,
-  RuleAutomationListResponse,
-  RuleAutomationResponse,
-  RuleAutomationTrigger,
-  RuleAutomationUpdateRequest,
-  RuleAutomail,
-  RuleAutomailCreateRequest,
-  RuleAutomailListParams,
-  RuleAutomailListResponse,
-  RuleAutomailResponse,
-  RuleAutomailTrigger,
-  RuleAutomailUpdateRequest,
-  RuleSendoutType,
+  Automation,
+  AutomationSendoutType,
+  AutomationTrigger,
+  CreateEmailAutomationPayload,
+  ListAutomationsParams,
+  SetEmailAutomationPayload,
+  UpdateEmailAutomationPayload,
 } from './resources/automations/automations.types.js';
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 export type {
-  RuleMessage,
-  RuleMessageCreateRequest,
-  RuleMessageListParams,
-  RuleMessageListResponse,
-  RuleMessageResponse,
+  AutomailSetting,
+  CreateEmailAutomationMessagePayload,
+  CreateEmailCampaignMessagePayload,
+  EmailAutomationMessage,
+  EmailCampaignMessage,
+  Message,
+  MessageDispatcher,
+  UpdateEmailAutomationMessagePayload,
+  UpdateEmailCampaignMessagePayload,
 } from './resources/messages/messages.types.js';
 
 // ── Templates ────────────────────────────────────────────────────────────────
 export type {
-  RuleRenderTemplateParams,
-  RuleTemplate,
-  RuleTemplateCreateRequest,
-  RuleTemplateListParams,
-  RuleTemplateListResponse,
-  RuleTemplateResponse,
+  CreateEmailTemplatePayload,
+  EmailTemplate,
+  ListTemplatesParams,
+  RenderTemplateParams,
+  Template,
+  UpdateEmailTemplatePayload,
 } from './resources/templates/templates.types.js';
 
 // ── Dynamic sets ─────────────────────────────────────────────────────────────
 export type {
-  RuleDynamicSet,
-  RuleDynamicSetCreateRequest,
-  RuleDynamicSetListParams,
-  RuleDynamicSetListResponse,
-  RuleDynamicSetResponse,
-  RuleDynamicSetUpdateRequest,
+  CreateDynamicSetPayload,
+  DynamicSet,
+  DynamicSetSender,
+  DynamicSetTrigger,
+  UpdateDynamicSetPayload,
 } from './resources/dynamic-sets/dynamic-sets.types.js';
 
 // ── Campaigns ────────────────────────────────────────────────────────────────
 export type {
-  RuleCampaign,
-  RuleCampaignCreateRequest,
-  RuleCampaignListParams,
-  RuleCampaignListResponse,
-  RuleCampaignRecipientSegment,
-  RuleCampaignRecipientTag,
-  RuleCampaignResponse,
-  RuleCampaignScheduleRequest,
-  RuleCampaignStatus,
-  RuleCampaignUpdateRequest,
+  Campaign,
+  CampaignMessageType,
+  CampaignRecipientSegment,
+  CampaignRecipientSubscriber,
+  CampaignRecipientTag,
+  CampaignRecipients,
+  CampaignSendoutType,
+  CampaignStatus,
+  CreateEmailCampaignPayload,
+  ListCampaignsParams,
+  ScheduleCampaignPayload,
+  SetEmailCampaignPayload,
+  UpdateEmailCampaignPayload,
 } from './resources/campaigns/campaigns.types.js';
 
-// ── Suppressions ─────────────────────────────────────────────────────────────
-export type {
-  RuleSuppressionRequest,
-  RuleSuppressionSubscriberIdentifier,
-} from './resources/suppressions/suppressions.types.js';
 
 // ── Brand styles ─────────────────────────────────────────────────────────────
 export type {
-  RuleBrandStyle,
-  RuleBrandStyleColour,
-  RuleBrandStyleColourType,
-  RuleBrandStyleCreateRequest,
-  RuleBrandStyleFont,
-  RuleBrandStyleFontOrigin,
-  RuleBrandStyleFontType,
-  RuleBrandStyleFromDomainRequest,
-  RuleBrandStyleImage,
-  RuleBrandStyleImageType,
-  RuleBrandStyleLink,
-  RuleBrandStyleLinkType,
-  RuleBrandStyleListItem,
-  RuleBrandStyleListResponse,
-  RuleBrandStyleManualRequest,
-  RuleBrandStyleResponse,
-  RuleBrandStyleUpdateRequest,
+  BrandStyle,
+  BrandStyleColour,
+  BrandStyleColourEntry,
+  BrandStyleColourType,
+  BrandStyleFont,
+  BrandStyleFontEntry,
+  BrandStyleFontOrigin,
+  BrandStyleFontType,
+  BrandStyleImage,
+  BrandStyleImageEntry,
+  BrandStyleImageType,
+  BrandStyleLink,
+  BrandStyleLinkEntry,
+  BrandStyleLinkType,
+  BrandStyleListItem,
+  CreateBrandStyleFromDomainPayload,
+  CreateBrandStylePayload,
+  UpdateBrandStylePayload,
 } from './resources/brand-styles/brand-styles.types.js';
 
 // ── API keys ─────────────────────────────────────────────────────────────────
 export type {
-  RuleApiKey,
-  RuleApiKeyCreateRequest,
-  RuleApiKeyListResponse,
-  RuleApiKeyResponse,
-  RuleApiKeyUpdateRequest,
+  ApiKey,
+  CreateApiKeyPayload,
+  UpdateApiKeyPayload,
 } from './resources/api-keys/api-keys.types.js';
 
 // ── Exports ──────────────────────────────────────────────────────────────────
 export type {
-  RuleExportDateParams,
-  RuleExportDispatcherParams,
-  RuleExportDispatcherRecord,
-  RuleExportDispatcherResponse,
-  RuleExportStatisticFilterType,
-  RuleExportStatisticObject,
-  RuleExportStatisticObjectType,
-  RuleExportStatisticRecord,
-  RuleExportStatisticType,
-  RuleExportStatisticsParams,
-  RuleExportStatisticsResponse,
-  RuleExportSubscriberParams,
-  RuleExportSubscriberRecord,
-  RuleExportSubscriberResponse,
+  ExportDateRange,
+  ExportDispatchersParams,
+  ExportStatisticsParams,
+  ExportSubscribersParams,
+  ExportStatisticFilterType,
+  ExportStatisticObjectType,
+  ExportStatisticObject,
+  ExportStatisticType,
+  ExportDispatcherRecord,
+  ExportStatisticRecord,
+  ExportSubscriberRecord,
+  ExportStatisticsResult,
 } from './resources/exports/exports.types.js';
 
 // ── Analytics ────────────────────────────────────────────────────────────────
 export type {
-  RuleAnalyticsDateRange,
-  RuleAnalyticsFullQuery,
-  RuleAnalyticsMessageType,
-  RuleAnalyticsMetric,
-  RuleAnalyticsObjectType,
-  RuleAnalyticsParams,
-  RuleAnalyticsResponse,
-  RuleAnalyticsStat,
+  AnalyticsObjectType,
+  AnalyticsMetric,
+  AnalyticsMessageType,
+  AnalyticsDateRangeParams,
+  AnalyticsQueryParams,
+  AnalyticsParams,
+  AnalyticsMetricValue,
+  AnalyticsStat,
+  AnalyticsResult,
 } from './resources/analytics/analytics.types.js';
 
 // ── Recipients ───────────────────────────────────────────────────────────────
 export type {
-  RuleRecipientSubscriber,
-  RuleRecipientSubscriberListResponse,
-  RuleRecipientTagListResponse,
-  RuleRecipientsListParams,
-  RuleSegmentListResponse,
-  RuleTagSegment,
+  ListRecipientsParams,
+  RecipientSegment,
+  RecipientSubscriber,
+  RecipientTag,
 } from './resources/recipients/recipients.types.js';
 
-// ── Custom field data (deprecated by Rule.io) ────────────────────────────────
+// ── Custom field data ────────────────────────────────────────────────────────
 export type {
-  CreateCustomFieldDataRequestBody,
-  RuleCustomFieldDataGroupParams,
-  RuleCustomFieldDataListParams,
-  RuleCustomFieldDataRecord,
-  RuleCustomFieldDataResponse,
-  RuleCustomFieldDataSearchParams,
-  RuleCustomFieldDataSingleResponse,
-  RuleCustomFieldDataUpdateRequest,
+  CustomFieldDataValue,
+  CustomFieldValueEntry,
+  CustomFieldData,
+  CustomFieldDataFilters,
+  CustomFieldDataByGroupFilters,
+  CustomFieldDataListResult,
+  CustomFieldDataResult,
+  ListCustomFieldDataParams,
+  ListAllCustomFieldDataParams,
+  ListCustomFieldDataByGroupParams,
+  ListAllCustomFieldDataByGroupParams,
+  CustomFieldEntry,
+  CustomFieldGroupEntry,
+  WriteCustomFieldDataPayload,
+  PatchCustomFieldDataPayload,
   CustomFieldValue,
-  CustomFieldDataEntry,
-  CustomFieldGroupDataEntry,
-  RuleCustomFieldValue,
-} from './resources/custom-field-data/custom-field-data.types.js';
+  CustomFieldDataInput,
+  CustomFieldDataWriteResult,
+  SearchCustomFieldDataParams,
+} from './resources/subscribers/subscribers.types.js';
 
 // ── Orchestration helpers (deprecated wrappers on RuleClient) ────────────────
 export type {

@@ -67,6 +67,41 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/client/' },
+      {
+        text: 'Concepts',
+        collapsed: false,
+        items: [
+          { text: 'Asynchronous Operations', link: '/packages/client/async-operations' },
+        ],
+      },
+      { text: 'Tags', link: '/packages/client/tags' },
+      {
+        text: 'Subscribers',
+        collapsed: true,
+        items: [
+          { text: 'Subscriber Identifiers', link: '/packages/client/subscriber-identifiers' },
+          { text: 'Managing Subscribers', link: '/packages/client/managing-subscribers' },
+          { text: 'Custom Fields', link: '/packages/client/custom-fields' },
+          { text: 'Organizing with Tags', link: '/packages/client/organizing-with-tags' },
+          { text: 'Triggering Tag Automations', link: '/packages/client/tag-automation-modes' },
+          { text: 'Blocking Subscribers', link: '/packages/client/blocking-subscribers' },
+          { text: 'Managing Suppressions', link: '/packages/client/managing-suppressions' },
+          { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
+        ],
+      },
+      { text: 'Brand Styles', link: '/packages/client/brand-styles' },
+      { text: 'Recipients', link: '/packages/client/recipients' },
+      { text: 'Email Campaigns', link: '/packages/client/email-campaigns' },
+      { text: 'Email Automations', link: '/packages/client/email-automations' },
+      { text: 'Email Messages', link: '/packages/client/email-messages' },
+      { text: 'Email Templates', link: '/packages/client/email-templates' },
+      { text: 'Dynamic Sets', link: '/packages/client/dynamic-sets' },
+      { text: 'Analytics', link: '/packages/client/analytics' },
+      { text: 'Exports', link: '/packages/client/exports' },
+      { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
+      { text: 'API Keys', link: '/packages/client/api-keys' },
+      { text: 'Error Handling', link: '/packages/client/error-handling' },
+
     ],
   },
   {

@@ -49,11 +49,16 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.dispatchers({
-        date_from: '2024-01-01',
-        date_to: '2024-01-02',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-02',
       });
 
-      expect(result.data).toHaveLength(1);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.accountId).toBe(1);
+      expect(result[0]!.dispatcherId).toBe(100);
+      expect(result[0]!.dispatcherName).toBe('X');
+      expect(result[0]!.createdAt).toBe('2024-01-01');
+
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).toContain('/api/v3/export/dispatcher');
@@ -61,16 +66,13 @@ describe('ExportsClient', () => {
       expect(url).toContain('date_to=2024-01-02');
     });
 
-    it('returns empty data unchanged', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
+    it('returns empty array when data is missing', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({}));
       const client = createClient(fetchMock);
 
-      const result = await client.dispatchers({
-        date_from: '2024-01-01',
-        date_to: '2024-01-02',
-      });
+      const result = await client.dispatchers({ dateFrom: '2024-01-01', dateTo: '2024-01-02' });
 
-      expect(result.data).toEqual([]);
+      expect(result).toEqual([]);
     });
 
     it('propagates API errors', async () => {
@@ -78,13 +80,13 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       await expect(
-        client.dispatchers({ date_from: '2024-01-01', date_to: '2024-01-02' })
+        client.dispatchers({ dateFrom: '2024-01-01', dateTo: '2024-01-02' })
       ).rejects.toBeInstanceOf(RuleApiError);
     });
   });
 
   describe('subscribers', () => {
-    it('GETs /export/subscriber with date range', async () => {
+    it('GETs /export/subscriber with date range and returns mapped entities', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({
           data: [
@@ -104,11 +106,16 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.subscribers({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
       });
 
-      expect(result.data?.[0].subscriber_id).toBe(500);
+      expect(result).toHaveLength(1);
+      expect(result[0]!.subscriberId).toBe(500);
+      expect(result[0]!.email).toBe('u@example.com');
+      expect(result[0]!.phoneNumber).toBe('+46701234567');
+      expect(result[0]!.optInDate).toBe('2024-01-10');
+
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).toContain('/api/v3/export/subscriber');
@@ -123,10 +130,10 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        next_page_token: 'token-abc',
-        statistic_types: ['open', 'link'],
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        nextPageToken: 'token-abc',
+        statisticTypes: ['open', 'link'],
       });
 
       const url = fetchMock.mock.calls[0]![0] as string;
@@ -141,14 +148,62 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        next_page_token: '',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        nextPageToken: '',
       });
 
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).not.toContain('next_page_token');
+    });
+
+    it('returns nextPageToken from response', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ data: [], next_page_token: 'page-2-token' })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.statistics({
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+      });
+
+      expect(result.nextPageToken).toBe('page-2-token');
+    });
+
+    it('maps wire fields to camelCase entity fields', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({
+          data: [
+            {
+              statistic_id: 'stat-1',
+              statistic_type: 'sent',
+              event_id: 'evt-1',
+              subscriber_id: 'sub-1',
+              message_type: 'email',
+              created_at: '2024-01-15T10:00:00Z',
+              object: { id: 'obj-1', name: 'Campaign Name', type: 'campaign' },
+            },
+          ],
+        })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.statistics({
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+      });
+
+      expect(result.data[0]).toEqual({
+        statisticId: 'stat-1',
+        statisticType: 'sent',
+        eventId: 'evt-1',
+        subscriberId: 'sub-1',
+        messageType: 'email',
+        createdAt: '2024-01-15T10:00:00Z',
+        object: { id: 'obj-1', name: 'Campaign Name', type: 'campaign' },
+      });
     });
 
     it('decodes base64 message names by default', async () => {
@@ -175,11 +230,11 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
       });
 
-      expect(result.data?.[0].object.name).toBe("Today's Morning Break");
+      expect(result.data[0]!.object.name).toBe("Today's Morning Break");
     });
 
     it('handles multi-byte UTF-8 in decoded message names', async () => {
@@ -206,11 +261,11 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
       });
 
-      expect(result.data?.[0].object.name).toBe('åkå älgen 🌈');
+      expect(result.data[0]!.object.name).toBe('åkå älgen 🌈');
     });
 
     it('does not decode names for non-message object types', async () => {
@@ -236,11 +291,11 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
       });
 
-      expect(result.data?.[0].object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
+      expect(result.data[0]!.object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
     });
 
     it('passes through values that do not round-trip cleanly', async () => {
@@ -264,11 +319,11 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
       });
 
-      expect(result.data?.[0].object.name).toBe('aGVsbG8');
+      expect(result.data[0]!.object.name).toBe('aGVsbG8');
     });
 
     it('skips decoding when decodeNames is false', async () => {
@@ -294,12 +349,12 @@ describe('ExportsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.statistics({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
         decodeNames: false,
       });
 
-      expect(result.data?.[0].object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
+      expect(result.data[0]!.object.name).toBe('VG9kYXkncyBNb3JuaW5nIEJyZWFr');
     });
   });
 });

@@ -1,40 +1,224 @@
 /**
- * Template types (v3 `/editor/template` endpoint).
+ * Template types for the `@rulecom/client` templates namespace.
+ *
+ * A template holds the RCML email body. It belongs to a message via a
+ * dynamic set:
+ *
+ * ```
+ * Message
+ *   └── Dynamic Set
+ *         └── Template  (RCML document)
+ * ```
+ *
+ * Templates are message-type-scoped (`email` or `text_message`) but are
+ * otherwise reusable — you can attach the same template to multiple messages
+ * by creating additional dynamic sets.
  */
 
 import type { RcmlDocument } from '@rulecom/rcml';
 
-import type {
-  RuleApiResponse,
-  RuleListResponse,
-  RulePaginationParams,
-} from '../../shared.types.js';
+import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
 
-/** Template represents an RCML email template in Rule.io's new editor. */
-export interface RuleTemplate {
-  id?: number;
+// ── Public SDK types ──────────────────────────────────────────────────────────
+
+// ── Entity ────────────────────────────────────────────────────────────────────
+
+/**
+ * A template entity as returned by the API.
+ *
+ * The wire format stores the RCML body in a field called `template`; the
+ * SDK renames it to `content` to avoid shadowing the outer type name and to
+ * match the semantic ("this is the content of the template").
+ */
+export interface Template {
+  /** Template ID. */
+  id: number;
+  /** Human-readable template name shown in the Rule.io UI. */
   name: string;
+  /**
+   * The RCML document that defines the email body.
+   *
+   * Mapped from the wire's `template` field. Optional because the API may
+   * omit the template body in some list responses.
+   */
+  content?: RcmlDocument;
+  /**
+   * Message type this template was created for.
+   *
+   * `'email'` for email templates, `'text_message'` for SMS templates.
+   */
+  messageType: string;
+  /** ISO 8601 timestamp of when the template was created. */
+  createdAt: string;
+  /** ISO 8601 timestamp of when the template was last updated. */
+  updatedAt: string;
+}
+
+/**
+ * An email template (messageType = `'email'`).
+ *
+ * Structurally identical to `Template`; the named alias makes method
+ * signatures and variable declarations self-documenting at the call site.
+ *
+ * @example
+ * ```typescript
+ * const template: EmailTemplate =
+ *   await client.templates.createEmailTemplate({ ... });
+ * ```
+ */
+export type EmailTemplate = Template;
+
+// ── Create payloads ───────────────────────────────────────────────────────────
+
+/**
+ * Payload for `TemplatesClient.createEmailTemplate`.
+ *
+ * The message type is fixed to `'email'` by the method — do not include it
+ * here. The `name` defaults to `"Template - <timestamp>"` server-side if
+ * omitted, but providing a meaningful name is strongly recommended to avoid
+ * collisions when multiple templates are created in the same second.
+ *
+ * @example
+ * ```typescript
+ * import { buildRcmlDocument } from '@rulecom/rcml';
+ *
+ * const template = await client.templates.createEmailTemplate({
+ *   name: 'Welcome email — v1',
+ *   content: buildRcmlDocument({ ... }),
+ * });
+ * ```
+ */
+export interface CreateEmailTemplatePayload {
+  /**
+   * Human-readable name for the template.
+   *
+   * Must be unique within the account. Append a timestamp (e.g.
+   * `${name} - ${Date.now()}`) when creating programmatically to avoid
+   * conflicts.
+   */
+  name: string;
+  /** The RCML document defining the email template body. */
   content: RcmlDocument;
 }
 
-export interface RuleTemplateCreateRequest {
-  message_id: number;
+// ── Update payloads ───────────────────────────────────────────────────────────
+
+/**
+ * Payload for `TemplatesClient.updateEmailTemplate`.
+ *
+ * All fields are optional — only the fields you include are changed.
+ *
+ * @example
+ * ```typescript
+ * await client.templates.updateEmailTemplate(templateId, {
+ *   name: 'Welcome email — v2',
+ *   content: updatedRcmlDocument,
+ * });
+ * ```
+ */
+export interface UpdateEmailTemplatePayload {
+  /** New name for the template. */
+  name?: string;
+  /** New RCML document body. */
+  content?: RcmlDocument;
+}
+
+// ── List params ───────────────────────────────────────────────────────────────
+
+/**
+ * Parameters for `TemplatesClient.listTemplates` and the auto-pagination
+ * helpers (`TemplatesClient.iterateTemplates`,
+ * `TemplatesClient.iterateTemplatesPages`,
+ * `TemplatesClient.listAllTemplates`).
+ *
+ * The API supports up to 100 templates per page (`pageSize` ≤ 100, default 15).
+ *
+ * @example
+ * ```typescript
+ * const page = await client.templates.listTemplates({ pagination: { page: 1, pageSize: 50 } });
+ * ```
+ */
+export interface ListTemplatesParams {
+  pagination?: PagePaginationParams;
+}
+
+// ── Render params ─────────────────────────────────────────────────────────────
+
+/**
+ * Parameters for `TemplatesClient.render`.
+ *
+ * @example
+ * ```typescript
+ * // Render without subscriber context (merge tags shown as placeholders)
+ * const html = await client.templates.render(templateId);
+ *
+ * // Render with a subscriber's data substituted into merge tags
+ * const personalized = await client.templates.render(templateId, { subscriberId: 42 });
+ * ```
+ */
+export interface RenderTemplateParams {
+  /**
+   * Subscriber ID to use for merge tag substitution.
+   *
+   * When provided, the rendered output replaces merge tag placeholders
+   * (e.g. `\{\{Booking.FirstName\}\}`) with the subscriber's actual field values.
+   * Omit to render with placeholder text instead.
+   */
+  subscriberId?: number;
+}
+
+// ── Internal wire types ───────────────────────────────────────────────────────
+
+/**
+ * Wire-format template entity from the v3 `/editor/template` endpoint.
+ * @internal
+ */
+export interface TemplateWire {
+  id: number;
   name: string;
-  message_type: 'email' | 'sms';
+  message_type: string;
+  /** The RCML document body. Mapped to `content` on the public `Template` entity. */
+  template?: RcmlDocument;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Wire body for POST `/editor/template`.
+ *
+ * Note: `message_id` is NOT sent here — templates are linked to messages via
+ * dynamic sets, not directly. The API `TemplateRequest` schema contains only
+ * `name`, `message_type`, and `template`.
+ * @internal
+ */
+export interface CreateTemplateBody {
+  name: string;
+  message_type: 'email' | 'text_message';
   template: RcmlDocument;
 }
 
-export interface RuleTemplateResponse extends RuleApiResponse {
-  data?: RuleTemplate;
+/**
+ * Wire body for PUT `/editor/template/:id`.
+ * @internal
+ */
+export interface UpdateTemplateBody {
+  name?: string;
+  message_type?: 'email' | 'text_message';
+  template?: RcmlDocument;
 }
 
-/** Query parameters for listing templates. */
-export type RuleTemplateListParams = RulePaginationParams;
+/**
+ * Wire response from GET/POST `/editor/template` (single template).
+ * @internal
+ */
+export interface TemplateResponse extends RuleApiResponse {
+  data: TemplateWire;
+}
 
-export type RuleTemplateListResponse = RuleListResponse<RuleTemplate>;
-
-/** Query parameters for rendering a template. */
-export interface RuleRenderTemplateParams {
-  /** If provided, merge tags are substituted with the subscriber's field values */
-  subscriber_id?: number;
+/**
+ * Wire response from GET `/editor/template` (list).
+ * @internal
+ */
+export interface TemplateListResponse extends RuleApiResponse {
+  data: TemplateWire[];
 }

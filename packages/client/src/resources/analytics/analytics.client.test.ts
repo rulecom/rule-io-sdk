@@ -11,7 +11,7 @@ import {
   type MockFetch,
 } from '../../core/mock-fetch.js';
 import { AnalyticsClient } from './analytics.client.js';
-import type { RuleAnalyticsParams } from './analytics.types.js';
+import type { AnalyticsParams } from './analytics.types.js';
 
 function createClient(fetchMock: MockFetch): AnalyticsClient {
   return new AnalyticsClient(createMockTransport(fetchMock));
@@ -42,14 +42,14 @@ describe('AnalyticsClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.get({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        object_type: 'CAMPAIGN',
-        object_ids: ['123'],
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        objectType: 'CAMPAIGN',
+        objectIds: ['123'],
         metrics: ['sent', 'open_uniq'],
       });
 
-      expect(result.data?.[0].id).toBe(123);
+      expect(result.data[0]!.id).toBe(123);
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).toContain('/analytics?');
@@ -66,10 +66,10 @@ describe('AnalyticsClient', () => {
       const client = createClient(fetchMock);
 
       await client.get({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        object_type: 'JOURNEY',
-        object_ids: ['10', '20', '30'],
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        objectType: 'JOURNEY',
+        objectIds: ['10', '20', '30'],
         metrics: ['open', 'click', 'unsubscribe', 'spam'],
       });
 
@@ -84,12 +84,12 @@ describe('AnalyticsClient', () => {
       const client = createClient(fetchMock);
 
       await client.get({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        object_type: 'AUTOMAIL',
-        object_ids: ['1'],
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        objectType: 'AUTOMAIL',
+        objectIds: ['1'],
         metrics: ['click'],
-        message_type: 'email',
+        messageType: 'email',
       });
 
       const url = fetchMock.mock.calls[0]![0] as string;
@@ -101,7 +101,7 @@ describe('AnalyticsClient', () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
       const client = createClient(fetchMock);
 
-      await client.get({ date_from: '2024-01-01', date_to: '2024-01-31' });
+      await client.get({ dateFrom: '2024-01-01', dateTo: '2024-01-31' });
 
       const url = fetchMock.mock.calls[0]![0] as string;
 
@@ -111,18 +111,27 @@ describe('AnalyticsClient', () => {
       expect(url).not.toContain('metrics');
     });
 
-    it('throws RuleClientError when object_ids is empty', async () => {
+    it('returns empty data array when response has no data', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({}));
+      const client = createClient(fetchMock);
+
+      const result = await client.get({ dateFrom: '2024-01-01', dateTo: '2024-01-31' });
+
+      expect(result.data).toEqual([]);
+    });
+
+    it('throws RuleClientError when objectIds is empty', async () => {
       const client = createClient(fetchMock);
 
       await expect(
         client.get({
-          date_from: '2024-01-01',
-          date_to: '2024-01-31',
-          object_type: 'CAMPAIGN',
-          object_ids: [],
+          dateFrom: '2024-01-01',
+          dateTo: '2024-01-31',
+          objectType: 'CAMPAIGN',
+          objectIds: [],
           metrics: ['sent'],
         })
-      ).rejects.toThrow(/object_ids must be a non-empty array/);
+      ).rejects.toThrow(/objectIds must be a non-empty array/);
     });
 
     it('throws RuleClientError when metrics is empty', async () => {
@@ -130,26 +139,26 @@ describe('AnalyticsClient', () => {
 
       await expect(
         client.get({
-          date_from: '2024-01-01',
-          date_to: '2024-01-31',
-          object_type: 'CAMPAIGN',
-          object_ids: ['1'],
+          dateFrom: '2024-01-01',
+          dateTo: '2024-01-31',
+          objectType: 'CAMPAIGN',
+          objectIds: ['1'],
           metrics: [],
         })
       ).rejects.toThrow(/metrics must be a non-empty array/);
     });
 
-    it('throws RuleClientError when object_ids/metrics are passed without object_type', async () => {
+    it('throws RuleClientError when objectIds/metrics are passed without objectType', async () => {
       const client = createClient(fetchMock);
 
       await expect(
         client.get({
-          date_from: '2024-01-01',
-          date_to: '2024-01-31',
-          object_ids: ['1'],
+          dateFrom: '2024-01-01',
+          dateTo: '2024-01-31',
+          objectIds: ['1'],
           metrics: ['sent'],
-        } as RuleAnalyticsParams)
-      ).rejects.toThrow(/object_ids and metrics require object_type/);
+        } as AnalyticsParams)
+      ).rejects.toThrow(/objectIds and metrics require objectType/);
     });
 
     it('uses GET', async () => {
@@ -157,10 +166,10 @@ describe('AnalyticsClient', () => {
       const client = createClient(fetchMock);
 
       await client.get({
-        date_from: '2024-01-01',
-        date_to: '2024-01-31',
-        object_type: 'TRANSACTIONAL_NAME',
-        object_ids: ['1'],
+        dateFrom: '2024-01-01',
+        dateTo: '2024-01-31',
+        objectType: 'TRANSACTIONAL_NAME',
+        objectIds: ['1'],
         metrics: ['sent'],
       });
 
@@ -176,10 +185,10 @@ describe('AnalyticsClient', () => {
 
       await expect(
         client.get({
-          date_from: '2024-01-31',
-          date_to: '2024-01-01',
-          object_type: 'CAMPAIGN',
-          object_ids: ['1'],
+          dateFrom: '2024-01-31',
+          dateTo: '2024-01-01',
+          objectType: 'CAMPAIGN',
+          objectIds: ['1'],
           metrics: ['sent'],
         })
       ).rejects.toBeInstanceOf(RuleApiError);
@@ -190,10 +199,10 @@ describe('AnalyticsClient', () => {
 
       await expect(
         client.get({
-          date_from: '2024-01-01',
-          date_to: '2024-01-31',
-          object_type: 'CAMPAIGN',
-          object_ids: [],
+          dateFrom: '2024-01-01',
+          dateTo: '2024-01-31',
+          objectType: 'CAMPAIGN',
+          objectIds: [],
           metrics: ['sent'],
         })
       ).rejects.toBeInstanceOf(RuleClientError);
