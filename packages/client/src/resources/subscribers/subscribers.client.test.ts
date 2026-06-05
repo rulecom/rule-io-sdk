@@ -430,6 +430,16 @@ describe('SubscribersClient', () => {
 
       await expect(client.getByCustomIdentifier('bad')).rejects.toBeInstanceOf(RuleApiError);
     });
+
+    it('maps custom_identifier from the wire response', async () => {
+      fetchMock.mockResolvedValueOnce(
+        createMockResponse({ subscriber: { id: 99, email: 'a@b.c', custom_identifier: 'ext-123' } })
+      );
+      const client = createClient(fetchMock);
+
+      const result = await client.getByCustomIdentifier('ext-123');
+      expect(result?.customIdentifier).toBe('ext-123');
+    });
   });
 
   describe('getSubscriberTags', () => {

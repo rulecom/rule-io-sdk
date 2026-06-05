@@ -350,6 +350,7 @@ export interface GetSubscriberResponse extends RuleApiResponse {
     id: number;
     email: string;
     phone_number?: string;
+    custom_identifier?: string | null;
     language?: string;
     opted_in?: boolean;
     created_at?: string;
@@ -381,6 +382,7 @@ export interface SubscriberListWire {
   id: number;
   email: string | null;
   phone_number: string | null;
+  custom_identifier?: string | null;
   language: string;
   opted_in: boolean;
   suppressed: boolean;
