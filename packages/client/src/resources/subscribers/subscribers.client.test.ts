@@ -468,6 +468,7 @@ describe('SubscribersClient', () => {
       const client = createClient(fetchMock);
 
       const result = await client.getByCustomIdentifier('ext-123');
+
       expect(result?.customIdentifier).toBe('ext-123');
     });
   });
