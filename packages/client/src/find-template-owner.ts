@@ -15,7 +15,9 @@
 
 import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
-import type { RuleAutomation, RuleCampaign, RuleMessage } from './types.js';
+import type { Automation } from './resources/automations/automations.types.js';
+import type { Campaign } from './resources/campaigns/campaigns.types.js';
+import type { Message } from './resources/messages/messages.types.js';
 
 type DispatcherKind = 'campaign' | 'automation';
 
@@ -287,14 +289,18 @@ async function listDispatchers(
   page: number
 ): Promise<DispatcherListEntry[]> {
   if (kind === 'campaign') {
-    const response = await client.listCampaigns({ page, per_page: PER_PAGE });
+    const campaigns = await client.campaigns.listCampaigns({
+      pagination: { page, pageSize: PER_PAGE },
+    });
 
-    return (response.data ?? []) as DispatcherListEntry[];
+    return campaigns as DispatcherListEntry[];
   }
 
-  const response = await client.listAutomations({ page, per_page: PER_PAGE });
+  const automations = await client.automations.listAutomations({
+    pagination: { page, pageSize: PER_PAGE },
+  });
 
-  return (response.data ?? []) as DispatcherListEntry[];
+  return automations as DispatcherListEntry[];
 }
 
 async function probeDispatcher(
@@ -314,17 +320,14 @@ async function probeDispatcher(
   pageScanned.count += 1;
 
   const dispatcherId = dispatcher.id;
-  const dispatcherType = kind === 'campaign' ? 'campaign' : 'automail';
 
-  let messages: readonly RuleMessage[];
+  let messages: readonly Message[];
 
   try {
-    const response = await client.listMessages({
-      id: dispatcherId,
-      dispatcher_type: dispatcherType,
-    });
-
-    messages = response.data ?? [];
+    messages =
+      kind === 'campaign'
+        ? await client.messages.listCampaignMessages(dispatcherId)
+        : await client.messages.listAutomationMessages(dispatcherId);
   } catch (error) {
     partialErrors.push({
       dispatcher_kind: kind,
@@ -379,10 +382,10 @@ async function messageOwnsTemplate(
   messageId: number,
   templateId: number
 ): Promise<boolean> {
-  const response = await client.listDynamicSets({ message_id: messageId });
+  const dynamicSets = await client.dynamicSets.listDynamicSets(messageId);
 
-  for (const ds of response.data ?? []) {
-    if (ds.template_id === templateId) return true;
+  for (const ds of dynamicSets) {
+    if (ds.templateId === templateId) return true;
   }
 
   return false;
@@ -392,11 +395,11 @@ function toOwner(
   kind: DispatcherKind,
   dispatcher: DispatcherListEntry,
   dispatcherId: number,
-  message: RuleMessage,
+  message: Message,
   messageId: number
 ): TemplateOwner {
   if (kind === 'campaign') {
-    const camp = dispatcher as RuleCampaign;
+    const camp = dispatcher as Campaign;
 
     return {
       kind: 'campaign',
@@ -408,7 +411,7 @@ function toOwner(
     };
   }
 
-  const auto = dispatcher as RuleAutomation;
+  const auto = dispatcher as Automation;
 
   return {
     kind: 'automation',
@@ -419,8 +422,8 @@ function toOwner(
   };
 }
 
-function extractCampaignStatus(camp: RuleCampaign): string | null {
-  const status = camp.status as RuleCampaign['status'] | string | undefined;
+function extractCampaignStatus(camp: Campaign): string | null {
+  const status = camp.status as Campaign['status'] | string | undefined;
 
   if (status == null) return null;
   if (typeof status === 'string') return status;

@@ -1,0 +1,34 @@
+# Asynchronous Operations
+
+Some methods in `@rulecom/client` return immediately once Rule.io has accepted the request. The actual work — tagging subscribers, blocking contacts, sending bulk updates — happens in the background on Rule.io's side.
+
+These methods are:
+
+| Method | Description |
+|--------|-------------|
+| `subscribers.addSubscriberTags()` | Add tags to one subscriber |
+| `subscribers.removeSubscriberTags()` | Remove tags from one subscriber |
+| `subscribers.bulkAddSubscriberTags()` | Add tags to many subscribers |
+| `subscribers.bulkRemoveSubscriberTags()` | Remove tags from many subscribers |
+| `subscribers.block()` | Block multiple subscribers |
+| `subscribers.unblock()` | Unblock multiple subscribers |
+
+A success response from these methods means the request was **accepted**, not that it has completed.
+
+## Waiting for completion
+
+If your workflow depends on knowing when the operation finishes — for example, verifying tags before sending a campaign — pass a `callbackUrl`. Rule.io will POST a notification to that URL when processing is complete.
+
+```typescript
+await client.subscribers.bulkAddSubscriberTags(
+  [{ email: 'alice@example.com' }, { email: 'bob@example.com' }],
+  ['newsletter'],
+  { callbackUrl: 'https://yourapp.com/webhooks/rule' },
+);
+```
+
+The same `callbackUrl` option is available on all async methods listed above.
+
+## When to omit the callback
+
+If you only need eventual consistency — for example, the tags will be in place before the next scheduled campaign send — you can omit the callback and simply continue. Rule.io processes bulk operations quickly under normal load.

@@ -2,12 +2,8 @@
  * Bridge between the Rule.io brand-style API and the rcml email-theme
  * abstraction.
  *
- * {@link emailThemeFromBrandStyle} converts a {@link RuleBrandStyle} response
+ * {@link emailThemeFromBrandStyle} converts a {@link BrandStyle} entity
  * directly into an {@link EmailTheme} ready for {@link applyTheme}.
- *
- * This replaces the need to go through the legacy `BrandStyleConfig`
- * intermediate — see `brand-template.ts` — when callers want the
- * theme-based API instead.
  *
  * @public
  */
@@ -33,16 +29,14 @@ import type {
 import { RuleClientError } from './errors.js';
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import type {
-  RuleBrandStyle,
-  RuleBrandStyleColour,
-  RuleBrandStyleColourType,
-  RuleBrandStyleFont,
-  RuleBrandStyleImage,
-  RuleBrandStyleLink,
-  RuleBrandStyleLinkType,
-  RuleBrandStyleListItem,
-  RuleBrandStyleListResponse,
-  RuleBrandStyleResponse,
+  BrandStyle,
+  BrandStyleColour,
+  BrandStyleColourType,
+  BrandStyleFont,
+  BrandStyleImage,
+  BrandStyleLink,
+  BrandStyleLinkType,
+  BrandStyleListItem,
 } from './types.js';
 
 /**
@@ -51,7 +45,7 @@ import type {
  * does not appear here.
  */
 const COLOUR_TYPE_TO_THEME_COLOR: Partial<
-  Record<RuleBrandStyleColourType, EmailThemeColorType>
+  Record<BrandStyleColourType, EmailThemeColorType>
 > = {
   brand: EmailThemeColorType.Secondary,
   accent: EmailThemeColorType.Primary,
@@ -64,7 +58,7 @@ const COLOUR_TYPE_TO_THEME_COLOR: Partial<
  * with no theme slot (e.g. `github`, `youtube`) are dropped.
  */
 const LINK_TYPE_TO_THEME_LINK: Partial<
-  Record<RuleBrandStyleLinkType, EmailThemeSocialLinkType>
+  Record<BrandStyleLinkType, EmailThemeSocialLinkType>
 > = {
   facebook: 'facebook',
   instagram: 'instagram',
@@ -75,14 +69,14 @@ const LINK_TYPE_TO_THEME_LINK: Partial<
 };
 
 /**
- * Build an {@link EmailTheme} directly from a Rule.io brand-style API
- * response. Unknown colour/link/image types and fonts without a usable
+ * Build an {@link EmailTheme} directly from a Rule.io {@link BrandStyle}
+ * entity. Unknown colour/link/image types and fonts without a usable
  * name are silently dropped so a partial brand style produces a partial
  * theme rather than throwing.
  *
  * @public
  */
-export function emailThemeFromBrandStyle(brandStyle: RuleBrandStyle): EmailTheme {
+export function emailThemeFromBrandStyle(brandStyle: BrandStyle): EmailTheme {
   const { colors, fontColorHex } = splitColours(brandStyle.colours ?? []);
   const { fonts, fontStyles } = mapFonts(brandStyle.fonts ?? [], fontColorHex);
 
@@ -96,7 +90,7 @@ export function emailThemeFromBrandStyle(brandStyle: RuleBrandStyle): EmailTheme
   });
 }
 
-function splitColours(brandColours: RuleBrandStyleColour[]): {
+function splitColours(brandColours: BrandStyleColour[]): {
   colors: EmailThemeColor[];
   fontColorHex: string | undefined;
 } {
@@ -119,7 +113,7 @@ function splitColours(brandColours: RuleBrandStyleColour[]): {
   return { colors, fontColorHex };
 }
 
-function mapLinks(brandLinks: RuleBrandStyleLink[]): EmailThemeSocialLink[] {
+function mapLinks(brandLinks: BrandStyleLink[]): EmailThemeSocialLink[] {
   const out: EmailThemeSocialLink[] = [];
 
   for (const link of brandLinks) {
@@ -128,9 +122,6 @@ function mapLinks(brandLinks: RuleBrandStyleLink[]): EmailThemeSocialLink[] {
     if (themeType === undefined) continue;
 
     // Brand-style API can return blank or otherwise unsafe URLs.
-    // applyTheme would later throw EmailThemeApplyError on those, so
-    // drop them here instead — a partial brand style should still
-    // produce a usable theme.
     const safeUrl = sanitizeUrl(link.link);
 
     if (safeUrl === 'about:blank') continue;
@@ -141,17 +132,14 @@ function mapLinks(brandLinks: RuleBrandStyleLink[]): EmailThemeSocialLink[] {
   return out;
 }
 
-function mapImages(brandImages: RuleBrandStyleImage[]): EmailThemeImage[] {
+function mapImages(brandImages: BrandStyleImage[]): EmailThemeImage[] {
   const out: EmailThemeImage[] = [];
 
   for (const image of brandImages) {
     if (image.type !== 'logo') continue;
-    if (typeof image.public_path !== 'string') continue;
+    if (typeof image.publicPath !== 'string') continue;
 
-    // Same rationale as mapLinks: applyTheme rejects unsafe logo URLs
-    // (see apply-theme.test.ts), so filter at the source rather than
-    // surfacing a runtime error from a partial brand style.
-    const safeUrl = sanitizeUrl(image.public_path);
+    const safeUrl = sanitizeUrl(image.publicPath);
 
     if (safeUrl === 'about:blank') continue;
 
@@ -162,7 +150,7 @@ function mapImages(brandImages: RuleBrandStyleImage[]): EmailThemeImage[] {
 }
 
 function mapFonts(
-  brandFonts: RuleBrandStyleFont[],
+  brandFonts: BrandStyleFont[],
   fontColorHex: string | undefined
 ): {
   fonts: EmailThemeFont[];
@@ -231,9 +219,7 @@ function mapFonts(
 
 /**
  * Same rationale as {@link mapLinks}/{@link mapImages}: applyTheme rejects
- * unsafe font URLs with `EmailThemeApplyError`, so filter at the bridge
- * rather than surfacing a runtime error from a partial brand style.
- * Returns either `{ url: safeUrl }` or `{}` so the caller can spread it.
+ * unsafe font URLs with `EmailThemeApplyError`, so filter at the bridge.
  */
 function safeFontUrl(url: string | null | undefined): { url?: string } {
   if (typeof url !== 'string') return {};
@@ -243,18 +229,15 @@ function safeFontUrl(url: string | null | undefined): { url?: string } {
   return safe === 'about:blank' ? {} : { url: safe };
 }
 
-function fontFamilyFrom(font: RuleBrandStyleFont): string | undefined {
-  const name = font.origin_name ?? font.name;
+function fontFamilyFrom(font: BrandStyleFont): string | undefined {
+  const name = font.originName ?? font.name;
 
   if (typeof name !== 'string' || name === '') return undefined;
 
   return name;
 }
 
-// ============================================================================
-// Theme resolver — thin wrapper around the brand-style HTTP endpoints that
-// returns an EmailTheme ready to drive `applyTheme`.
-// ============================================================================
+// ── Theme resolver ────────────────────────────────────────────────────────────
 
 /**
  * Minimal structural shape {@link resolveBrandTheme} needs from a client.
@@ -264,8 +247,10 @@ function fontFamilyFrom(font: RuleBrandStyleFont): string | undefined {
  * @public
  */
 export interface BrandThemeResolverClient {
-  listBrandStyles(): Promise<RuleBrandStyleListResponse>
-  getBrandStyle(brandStyleId: number): Promise<RuleBrandStyleResponse | null>
+  brandStyles: {
+    list(): Promise<BrandStyleListItem[]>;
+    get(id: number): Promise<BrandStyle | null>;
+  };
 }
 
 /**
@@ -275,17 +260,17 @@ export interface BrandThemeResolverClient {
  */
 export interface ResolvedBrandTheme {
   /** Resolved brand-style id. */
-  id: number
+  id: number;
   /** Brand style name if the API returned one. */
-  name?: string
+  name?: string;
   /** The resolved theme, ready for `applyTheme`. */
-  theme: EmailTheme
+  theme: EmailTheme;
   /**
    * Discovery source: `'override'` when the caller supplied `overrideId`,
-   * `'default'` when an `is_default` entry matched, `'fallback'` when the
+   * `'default'` when an `isDefault` entry matched, `'fallback'` when the
    * first entry was used because no default was flagged.
    */
-  source: 'override' | 'default' | 'fallback'
+  source: 'override' | 'default' | 'fallback';
 }
 
 /**
@@ -294,14 +279,9 @@ export interface ResolvedBrandTheme {
  *
  * Discovery rules:
  * 1. If `overrideId` is provided, fetch that brand style directly.
- * 2. Otherwise, list all brand styles and pick the one flagged
- *    `is_default`.
+ * 2. Otherwise, list all brand styles and pick the one flagged `isDefault`.
  * 3. If no style is flagged default, fall back to the first entry
  *    (`source` is set to `'fallback'` so callers can warn).
- *
- * Use this in provisioning / deploy scripts instead of hardcoding brand
- * style IDs — a customer's preferred style can change and list order is
- * not guaranteed.
  *
  * @public
  */
@@ -316,40 +296,39 @@ export async function resolveBrandTheme(
       );
     }
 
-    const resp = await client.getBrandStyle(overrideId);
+    const style = await client.brandStyles.get(overrideId);
 
-    if (!resp?.data) {
+    if (!style) {
       throw new RuleClientError(`Brand style ${String(overrideId)} not found`);
     }
 
     return {
       id: overrideId,
-      name: resp.data.name,
-      theme: emailThemeFromBrandStyle(resp.data),
+      name: style.name,
+      theme: emailThemeFromBrandStyle(style),
       source: 'override',
     };
   }
 
-  const listResp = await client.listBrandStyles();
-  const styles: RuleBrandStyleListItem[] = listResp.data ?? [];
+  const styles = await client.brandStyles.list();
 
   if (styles.length === 0) {
     throw new RuleClientError('No brand styles available in the account');
   }
 
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const preferred = styles.find((s) => s.is_default) ?? styles[0]!; // guarded non-empty above
-  const source: 'default' | 'fallback' = preferred.is_default ? 'default' : 'fallback';
-  const resp = await client.getBrandStyle(preferred.id);
+  const preferred = styles.find((s) => s.isDefault) ?? styles[0]!;
+  const source: 'default' | 'fallback' = preferred.isDefault ? 'default' : 'fallback';
+  const style = await client.brandStyles.get(preferred.id);
 
-  if (!resp?.data) {
+  if (!style) {
     throw new RuleClientError(`Brand style ${String(preferred.id)} not found`);
   }
 
   return {
     id: preferred.id,
-    name: resp.data.name,
-    theme: emailThemeFromBrandStyle(resp.data),
+    name: style.name,
+    theme: emailThemeFromBrandStyle(style),
     source,
   };
 }

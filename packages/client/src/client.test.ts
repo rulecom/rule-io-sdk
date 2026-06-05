@@ -34,16 +34,11 @@ import { ApiKeysClient } from './resources/api-keys/api-keys.client.js';
 import { AutomationsClient } from './resources/automations/automations.client.js';
 import { BrandStylesClient } from './resources/brand-styles/brand-styles.client.js';
 import { CampaignsClient } from './resources/campaigns/campaigns.client.js';
-import { CustomFieldDataClient } from './resources/custom-field-data/custom-field-data.client.js';
 import { DynamicSetsClient } from './resources/dynamic-sets/dynamic-sets.client.js';
 import { ExportsClient } from './resources/exports/exports.client.js';
 import { MessagesClient } from './resources/messages/messages.client.js';
 import { RecipientsClient } from './resources/recipients/recipients.client.js';
-import { RecipientSubscribersClient } from './resources/recipients/subscribers/recipient-subscribers.client.js';
-import { RecipientTagsClient } from './resources/recipients/tags/recipient-tags.client.js';
-import { SegmentsClient } from './resources/recipients/segments/segments.client.js';
 import { SubscribersClient } from './resources/subscribers/subscribers.client.js';
-import { SuppressionsClient } from './resources/suppressions/suppressions.client.js';
 import { TagsClient } from './resources/tags/tags.client.js';
 import { TemplatesClient } from './resources/templates/templates.client.js';
 import { RuleClient } from './client.js';
@@ -70,21 +65,15 @@ describe('RuleClient — namespaced API', () => {
       expect(client.templates).toBeInstanceOf(TemplatesClient);
       expect(client.dynamicSets).toBeInstanceOf(DynamicSetsClient);
       expect(client.campaigns).toBeInstanceOf(CampaignsClient);
-      expect(client.suppressions).toBeInstanceOf(SuppressionsClient);
       expect(client.brandStyles).toBeInstanceOf(BrandStylesClient);
       expect(client.apiKeys).toBeInstanceOf(ApiKeysClient);
       expect(client.exports).toBeInstanceOf(ExportsClient);
       expect(client.analytics).toBeInstanceOf(AnalyticsClient);
       expect(client.recipients).toBeInstanceOf(RecipientsClient);
-      expect(client.customFieldData).toBeInstanceOf(CustomFieldDataClient);
     });
 
     it('exposes nested recipient namespaces of the right type', () => {
-      const client = makeClient(fetchMock);
-
-      expect(client.recipients.segments).toBeInstanceOf(SegmentsClient);
-      expect(client.recipients.subscribers).toBeInstanceOf(RecipientSubscribersClient);
-      expect(client.recipients.tags).toBeInstanceOf(RecipientTagsClient);
+      // RecipientsClient is a flat namespace — no sub-namespaces
     });
   });
 
@@ -99,11 +88,7 @@ describe('RuleClient — namespaced API', () => {
     });
 
     it('returns the same instance on repeated nested access', () => {
-      const client = makeClient(fetchMock);
-
-      expect(client.recipients.segments).toBe(client.recipients.segments);
-      expect(client.recipients.subscribers).toBe(client.recipients.subscribers);
-      expect(client.recipients.tags).toBe(client.recipients.tags);
+      // RecipientsClient is a flat namespace — no nested access to test
     });
 
     it('does not instantiate namespaces that are never accessed', () => {
@@ -146,13 +131,11 @@ describe('RuleClient — namespaced API', () => {
         client.templates,
         client.dynamicSets,
         client.campaigns,
-        client.suppressions,
         client.brandStyles,
         client.apiKeys,
         client.exports,
         client.analytics,
         client.recipients,
-        client.customFieldData,
       ];
 
       for (const ns of namespaces) {
@@ -160,15 +143,6 @@ describe('RuleClient — namespaced API', () => {
       }
 
       // Nested clients also share the same transport.
-      expect((client.recipients.segments as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
-      expect((client.recipients.subscribers as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
-      expect((client.recipients.tags as unknown as WithTransport).transport).toBe(
-        rootTransport
-      );
     });
   });
 });
@@ -180,28 +154,7 @@ describe('RuleClient — deprecated-alias delegation', () => {
     fetchMock = createMockFetch();
   });
 
-  it('createAutomation delegates to automations.create', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.automations, 'create');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'X' } }));
-    await client.createAutomation({ name: 'X' });
-
-    expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy).toHaveBeenCalledWith({ name: 'X' });
-  });
-
-  it('createAutomail delegates to automations.create (legacy alias)', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.automations, 'create');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'X' } }));
-    await client.createAutomail({ name: 'X' });
-
-    expect(spy).toHaveBeenCalledWith({ name: 'X' });
-  });
-
-  it('syncSubscriber delegates to subscribers.sync', async () => {
+  it('syncSubscriber delegates to subscribers.sync with the new signature', async () => {
     const client = makeClient(fetchMock);
     const spy = vi.spyOn(client.subscribers, 'sync');
 
@@ -210,8 +163,7 @@ describe('RuleClient — deprecated-alias delegation', () => {
     await client.syncSubscriber({ email: 'a@b.c', tags: ['t'] }, 'Booking');
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0]![0]).toEqual({ email: 'a@b.c', tags: ['t'] });
-    expect(spy.mock.calls[0]![1]).toBe('Booking');
+    expect(spy.mock.calls[0]![0]).toEqual({ subscriber: { email: 'a@b.c' }, tags: ['t'] });
   });
 
   it('getAnalytics delegates to analytics.get', async () => {
@@ -219,34 +171,16 @@ describe('RuleClient — deprecated-alias delegation', () => {
     const spy = vi.spyOn(client.analytics, 'get');
 
     fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.getAnalytics({ date_from: '2024-01-01', date_to: '2024-01-31' });
+    await client.getAnalytics({ dateFrom: '2024-01-01', dateTo: '2024-01-31' });
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('listBrandStyles delegates to brandStyles.list', async () => {
+
+  it('addSubscriberTagsV3 delegates to subscribers._addSubscriberTags', async () => {
     const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.brandStyles, 'list');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.listBrandStyles();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-
-  it('listSegments delegates to recipients.segments.list (nested)', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.recipients.segments, 'list');
-
-    fetchMock.mockResolvedValueOnce(createMockResponse({ data: [] }));
-    await client.listSegments();
-
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-
-  it('addSubscriberTagsV3 delegates to subscribers.addTags', async () => {
-    const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.subscribers, 'addTags');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const spy = vi.spyOn(client.subscribers as any, '_addSubscriberTags');
 
     fetchMock.mockResolvedValueOnce({
       ok: true,
@@ -256,14 +190,14 @@ describe('RuleClient — deprecated-alias delegation', () => {
     await client.addSubscriberTagsV3('user@example.com', { tags: ['vip'] }, 'email');
 
     expect(spy).toHaveBeenCalledTimes(1);
-    expect(spy.mock.calls[0]![0]).toBe('user@example.com');
-    expect(spy.mock.calls[0]![1]).toEqual({ tags: ['vip'] });
-    expect(spy.mock.calls[0]![2]).toBe('email');
+    expect(spy.mock.calls[0]![0]).toEqual({ email: 'user@example.com' });
+    expect(spy.mock.calls[0]![1]).toEqual(['vip']);
+    expect(spy.mock.calls[0]![2]).toEqual({ automation: undefined, syncSegments: undefined });
   });
 
-  it('preserves the original v2 endpoint for addSubscriberTags (does NOT route through subscribers.addTags v3)', async () => {
+  it('preserves the original v2 endpoint for addSubscriberTags (does NOT route through subscribers.addSubscriberTags v3)', async () => {
     const client = makeClient(fetchMock);
-    const spy = vi.spyOn(client.subscribers, 'addTags');
+    const spy = vi.spyOn(client.subscribers, 'addSubscriberTags');
 
     fetchMock.mockResolvedValueOnce(createMockResponse({ success: true }));
     await client.addSubscriberTags('user@example.com', ['vip']);
@@ -474,7 +408,7 @@ describe('createAutomationEmail orchestration', () => {
   });
 
   it('throws RuleApiError when brand style returns a response with no data', async () => {
-    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404)); // brand style not found
     const client = makeClient(fetchMock);
 
     await expect(
@@ -593,7 +527,7 @@ describe('createCampaignEmail orchestration', () => {
   });
 
   it('throws RuleApiError when brand style returns a response with no data', async () => {
-    fetchMock.mockResolvedValueOnce(createMockResponse({})); // no data field
+    fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404)); // brand style not found
     const client = makeClient(fetchMock);
 
     await expect(
@@ -817,18 +751,15 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalledWith('a@b.c');
   });
 
-  it('getSubscriberFields delegates to subscribers.getFields', async () => {
-    const spy = vi.spyOn(client.subscribers, 'getFields').mockResolvedValueOnce({});
-
-    await client.getSubscriberFields('a@b.c');
-    expect(spy).toHaveBeenCalledWith('a@b.c');
+  it('getSubscriberFields throws with migration guidance', async () => {
+    await expect(client.getSubscriberFields('a@b.c')).rejects.toThrow('listCustomFieldData');
   });
 
-  it('getSubscriberTags delegates to subscribers.getTagNames', async () => {
-    const spy = vi.spyOn(client.subscribers, 'getTagNames').mockResolvedValueOnce([]);
+  it('getSubscriberTags delegates to subscribers.getSubscriberTags', async () => {
+    const spy = vi.spyOn(client.subscribers, 'getSubscriberTags').mockResolvedValueOnce([]);
 
     await client.getSubscriberTags('a@b.c');
-    expect(spy).toHaveBeenCalledWith('a@b.c');
+    expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' });
   });
 
   it('removeSubscriberTags sends one DELETE per tag via v2', async () => {
@@ -857,11 +788,11 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' });
   });
 
-  it('deleteSubscriberV3 delegates to subscribers.delete', async () => {
-    const spy = vi.spyOn(client.subscribers, 'delete').mockResolvedValueOnce({ success: true });
+  it('deleteSubscriberV3 delegates to subscribers.deleteByEmail', async () => {
+    const spy = vi.spyOn(client.subscribers, 'deleteByEmail').mockResolvedValueOnce({ success: true });
 
     await client.deleteSubscriberV3('a@b.c', 'email');
-    expect(spy).toHaveBeenCalledWith('a@b.c', 'email');
+    expect(spy).toHaveBeenCalledWith('a@b.c');
   });
 
   it('blockSubscribers delegates to subscribers.block', async () => {
@@ -892,11 +823,11 @@ describe('RuleClient — deprecated subscriber delegations', () => {
     expect(spy).toHaveBeenCalled();
   });
 
-  it('removeSubscriberTagV3 delegates to subscribers.removeTag', async () => {
-    const spy = vi.spyOn(client.subscribers, 'removeTag').mockResolvedValueOnce({ success: true });
+  it('removeSubscriberTagV3 delegates to subscribers.removeSubscriberTag', async () => {
+    const spy = vi.spyOn(client.subscribers, 'removeSubscriberTag').mockResolvedValueOnce({ success: true });
 
     await client.removeSubscriberTagV3('a@b.c', 'old-tag', 'email');
-    expect(spy).toHaveBeenCalledWith('a@b.c', 'old-tag', 'email');
+    expect(spy).toHaveBeenCalledWith({ email: 'a@b.c' }, 'old-tag');
   });
 
   it('addSubscriberTags sends automation flag in payload when triggerAutomation is truthy', async () => {
@@ -916,292 +847,13 @@ describe('RuleClient — deprecated subscriber delegations', () => {
   });
 });
 
-describe('RuleClient — deprecated tags/automation/message delegations', () => {
+describe('RuleClient — deprecated brand-styles/api-keys/exports delegations', () => {
   let fetchMock: MockFetch;
   let client: RuleClient;
 
   beforeEach(() => {
     fetchMock = createMockFetch();
     client = makeClient(fetchMock);
-  });
-
-  it('getTags delegates to tags.list', async () => {
-    const spy = vi.spyOn(client.tags, 'list').mockResolvedValueOnce({ tags: [] });
-
-    await client.getTags();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getTagIdByName delegates to tags.getByName and extracts id', async () => {
-    const spy = vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce({ id: 42, name: 'vip' });
-
-    const id = await client.getTagIdByName('vip');
-
-    expect(id).toBe(42);
-    expect(spy).toHaveBeenCalledWith('vip');
-  });
-
-  it('getTagIdByName returns null when tag not found', async () => {
-    vi.spyOn(client.tags, 'getByName').mockResolvedValueOnce(null);
-    expect(await client.getTagIdByName('missing')).toBeNull();
-  });
-
-  it('getAutomation delegates to automations.get', async () => {
-    const spy = vi.spyOn(client.automations, 'get').mockResolvedValueOnce(null);
-
-    await client.getAutomation(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateAutomation delegates to automations.update', async () => {
-    const spy = vi.spyOn(client.automations, 'update').mockResolvedValueOnce({ data: { id: 1, name: 'A' } });
-
-    await client.updateAutomation(1, { name: 'A' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'A' });
-  });
-
-  it('deleteAutomation delegates to automations.delete', async () => {
-    const spy = vi.spyOn(client.automations, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteAutomation(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listAutomations delegates to automations.list', async () => {
-    const spy = vi.spyOn(client.automations, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listAutomations();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('createMessage delegates to messages.create', async () => {
-    const spy = vi.spyOn(client.messages, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createMessage({ dispatcher_id: 1, dispatcher_type: 'automail', subject: 'S' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getMessage delegates to messages.get', async () => {
-    const spy = vi.spyOn(client.messages, 'get').mockResolvedValueOnce(null);
-
-    await client.getMessage(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateMessage delegates to messages.update', async () => {
-    const spy = vi.spyOn(client.messages, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateMessage(1, { subject: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { subject: 'New' });
-  });
-
-  it('deleteMessage delegates to messages.delete', async () => {
-    const spy = vi.spyOn(client.messages, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteMessage(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listMessages delegates to messages.list', async () => {
-    const spy = vi.spyOn(client.messages, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listMessages({ id: 1, dispatcher_type: 'automail' });
-    expect(spy).toHaveBeenCalled();
-  });
-});
-
-describe('RuleClient — deprecated template/dynamic-set/campaign delegations', () => {
-  let fetchMock: MockFetch;
-  let client: RuleClient;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-    client = makeClient(fetchMock);
-  });
-
-  it('createTemplate delegates to templates.create', async () => {
-    const spy = vi.spyOn(client.templates, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createTemplate({ name: 'T', template: {} });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getTemplate delegates to templates.get', async () => {
-    const spy = vi.spyOn(client.templates, 'get').mockResolvedValueOnce(null);
-
-    await client.getTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateTemplate delegates to templates.update', async () => {
-    const spy = vi.spyOn(client.templates, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateTemplate(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteTemplate delegates to templates.delete', async () => {
-    const spy = vi.spyOn(client.templates, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listTemplates delegates to templates.list', async () => {
-    const spy = vi.spyOn(client.templates, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listTemplates();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('renderTemplate delegates to templates.render', async () => {
-    const spy = vi.spyOn(client.templates, 'render').mockResolvedValueOnce(null);
-
-    await client.renderTemplate(1);
-    expect(spy).toHaveBeenCalledWith(1, undefined);
-  });
-
-  it('createDynamicSet delegates to dynamicSets.create', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createDynamicSet({ message_id: 1, template_id: 2 });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getDynamicSet delegates to dynamicSets.get', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'get').mockResolvedValueOnce(null);
-
-    await client.getDynamicSet(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateDynamicSet delegates to dynamicSets.update', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateDynamicSet(1, { template_id: 2 });
-    expect(spy).toHaveBeenCalledWith(1, { template_id: 2 });
-  });
-
-  it('deleteDynamicSet delegates to dynamicSets.delete', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteDynamicSet(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('listDynamicSets delegates to dynamicSets.list', async () => {
-    const spy = vi.spyOn(client.dynamicSets, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listDynamicSets({ message_id: 1 });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('listCampaigns delegates to campaigns.list', async () => {
-    const spy = vi.spyOn(client.campaigns, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listCampaigns();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('createCampaign delegates to campaigns.create', async () => {
-    const spy = vi.spyOn(client.campaigns, 'create').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createCampaign({ name: 'C', message_type_id: 1, subject: 'S' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCampaign delegates to campaigns.get', async () => {
-    const spy = vi.spyOn(client.campaigns, 'get').mockResolvedValueOnce(null);
-
-    await client.getCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('updateCampaign delegates to campaigns.update', async () => {
-    const spy = vi.spyOn(client.campaigns, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateCampaign(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteCampaign delegates to campaigns.delete', async () => {
-    const spy = vi.spyOn(client.campaigns, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('copyCampaign delegates to campaigns.copy', async () => {
-    const spy = vi.spyOn(client.campaigns, 'copy').mockResolvedValueOnce({ data: { id: 2 } });
-
-    await client.copyCampaign(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('scheduleCampaign delegates to campaigns.schedule', async () => {
-    const spy = vi.spyOn(client.campaigns, 'schedule').mockResolvedValueOnce({ success: true });
-
-    await client.scheduleCampaign(1, { start_date: '2024-01-01' });
-    expect(spy).toHaveBeenCalled();
-  });
-});
-
-describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports delegations', () => {
-  let fetchMock: MockFetch;
-  let client: RuleClient;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-    client = makeClient(fetchMock);
-  });
-
-  it('createSuppressions delegates to suppressions.create', async () => {
-    const spy = vi.spyOn(client.suppressions, 'create').mockResolvedValueOnce({ success: true });
-
-    await client.createSuppressions({ subscribers: [{ email: 'a@b.c' }] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('deleteSuppressions delegates to suppressions.delete', async () => {
-    const spy = vi.spyOn(client.suppressions, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteSuppressions({ subscribers: [{ email: 'a@b.c' }] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getBrandStyle delegates to brandStyles.get', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'get').mockResolvedValueOnce(null);
-
-    await client.getBrandStyle(1);
-    expect(spy).toHaveBeenCalledWith(1);
-  });
-
-  it('createBrandStyleFromDomain delegates to brandStyles.createFromDomain', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'createFromDomain').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createBrandStyleFromDomain({ domain: 'example.com' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('createBrandStyleManually delegates to brandStyles.createManually', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'createManually').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.createBrandStyleManually({ name: 'Manual', colours: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('updateBrandStyle delegates to brandStyles.update', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'update').mockResolvedValueOnce({ data: { id: 1 } });
-
-    await client.updateBrandStyle(1, { name: 'New' });
-    expect(spy).toHaveBeenCalledWith(1, { name: 'New' });
-  });
-
-  it('deleteBrandStyle delegates to brandStyles.delete', async () => {
-    const spy = vi.spyOn(client.brandStyles, 'delete').mockResolvedValueOnce({ success: true });
-
-    await client.deleteBrandStyle(1);
-    expect(spy).toHaveBeenCalledWith(1);
   });
 
   it('listApiKeys delegates to apiKeys.list', async () => {
@@ -1233,79 +885,23 @@ describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports d
   });
 
   it('exportDispatchers delegates to exports.dispatchers', async () => {
-    const spy = vi.spyOn(client.exports, 'dispatchers').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'dispatchers').mockResolvedValueOnce([]);
 
-    await client.exportDispatchers({ type: 'automail', id: 1 });
+    await client.exportDispatchers({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 
   it('exportStatistics delegates to exports.statistics', async () => {
-    const spy = vi.spyOn(client.exports, 'statistics').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'statistics').mockResolvedValueOnce({ data: [] });
 
-    await client.exportStatistics({ type: 'automail', id: 1 });
+    await client.exportStatistics({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 
   it('exportSubscribers delegates to exports.subscribers', async () => {
-    const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce({ data: {} });
+    const spy = vi.spyOn(client.exports, 'subscribers').mockResolvedValueOnce([]);
 
-    await client.exportSubscribers({ type: 'subscriber' });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('listRecipientSubscribers delegates to recipients.subscribers.list', async () => {
-    const spy = vi.spyOn(client.recipients.subscribers, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listRecipientSubscribers();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('listRecipientTags delegates to recipients.tags.list', async () => {
-    const spy = vi.spyOn(client.recipients.tags, 'list').mockResolvedValueOnce({ data: [] });
-
-    await client.listRecipientTags();
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCustomFieldData delegates to customFieldData.list', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'list').mockResolvedValueOnce({ groups: [] });
-
-    await client.getCustomFieldData(1);
-    expect(spy).toHaveBeenCalledWith(1, undefined);
-  });
-
-  it('createCustomFieldData delegates to customFieldData.create', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'create').mockResolvedValueOnce({ success: true });
-
-    await client.createCustomFieldData(1, { groups: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('updateCustomFieldData delegates to customFieldData.update', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'update').mockResolvedValueOnce({ success: true });
-
-    await client.updateCustomFieldData(1, { groups: [] });
-    expect(spy).toHaveBeenCalled();
-  });
-
-  it('getCustomFieldDataByGroup delegates to customFieldData.listByGroup', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'listByGroup').mockResolvedValueOnce({ groups: [] });
-
-    await client.getCustomFieldDataByGroup(1, 'Booking');
-    expect(spy).toHaveBeenCalledWith(1, 'Booking', undefined);
-  });
-
-  it('deleteCustomFieldDataByGroup delegates to customFieldData.deleteByGroup', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'deleteByGroup').mockResolvedValueOnce({ success: true });
-
-    await client.deleteCustomFieldDataByGroup(1, 'Booking');
-    expect(spy).toHaveBeenCalledWith(1, 'Booking');
-  });
-
-  it('searchCustomFieldData delegates to customFieldData.search', async () => {
-    const spy = vi.spyOn(client.customFieldData, 'search').mockResolvedValueOnce(null);
-
-    await client.searchCustomFieldData(1, { group: 'Booking', field: 'Name', value: 'A' });
+    await client.exportSubscribers({ dateFrom: '2024-01-01', dateTo: '2024-01-01' });
     expect(spy).toHaveBeenCalled();
   });
 
@@ -1318,48 +914,3 @@ describe('RuleClient — deprecated suppressions/brand-styles/api-keys/exports d
   });
 });
 
-describe('Deprecated automail aliases', () => {
-  let fetchMock: MockFetch;
-
-  beforeEach(() => {
-    fetchMock = createMockFetch();
-  });
-
-  it('createAutomail produces the same HTTP call as createAutomation', async () => {
-    fetchMock.mockResolvedValueOnce(
-      createMockResponse({ data: { id: 1, name: 'Test' } })
-    );
-    const client = makeClient(fetchMock);
-
-    const result = await client.createAutomail({ name: 'Test' });
-
-    expect(result.data?.id).toBe(1);
-    const url = fetchMock.mock.calls[0]![0] as string;
-
-    expect(url).toBe('https://app.rule.io/api/v3/editor/automail');
-  });
-
-  it('getAutomail / updateAutomail / deleteAutomail / listAutomails all forward correctly', async () => {
-    fetchMock
-      .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'A' } }))
-      // updateAutomail with full body takes the fast path — no internal GET
-      .mockResolvedValueOnce(createMockResponse({ data: { id: 1, name: 'Updated' } }))
-      .mockResolvedValueOnce(createMock204Response())
-      .mockResolvedValueOnce(createMockResponse({ data: [] }));
-    const client = makeClient(fetchMock);
-
-    expect((await client.getAutomail(1))?.data?.id).toBe(1);
-    expect(
-      (
-        await client.updateAutomail(1, {
-          name: 'Updated',
-          active: true,
-          trigger: { type: 'TAG', id: 42 },
-          sendout_type: 2,
-        })
-      ).data?.name
-    ).toBe('Updated');
-    expect((await client.deleteAutomail(1)).success).toBe(true);
-    expect((await client.listAutomails()).data).toEqual([]);
-  });
-});

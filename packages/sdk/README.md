@@ -28,7 +28,7 @@ await client.subscribers.addSubscriberTag(
 );
 ```
 
-Get your API key from [Rule.io Settings → API](https://app.rule.io/settings/api).
+Get your API key from [Rule.io Settings → API](https://app.rule.io/v5/#/app/settings/developer).
 
 ## Documentation
 

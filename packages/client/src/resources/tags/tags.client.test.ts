@@ -20,97 +20,118 @@ describe('TagsClient', () => {
     fetchMock = createMockFetch();
   });
 
-  describe('list', () => {
-    it('GETs v2 /tags and returns the response', async () => {
+  describe('listTags', () => {
+    it('GETs v2 /tags and returns Tag[] with camelCase fields', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({
           tags: [
-            { id: 1, name: 'newsletter' },
+            { id: 1, name: 'newsletter', description: 'Monthly newsletter', created_at: '2024-01-01', updated_at: '2024-01-02' },
             { id: 2, name: 'vip' },
           ],
         })
       );
       const client = createClient(fetchMock);
 
-      const result = await client.list();
+      const result = await client.listTags();
 
-      expect(result.tags).toHaveLength(2);
-      expect(result.tags?.[0].name).toBe('newsletter');
+      expect(result).toHaveLength(2);
+      expect(result[0]!.name).toBe('newsletter');
+      expect(result[0]!.createdAt).toBe('2024-01-01');
+      expect(result[0]!.updatedAt).toBe('2024-01-02');
+      expect(result[0]).not.toHaveProperty('created_at');
+
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v2/tags');
       expect((init as RequestInit).method).toBe('GET');
     });
 
-    it('returns the empty list when the API returns one', async () => {
+    it('returns empty array when none returned', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
       const client = createClient(fetchMock);
 
-      expect((await client.list()).tags).toEqual([]);
+      expect(await client.listTags()).toEqual([]);
     });
 
-    it('appends ?limit=N to the URL when limit is specified', async () => {
+    it('maps pageSize to limit and page in query string', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
       const client = createClient(fetchMock);
 
-      await client.list({ limit: 20 });
-      const [url] = fetchMock.mock.calls[0]!;
+      await client.listTags({ pagination: { page: 2, pageSize: 20 } });
 
-      expect(url).toBe('https://app.rule.io/api/v2/tags?limit=20');
+      const url = fetchMock.mock.calls[0]![0] as string;
+
+      expect(url).toContain('limit=20');
+      expect(url).toContain('page=2');
+      expect(url).not.toContain('pageSize');
     });
+  });
 
-    it('surfaces meta.next from the response', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({
-          tags: [{ id: 1, name: 'newsletter' }],
-          meta: { next: 'https://app.rule.io/api/v2/tags?page=2&limit=1' },
-        })
-      );
+  describe('iterateTagsPages', () => {
+    it('yields page arrays and stops when a page is smaller than pageSize', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ tags: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] }))
+        .mockResolvedValueOnce(createMockResponse({ tags: [{ id: 3, name: 'c' }] }));
       const client = createClient(fetchMock);
 
-      const result = await client.list({ limit: 1 });
+      const pages: number[] = [];
 
-      expect(result.meta?.next).toBe('https://app.rule.io/api/v2/tags?page=2&limit=1');
+      for await (const page of client.iterateTagsPages({ pagination: { pageSize: 2 } })) {
+        pages.push(page.length);
+      }
+
+      expect(pages).toEqual([2, 1]);
+    });
+
+    it('stops immediately on empty first page', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
+      const client = createClient(fetchMock);
+
+      const pages: number[] = [];
+
+      for await (const page of client.iterateTagsPages()) {
+        pages.push(page.length);
+      }
+
+      expect(pages).toEqual([0]);
+    });
+  });
+
+  describe('listAllTags', () => {
+    it('collects all tags from all pages', async () => {
+      fetchMock
+        .mockResolvedValueOnce(createMockResponse({ tags: [{ id: 1, name: 'a' }, { id: 2, name: 'b' }] }))
+        .mockResolvedValueOnce(createMockResponse({ tags: [] }));
+      const client = createClient(fetchMock);
+
+      const result = await client.listAllTags({ pagination: { pageSize: 2 } });
+
+      expect(result.map((t) => t.id)).toEqual([1, 2]);
     });
   });
 
   describe('getById', () => {
-    it('GETs v2 /tags/:id?identified_by=id and returns the entity', async () => {
+    it('GETs v2 /tags/:id?identified_by=id and returns camelCase entity', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 1, name: 'Newsletter', description: 'Newsletter1' })
-      );
-      const client = createClient(fetchMock);
-
-      const result = await client.getById(1);
-
-      expect(result?.id).toBe(1);
-      expect(result?.name).toBe('Newsletter');
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
-      expect((init as RequestInit).method).toBe('GET');
-    });
-
-    it('includes with_count=true in the URL when requested', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 1, name: 'Newsletter', recipient_count: 123 })
+        createMockResponse({ id: 1, name: 'Newsletter', description: 'Newsletter1', recipient_count: 42 })
       );
       const client = createClient(fetchMock);
 
       const result = await client.getById(1, { withCount: true });
 
-      expect(result?.recipient_count).toBe(123);
-      const [url] = fetchMock.mock.calls[0]!;
+      expect(result?.id).toBe(1);
+      expect(result?.name).toBe('Newsletter');
+      expect(result?.recipientCount).toBe(42);
+      expect(result).not.toHaveProperty('recipient_count');
 
-      expect(url).toBe(
-        'https://app.rule.io/api/v2/tags/1?identified_by=id&with_count=true'
-      );
+      const [url, init] = fetchMock.mock.calls[0]!;
+
+      expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id&with_count=true');
+      expect((init as RequestInit).method).toBe('GET');
     });
 
     it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
       expect(await client.getById(999)).toBeNull();
@@ -125,20 +146,20 @@ describe('TagsClient', () => {
   });
 
   describe('getByName', () => {
-    it('GETs v2 /tags/:name?identified_by=name (URL-encoded) and returns the entity', async () => {
+    it('GETs v2 /tags/:name?identified_by=name (URL-encoded) and returns camelCase entity', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 1, name: 'Newsletter', description: 'Newsletter1' })
+        createMockResponse({ id: 1, name: 'Newsletter', recipient_count: 7 })
       );
       const client = createClient(fetchMock);
 
-      const result = await client.getByName('Newsletter');
+      const result = await client.getByName('Newsletter', { withCount: true });
 
       expect(result?.id).toBe(1);
-      expect(result?.name).toBe('Newsletter');
-      const [url, init] = fetchMock.mock.calls[0]!;
+      expect(result?.recipientCount).toBe(7);
 
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-      expect((init as RequestInit).method).toBe('GET');
+      const [url] = fetchMock.mock.calls[0]!;
+
+      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name&with_count=true');
     });
 
     it('URL-encodes names with special characters', async () => {
@@ -146,33 +167,14 @@ describe('TagsClient', () => {
       const client = createClient(fetchMock);
 
       await client.getByName('order confirmed');
-      const [url] = fetchMock.mock.calls[0]!;
 
-      expect(url).toBe(
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
         'https://app.rule.io/api/v2/tags/order%20confirmed?identified_by=name'
       );
     });
 
-    it('includes with_count=true in the URL when requested', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 1, name: 'Newsletter', recipient_count: 42 })
-      );
-      const client = createClient(fetchMock);
-
-      const result = await client.getByName('Newsletter', { withCount: true });
-
-      expect(result?.recipient_count).toBe(42);
-      const [url] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe(
-        'https://app.rule.io/api/v2/tags/Newsletter?identified_by=name&with_count=true'
-      );
-    });
-
     it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
       expect(await client.getByName('nonexistent')).toBeNull();
@@ -180,9 +182,9 @@ describe('TagsClient', () => {
   });
 
   describe('updateById', () => {
-    it('PUTs v2 /tags/:id?identified_by=id with JSON body and returns the updated entity', async () => {
+    it('PUTs and returns camelCase Tag entity', async () => {
       fetchMock.mockResolvedValueOnce(
-        createMockResponse({ id: 1, name: 'Renamed', description: 'New desc' })
+        createMockResponse({ id: 1, name: 'Renamed', description: 'New desc', created_at: '2024-01-01', updated_at: '2024-02-01' })
       );
       const client = createClient(fetchMock);
 
@@ -190,6 +192,9 @@ describe('TagsClient', () => {
 
       expect(result?.id).toBe(1);
       expect(result?.name).toBe('Renamed');
+      expect(result?.createdAt).toBe('2024-01-01');
+      expect(result).not.toHaveProperty('created_at');
+
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
@@ -201,18 +206,14 @@ describe('TagsClient', () => {
     });
 
     it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
       expect(await client.updateById(999, { name: 'x' })).toBeNull();
     });
 
     it('rethrows 409 DuplicateTag', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'DuplicateTag', message: 'Tag already exists.' }, 409)
-      );
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 409));
       const client = createClient(fetchMock);
 
       await expect(client.updateById(1, { name: 'existing' })).rejects.toThrow();
@@ -220,22 +221,19 @@ describe('TagsClient', () => {
   });
 
   describe('updateByName', () => {
-    it('PUTs v2 /tags/:name?identified_by=name (URL-encoded) with JSON body and returns the updated entity', async () => {
+    it('PUTs and returns camelCase Tag entity', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({ id: 1, name: 'Renamed', description: 'New desc' })
       );
       const client = createClient(fetchMock);
 
-      const result = await client.updateByName('Newsletter', {
-        name: 'Renamed',
-        description: 'New desc',
-      });
+      const result = await client.updateByName('Newsletter', { name: 'Renamed', description: 'New desc' });
 
       expect(result?.name).toBe('Renamed');
-      const [url, init] = fetchMock.mock.calls[0]!;
+
+      const [url] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-      expect((init as RequestInit).method).toBe('PUT');
     });
 
     it('URL-encodes names with special characters', async () => {
@@ -243,17 +241,14 @@ describe('TagsClient', () => {
       const client = createClient(fetchMock);
 
       await client.updateByName('order confirmed', { name: 'order confirmed' });
-      const [url] = fetchMock.mock.calls[0]!;
 
-      expect(url).toBe(
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
         'https://app.rule.io/api/v2/tags/order%20confirmed?identified_by=name'
       );
     });
 
     it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
       expect(await client.updateByName('nonexistent', { name: 'x' })).toBeNull();
@@ -261,89 +256,83 @@ describe('TagsClient', () => {
   });
 
   describe('deleteById', () => {
-    it('DELETEs v2 /tags/:id?identified_by=id and returns the response', async () => {
+    it('DELETEs and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
       const client = createClient(fetchMock);
 
       const result = await client.deleteById(1);
 
-      expect(result?.message).toBe('Success');
+      expect(result).toBeUndefined();
+
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
       expect((init as RequestInit).method).toBe('DELETE');
     });
 
-    it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+    it('resolves without error on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.deleteById(999)).toBeNull();
+      await expect(client.deleteById(999)).resolves.toBeUndefined();
     });
   });
 
   describe('deleteByName', () => {
-    it('DELETEs v2 /tags/:name?identified_by=name (URL-encoded) and returns the response', async () => {
+    it('DELETEs and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
       const client = createClient(fetchMock);
 
       const result = await client.deleteByName('Newsletter');
 
-      expect(result?.message).toBe('Success');
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-      expect((init as RequestInit).method).toBe('DELETE');
+      expect(result).toBeUndefined();
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
+        'https://app.rule.io/api/v2/tags/Newsletter?identified_by=name'
+      );
     });
 
-    it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+    it('resolves without error on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.deleteByName('nonexistent')).toBeNull();
+      await expect(client.deleteByName('nonexistent')).resolves.toBeUndefined();
     });
   });
 
   describe('clearById', () => {
-    it('DELETEs v2 /tags/:id/clear?identified_by=id and returns the response', async () => {
+    it('DELETEs /clear and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
       const client = createClient(fetchMock);
 
       const result = await client.clearById(1);
 
-      expect(result?.message).toBe('Success');
+      expect(result).toBeUndefined();
+
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v2/tags/1/clear?identified_by=id');
       expect((init as RequestInit).method).toBe('DELETE');
     });
 
-    it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+    it('resolves without error on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.clearById(999)).toBeNull();
+      await expect(client.clearById(999)).resolves.toBeUndefined();
     });
   });
 
   describe('clearByName', () => {
-    it('DELETEs v2 /tags/:name/clear?identified_by=name (URL-encoded) and returns the response', async () => {
+    it('DELETEs /clear and returns void', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
       const client = createClient(fetchMock);
 
       const result = await client.clearByName('Newsletter');
 
-      expect(result?.message).toBe('Success');
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter/clear?identified_by=name');
-      expect((init as RequestInit).method).toBe('DELETE');
+      expect(result).toBeUndefined();
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
+        'https://app.rule.io/api/v2/tags/Newsletter/clear?identified_by=name'
+      );
     });
 
     it('URL-encodes names with special characters', async () => {
@@ -351,114 +340,18 @@ describe('TagsClient', () => {
       const client = createClient(fetchMock);
 
       await client.clearByName('order confirmed');
-      const [url] = fetchMock.mock.calls[0]!;
 
-      expect(url).toBe(
+      expect(fetchMock.mock.calls[0]![0] as string).toBe(
         'https://app.rule.io/api/v2/tags/order%20confirmed/clear?identified_by=name'
       );
     });
 
-    it('returns null on 404', async () => {
-      fetchMock.mockResolvedValueOnce(
-        createMockErrorResponse({ error: 'TagNotFound', message: 'Could not find tag.' }, 404)
-      );
+    it('resolves without error on 404', async () => {
+      fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.clearByName('nonexistent')).toBeNull();
+      await expect(client.clearByName('nonexistent')).resolves.toBeUndefined();
     });
   });
 
-  describe('get', () => {
-    it('dispatches to getById when identifier is a number', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 1, name: 'Newsletter' }));
-      const client = createClient(fetchMock);
-
-      await client.get(1);
-      const [url] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
-    });
-
-    it('dispatches to getByName when identifier is a string', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 1, name: 'Newsletter' }));
-      const client = createClient(fetchMock);
-
-      await client.get('Newsletter');
-      const [url] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-    });
-  });
-
-  describe('update', () => {
-    it('dispatches to updateById when identifier is a number', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 1, name: 'Renamed' }));
-      const client = createClient(fetchMock);
-
-      await client.update(1, { name: 'Renamed' });
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
-      expect((init as RequestInit).method).toBe('PUT');
-    });
-
-    it('dispatches to updateByName when identifier is a string', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ id: 1, name: 'Renamed' }));
-      const client = createClient(fetchMock);
-
-      await client.update('Newsletter', { name: 'Renamed' });
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-      expect((init as RequestInit).method).toBe('PUT');
-    });
-  });
-
-  describe('delete', () => {
-    it('dispatches to deleteById when identifier is a number', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
-      const client = createClient(fetchMock);
-
-      await client.delete(1);
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/1?identified_by=id');
-      expect((init as RequestInit).method).toBe('DELETE');
-    });
-
-    it('dispatches to deleteByName when identifier is a string', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
-      const client = createClient(fetchMock);
-
-      await client.delete('Newsletter');
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter?identified_by=name');
-      expect((init as RequestInit).method).toBe('DELETE');
-    });
-  });
-
-  describe('clear', () => {
-    it('dispatches to clearById when identifier is a number', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
-      const client = createClient(fetchMock);
-
-      await client.clear(1);
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/1/clear?identified_by=id');
-      expect((init as RequestInit).method).toBe('DELETE');
-    });
-
-    it('dispatches to clearByName when identifier is a string', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse({ message: 'Success' }));
-      const client = createClient(fetchMock);
-
-      await client.clear('Newsletter');
-      const [url, init] = fetchMock.mock.calls[0]!;
-
-      expect(url).toBe('https://app.rule.io/api/v2/tags/Newsletter/clear?identified_by=name');
-      expect((init as RequestInit).method).toBe('DELETE');
-    });
-  });
 });

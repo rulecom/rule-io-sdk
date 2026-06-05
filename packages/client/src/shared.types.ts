@@ -18,6 +18,14 @@ export interface RulePaginationParams {
   per_page?: number;
 }
 
+/** Canonical SDK-facing pagination params for paginated list methods. */
+export interface PagePaginationParams {
+  /** Page number to fetch. For iterator helpers, this is the starting page. */
+  page?: number;
+  /** Number of records per page. Maps to the API's `per_page` query parameter. */
+  pageSize?: number;
+}
+
 /** Generic list response wrapper for v3 endpoints that return arrays. */
 export interface RuleListResponse<T> extends RuleApiResponse {
   data?: T[];

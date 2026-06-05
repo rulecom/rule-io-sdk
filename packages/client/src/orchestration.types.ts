@@ -9,10 +9,11 @@
 
 import type { RcmlDocument, RcmlSection, RcmlLoop, RcmlSwitch } from '@rulecom/rcml';
 
-import type { RuleSendoutType } from './resources/automations/automations.types.js';
+import type { AutomationSendoutType } from './resources/automations/automations.types.js';
 import type {
-  RuleCampaignRecipientSegment,
-  RuleCampaignRecipientTag,
+  CampaignRecipientSegment,
+  CampaignRecipientTag,
+  CampaignSendoutType,
 } from './resources/campaigns/campaigns.types.js';
 
 export interface CreateAutomationEmailConfig {
@@ -24,14 +25,13 @@ export interface CreateAutomationEmailConfig {
   preheader?: string;
   fromName?: string;
   fromEmail?: string;
-  replyTo?: string;
   delayInSeconds?: string;
   /**
    * Sendout type for the automation.
-   * - 1: Campaign (marketing emails)
-   * - 2: Transactional (order confirmations, receipts, etc.) - DEFAULT
+   * - `'marketing'` — marketing emails (default)
+   * - `'transactional'` — order confirmations, receipts, etc.
    */
-  sendoutType?: RuleSendoutType;
+  sendoutType?: AutomationSendoutType;
   /** Full RCML template document. Provide this OR `brandStyleId`, not both. */
   template?: RcmlDocument;
   /**
@@ -79,11 +79,9 @@ export interface CreateCampaignEmailConfig {
   preheader?: string;
   fromName?: string;
   fromEmail?: string;
-  replyTo?: string;
-  /** 1: Marketing (default), 2: Transactional */
-  sendoutType?: RuleSendoutType;
-  tags?: RuleCampaignRecipientTag[];
-  segments?: RuleCampaignRecipientSegment[];
+  sendoutType?: CampaignSendoutType;
+  tags?: CampaignRecipientTag[];
+  segments?: CampaignRecipientSegment[];
   subscribers?: number[];
   /** Full RCML template. Provide this OR `brandStyleId`, not both. */
   template?: RcmlDocument;
