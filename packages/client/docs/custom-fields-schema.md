@@ -1,4 +1,4 @@
-# Custom Fields
+# Custom Field Schema
 
 Custom field groups let you attach structured data to subscribers — contact preferences, order history, booking details, or any other domain-specific information. Each group contains one or more typed fields.
 

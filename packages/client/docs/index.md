@@ -26,15 +26,15 @@ You can also pass the API key as a plain string: `new RuleClient(apiKey)`.
 
 | Namespace | What it covers | Guide |
 |---|---|---|
-| `client.subscribers` | Add, update, find, and remove subscribers | [Managing Subscribers](./managing-subscribers) |
-| `client.tags` | Create and manage audience tags | [Organizing with Tags](./organizing-with-tags) |
+| `client.subscribers` | Add, update, find, remove, block, and suppress subscribers | [Managing Subscribers](./managing-subscribers) |
+| `client.tags` | Create and manage audience tags | [Tags](./tags) |
 | `client.campaigns` | Create, target, and schedule campaigns | [Email Campaigns](./email-campaigns) |
 | `client.automations` | Trigger-based email workflows | [Email Automations](./email-automations) |
 | `client.messages` | Email message objects | [Email Messages](./email-messages) |
 | `client.templates` | Email templates with RCML | [Email Templates](./email-templates) |
 | `client.dynamicSets` | Connect messages to templates | [Dynamic Sets](./dynamic-sets) |
 | `client.brandStyles` | Brand colors, fonts, and logos | [Brand Styles](./brand-styles) |
-| `client.suppressions` | Suppress and reactivate subscribers | [Managing Suppressions](./managing-suppressions) |
+| `client.customField` | Custom field group schema | [Custom Field Schema](./custom-fields-schema) |
 | `client.apiKeys` | Create and rotate API keys | [API Keys](./api-keys) |
 | `client.analytics` | Campaign and automation statistics | [Analytics](./analytics) |
 | `client.exports` | Bulk data exports (Enterprise) | [Exports](./exports) |

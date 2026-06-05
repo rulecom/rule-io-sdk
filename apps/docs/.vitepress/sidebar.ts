@@ -98,7 +98,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Dynamic Sets', link: '/packages/client/dynamic-sets' },
       { text: 'Analytics', link: '/packages/client/analytics' },
       { text: 'Exports', link: '/packages/client/exports' },
-      { text: 'Custom Fields', link: '/packages/client/custom-fields-schema' },
+      { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       { text: 'API Keys', link: '/packages/client/api-keys' },
       { text: 'Error Handling', link: '/packages/client/error-handling' },
 
