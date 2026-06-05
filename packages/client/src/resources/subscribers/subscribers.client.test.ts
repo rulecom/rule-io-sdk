@@ -479,21 +479,51 @@ describe('SubscribersClient', () => {
       );
       const client = createClient(fetchMock);
 
-      expect(await client.getSubscriberTags('a@b.c')).toEqual([{ id: 1, name: 'a' }, { id: 2, name: 'b' }]);
+      expect(await client.getSubscriberTags({ email: 'a@b.c' })).toEqual([{ id: 1, name: 'a' }, { id: 2, name: 'b' }]);
+      expect(fetchMock.mock.calls[0]![0]).toBe(
+        'https://app.rule.io/api/v2/subscribers/a%40b.c/tags?identified_by=email'
+      );
     });
 
     it('returns null on 404', async () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({}, 404));
       const client = createClient(fetchMock);
 
-      expect(await client.getSubscriberTags('missing@example.com')).toBeNull();
+      expect(await client.getSubscriberTags({ email: 'missing@example.com' })).toBeNull();
     });
 
     it('returns [] when the API omits tags', async () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({}));
       const client = createClient(fetchMock);
 
-      expect(await client.getSubscriberTags('a@b.c')).toEqual([]);
+      expect(await client.getSubscriberTags({ email: 'a@b.c' })).toEqual([]);
+    });
+
+    it('uses identified_by=phone_number when given a phoneNumber', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
+      const client = createClient(fetchMock);
+
+      await client.getSubscriberTags({ phoneNumber: '+46701234567' });
+
+      expect(fetchMock.mock.calls[0]![0]).toMatch(/identified_by=phone_number/);
+    });
+
+    it('uses identified_by=id when given an id', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
+      const client = createClient(fetchMock);
+
+      await client.getSubscriberTags({ id: 42 });
+
+      expect(fetchMock.mock.calls[0]![0]).toMatch(/\/subscribers\/42\/tags\?identified_by=id/);
+    });
+
+    it('uses identified_by=custom_identifier when given a customIdentifier', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({ tags: [] }));
+      const client = createClient(fetchMock);
+
+      await client.getSubscriberTags({ customIdentifier: 'ext-123' });
+
+      expect(fetchMock.mock.calls[0]![0]).toMatch(/identified_by=custom_identifier/);
     });
   });
 
@@ -1300,7 +1330,7 @@ describe('SubscribersClient', () => {
       fetchMock.mockResolvedValueOnce(createMockErrorResponse({ error: 'Server error' }, 500));
       const client = createClient(fetchMock);
 
-      await expect(client.getSubscriberTags('a@example.com')).rejects.toThrow(RuleApiError);
+      await expect(client.getSubscriberTags({ email: 'a@example.com' })).rejects.toThrow(RuleApiError);
     });
   });
 

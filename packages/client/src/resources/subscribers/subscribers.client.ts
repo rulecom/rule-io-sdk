@@ -535,15 +535,17 @@ export class SubscribersClient extends BaseResource {
   /**
    * Get all tags attached to a subscriber.
    *
-   * @param email - Subscriber email address.
+   * @param subscriber - Subscriber identifier (email, phone, id, or customIdentifier).
    * @returns Array of `{ id, name }` tag objects, or `null` if no subscriber
-   *   with that email exists (HTTP 404). Returns an empty array when the
+   *   with that identifier exists (HTTP 404). Returns an empty array when the
    *   subscriber exists but has no tags.
    */
-  async getSubscriberTags(email: string): Promise<SubscriberTag[] | null> {
+  async getSubscriberTags(subscriber: SubscriberIdentifier): Promise<SubscriberTag[] | null> {
+    const { value, identifiedBy } = mapSubscriberIdentifier(subscriber);
+
     try {
       const response = await this.transport.get<SubscriberTagsResponse>(
-        `/subscribers/${encodeURIComponent(email)}/tags?identified_by=email`,
+        `/subscribers/${encodeURIComponent(value)}/tags?identified_by=${identifiedBy}`,
         { version: 'v2' }
       );
 
@@ -1624,14 +1626,19 @@ export class SubscribersClient extends BaseResource {
     if (apiError) {
       if (payload.email) {
         const existing = await this.getByEmail(payload.email);
+
         if (existing) return existing;
       }
+
       if (payload.phoneNumber) {
         const existing = await this.getByPhone(payload.phoneNumber);
+
         if (existing) return existing;
       }
+
       if (payload.customIdentifier) {
         const existing = await this.getByCustomIdentifier(payload.customIdentifier);
+
         if (existing) return existing;
       }
     }
