@@ -738,7 +738,6 @@ export class SubscribersClient extends BaseResource {
     );
 
     return {
-      success: wire.success,
       data: wire.data?.map(mapCustomFieldDataRecord) ?? [],
       meta: wire.meta ? { page: wire.meta.page, pageSize: wire.meta.per_page } : undefined,
     };
@@ -1000,7 +999,6 @@ export class SubscribersClient extends BaseResource {
     );
 
     return {
-      success: wire.success,
       data: wire.data?.map(mapCustomFieldDataRecord) ?? [],
       meta: wire.meta ? { page: wire.meta.page, pageSize: wire.meta.per_page } : undefined,
     };

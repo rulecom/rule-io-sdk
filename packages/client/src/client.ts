@@ -209,7 +209,7 @@ export class RuleClient extends BaseResource {
 
   /** @deprecated Use `client.subscribers.getSubscriberTags()` instead. */
   getSubscriberTags(email: string): Promise<SubscriberTag[] | null> {
-    return this.subscribers.getSubscriberTags(email);
+    return this.subscribers.getSubscriberTags({ email });
   }
 
   /**
