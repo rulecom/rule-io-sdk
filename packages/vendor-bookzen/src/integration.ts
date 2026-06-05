@@ -164,6 +164,7 @@ export class BookzenIntegration {
   async seedAllTags(subscriberId: number): Promise<RuleApiResponse> {
     const tags = Object.values(BOOKZEN_TAGS);
 
+    // No automation: tag seeding in test fixtures should not trigger automations.
     await Promise.all(
       tags.map((tag) => this._client.subscribers.addSubscriberTag({ id: subscriberId }, tag))
     );

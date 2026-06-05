@@ -580,6 +580,35 @@ describe('SubscribersClient', () => {
     });
   });
 
+  describe('deleteByPhoneNumber', () => {
+    it('DELETEs by phone number', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.deleteByPhoneNumber('+46701234567');
+
+      expect(result.success).toBe(true);
+      const [url, init] = fetchMock.mock.calls[0]!;
+
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/%2B46701234567?identified_by=phone_number');
+      expect((init as RequestInit).method).toBe('DELETE');
+    });
+  });
+
+  describe('deleteByCustomIdentifier', () => {
+    it('DELETEs by custom identifier', async () => {
+      fetchMock.mockResolvedValueOnce(createMock204Response());
+      const client = createClient(fetchMock);
+
+      const result = await client.deleteByCustomIdentifier('ext-123');
+
+      expect(result.success).toBe(true);
+      const url = fetchMock.mock.calls[0]![0] as string;
+
+      expect(url).toBe('https://app.rule.io/api/v3/subscribers/ext-123?identified_by=custom_identifier');
+    });
+  });
+
   describe('addSubscriberTags', () => {
     it('POSTs to /subscribers/tags with email identifier', async () => {
       fetchMock.mockResolvedValueOnce(createMock204Response());

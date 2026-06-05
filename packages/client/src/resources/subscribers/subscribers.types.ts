@@ -205,7 +205,7 @@ export interface CustomFieldData {
 }
 
 /** Result from custom field data list endpoints. */
-export interface CustomFieldDataListResult extends RuleApiResponse {
+export interface CustomFieldDataListResult {
   data: CustomFieldData[];
   meta?: { page: number; pageSize: number };
 }
