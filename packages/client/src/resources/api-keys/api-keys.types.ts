@@ -2,33 +2,59 @@
  * API-key types (v3 `/api-keys` endpoint).
  */
 
-import type { RuleApiResponse, RuleListResponse } from '../../shared.types.js';
+import type { RuleApiResponse } from '../../shared.types.js';
 
-/** An API key as returned by the Rule.io API. */
-export interface RuleApiKey {
-  id?: number;
+// ── Public SDK types ──────────────────────────────────────────────────────────
+
+/**
+ * An API key as returned by the Rule.io API.
+ *
+ * The `key` field is only present immediately after creation — it is not
+ * returned by list or update operations. Store it securely at creation time.
+ */
+export interface ApiKey {
+  id: number;
+  name: string | null;
+  /** The raw key value. Only present in the {@link ApiKeysClient.create} response. */
+  key?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** Payload for creating an API key. */
+export interface CreateApiKeyPayload {
+  /** Name for the API key (max 255 characters). */
+  name: string;
+}
+
+/** Payload for updating an API key's name. */
+export interface UpdateApiKeyPayload {
+  /** New name for the API key (max 255 characters). */
+  name: string;
+}
+
+// ── Internal wire types ───────────────────────────────────────────────────────
+
+/** @internal */
+export interface ApiKeyWire {
+  id: number;
   name?: string | null;
   key?: string;
-  created_at?: string;
-  updated_at?: string;
+  created_at: string;
+  updated_at: string;
 }
 
-/** Request body for creating an API key. */
-export interface RuleApiKeyCreateRequest {
-  /** Name for the API key (max 255 characters) */
+/** @internal */
+export interface ApiKeyBody {
   name: string;
 }
 
-/** Request body for updating an API key. */
-export interface RuleApiKeyUpdateRequest {
-  /** New name for the API key (max 255 characters) */
-  name: string;
+/** @internal */
+export interface ApiKeyResponse extends RuleApiResponse {
+  data: ApiKeyWire;
 }
 
-/** Response for a single API key. */
-export interface RuleApiKeyResponse extends RuleApiResponse {
-  data?: RuleApiKey;
+/** @internal */
+export interface ApiKeyListResponse extends RuleApiResponse {
+  data?: ApiKeyWire[];
 }
-
-/** Response for listing API keys. */
-export type RuleApiKeyListResponse = RuleListResponse<RuleApiKey>;

@@ -145,11 +145,9 @@ export type {
 
 // ── API keys ─────────────────────────────────────────────────────────────────
 export type {
-  RuleApiKey,
-  RuleApiKeyCreateRequest,
-  RuleApiKeyListResponse,
-  RuleApiKeyResponse,
-  RuleApiKeyUpdateRequest,
+  ApiKey,
+  CreateApiKeyPayload,
+  UpdateApiKeyPayload,
 } from './resources/api-keys/api-keys.types.js';
 
 // ── Exports ──────────────────────────────────────────────────────────────────

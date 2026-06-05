@@ -50,10 +50,9 @@ import type {
   RuleAnalyticsResponse,
 } from './resources/analytics/analytics.types.js';
 import type {
-  RuleApiKeyCreateRequest,
-  RuleApiKeyListResponse,
-  RuleApiKeyResponse,
-  RuleApiKeyUpdateRequest,
+  ApiKey,
+  CreateApiKeyPayload,
+  UpdateApiKeyPayload,
 } from './resources/api-keys/api-keys.types.js';
 import type {
   CustomFieldGroupDataRecord,
@@ -352,25 +351,22 @@ export class RuleClient extends BaseResource {
   // ── API keys ──────────────────────────────────────────────────────────────
 
   /** @deprecated Use `client.apiKeys.list()` instead. */
-  listApiKeys(): Promise<RuleApiKeyListResponse> {
+  listApiKeys(): Promise<ApiKey[]> {
     return this.apiKeys.list();
   }
 
   /** @deprecated Use `client.apiKeys.create()` instead. */
-  createApiKey(request: RuleApiKeyCreateRequest): Promise<RuleApiKeyResponse> {
-    return this.apiKeys.create(request);
+  createApiKey(payload: CreateApiKeyPayload): Promise<ApiKey> {
+    return this.apiKeys.create(payload);
   }
 
   /** @deprecated Use `client.apiKeys.update()` instead. */
-  updateApiKey(
-    apiKeyId: number,
-    request: RuleApiKeyUpdateRequest
-  ): Promise<RuleApiKeyResponse> {
-    return this.apiKeys.update(apiKeyId, request);
+  updateApiKey(apiKeyId: number, payload: UpdateApiKeyPayload): Promise<ApiKey> {
+    return this.apiKeys.update(apiKeyId, payload);
   }
 
   /** @deprecated Use `client.apiKeys.delete()` instead. */
-  deleteApiKey(apiKeyId: number): Promise<RuleApiResponse> {
+  deleteApiKey(apiKeyId: number): Promise<void> {
     return this.apiKeys.delete(apiKeyId);
   }
 

@@ -24,12 +24,12 @@ describe('ApiKeysClient', () => {
   });
 
   describe('list', () => {
-    it('GETs /api-keys', async () => {
+    it('GETs /api-keys and returns mapped entities', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({
           data: [
-            { id: 1, name: 'Production', key: 'abc', created_at: '', updated_at: '' },
-            { id: 2, name: 'Staging', key: 'def', created_at: '', updated_at: '' },
+            { id: 1, name: 'Production', key: 'abc', created_at: '2024-01-01', updated_at: '2024-01-02' },
+            { id: 2, name: 'Staging', key: 'def', created_at: '2024-02-01', updated_at: '2024-02-02' },
           ],
         })
       );
@@ -37,10 +37,26 @@ describe('ApiKeysClient', () => {
 
       const result = await client.list();
 
-      expect(result.data).toHaveLength(2);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 1,
+        name: 'Production',
+        key: 'abc',
+        createdAt: '2024-01-01',
+        updatedAt: '2024-01-02',
+      });
       const url = fetchMock.mock.calls[0]![0] as string;
 
       expect(url).toBe('https://app.rule.io/api/v3/api-keys');
+    });
+
+    it('returns empty array when data is missing', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse({}));
+      const client = createClient(fetchMock);
+
+      const result = await client.list();
+
+      expect(result).toEqual([]);
     });
 
     it('propagates 401', async () => {
@@ -52,17 +68,21 @@ describe('ApiKeysClient', () => {
   });
 
   describe('create', () => {
-    it('POSTs the request body', async () => {
+    it('POSTs the request body and returns mapped entity', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 3, name: 'New Key', key: 'ghi789', created_at: '', updated_at: '' },
+          data: { id: 3, name: 'New Key', key: 'ghi789', created_at: '2024-03-01', updated_at: '2024-03-01' },
         })
       );
       const client = createClient(fetchMock);
 
       const result = await client.create({ name: 'New Key' });
 
-      expect(result.data?.key).toBe('ghi789');
+      expect(result.id).toBe(3);
+      expect(result.name).toBe('New Key');
+      expect(result.key).toBe('ghi789');
+      expect(result.createdAt).toBe('2024-03-01');
+
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/api-keys');
@@ -72,15 +92,19 @@ describe('ApiKeysClient', () => {
   });
 
   describe('update', () => {
-    it('PUTs the new name', async () => {
+    it('PUTs the new name and returns mapped entity', async () => {
       fetchMock.mockResolvedValueOnce(
         createMockResponse({
-          data: { id: 5, name: 'Renamed', created_at: '', updated_at: '' },
+          data: { id: 5, name: 'Renamed', created_at: '2024-01-01', updated_at: '2024-04-01' },
         })
       );
       const client = createClient(fetchMock);
 
-      await client.update(5, { name: 'Renamed' });
+      const result = await client.update(5, { name: 'Renamed' });
+
+      expect(result.id).toBe(5);
+      expect(result.name).toBe('Renamed');
+      expect(result.updatedAt).toBe('2024-04-01');
 
       const [url, init] = fetchMock.mock.calls[0]!;
 
@@ -91,13 +115,12 @@ describe('ApiKeysClient', () => {
   });
 
   describe('delete', () => {
-    it('DELETEs and returns success on 204', async () => {
+    it('DELETEs and resolves on 204', async () => {
       fetchMock.mockResolvedValueOnce(createMock204Response());
       const client = createClient(fetchMock);
 
-      const result = await client.delete(5);
+      await expect(client.delete(5)).resolves.toBeUndefined();
 
-      expect(result).toEqual({ success: true });
       const [url, init] = fetchMock.mock.calls[0]!;
 
       expect(url).toBe('https://app.rule.io/api/v3/api-keys/5');
