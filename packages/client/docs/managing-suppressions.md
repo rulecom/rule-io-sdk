@@ -115,4 +115,4 @@ Rule.io will call the URL via GET when the operation completes. See [Asynchronou
 ## Next steps
 
 - Block subscribers from receiving any emails: [Blocking Subscribers](./blocking-subscribers)
-- Export subscriber data for audit: [Exporting Data](./exporting-data)
+- Export subscriber data for audit: [Exports](./exports)

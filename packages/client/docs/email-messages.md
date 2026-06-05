@@ -125,5 +125,5 @@ await client.messages.delete(messageId);
 
 - Create the email body: [Email Templates](./email-templates)
 - Link template to message: [Dynamic Sets](./dynamic-sets)
-- Attach to a campaign and schedule it: [Running Campaigns](./running-campaigns)
-- Attach to an automation: [Setting Up Automations](./setting-up-automations)
+- Attach to a campaign and schedule it: [Email Campaigns](./email-campaigns)
+- Attach to an automation: [Email Automations](./email-automations)

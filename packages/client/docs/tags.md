@@ -1,4 +1,4 @@
-# Managing Tags
+# Tags
 
 Tags are labels you define in your Rule.io account and attach to subscribers. This page covers the tag catalogue itself — listing, finding, updating, clearing, and deleting tags.
 
@@ -89,4 +89,4 @@ await client.tags.deleteById(42);
 
 - Assign and remove tags on subscribers: [Organizing with Tags](./organizing-with-tags)
 - Add tags to many subscribers at once: [Bulk Operations](./bulk-operations)
-- Trigger automations when tags are assigned: [Setting Up Automations](./setting-up-automations)
+- Trigger automations when tags are assigned: [Email Automations](./email-automations)

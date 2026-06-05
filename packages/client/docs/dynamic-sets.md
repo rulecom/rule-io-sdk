@@ -76,5 +76,5 @@ await client.dynamicSets.delete(dynamicSetId);
 
 - Create the message: [Email Messages](./email-messages)
 - Create the template: [Email Templates](./email-templates)
-- Attach to a campaign and schedule it: [Running Campaigns](./running-campaigns)
-- Attach to an automation: [Setting Up Automations](./setting-up-automations)
+- Attach to a campaign and schedule it: [Email Campaigns](./email-campaigns)
+- Attach to an automation: [Email Automations](./email-automations)

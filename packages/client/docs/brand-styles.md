@@ -1,4 +1,4 @@
-# Managing Brand Styles
+# Brand Styles
 
 Brand styles define your visual identity in emails — logo, colours, fonts, and social links. The RCML template builders use brand styles to produce consistently branded emails without you specifying design values in every template.
 
@@ -113,4 +113,4 @@ await client.brandStyles.delete(brandStyleId);
 ## Next steps
 
 - Pass `brandStyleId` to the RCML template builders: [@rulecom/rcml documentation](/packages/rcml/)
-- Build a complete campaign email: [Running Campaigns](./running-campaigns)
+- Build a complete campaign email: [Email Campaigns](./email-campaigns)

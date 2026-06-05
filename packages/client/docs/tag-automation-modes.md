@@ -2,7 +2,7 @@
 
 When you assign a tag to a subscriber, Rule.io can optionally fire a tag-triggered automation at the same time. The SDK gives you three focused methods for this — each encoding a distinct intent so you don't have to remember low-level flags.
 
-For creating and managing the automations themselves, see [Setting Up Automations](./setting-up-automations).
+For creating and managing the automations themselves, see [Email Automations](./email-automations).
 
 ## Quick reference
 
@@ -126,6 +126,6 @@ All four methods accept any `SubscriberIdentifier` form — email, numeric ID, p
 
 ## Next steps
 
-- Create and manage automations: [Setting Up Automations](./setting-up-automations)
+- Create and manage automations: [Email Automations](./email-automations)
 - Add tags without automation control: [Organizing with Tags](./organizing-with-tags)
-- Run a one-off campaign instead: [Running Campaigns](./running-campaigns)
+- Run a one-off campaign instead: [Email Campaigns](./email-campaigns)

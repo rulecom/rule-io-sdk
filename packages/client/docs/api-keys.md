@@ -1,4 +1,4 @@
-# Managing API Keys
+# API Keys
 
 API keys authenticate your application's requests to Rule.io. You can create multiple keys — one per environment or integration — and rotate them without downtime by creating a new key before deleting the old one.
 

@@ -2,7 +2,7 @@
 
 Tags are labels you attach to subscribers to record their interests, lifecycle stage, purchase history, or any attribute relevant to your messaging. You can then filter subscribers by tag and target campaigns or automations at specific tagged groups.
 
-For managing the tag catalogue itself (creating, listing, renaming, or deleting tags), see [Managing Tags](./managing-tags). For a full description of the subscriber identifier forms used in examples below, see [Subscriber Identifiers](./subscriber-identifiers).
+For managing the tag catalogue itself (creating, listing, renaming, or deleting tags), see [Tags](./tags). For a full description of the subscriber identifier forms used in examples below, see [Subscriber Identifiers](./subscriber-identifiers).
 
 ## Assigning a single tag
 
@@ -126,13 +126,13 @@ for await (const sub of client.subscribers.iterateSubscribersByTagIds({ tagIds: 
 }
 ```
 
-To target campaigns at tagged groups, use the `recipients` namespace — see [Running Campaigns](./running-campaigns#selecting-recipients).
+To target campaigns at tagged groups, use the `recipients` namespace — see [Email Campaigns](./email-campaigns#selecting-recipients).
 
 *→ [`ListSubscribersByTagIdsParams`](/api/client/src/interfaces/ListSubscribersByTagIdsParams) · [`ListSubscribersByTagIdsResult`](/api/client/src/interfaces/ListSubscribersByTagIdsResult)*
 
 ## Next steps
 
-- Manage the tag catalogue (create, update, delete): [Managing Tags](./managing-tags)
+- Manage the tag catalogue (create, update, delete): [Tags](./tags)
 - Trigger automations when assigning tags: [Triggering Tag Automations](./tag-automation-modes)
-- Set up tag-triggered automations: [Setting Up Automations](./setting-up-automations)
-- Use tags to select campaign recipients: [Running Campaigns](./running-campaigns)
+- Set up tag-triggered automations: [Email Automations](./email-automations)
+- Use tags to select campaign recipients: [Email Campaigns](./email-campaigns)

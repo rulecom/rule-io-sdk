@@ -57,4 +57,4 @@ For a full description of the four identifier forms (`email`, `id`, `phoneNumber
 ## Next steps
 
 - Suppress contacts permanently for compliance: [Managing Suppressions](./managing-suppressions)
-- Set up automatic tag assignment on events: [Setting Up Automations](./setting-up-automations)
+- Set up automatic tag assignment on events: [Email Automations](./email-automations)

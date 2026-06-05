@@ -1,4 +1,4 @@
-# Running Email Campaigns
+# Email Campaigns
 
 A campaign is a one-time or scheduled email blast sent to a defined set of recipients. The full lifecycle has four stages:
 
@@ -172,5 +172,5 @@ await client.campaigns.delete(campaignId);
 ## Next steps
 
 - Build the email content: [Email Messages](./email-messages)
-- Set up a recurring trigger-based email instead: [Setting Up Automations](./setting-up-automations)
-- Review campaign performance after sending: [Tracking Performance](./tracking-performance)
+- Set up a recurring trigger-based email instead: [Email Automations](./email-automations)
+- Review campaign performance after sending: [Analytics](./analytics)

@@ -79,5 +79,5 @@ The available metrics may vary by account plan. Check the API response for which
 
 ## Next steps
 
-- For raw per-subscriber event data, use [Exporting Data](./exporting-data) (Enterprise)
-- Review campaign setup: [Running Campaigns](./running-campaigns)
+- For raw per-subscriber event data, use [Exports](./exports) (Enterprise)
+- Review campaign setup: [Email Campaigns](./email-campaigns)

@@ -1,4 +1,4 @@
-# Setting Up Automations
+# Email Automations
 
 An automation is a trigger-based email that fires automatically when a subscriber enters a tag or a segment. Unlike campaigns (one-time blasts to a snapshot of your list), automations fire per subscriber as each one meets the trigger condition.
 
@@ -156,4 +156,4 @@ For a full breakdown of each mode's behaviour — including what happens when an
 - Control automation firing in detail: [Triggering Tag Automations](./tag-automation-modes)
 - Build the email body: [Email Messages](./email-messages)
 - Assign trigger tags to subscribers: [Organizing with Tags](./organizing-with-tags)
-- Send a one-off blast instead: [Running Campaigns](./running-campaigns)
+- Send a one-off blast instead: [Email Campaigns](./email-campaigns)

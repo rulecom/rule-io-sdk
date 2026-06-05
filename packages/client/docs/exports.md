@@ -1,4 +1,4 @@
-# Exporting Data
+# Exports
 
 > **Enterprise feature.** The exports API is available on Enterprise Rule.io plans.
 

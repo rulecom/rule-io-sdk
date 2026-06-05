@@ -1,8 +1,8 @@
-# Recipient Targeting
+# Recipients
 
 The `client.recipients` namespace provides lightweight, read-only lists of tags, segments, and subscribers for use when setting up campaign recipients. These endpoints return just the IDs and names you need to configure who receives a campaign — they are not for managing subscribers, tags, or segments themselves.
 
-See [Running Campaigns](./running-campaigns) for how to attach the IDs you find here to a campaign.
+See [Email Campaigns](./email-campaigns) for how to attach the IDs you find here to a campaign.
 
 ## Targeting tags
 
@@ -153,6 +153,6 @@ await client.campaigns.setCampaignSubscribers(campaignId, ids);
 
 ## Next steps
 
-- Attach recipients to a campaign: [Running Campaigns](./running-campaigns)
-- Manage tag definitions: [Managing Tags](./managing-tags)
+- Attach recipients to a campaign: [Email Campaigns](./email-campaigns)
+- Manage tag definitions: [Tags](./tags)
 - Manage subscriber data: [Managing Subscribers](./managing-subscribers)
