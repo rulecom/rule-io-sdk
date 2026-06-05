@@ -88,5 +88,4 @@ await client.tags.deleteById(42);
 ## Next steps
 
 - Assign and remove tags on subscribers: [Organizing with Tags](./organizing-with-tags)
-- Add tags to many subscribers at once: [Bulk Operations](./bulk-operations)
 - Trigger automations when tags are assigned: [Email Automations](./email-automations)

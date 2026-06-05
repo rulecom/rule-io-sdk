@@ -1,10 +1,10 @@
 import { RuleApiError } from '@rulecom/client';
 import type {
-  CreateCustomFieldDataRequestBody,
-  CustomFieldGroupDataEntry,
-  CreateSubscriberResponse,
-  GetSubscriberResponse, RuleApiResponse,
-  RuleClient
+  CustomFieldGroupEntry,
+  RuleApiResponse,
+  RuleClient,
+  Subscriber,
+  WriteCustomFieldDataPayload,
 } from '@rulecom/client';
 import {
   BOOKZEN_BOOKING_FIELD_SCHEMA,
@@ -80,20 +80,20 @@ export class BookzenIntegration {
 
   async seedSubscriber(email = BOOKZEN_SUBSCRIBER_SEED.email): Promise<SeededBookzenSubscriber | null> {
     try {
-      const subscriber: CreateSubscriberResponse = await this._client.subscribers.create({ email });
+      const subscriber: Subscriber = await this._client.subscribers.create({ email });
 
       return {
-        id: subscriber.data.id,
-        email: subscriber.data.email
+        id: subscriber.id,
+        email: subscriber.email,
       };
     } catch (error) {
       if (!(error instanceof RuleApiError) || !error.isConflict()) throw error;
 
-      const existing: GetSubscriberResponse | null = await this._client.subscribers.getByEmail(email);
+      const existing: Subscriber | null = await this._client.subscribers.getByEmail(email);
 
       return existing ? {
-        id: existing.subscriber.id,
-        email: existing.subscriber.email
+        id: existing.id,
+        email: existing.email,
       } : null;
     }
   }
@@ -102,7 +102,7 @@ export class BookzenIntegration {
     subscriberId: number,
     fieldValues = BOOKZEN_SUBSCRIBER_FIELD_VALUES_SEED
   ): Promise<RuleApiResponse> {
-    return this._client.customFieldData.create(
+    return this._client.subscribers.writeCustomFieldData(
       subscriberId,
       this._buildCustomFieldGroupsFromSchema(BOOKZEN_SUBSCRIBER_FIELD_SCHEMA, fieldValues)
     );
@@ -112,7 +112,7 @@ export class BookzenIntegration {
     subscriberId: number,
     fieldValues = BOOKZEN_BOOKING_FIELD_VALUES_SEED
   ): Promise<RuleApiResponse> {
-    return this._client.customFieldData.create(
+    return this._client.subscribers.writeCustomFieldData(
       subscriberId,
       this._buildCustomFieldGroupsFromSchema(BOOKZEN_BOOKING_FIELD_SCHEMA, fieldValues)
     );
@@ -122,7 +122,7 @@ export class BookzenIntegration {
     subscriberId: number,
     fieldValues = BOOKZEN_FIELD_VALUES_SEED
   ): Promise<RuleApiResponse> {
-    return this._client.customFieldData.create(
+    return this._client.subscribers.writeCustomFieldData(
       subscriberId,
       this._buildCustomFieldGroupsFromSchema(BOOKZEN_FIELD_SCHEMA, fieldValues)
     );
@@ -164,26 +164,30 @@ export class BookzenIntegration {
   async seedAllTags(subscriberId: number): Promise<RuleApiResponse> {
     const tags = Object.values(BOOKZEN_TAGS);
 
-    return this._client.subscribers.addTags(subscriberId, { tags }, 'id');
+    await Promise.all(
+      tags.map((tag) => this._client.subscribers.addSubscriberTag({ id: subscriberId }, tag))
+    );
+
+    return { success: true };
   }
 
   private _buildCustomFieldGroupsFromSchema(
     fields: VendorFieldSchema,
     fieldValues: Record<string, string | number | null>
-  ): CreateCustomFieldDataRequestBody {
-    const groupMap = new Map<string, CustomFieldGroupDataEntry>();
+  ): WriteCustomFieldDataPayload {
+    const groupMap = new Map<string, CustomFieldGroupEntry>();
 
     for (const [ fieldName, { groupName, fieldName: ruleName, historical } ] of Object.entries(fields)) {
       let groupEntry = groupMap.get(groupName);
 
       if (!groupEntry) {
-        groupEntry = { group: groupName, historical, create_if_not_exists: true, values: [] };
+        groupEntry = { group: groupName, historical, createIfNotExists: true, values: [] };
         groupMap.set(groupName, groupEntry);
       }
 
       groupEntry.values.push({
         field: ruleName,
-        create_if_not_exists: true,
+        createIfNotExists: true,
         value: String(fieldValues[fieldName] ?? '')
       });
     }

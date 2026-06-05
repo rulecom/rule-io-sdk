@@ -101,5 +101,4 @@ await client.subscribers.deleteByCustomIdentifier('user-abc123');
 
 - Assign tags to segment your subscribers: [Organizing with Tags](./organizing-with-tags)
 - Write custom field data during sync: [Custom Fields](./custom-fields)
-- Block or bulk-tag large lists: [Bulk Operations](./bulk-operations)
 - Sync subscriber data in one call: [Syncing Subscribers](./syncing-subscribers)

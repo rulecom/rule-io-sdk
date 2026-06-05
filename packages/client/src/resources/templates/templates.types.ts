@@ -161,7 +161,7 @@ export interface RenderTemplateParams {
    * Subscriber ID to use for merge tag substitution.
    *
    * When provided, the rendered output replaces merge tag placeholders
-   * (e.g. `{{Booking.FirstName}}`) with the subscriber's actual field values.
+   * (e.g. `\{\{Booking.FirstName\}\}`) with the subscriber's actual field values.
    * Omit to render with placeholder text instead.
    */
   subscriberId?: number;
