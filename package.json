@@ -17,6 +17,7 @@
     "release": "nx release",
     "local-registry": "nx run rule-io-sdk:local-registry",
     "publish:local": "nx run-many -t build && nx release publish --registry http://localhost:4873",
+    "republish:local": "rm -rf tmp/local-registry/storage/@rulecom && pnpm publish:local",
     "daemon:restart": "nx daemon --stop && nx daemon --start",
     "docs:generate": "nx run docs:generate",
     "docs:check": "nx run docs:check",
