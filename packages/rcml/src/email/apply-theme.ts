@@ -131,6 +131,7 @@ export function applyTheme(
       const logoUrl = patch.images?.find(
         (img) => img.type === EmailThemeImageType.Logo
       )?.url
+
       updatedBody = applyBodyDefaults(updatedBody, logoUrl)
     }
 
