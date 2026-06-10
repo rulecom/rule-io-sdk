@@ -23,7 +23,7 @@ import { DEFAULT_FONT_STYLES_MAP } from './theme-defaults.js'
 import {
   type AnyAttrChild,
   EmailThemeApplyError,
-  applyLogoSrcToBody,
+  applyBodyDefaults,
   cloneHead,
   findOrCreateAttributes,
   overlayFontsInHead,
@@ -109,7 +109,6 @@ export function applyTheme(
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (image.type === EmailThemeImageType.Logo) {
           upsertLogoClass(attrChildren, image.url)
-          updatedBody = applyLogoSrcToBody(updatedBody, image.url)
         }
       }
     }
@@ -126,6 +125,13 @@ export function applyTheme(
 
         upsertFontStyleClass(attrChildren, merged, partial.type)
       }
+    }
+
+    if (hasEntries(patch.images) || hasEntries(patch.fontStyles)) {
+      const logoUrl = patch.images?.find(
+        (img) => img.type === EmailThemeImageType.Logo
+      )?.url
+      updatedBody = applyBodyDefaults(updatedBody, logoUrl)
     }
 
     if (patch.links && patch.links.length > 0) {
