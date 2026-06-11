@@ -127,20 +127,20 @@ export function applyTheme(
       }
     }
 
-    {
-      const logoImages = patch.images?.filter(
-        (img) => img.type === EmailThemeImageType.Logo
-      )
-      const logoUrl = logoImages && logoImages.length > 0
-        ? logoImages[logoImages.length - 1]!.url
-        : undefined
-
-      updatedBody = applyBodyDefaults(updatedBody, logoUrl)
-    }
-
     if (patch.links && patch.links.length > 0) {
       upsertSocialOverlay(attrChildren, patch.links)
     }
+  }
+
+  {
+    const logoImages = patch.images?.filter(
+      (img) => img.type === EmailThemeImageType.Logo
+    )
+    const logoUrl = logoImages && logoImages.length > 0
+      ? logoImages[logoImages.length - 1]!.url
+      : undefined
+
+    updatedBody = applyBodyDefaults(updatedBody, logoUrl)
   }
 
   if (patch.fonts && patch.fonts.length > 0) {

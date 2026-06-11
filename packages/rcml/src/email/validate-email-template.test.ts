@@ -304,6 +304,69 @@ describe('validateEmailTemplate — XML string input', () => {
   })
 })
 
+describe('validateColumnWidths integration via safeValidateEmailTemplate', () => {
+  it('flags a multi-column section whose percentage widths do not sum to 100%', () => {
+    const doc: RcmlDocument = {
+      tagName: 'rcml',
+      children: [
+        { tagName: 'rc-head', children: [] },
+        {
+          tagName: 'rc-body',
+          attributes: { width: '600px' },
+          children: [
+            {
+              tagName: 'rc-section',
+              children: [
+                { tagName: 'rc-column', attributes: { width: '40%' }, children: [] },
+                { tagName: 'rc-column', attributes: { width: '40%' }, children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as RcmlDocument
+    const result = safeValidateEmailTemplate(doc)
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.errors.some(
+        (e) => e.code === EmailTemplateErrorCodes.ATTR_INVALID_VALUE && e.message.includes('sum to')
+      )).toBe(true)
+    }
+  })
+
+  it('accepts a multi-column section whose percentage widths sum to 100%', () => {
+    const doc: RcmlDocument = {
+      tagName: 'rcml',
+      children: [
+        { tagName: 'rc-head', children: [] },
+        {
+          tagName: 'rc-body',
+          attributes: { width: '600px' },
+          children: [
+            {
+              tagName: 'rc-section',
+              children: [
+                { tagName: 'rc-column', attributes: { width: '50%' }, children: [] },
+                { tagName: 'rc-column', attributes: { width: '50%' }, children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as RcmlDocument
+    const result = safeValidateEmailTemplate(doc)
+
+    if (!result.success) {
+      const columnSumErrors = result.errors.filter(
+        (e) => e.code === EmailTemplateErrorCodes.ATTR_INVALID_VALUE && e.message.includes('sum to')
+      )
+
+      expect(columnSumErrors).toHaveLength(0)
+    }
+  })
+})
+
 describe('EmailTemplateValidationError shape', () => {
   it('matches the expected error format', () => {
     const bad = { tagName: 'rcml' } as unknown as RcmlDocument

@@ -61,10 +61,12 @@ function visitNode(node: unknown, path: string, issues: EmailTemplateValidationI
       }
 
       if (allPercentage && Math.abs(sum - 100) > 0.5) {
+        const displaySum = parseFloat(sum.toFixed(2))
+
         issues.push({
           path: `${path}/children`,
           code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,
-          message: `Column widths in this section sum to ${sum}% but must sum to 100%.`,
+          message: `Column widths in this section sum to ${displaySum}% but must sum to 100%.`,
         })
       }
     }
