@@ -1,10 +1,13 @@
 /**
  * Internal: cross-element column-width validation.
  *
- * When an `rc-section` contains more than one `rc-column`, every column must
- * carry a percentage `width` and all widths must sum to 100 %. This pass
- * enforces that constraint. Single-column sections are left untouched (width
- * is optional there).
+ * When an `rc-section` contains more than one `rc-column` and every column
+ * carries a percentage `width`, this pass checks that the widths sum to 100 %.
+ * Single-column sections are left untouched. Columns with a missing or
+ * non-percentage width (e.g. `200px`) are skipped — those values are
+ * individually valid per the published schema (`validator: V.PxOrPercentage`,
+ * width is optional for single-column). Only when all columns in a
+ * multi-column section are percentage-valued is the sum enforced.
  */
 
 import {
@@ -16,7 +19,9 @@ const PCT_RE = /^(\d+(?:\.\d+)?)%$/
 
 /**
  * Walk `doc` and emit `ATTR_INVALID_VALUE` issues for any multi-column
- * section whose column widths are not all valid percentages summing to 100 %.
+ * section where all columns carry percentage widths that do not sum to 100 %.
+ * Columns with absent or non-percentage widths are not flagged here — those
+ * are covered by the AJV structural pass and the per-attribute Zod pass.
  *
  * @param doc - Any value (expected to be an {@link import('../rcml-types.js').RcmlDocument}-shaped tree).
  * @returns A list of `ATTR_INVALID_VALUE` issues (empty on success).
@@ -40,39 +45,22 @@ function visitNode(node: unknown, path: string, issues: EmailTemplateValidationI
 
     if (columns.length > 1) {
       let sum = 0
-      let hasError = false
+      let allPercentage = true
 
-      for (const { node: col, index } of columns) {
-        const colPath = `${path}/children/${index}`
+      for (const { node: col } of columns) {
         const width =
           isObj(col) && isObj(col.attributes) ? (col.attributes.width as unknown) : undefined
-
-        if (typeof width !== 'string') {
-          issues.push({
-            path: `${colPath}/attributes/width`,
-            code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,
-            message: 'Column in a multi-column section must have a percentage width (e.g. "50%").',
-          })
-          hasError = true
-          continue
-        }
-
-        const m = PCT_RE.exec(width)
+        const m = typeof width === 'string' ? PCT_RE.exec(width) : null
 
         if (!m) {
-          issues.push({
-            path: `${colPath}/attributes/width`,
-            code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,
-            message: `Column width "${width}" must be a percentage in a multi-column section (e.g. "50%").`,
-          })
-          hasError = true
-          continue
+          allPercentage = false
+          break
         }
 
         sum += parseFloat(m[1])
       }
 
-      if (!hasError && Math.abs(sum - 100) > 0.5) {
+      if (allPercentage && Math.abs(sum - 100) > 0.5) {
         issues.push({
           path: `${path}/children`,
           code: EmailTemplateErrorCodes.ATTR_INVALID_VALUE,

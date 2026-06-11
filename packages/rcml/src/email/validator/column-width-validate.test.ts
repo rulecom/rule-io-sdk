@@ -47,39 +47,34 @@ describe('validateColumnWidths — multi-column sections', () => {
     ).toEqual([])
   })
 
-  it('flags a column with a pixel width in a multi-column section', () => {
-    const issues = validateColumnWidths({
-      tagName: 'rcml',
-      children: [section([col('80px'), col('50%')])],
-    })
-
-    expect(issues).toHaveLength(1)
-    expect(issues[0].code).toBe('ATTR_INVALID_VALUE')
-    expect(issues[0].path).toContain('width')
-    expect(issues[0].message).toContain('"80px"')
+  it('returns no issues for a column with a pixel width in a multi-column section (schema allows it)', () => {
+    expect(
+      validateColumnWidths({
+        tagName: 'rcml',
+        children: [section([col('80px'), col('50%')])],
+      }),
+    ).toEqual([])
   })
 
-  it('flags a column with no width attribute in a multi-column section', () => {
-    const issues = validateColumnWidths({
-      tagName: 'rcml',
-      children: [section([colNoAttrs(), col('50%')])],
-    })
-
-    expect(issues).toHaveLength(1)
-    expect(issues[0].code).toBe('ATTR_INVALID_VALUE')
-    expect(issues[0].message).toMatch(/must have a percentage width/)
+  it('returns no issues when a column has no width attribute in a multi-column section (schema allows it)', () => {
+    expect(
+      validateColumnWidths({
+        tagName: 'rcml',
+        children: [section([colNoAttrs(), col('50%')])],
+      }),
+    ).toEqual([])
   })
 
-  it('flags two columns where neither has a width', () => {
-    const issues = validateColumnWidths({
-      tagName: 'rcml',
-      children: [section([colNoAttrs(), colNoAttrs()])],
-    })
-
-    expect(issues).toHaveLength(2)
+  it('returns no issues when no column has a width attribute (schema allows it)', () => {
+    expect(
+      validateColumnWidths({
+        tagName: 'rcml',
+        children: [section([colNoAttrs(), colNoAttrs()])],
+      }),
+    ).toEqual([])
   })
 
-  it('flags widths that do not sum to 100%', () => {
+  it('flags all-percentage widths that do not sum to 100%', () => {
     const issues = validateColumnWidths({
       tagName: 'rcml',
       children: [section([col('40%'), col('40%')])],
@@ -87,6 +82,15 @@ describe('validateColumnWidths — multi-column sections', () => {
 
     expect(issues).toHaveLength(1)
     expect(issues[0].message).toMatch(/sum to 80%/)
+  })
+
+  it('skips sum check when any column uses a non-percentage width', () => {
+    expect(
+      validateColumnWidths({
+        tagName: 'rcml',
+        children: [section([col('80px'), col('40%')])],
+      }),
+    ).toEqual([])
   })
 
   it('allows floating-point rounding within ±0.5%', () => {
@@ -108,7 +112,7 @@ describe('validateColumnWidths — nesting', () => {
         { tagName: 'rc-head', children: [] },
         {
           tagName: 'rc-body',
-          children: [section([colNoAttrs(), colNoAttrs()])],
+          children: [section([col('40%'), col('40%')])],
         },
       ],
     }

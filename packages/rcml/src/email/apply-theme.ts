@@ -127,8 +127,8 @@ export function applyTheme(
       }
     }
 
-    if (hasEntries(patch.images) || hasEntries(patch.fontStyles)) {
-      const logoUrl = patch.images?.find(
+    {
+      const logoUrl = patch.images?.findLast(
         (img) => img.type === EmailThemeImageType.Logo
       )?.url
 
