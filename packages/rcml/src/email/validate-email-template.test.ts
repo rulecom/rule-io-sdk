@@ -328,6 +328,7 @@ describe('validateColumnWidths integration via safeValidateEmailTemplate', () =>
     const result = safeValidateEmailTemplate(doc)
 
     expect(result.success).toBe(false)
+
     if (!result.success) {
       expect(result.errors.some(
         (e) => e.code === EmailTemplateErrorCodes.ATTR_INVALID_VALUE && e.message.includes('sum to')

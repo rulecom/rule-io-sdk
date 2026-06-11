@@ -134,11 +134,13 @@ export function applyTheme(
 
   {
     const logoImages = patch.images?.filter(
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       (img) => img.type === EmailThemeImageType.Logo
     )
-    const logoUrl = logoImages && logoImages.length > 0
-      ? logoImages[logoImages.length - 1]!.url
+    const lastLogo = logoImages && logoImages.length > 0
+      ? logoImages[logoImages.length - 1]
       : undefined
+    const logoUrl = lastLogo?.url
 
     updatedBody = applyBodyDefaults(updatedBody, logoUrl)
   }
