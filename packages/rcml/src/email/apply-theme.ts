@@ -128,9 +128,12 @@ export function applyTheme(
     }
 
     {
-      const logoUrl = patch.images?.findLast(
+      const logoImages = patch.images?.filter(
         (img) => img.type === EmailThemeImageType.Logo
-      )?.url
+      )
+      const logoUrl = logoImages && logoImages.length > 0
+        ? logoImages[logoImages.length - 1]!.url
+        : undefined
 
       updatedBody = applyBodyDefaults(updatedBody, logoUrl)
     }
