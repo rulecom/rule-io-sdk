@@ -2,7 +2,7 @@
 
 `@rulecom/rcml` is the RCML (Rule Campaign Markup Language) library. It provides the
 types, element factories, theme utilities, format converters, and validation functions
-needed to build email templates that the Rule platform can render and send.
+needed to build email and SMS templates that the Rule platform can render and send.
 
 ## Template formats
 
@@ -115,9 +115,32 @@ import { rcmlSpec, rfmSpec, placeholderSpec } from '@rulecom/rcml';
 See [Building with LLM](/packages/rcml/email/building-with-llm) for the recommended
 prompting pattern.
 
+## SMS templates
+
+The SMS module provides a parallel set of utilities for building SMS messages. An SMS
+template is a single `rc-sms` element whose body is written in SFM (SMS Format Markup),
+a simple `[Type:Name]` placeholder syntax.
+
+```typescript
+import { createSmsDocument } from '@rulecom/rcml';
+
+const doc = createSmsDocument({
+  content: 'Hi [Subscriber:FirstName]! Your order has shipped.',
+});
+```
+
+Three machine-readable spec constants for SMS LLM generation:
+
+```typescript
+import { smsSpec, sfmSpec, smsPlaceholderSpec } from '@rulecom/rcml';
+```
+
+See [SMS](/packages/rcml/sms/) for the full SMS module documentation.
+
 ## Related
 
 - [Building programmatically](/packages/rcml/email/building-programmatically) — composing templates in code
 - [Building with LLM](/packages/rcml/email/building-with-llm) — LLM-assisted generation
 - [Validation](/packages/rcml/email/validation) — validating before submission
 - [RCML reference](/packages/rcml/email/rcml/) — every element and its attributes
+- [SMS](/packages/rcml/sms/) — SMS template module

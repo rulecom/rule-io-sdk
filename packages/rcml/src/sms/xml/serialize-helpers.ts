@@ -4,6 +4,8 @@
  * `<rc-sms>` is a leaf node — its body is the SFM serialization of
  * `content` stored as a text child, exactly as email stores RFM text inside
  * `<rc-text>`. `id` (when present) is lifted into the XML attribute bag.
+ *
+ * @internal
  */
 
 import { XMLBuilder } from 'fast-xml-parser'

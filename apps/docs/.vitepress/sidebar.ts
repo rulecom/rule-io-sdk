@@ -251,6 +251,16 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Building with LLM', link: '/packages/rcml/email/building-with-llm' },
         ],
       },
+      {
+        text: 'SMS',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/packages/rcml/sms/' },
+          { text: 'Building programmatically', link: '/packages/rcml/sms/building-programmatically' },
+          { text: 'Validation', link: '/packages/rcml/sms/validation' },
+          { text: 'Building with LLM', link: '/packages/rcml/sms/building-with-llm' },
+        ],
+      },
     ],
   },
 ];

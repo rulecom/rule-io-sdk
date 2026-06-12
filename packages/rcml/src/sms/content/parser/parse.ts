@@ -8,6 +8,8 @@
  *   - Everything else → text node
  *
  * Link marks are not representable in SFM — use the JSON model directly.
+ *
+ * @internal
  */
 
 import type { SmsContentJson, SmsHardbreakNode, SmsInlineNode, SmsParagraphNode, SmsPlaceholderNode, SmsPlaceholderType, SmsTextNode } from '../json-validator/types.js'
@@ -16,6 +18,7 @@ const PLACEHOLDER_RE = /\[([A-Za-z]+):([^\]]+)\]/g
 
 /**
  * Parse a single paragraph segment (no `\n\n`) into inline nodes.
+ * @internal
  */
 function parseSegment(segment: string): SmsInlineNode[] {
   const nodes: SmsInlineNode[] = []
@@ -56,6 +59,7 @@ function parseSegment(segment: string): SmsInlineNode[] {
 
 /**
  * Split `text` on `\n` and push text nodes and hardbreak nodes alternately.
+ * @internal
  */
 function pushTextWithBreaks(text: string, out: SmsInlineNode[]): void {
   const parts = text.split('\n')

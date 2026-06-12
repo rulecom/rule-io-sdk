@@ -3,6 +3,8 @@
  *
  * Expects a single `<rc-sms>` root element. Text content inside the element
  * is treated as SFM and parsed via `sfmToJson`.
+ *
+ * @internal
  */
 
 import { XMLParser, XMLValidator } from 'fast-xml-parser'
@@ -118,6 +120,7 @@ export function convertXmlToSms(
   return { success: true, data: doc }
 }
 
+/** Walk the preserveOrder XML child array, concatenating all `#text` node values. @internal */
 function extractText(raw: unknown): string {
   if (!Array.isArray(raw)) return ''
   let out = ''
