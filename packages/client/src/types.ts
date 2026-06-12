@@ -66,9 +66,12 @@ export type {
   AutomationSendoutType,
   AutomationTrigger,
   CreateEmailAutomationPayload,
+  CreateSmsAutomationPayload,
   ListAutomationsParams,
   SetEmailAutomationPayload,
+  SetSmsAutomationPayload,
   UpdateEmailAutomationPayload,
+  UpdateSmsAutomationPayload,
 } from './resources/automations/automations.types.js';
 
 // ── Messages ─────────────────────────────────────────────────────────────────
@@ -76,22 +79,31 @@ export type {
   AutomailSetting,
   CreateEmailAutomationMessagePayload,
   CreateEmailCampaignMessagePayload,
+  CreateSmsAutomationMessagePayload,
+  CreateSmsCampaignMessagePayload,
   EmailAutomationMessage,
   EmailCampaignMessage,
   Message,
   MessageDispatcher,
+  SmsAutomationMessage,
+  SmsCampaignMessage,
   UpdateEmailAutomationMessagePayload,
   UpdateEmailCampaignMessagePayload,
+  UpdateSmsAutomationMessagePayload,
+  UpdateSmsCampaignMessagePayload,
 } from './resources/messages/messages.types.js';
 
 // ── Templates ────────────────────────────────────────────────────────────────
 export type {
   CreateEmailTemplatePayload,
+  CreateSmsTemplatePayload,
   EmailTemplate,
   ListTemplatesParams,
   RenderTemplateParams,
+  SmsTemplate,
   Template,
   UpdateEmailTemplatePayload,
+  UpdateSmsTemplatePayload,
 } from './resources/templates/templates.types.js';
 
 // ── Dynamic sets ─────────────────────────────────────────────────────────────
@@ -114,10 +126,13 @@ export type {
   CampaignSendoutType,
   CampaignStatus,
   CreateEmailCampaignPayload,
+  CreateSmsCampaignPayload,
   ListCampaignsParams,
   ScheduleCampaignPayload,
   SetEmailCampaignPayload,
+  SetSmsCampaignPayload,
   UpdateEmailCampaignPayload,
+  UpdateSmsCampaignPayload,
 } from './resources/campaigns/campaigns.types.js';
 
 

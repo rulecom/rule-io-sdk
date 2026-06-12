@@ -1,0 +1,85 @@
+import { describe, it, expect } from 'vitest'
+import {
+  validateSmsDocument,
+  safeValidateSmsDocument,
+  SmsDocumentValidationError,
+} from './validate-sms-document.js'
+import { createSmsDocument } from './create-sms-document.js'
+import { sfmToJson } from './sfm-to-json.js'
+
+describe('validateSmsDocument()', () => {
+  it('accepts a valid document built with createSmsDocument', () => {
+    const doc = createSmsDocument({ content: 'Hello' })
+
+    expect(() => validateSmsDocument(doc)).not.toThrow()
+  })
+
+  it('returns the document on success', () => {
+    const doc = createSmsDocument({ content: 'Hello [Subscriber:FirstName]' })
+    const result = validateSmsDocument(doc)
+
+    expect(result).toBe(doc)
+  })
+
+  it('rejects wrong tagName', () => {
+    const doc = { tagName: 'rc-email' as 'rc-sms', attributes: {} as never, content: sfmToJson('') }
+
+    expect(() => validateSmsDocument(doc)).toThrow(SmsDocumentValidationError)
+  })
+
+  it('rejects non-empty attributes', () => {
+    const doc = {
+      tagName: 'rc-sms' as const,
+      attributes: { foo: 'bar' } as never,
+      content: sfmToJson(''),
+    }
+
+    expect(() => validateSmsDocument(doc)).toThrow(SmsDocumentValidationError)
+  })
+
+  it('rejects invalid content JSON', () => {
+    const doc = {
+      tagName: 'rc-sms' as const,
+      attributes: {} as never,
+      content: { type: 'wrong' } as never,
+    }
+
+    expect(() => validateSmsDocument(doc)).toThrow(SmsDocumentValidationError)
+  })
+})
+
+describe('safeValidateSmsDocument()', () => {
+  it('returns success for a valid document', () => {
+    const doc = createSmsDocument({ content: 'Hello' })
+    const result = safeValidateSmsDocument(doc)
+
+    expect(result.success).toBe(true)
+  })
+
+  it('returns failure with STRUCTURE_INVALID for wrong tagName', () => {
+    const doc = { tagName: 'rc-sms' as const, attributes: {} as never, content: sfmToJson('') }
+    const broken = { ...doc, tagName: 'nope' as 'rc-sms' }
+    const result = safeValidateSmsDocument(broken)
+
+    expect(result.success).toBe(false)
+
+    if (!result.success) {
+      expect(result.errors.some((e) => e.code === 'STRUCTURE_INVALID')).toBe(true)
+    }
+  })
+
+  it('returns failure with CONTENT_INVALID for bad content', () => {
+    const doc = {
+      tagName: 'rc-sms' as const,
+      attributes: {} as never,
+      content: { type: 'bad' } as never,
+    }
+    const result = safeValidateSmsDocument(doc)
+
+    expect(result.success).toBe(false)
+
+    if (!result.success) {
+      expect(result.errors.some((e) => e.code === 'CONTENT_INVALID')).toBe(true)
+    }
+  })
+})
