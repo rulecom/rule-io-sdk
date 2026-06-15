@@ -7,7 +7,7 @@
  * that are valid in SMS messages.
  *
  * @see {@link placeholderSpec} for the full email + SMS token catalog.
- * @see {@link sfmSpec} for the SFM content model that references these tokens.
+ * @see {@link smsRfmSpec} for the SMS RFM content model that references these tokens.
  */
 
 import { placeholderSpec } from '../email/placeholder-spec.js'
@@ -49,9 +49,9 @@ export type SmsPlaceholderTokenType = (typeof SMS_TOKEN_TYPES)[number]
  * smsPlaceholderSpec.tokens['Link'].params?.['type'].allowedValues
  * // → ['Optin', 'Unsubscribe', 'WebBrowser', 'ShareLink', 'Signup']
  *
- * // Cross-reference with sfmSpec:
- * import { sfmSpec } from '@rulecom/rcml'
- * sfmSpec.nodes['placeholder'].attrs?.['type'].allowedValues
+ * // Cross-reference with smsRfmSpec:
+ * import { smsRfmSpec } from '@rulecom/rcml'
+ * smsRfmSpec.nodes['placeholder'].attrs?.['type'].allowedValues
  * // → same list as Object.keys(smsPlaceholderSpec.tokens)
  * ```
  * @public

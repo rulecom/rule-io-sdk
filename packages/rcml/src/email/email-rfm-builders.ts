@@ -1,7 +1,7 @@
 /**
- * String builders for RFM leaf-directives.
+ * String builders for Email RFM leaf-directives.
  *
- * Each helper returns an RFM source string — the wire format that the
+ * Each helper returns an Email RFM source string — the wire format that the
  * templates compiler passes through as literal text, and that the downstream
  * RFM parser later understands as a directive node.
  *
@@ -12,7 +12,7 @@
  * atom inlined into the message body.
  *
  * These builders produce raw strings; no validation happens here. The
- * downstream RFM parser (see `./rfm-to-json.ts`) validates directive shapes
+ * downstream Email RFM parser (see `./email-rfm-to-json.ts`) validates directive shapes
  * when the compiled XML is parsed to RCML.
  *
  * @public
@@ -73,7 +73,7 @@ export function createLink(opts: {
 /**
  * Build a `:font[content]{…}` inline directive string.
  *
- * Style options map to their kebab-cased RFM attribute names
+ * Style options map to their kebab-cased Email RFM attribute names
  * (`fontSize` → `font-size`, `textDecoration` → `text-decoration`, etc.).
  * `content` may itself be another atom string for nested composition.
  */

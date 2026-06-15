@@ -5,7 +5,7 @@ import {
   createFont,
   createLink,
   createLoopValue,
-} from './rfm-builders.js'
+} from './email-rfm-builders.js'
 
 describe('createCustomField', () => {
   it('produces a CustomField placeholder with group.name joined and id in value + original', () => {

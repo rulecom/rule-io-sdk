@@ -15,7 +15,7 @@ import { convertXmlToSms } from './xml/index.js'
 export const SmsXmlErrorCodes = {
   XML_PARSE_ERROR: 'XML_PARSE_ERROR',
   ROOT_INVALID: 'ROOT_INVALID',
-  SFM_PARSE_ERROR: 'SFM_PARSE_ERROR',
+  SMS_RFM_PARSE_ERROR: 'SMS_RFM_PARSE_ERROR',
 } as const
 
 export type SmsXmlErrorCode = (typeof SmsXmlErrorCodes)[keyof typeof SmsXmlErrorCodes]
@@ -72,7 +72,7 @@ export type SafeXmlToSmsResult =
  *
  * @param xml - An XML string containing a single `<rc-sms>` root element.
  * @returns The parsed document.
- * @throws {SmsXmlParseError} On malformed XML, wrong root tag, or invalid SFM body.
+ * @throws {SmsXmlParseError} On malformed XML, wrong root tag, or invalid SMS RFM body.
  * @public
  */
 export function xmlToSms(xml: string): SmsDocument {

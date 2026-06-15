@@ -7,17 +7,17 @@ import { LoopValueAttrsSchema } from '../schemas/loop-value.js'
 import type { FlavorConfig } from './types.js'
 
 /**
- * Flavor configuration for Inline RFM content.
+ * Flavor configuration for Email Inline RFM content.
  *
- * A strict subset of RFM: only paragraphs, `:font`, `:link`,
+ * A strict subset of Email RFM: only paragraphs, `:font`, `:link`,
  * `::placeholder`, `::loop-value`. No lists, hard breaks, or `:::align`.
  *
  * Used by label fields (button labels, etc.) inside the template in the editor.
  *
  * @internal
  */
-export const inlineRfmConfig: FlavorConfig = {
-  name: 'Inline RFM',
+export const emailInlineRfmConfig: FlavorConfig = {
+  name: 'Email Inline RFM',
 
   allowedBlockNodes: new Set(),
 

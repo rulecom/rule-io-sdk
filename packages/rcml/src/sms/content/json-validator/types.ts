@@ -86,7 +86,7 @@ export type SmsParagraphNode = {
 
 /**
  * The root SMS content JSON document type. This is the shape stored in
- * {@link SmsDocument.content}, returned by {@link sfmToJson}, and accepted by
+ * {@link SmsDocument.content}, returned by {@link smsRfmToJson}, and accepted by
  * {@link validateSmsJson}.
  */
 export type SmsContentJson = {

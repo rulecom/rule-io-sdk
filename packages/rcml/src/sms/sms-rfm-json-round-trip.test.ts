@@ -1,28 +1,25 @@
 import { describe, it, expect } from 'vitest'
-import { sfmToJson } from './sfm-to-json.js'
-import { jsonToSfm } from './json-to-sfm.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
+import { jsonToSmsRfm } from './json-to-sms-rfm.js'
 import type { SmsContentJson } from './content/json-validator/types.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
- * Round-trip helper: parse SFM → serialize back → parse again.
+ * Round-trip helper: parse SMS RFM → serialize back → parse again.
  * The two JSON documents must be deep-equal.
- *
- * Note: link marks are NOT round-trippable via SFM — the SFM format has no
- * syntax for them. Build SmsContentJson directly when you need link marks.
  */
 function rt(input: string): { original: SmsContentJson; roundTripped: SmsContentJson } {
-  const original = sfmToJson(input)
-  const sfm = jsonToSfm(original)
-  const roundTripped = sfmToJson(sfm)
+  const original = smsRfmToJson(input)
+  const rfm = jsonToSmsRfm(original)
+  const roundTripped = smsRfmToJson(rfm)
 
   return { original, roundTripped }
 }
 
 // ─── Plain text ───────────────────────────────────────────────────────────────
 
-describe('jsonToSfm — plain text', () => {
+describe('jsonToSmsRfm — plain text', () => {
   it('round-trips a plain text paragraph', () => {
     const { original, roundTripped } = rt('Hello world')
 
@@ -30,7 +27,7 @@ describe('jsonToSfm — plain text', () => {
   })
 
   it('produces the original text verbatim', () => {
-    expect(jsonToSfm(sfmToJson('Hello world'))).toBe('Hello world')
+    expect(jsonToSmsRfm(smsRfmToJson('Hello world'))).toBe('Hello world')
   })
 
   it('round-trips multiple paragraphs', () => {
@@ -40,7 +37,7 @@ describe('jsonToSfm — plain text', () => {
   })
 
   it('separates paragraphs with double newline', () => {
-    expect(jsonToSfm(sfmToJson('First\n\nSecond'))).toBe('First\n\nSecond')
+    expect(jsonToSmsRfm(smsRfmToJson('First\n\nSecond'))).toBe('First\n\nSecond')
   })
 
   it('round-trips an empty string', () => {
@@ -52,7 +49,7 @@ describe('jsonToSfm — plain text', () => {
 
 // ─── Placeholders ─────────────────────────────────────────────────────────────
 
-describe('jsonToSfm — placeholders', () => {
+describe('jsonToSmsRfm — placeholders', () => {
   it('round-trips a Subscriber placeholder', () => {
     const { original, roundTripped } = rt('[Subscriber:FirstName]')
 
@@ -104,13 +101,13 @@ describe('jsonToSfm — placeholders', () => {
   })
 
   it('produces the original token verbatim', () => {
-    expect(jsonToSfm(sfmToJson('[Subscriber:FirstName]'))).toBe('[Subscriber:FirstName]')
+    expect(jsonToSmsRfm(smsRfmToJson('[Subscriber:FirstName]'))).toBe('[Subscriber:FirstName]')
   })
 })
 
 // ─── Line breaks ──────────────────────────────────────────────────────────────
 
-describe('jsonToSfm — line breaks', () => {
+describe('jsonToSmsRfm — line breaks', () => {
   it('round-trips a single newline as hardbreak', () => {
     const { original, roundTripped } = rt('Line one\nLine two')
 
@@ -118,7 +115,7 @@ describe('jsonToSfm — line breaks', () => {
   })
 
   it('emits \\n for hardbreak', () => {
-    expect(jsonToSfm(sfmToJson('Line one\nLine two'))).toBe('Line one\nLine two')
+    expect(jsonToSmsRfm(smsRfmToJson('Line one\nLine two'))).toBe('Line one\nLine two')
   })
 
   it('round-trips a double newline as paragraph boundary', () => {
@@ -128,13 +125,13 @@ describe('jsonToSfm — line breaks', () => {
   })
 
   it('emits \\n\\n between paragraphs', () => {
-    expect(jsonToSfm(sfmToJson('Para one\n\nPara two'))).toBe('Para one\n\nPara two')
+    expect(jsonToSmsRfm(smsRfmToJson('Para one\n\nPara two'))).toBe('Para one\n\nPara two')
   })
 })
 
 // ─── Combined ─────────────────────────────────────────────────────────────────
 
-describe('jsonToSfm — combined constructs', () => {
+describe('jsonToSmsRfm — combined constructs', () => {
   it('round-trips placeholder + hardbreak + text', () => {
     const { original, roundTripped } = rt('Hi [Subscriber:FirstName]!\nYour order has shipped.')
 
@@ -151,8 +148,63 @@ describe('jsonToSfm — combined constructs', () => {
 
 // ─── Direct JSON input ────────────────────────────────────────────────────────
 
-describe('jsonToSfm — direct JSON input', () => {
+describe('jsonToSmsRfm — direct JSON input', () => {
   it('returns a string for a valid SmsContentJson', () => {
-    expect(typeof jsonToSfm(sfmToJson('Hello'))).toBe('string')
+    expect(typeof jsonToSmsRfm(smsRfmToJson('Hello'))).toBe('string')
+  })
+})
+
+// ─── Link directive round-trips ───────────────────────────────────────────────
+
+describe('sms-rfm-json round-trip — :link directive', () => {
+  it('round-trips a basic :link directive', () => {
+    const input = ':link[Click here]{href="https://example.com" track="true" shorten="false"}'
+    const { original, roundTripped } = rt(input)
+
+    expect(roundTripped).toEqual(original)
+  })
+
+  it('round-trips :link with track="false" shorten="false"', () => {
+    const input = ':link[Visit us]{href="https://example.com" track="false" shorten="false"}'
+    const { original, roundTripped } = rt(input)
+
+    expect(roundTripped).toEqual(original)
+  })
+
+  it('round-trips :link mixed with surrounding text', () => {
+    const input = 'Your message here. :link[https://google.com]{href="https://google.com" track="true" shorten="true"} Test'
+    const { original, roundTripped } = rt(input)
+
+    expect(roundTripped).toEqual(original)
+  })
+
+  it('round-trips :link in a multi-paragraph document', () => {
+    const input = 'Hi [Subscriber:FirstName],\n\nClick :link[here]{href="https://example.com" track="true" shorten="true"} to view your order.'
+    const { original, roundTripped } = rt(input)
+
+    expect(roundTripped).toEqual(original)
+  })
+})
+
+// ─── ::placeholder directive round-trips ─────────────────────────────────────
+
+describe('sms-rfm-json round-trip — ::placeholder directive', () => {
+  it('round-trips ::placeholder with a resolved value', () => {
+    const input = 'Hello ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="FirstName" value="Jane" max-length=""}'
+    const { original, roundTripped } = rt(input)
+
+    expect(roundTripped).toEqual(original)
+  })
+
+  it('serializes resolved placeholder as ::placeholder and parses back', () => {
+    const initial = smsRfmToJson('::placeholder{type="CustomField" original="[CustomField:Address.Firstname]" name="Address.Firstname" value="77856" max-length=""}')
+    const rfm = jsonToSmsRfm(initial)
+
+    expect(rfm).toContain('::placeholder')
+    expect(rfm).toContain('value="77856"')
+
+    const reparsed = smsRfmToJson(rfm)
+
+    expect(reparsed).toEqual(initial)
   })
 })

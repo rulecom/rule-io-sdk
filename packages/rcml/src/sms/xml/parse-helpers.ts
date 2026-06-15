@@ -2,14 +2,14 @@
  * Internal: XML string → SmsDocument conversion.
  *
  * Expects a single `<rc-sms>` root element. Text content inside the element
- * is treated as SFM and parsed via `sfmToJson`.
+ * is treated as SMS RFM and parsed via `smsRfmToJson`.
  *
  * @internal
  */
 
 import { XMLParser, XMLValidator } from 'fast-xml-parser'
 import type { SmsDocument } from '../sms-types.js'
-import { sfmToJson } from '../sfm-to-json.js'
+import { smsRfmToJson } from '../sms-rfm-to-json.js'
 import type { SmsXmlParseIssue } from '../xml-to-sms.js'
 
 type PreservedNode = Record<string, unknown>
@@ -92,20 +92,20 @@ export function convertXmlToSms(
   const rawChildren = rootNode['rc-sms']
 
   const id = typeof rawAttributes?.['id'] === 'string' ? rawAttributes['id'] : undefined
-  const sfmText = extractText(rawChildren)
+  const rfmText = extractText(rawChildren)
 
   let content
 
   try {
-    content = sfmToJson(sfmText)
+    content = smsRfmToJson(rfmText)
   } catch (err) {
     return {
       success: false,
       errors: [
         {
           path: '/content',
-          code: 'SFM_PARSE_ERROR',
-          message: err instanceof Error ? err.message : 'Invalid SFM content.',
+          code: 'SMS_RFM_PARSE_ERROR',
+          message: err instanceof Error ? err.message : 'Invalid SMS RFM content.',
         },
       ],
     }

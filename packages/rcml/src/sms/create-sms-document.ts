@@ -4,7 +4,7 @@
 
 import type { SmsDocument } from './sms-types.js'
 import type { SmsContentJson } from './content/json-validator/types.js'
-import { sfmToJson } from './sfm-to-json.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
 import { safeParseSmsJson } from './validate-sms-json.js'
 import { SmsDocumentBuildError, SmsDocumentBuildErrorCodes } from './builders/errors.js'
 
@@ -17,7 +17,7 @@ export interface CreateSmsDocumentOptions {
    * The SMS message body.
    *
    * Accepts either:
-   * - A **string** in SFM (SMS Format Markup) — placeholders use `[Type:Name]`
+   * - A **string** in SMS RFM (SMS Rule Flavor Markdown) — placeholders use `[Type:Name]`
    *   syntax (e.g. `[Subscriber:FirstName]`), single `\n` becomes a hard break,
    *   and double `\n\n` starts a new paragraph.
    * - A pre-built {@link SmsContentJson} document — validated on the way in.
@@ -40,7 +40,7 @@ export interface CreateSmsDocumentOptions {
  * ```typescript
  * import { createSmsDocument } from '@rulecom/rcml';
  *
- * // From an SFM string
+ * // From an SMS RFM string
  * const doc = createSmsDocument({
  *   content: 'Hi [Subscriber:FirstName], your order has shipped!',
  * });
@@ -64,7 +64,7 @@ export function createSmsDocument(options: CreateSmsDocumentOptions): SmsDocumen
   let content: SmsContentJson
 
   if (typeof options.content === 'string') {
-    content = sfmToJson(options.content)
+    content = smsRfmToJson(options.content)
   } else {
     const result = safeParseSmsJson(options.content)
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { rfmToJson, inlineRfmToJson } from './rfm-to-json.js'
-import { jsonToRfm, jsonToInlineRfm } from './json-to-rfm.js'
+import { emailRfmToJson, emailInlineRfmToJson } from './email-rfm-to-json.js'
+import { jsonToEmailRfm, jsonToEmailInlineRfm } from './json-to-email-rfm.js'
 import type { Json } from './validate-rcml-json.js'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -10,16 +10,16 @@ import type { Json } from './validate-rcml-json.js'
  * The two resulting JSON documents must be deep-equal.
  */
 function rt(input: string): { original: Json; roundTripped: Json } {
-  const original = rfmToJson(input)
-  const md = jsonToRfm(original)
-  const roundTripped = rfmToJson(md)
+  const original = emailRfmToJson(input)
+  const md = jsonToEmailRfm(original)
+  const roundTripped = emailRfmToJson(md)
 
   return { original, roundTripped }
 }
 
-// ─── jsonToRfm — plain text ───────────────────────────────────────────────────
+// ─── jsonToEmailRfm — plain text ───────────────────────────────────────────────────
 
-describe('jsonToRfm — plain text', () => {
+describe('jsonToEmailRfm — plain text', () => {
   it('round-trips a plain text paragraph', () => {
     const { original, roundTripped } = rt('Hello world')
 
@@ -27,7 +27,7 @@ describe('jsonToRfm — plain text', () => {
   })
 
   it('produces the original text verbatim', () => {
-    expect(jsonToRfm(rfmToJson('Hello world'))).toBe('Hello world')
+    expect(jsonToEmailRfm(emailRfmToJson('Hello world'))).toBe('Hello world')
   })
 
   it('round-trips multiple paragraphs', () => {
@@ -37,13 +37,13 @@ describe('jsonToRfm — plain text', () => {
   })
 
   it('separates paragraphs with double newline', () => {
-    expect(jsonToRfm(rfmToJson('First\n\nSecond'))).toBe('First\n\nSecond')
+    expect(jsonToEmailRfm(emailRfmToJson('First\n\nSecond'))).toBe('First\n\nSecond')
   })
 })
 
-// ─── jsonToRfm — :font ────────────────────────────────────────────────────────
+// ─── jsonToEmailRfm — :font ────────────────────────────────────────────────────────
 
-describe('jsonToRfm — :font', () => {
+describe('jsonToEmailRfm — :font', () => {
   it('round-trips font-weight', () => {
     const { original, roundTripped } = rt(':font[bold text]{font-weight="bold"}')
 
@@ -75,9 +75,9 @@ describe('jsonToRfm — :font', () => {
   })
 })
 
-// ─── jsonToRfm — :link ────────────────────────────────────────────────────────
+// ─── jsonToEmailRfm — :link ────────────────────────────────────────────────────────
 
-describe('jsonToRfm — :link', () => {
+describe('jsonToEmailRfm — :link', () => {
   it('round-trips a basic link', () => {
     const { original, roundTripped } = rt(':link[click here]{href="https://example.com"}')
 
@@ -103,9 +103,9 @@ describe('jsonToRfm — :link', () => {
   })
 })
 
-// ─── jsonToRfm — nested marks ─────────────────────────────────────────────────
+// ─── jsonToEmailRfm — nested marks ─────────────────────────────────────────────────
 
-describe('jsonToRfm — nested marks', () => {
+describe('jsonToEmailRfm — nested marks', () => {
   it('round-trips font inside link', () => {
     const { original, roundTripped } = rt(':link[:font[bold]{font-weight="bold"}]{href="https://x.com"}')
 
@@ -126,9 +126,9 @@ describe('jsonToRfm — nested marks', () => {
   })
 })
 
-// ─── jsonToRfm — bullet list ──────────────────────────────────────────────────
+// ─── jsonToEmailRfm — bullet list ──────────────────────────────────────────────────
 
-describe('jsonToRfm — bullet list', () => {
+describe('jsonToEmailRfm — bullet list', () => {
   it('round-trips a simple bullet list', () => {
     const { original, roundTripped } = rt('- item one\n- item two\n- item three')
 
@@ -148,9 +148,9 @@ describe('jsonToRfm — bullet list', () => {
   })
 })
 
-// ─── jsonToRfm — ordered list ─────────────────────────────────────────────────
+// ─── jsonToEmailRfm — ordered list ─────────────────────────────────────────────────
 
-describe('jsonToRfm — ordered list', () => {
+describe('jsonToEmailRfm — ordered list', () => {
   it('round-trips a simple ordered list', () => {
     const { original, roundTripped } = rt('1. first\n2. second\n3. third')
 
@@ -158,9 +158,9 @@ describe('jsonToRfm — ordered list', () => {
   })
 })
 
-// ─── jsonToRfm — :::align ─────────────────────────────────────────────────────
+// ─── jsonToEmailRfm — :::align ─────────────────────────────────────────────────────
 
-describe('jsonToRfm — :::align', () => {
+describe('jsonToEmailRfm — :::align', () => {
   it('round-trips align center', () => {
     const { original, roundTripped } = rt(':::align{value="center"}\nHello\n:::')
 
@@ -180,9 +180,9 @@ describe('jsonToRfm — :::align', () => {
   })
 })
 
-// ─── jsonToRfm — ::placeholder ────────────────────────────────────────────────
+// ─── jsonToEmailRfm — ::placeholder ────────────────────────────────────────────────
 
-describe('jsonToRfm — ::placeholder', () => {
+describe('jsonToEmailRfm — ::placeholder', () => {
   it('round-trips placeholder with all attrs', () => {
     const { original, roundTripped } = rt('::placeholder{type="CustomField" value="val" name="myField" original="orig"}')
 
@@ -212,9 +212,9 @@ describe('jsonToRfm — ::placeholder', () => {
   })
 })
 
-// ─── jsonToRfm — ::loop-value ─────────────────────────────────────────────────
+// ─── jsonToEmailRfm — ::loop-value ─────────────────────────────────────────────────
 
-describe('jsonToRfm — ::loop-value', () => {
+describe('jsonToEmailRfm — ::loop-value', () => {
   it('round-trips loop-value', () => {
     const { original, roundTripped } = rt('::loop-value{original="orig" value="val" index="0"}')
 
@@ -222,9 +222,9 @@ describe('jsonToRfm — ::loop-value', () => {
   })
 })
 
-// ─── jsonToRfm — hard break ───────────────────────────────────────────────────
+// ─── jsonToEmailRfm — hard break ───────────────────────────────────────────────────
 
-describe('jsonToRfm — hard break', () => {
+describe('jsonToEmailRfm — hard break', () => {
   it('round-trips a paragraph with a hard break', () => {
     const { original, roundTripped } = rt('line one\\\nline two')
 
@@ -232,9 +232,9 @@ describe('jsonToRfm — hard break', () => {
   })
 })
 
-// ─── jsonToRfm — complex documents ───────────────────────────────────────────
+// ─── jsonToEmailRfm — complex documents ───────────────────────────────────────────
 
-describe('jsonToRfm — complex documents', () => {
+describe('jsonToEmailRfm — complex documents', () => {
   it('round-trips a document with align, font, link, and placeholder', () => {
     const input = [
       ':::align{value="center"}',
@@ -258,50 +258,50 @@ describe('jsonToRfm — complex documents', () => {
   })
 })
 
-// ─── jsonToRfm — direct JSON input ───────────────────────────────────────────
+// ─── jsonToEmailRfm — direct JSON input ───────────────────────────────────────────
 
-describe('jsonToRfm — direct JSON input', () => {
+describe('jsonToEmailRfm — direct JSON input', () => {
   it('returns a string for a doc with a single paragraph', () => {
-    expect(typeof jsonToRfm(rfmToJson('Hello'))).toBe('string')
+    expect(typeof jsonToEmailRfm(emailRfmToJson('Hello'))).toBe('string')
   })
 })
 
-// ─── jsonToInlineRfm ──────────────────────────────────────────────────────────
+// ─── jsonToEmailInlineRfm ──────────────────────────────────────────────────────────
 
-describe('jsonToInlineRfm', () => {
+describe('jsonToEmailInlineRfm', () => {
   it('round-trips plain text', () => {
-    const json = inlineRfmToJson('Hello world')
+    const json = emailInlineRfmToJson('Hello world')
 
-    expect(inlineRfmToJson(jsonToInlineRfm(json))).toEqual(json)
+    expect(emailInlineRfmToJson(jsonToEmailInlineRfm(json))).toEqual(json)
   })
 
   it('round-trips :font', () => {
-    const json = inlineRfmToJson(':font[bold]{font-weight="bold"}')
+    const json = emailInlineRfmToJson(':font[bold]{font-weight="bold"}')
 
-    expect(inlineRfmToJson(jsonToInlineRfm(json))).toEqual(json)
+    expect(emailInlineRfmToJson(jsonToEmailInlineRfm(json))).toEqual(json)
   })
 
   it('round-trips :link', () => {
-    const json = inlineRfmToJson(':link[click]{href="https://example.com"}')
+    const json = emailInlineRfmToJson(':link[click]{href="https://example.com"}')
 
-    expect(inlineRfmToJson(jsonToInlineRfm(json))).toEqual(json)
+    expect(emailInlineRfmToJson(jsonToEmailInlineRfm(json))).toEqual(json)
   })
 
   it('round-trips ::placeholder', () => {
-    const json = inlineRfmToJson('::placeholder{type="Subscriber" name="n" original="o"}')
+    const json = emailInlineRfmToJson('::placeholder{type="Subscriber" name="n" original="o"}')
 
-    expect(inlineRfmToJson(jsonToInlineRfm(json))).toEqual(json)
+    expect(emailInlineRfmToJson(jsonToEmailInlineRfm(json))).toEqual(json)
   })
 
   it('round-trips ::loop-value', () => {
-    const json = inlineRfmToJson('::loop-value{original="orig" value="val" index="0"}')
+    const json = emailInlineRfmToJson('::loop-value{original="orig" value="val" index="0"}')
 
-    expect(inlineRfmToJson(jsonToInlineRfm(json))).toEqual(json)
+    expect(emailInlineRfmToJson(jsonToEmailInlineRfm(json))).toEqual(json)
   })
 
-  it('produces the same result as jsonToRfm for Inline RFM content', () => {
-    const json = inlineRfmToJson(':font[hello]{font-weight="bold"}')
+  it('produces the same result as jsonToEmailRfm for Email Inline RFM content', () => {
+    const json = emailInlineRfmToJson(':font[hello]{font-weight="bold"}')
 
-    expect(jsonToInlineRfm(json)).toBe(jsonToRfm(json))
+    expect(jsonToEmailInlineRfm(json)).toBe(jsonToEmailRfm(json))
   })
 })

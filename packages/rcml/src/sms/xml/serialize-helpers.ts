@@ -1,7 +1,7 @@
 /**
  * Internal: SmsDocument JSON → XML string conversion.
  *
- * `<rc-sms>` is a leaf node — its body is the SFM serialization of
+ * `<rc-sms>` is a leaf node — its body is the SMS RFM serialization of
  * `content` stored as a text child, exactly as email stores RFM text inside
  * `<rc-text>`. `id` (when present) is lifted into the XML attribute bag.
  *
@@ -10,7 +10,7 @@
 
 import { XMLBuilder } from 'fast-xml-parser'
 import type { SmsDocument } from '../sms-types.js'
-import { jsonToSfm } from '../json-to-sfm.js'
+import { jsonToSmsRfm } from '../json-to-sms-rfm.js'
 import type { SmsToXmlOptions } from '../sms-to-xml.js'
 
 /**
@@ -37,7 +37,7 @@ export function serializeSmsToXml(doc: SmsDocument, options: SmsToXmlOptions): s
     attrs['id'] = doc.id
   }
 
-  const sfm = jsonToSfm(doc.content)
+  const rfm = jsonToSmsRfm(doc.content)
 
   type PreservedEntry = Record<string, unknown>
 
@@ -47,7 +47,7 @@ export function serializeSmsToXml(doc: SmsDocument, options: SmsToXmlOptions): s
     entry[':@'] = attrs
   }
 
-  entry['rc-sms'] = sfm === '' ? [] : [{ '#text': sfm }]
+  entry['rc-sms'] = rfm === '' ? [] : [{ '#text': rfm }]
 
   const xml = builder.build([entry]) as string
 

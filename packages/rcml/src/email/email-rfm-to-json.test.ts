@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { rfmToJson, inlineRfmToJson } from './rfm-to-json.js'
+import { emailRfmToJson, emailInlineRfmToJson } from './email-rfm-to-json.js'
 import { RcmlValidationError } from './content/parser/parse.js'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,14 +17,14 @@ const NULL_FONT_ATTRS = {
   color: null,
 }
 
-// ─── rfmToJson ────────────────────────────────────────────────────────────────
+// ─── emailRfmToJson ────────────────────────────────────────────────────────────────
 
-describe('rfmToJson()', () => {
+describe('emailRfmToJson()', () => {
   // ─── Document structure ─────────────────────────────────────────────────────
 
   describe('document structure', () => {
     it('plain text produces a doc > paragraph > text node', () => {
-      expect(rfmToJson('Hello.')).toEqual({
+      expect(emailRfmToJson('Hello.')).toEqual({
         type: 'doc',
         content: [
           {
@@ -36,7 +36,7 @@ describe('rfmToJson()', () => {
     })
 
     it('multiple paragraphs produce multiple doc children', () => {
-      const doc = rfmToJson('First.\n\nSecond.') as AnyJson
+      const doc = emailRfmToJson('First.\n\nSecond.') as AnyJson
 
       expect(doc.content).toHaveLength(2)
       expect(doc.content[0].type).toBe('paragraph')
@@ -48,63 +48,63 @@ describe('rfmToJson()', () => {
 
   describe(':font mark — attribute coverage', () => {
     it('font-weight → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{font-weight="700"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{font-weight="700"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.type).toBe('font')
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'font-weight': '700' })
     })
 
     it('font-size → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{font-size="16px"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{font-size="16px"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'font-size': '16px' })
     })
 
     it('line-height → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{line-height="1.5"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{line-height="1.5"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'line-height': '1.5' })
     })
 
     it('letter-spacing → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{letter-spacing="0.5px"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{letter-spacing="0.5px"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'letter-spacing': '0.5px' })
     })
 
     it('font-style italic → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{font-style="italic"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{font-style="italic"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'font-style': 'italic' })
     })
 
     it('text-decoration underline → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{text-decoration="underline"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{text-decoration="underline"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'text-decoration': 'underline' })
     })
 
     it('text-decoration line-through → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{text-decoration="line-through"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{text-decoration="line-through"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'text-decoration': 'line-through' })
     })
 
     it('color → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{color="#ff0000"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{color="#ff0000"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, color: '#ff0000' })
     })
 
     it('font-family → set; all other 7 attrs are null', () => {
-      const mark = (rfmToJson(':font[text]{font-family="Arial"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':font[text]{font-family="Arial"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'font-family': 'Arial' })
     })
 
     it('all 8 attrs set simultaneously', () => {
       const mark = (
-        rfmToJson(
+        emailRfmToJson(
           ':font[text]{font-family="Arial" font-size="18px" line-height="1.5" letter-spacing="0.1em" font-style="italic" font-weight="700" text-decoration="underline" color="#0000ff"}',
         ) as AnyJson
       ).content[0].content[0].marks[0]
@@ -126,7 +126,7 @@ describe('rfmToJson()', () => {
 
   describe(':font mark — position in paragraph', () => {
     it('font-only paragraph produces a single marked text node', () => {
-      const content = (rfmToJson(':font[hello]{font-weight="700"}') as AnyJson).content[0].content
+      const content = (emailRfmToJson(':font[hello]{font-weight="700"}') as AnyJson).content[0].content
 
       expect(content).toHaveLength(1)
       expect(content[0].text).toBe('hello')
@@ -134,7 +134,7 @@ describe('rfmToJson()', () => {
     })
 
     it('font at start: [marked, plain]', () => {
-      const content = (rfmToJson(':font[bold]{font-weight="700"} after') as AnyJson).content[0].content
+      const content = (emailRfmToJson(':font[bold]{font-weight="700"} after') as AnyJson).content[0].content
 
       expect(content).toHaveLength(2)
       expect(content[0].marks[0].type).toBe('font')
@@ -142,7 +142,7 @@ describe('rfmToJson()', () => {
     })
 
     it('font at end: [plain, marked]', () => {
-      const content = (rfmToJson('before :font[bold]{font-weight="700"}') as AnyJson).content[0].content
+      const content = (emailRfmToJson('before :font[bold]{font-weight="700"}') as AnyJson).content[0].content
 
       expect(content).toHaveLength(2)
       expect(content[0]).toEqual({ type: 'text', text: 'before ' })
@@ -150,7 +150,7 @@ describe('rfmToJson()', () => {
     })
 
     it('font in middle: [plain, marked, plain]', () => {
-      const content = (rfmToJson('before :font[bold]{font-weight="700"} after') as AnyJson).content[0].content
+      const content = (emailRfmToJson('before :font[bold]{font-weight="700"} after') as AnyJson).content[0].content
 
       expect(content).toHaveLength(3)
       expect(content[0]).toEqual({ type: 'text', text: 'before ' })
@@ -159,7 +159,7 @@ describe('rfmToJson()', () => {
     })
 
     it('multiple font spans in one paragraph', () => {
-      const content = (rfmToJson(':font[A]{color="red"} :font[B]{color="blue"}') as AnyJson).content[0].content
+      const content = (emailRfmToJson(':font[A]{color="red"} :font[B]{color="blue"}') as AnyJson).content[0].content
 
       expect(content).toHaveLength(3)
       expect(content[0].marks[0].attrs.color).toBe('red')
@@ -172,20 +172,20 @@ describe('rfmToJson()', () => {
 
   describe(':link mark', () => {
     it('href only → target:null, no-tracked:"false"', () => {
-      const mark = (rfmToJson(':link[click]{href="https://example.com"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':link[click]{href="https://example.com"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.type).toBe('link')
       expect(mark.attrs).toEqual({ href: 'https://example.com', target: null, 'no-tracked': 'false' })
     })
 
     it('href + target="_blank"', () => {
-      const mark = (rfmToJson(':link[click]{href="https://example.com" target="_blank"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailRfmToJson(':link[click]{href="https://example.com" target="_blank"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.attrs.target).toBe('_blank')
     })
 
     it('href + no-tracked="true"', () => {
-      const mark = (rfmToJson(':link[click]{href="https://example.com" no-tracked="true"}') as AnyJson).content[0]
+      const mark = (emailRfmToJson(':link[click]{href="https://example.com" no-tracked="true"}') as AnyJson).content[0]
         .content[0].marks[0]
 
       expect(mark.attrs['no-tracked']).toBe('true')
@@ -193,7 +193,7 @@ describe('rfmToJson()', () => {
 
     it('all three link attrs set', () => {
       const mark = (
-        rfmToJson(':link[click]{href="https://example.com" target="_blank" no-tracked="true"}') as AnyJson
+        emailRfmToJson(':link[click]{href="https://example.com" target="_blank" no-tracked="true"}') as AnyJson
       ).content[0].content[0].marks[0]
 
       expect(mark.attrs).toEqual({
@@ -208,7 +208,7 @@ describe('rfmToJson()', () => {
 
   describe('mark nesting / accumulation', () => {
     it(':link wrapping :font → text node carries both marks', () => {
-      const node = (rfmToJson(':link[:font[bold]{font-weight="700"}]{href="https://x.com"}') as AnyJson).content[0]
+      const node = (emailRfmToJson(':link[:font[bold]{font-weight="700"}]{href="https://x.com"}') as AnyJson).content[0]
         .content[0]
       const types = node.marks.map((m: AnyJson) => m.type)
 
@@ -217,7 +217,7 @@ describe('rfmToJson()', () => {
     })
 
     it(':font wrapping :link → text node carries both marks', () => {
-      const node = (rfmToJson(':font[:link[click]{href="https://x.com"}]{font-weight="700"}') as AnyJson).content[0]
+      const node = (emailRfmToJson(':font[:link[click]{href="https://x.com"}]{font-weight="700"}') as AnyJson).content[0]
         .content[0]
       const types = node.marks.map((m: AnyJson) => m.type)
 
@@ -226,7 +226,7 @@ describe('rfmToJson()', () => {
     })
 
     it(':font wrapping :font — two font marks accumulated', () => {
-      const node = (rfmToJson(':font[:font[text]{color="red"}]{font-weight="700"}') as AnyJson).content[0].content[0]
+      const node = (emailRfmToJson(':font[:font[text]{color="red"}]{font-weight="700"}') as AnyJson).content[0].content[0]
       const fontMarks = node.marks.filter((m: AnyJson) => m.type === 'font')
 
       expect(fontMarks).toHaveLength(2)
@@ -238,7 +238,7 @@ describe('rfmToJson()', () => {
     })
 
     it(':link with mixed text and :font children — font+link on inner, link-only on outer', () => {
-      const content = (rfmToJson(':link[plain :font[styled]{font-style="italic"}]{href="https://x.com"}') as AnyJson)
+      const content = (emailRfmToJson(':link[plain :font[styled]{font-style="italic"}]{href="https://x.com"}') as AnyJson)
         .content[0].content
 
       expect(content).toHaveLength(2)
@@ -254,7 +254,7 @@ describe('rfmToJson()', () => {
 
   describe('bullet list', () => {
     it('simple 2-item bullet list structure', () => {
-      const doc = rfmToJson('- one\n- two') as AnyJson
+      const doc = emailRfmToJson('- one\n- two') as AnyJson
 
       expect(doc.content[0].type).toBe('bullet-list')
       expect(doc.content[0].content).toHaveLength(2)
@@ -264,7 +264,7 @@ describe('rfmToJson()', () => {
     })
 
     it('nested bullet list inside a list-item', () => {
-      const doc = rfmToJson('- parent\n  - child') as AnyJson
+      const doc = emailRfmToJson('- parent\n  - child') as AnyJson
       const outerItem = doc.content[0].content[0]
       const inner = outerItem.content.find((c: AnyJson) => c.type === 'bullet-list')
 
@@ -273,7 +273,7 @@ describe('rfmToJson()', () => {
     })
 
     it('list item with :font mark', () => {
-      const doc = rfmToJson('- :font[bold]{font-weight="700"}') as AnyJson
+      const doc = emailRfmToJson('- :font[bold]{font-weight="700"}') as AnyJson
       const para = doc.content[0].content[0].content[0]
 
       expect(para.content[0].marks[0].type).toBe('font')
@@ -284,7 +284,7 @@ describe('rfmToJson()', () => {
 
   describe('ordered list', () => {
     it('simple ordered list produces "ordered-list" node', () => {
-      const doc = rfmToJson('1. first\n2. second') as AnyJson
+      const doc = emailRfmToJson('1. first\n2. second') as AnyJson
 
       expect(doc.content[0].type).toBe('ordered-list')
       expect(doc.content[0].content).toHaveLength(2)
@@ -296,7 +296,7 @@ describe('rfmToJson()', () => {
 
   describe(':::align', () => {
     it('value="center" → align block with attrs.value "center"', () => {
-      const doc = rfmToJson(':::align{value="center"}\nHello\n:::') as AnyJson
+      const doc = emailRfmToJson(':::align{value="center"}\nHello\n:::') as AnyJson
 
       expect(doc.content[0].type).toBe('align')
       expect(doc.content[0].attrs.value).toBe('center')
@@ -304,19 +304,19 @@ describe('rfmToJson()', () => {
     })
 
     it('value="right"', () => {
-      const doc = rfmToJson(':::align{value="right"}\nHi\n:::') as AnyJson
+      const doc = emailRfmToJson(':::align{value="right"}\nHi\n:::') as AnyJson
 
       expect(doc.content[0].attrs.value).toBe('right')
     })
 
     it('value="left"', () => {
-      const doc = rfmToJson(':::align{value="left"}\nHi\n:::') as AnyJson
+      const doc = emailRfmToJson(':::align{value="left"}\nHi\n:::') as AnyJson
 
       expect(doc.content[0].attrs.value).toBe('left')
     })
 
     it('align wrapping a bullet list', () => {
-      const doc = rfmToJson(':::align{value="center"}\n- item\n:::') as AnyJson
+      const doc = emailRfmToJson(':::align{value="center"}\n- item\n:::') as AnyJson
 
       expect(doc.content[0].type).toBe('align')
       expect(doc.content[0].content[0].type).toBe('bullet-list')
@@ -327,14 +327,14 @@ describe('rfmToJson()', () => {
 
   describe('::placeholder', () => {
     it('standalone on own line → paragraph wrapping placeholder atom', () => {
-      const doc = rfmToJson('::placeholder{type="CustomField" value="v" name="n" original="o"}') as AnyJson
+      const doc = emailRfmToJson('::placeholder{type="CustomField" value="v" name="n" original="o"}') as AnyJson
 
       expect(doc.content[0].type).toBe('paragraph')
       expect(doc.content[0].content[0].type).toBe('placeholder')
     })
 
     it('full attrs present; max-length defaults to null', () => {
-      const attrs = (rfmToJson('::placeholder{type="User" value="John" name="First name" original="[User:Name]"}') as AnyJson)
+      const attrs = (emailRfmToJson('::placeholder{type="User" value="John" name="First name" original="[User:Name]"}') as AnyJson)
         .content[0].content[0].attrs
 
       expect(attrs).toEqual({
@@ -348,21 +348,21 @@ describe('rfmToJson()', () => {
 
     it('max-length attr is populated when set', () => {
       const attrs = (
-        rfmToJson('::placeholder{type="User" value="v" name="n" original="o" max-length="100"}') as AnyJson
+        emailRfmToJson('::placeholder{type="User" value="v" name="n" original="o" max-length="100"}') as AnyJson
       ).content[0].content[0].attrs
 
       expect(attrs['max-length']).toBe('100')
     })
 
     it('numeric string value is coerced to a number', () => {
-      const attrs = (rfmToJson('::placeholder{type="CustomField" value="42" name="n" original="o"}') as AnyJson).content[0]
+      const attrs = (emailRfmToJson('::placeholder{type="CustomField" value="42" name="n" original="o"}') as AnyJson).content[0]
         .content[0].attrs
 
       expect(attrs.value).toBe(42)
     })
 
     it('absent value attr becomes null', () => {
-      const attrs = (rfmToJson('::placeholder{type="Date" name="n" original="o"}') as AnyJson).content[0].content[0].attrs
+      const attrs = (emailRfmToJson('::placeholder{type="Date" name="n" original="o"}') as AnyJson).content[0].content[0].attrs
 
       expect(attrs.value).toBeNull()
     })
@@ -371,7 +371,7 @@ describe('rfmToJson()', () => {
       const types = ['CustomField', 'Subscriber', 'User', 'RemoteContent', 'Date'] as const
 
       for (const t of types) {
-        const attrs = (rfmToJson(`::placeholder{type="${t}" value="v" name="n" original="o"}`) as AnyJson).content[0]
+        const attrs = (emailRfmToJson(`::placeholder{type="${t}" value="v" name="n" original="o"}`) as AnyJson).content[0]
           .content[0].attrs
 
         expect(attrs.type).toBe(t)
@@ -380,7 +380,7 @@ describe('rfmToJson()', () => {
 
     it('placeholder inline in paragraph — atom sits between text nodes', () => {
       const content = (
-        rfmToJson('before ::placeholder{type="User" value="v" name="n" original="o"} after') as AnyJson
+        emailRfmToJson('before ::placeholder{type="User" value="v" name="n" original="o"} after') as AnyJson
       ).content[0].content
 
       expect(content[0]).toEqual({ type: 'text', text: 'before ' })
@@ -393,7 +393,7 @@ describe('rfmToJson()', () => {
 
   describe('::loop-value', () => {
     it('standalone → paragraph wrapping loop-value atom with correct attrs', () => {
-      const doc = rfmToJson('::loop-value{original="[loop:item]" value="item" index="0"}') as AnyJson
+      const doc = emailRfmToJson('::loop-value{original="[loop:item]" value="item" index="0"}') as AnyJson
 
       expect(doc.content[0].type).toBe('paragraph')
 
@@ -405,7 +405,7 @@ describe('rfmToJson()', () => {
 
     it('inline in paragraph — atom sits between text nodes', () => {
       const content = (
-        rfmToJson('item: ::loop-value{original="[loop:item]" value="item" index="0"} end') as AnyJson
+        emailRfmToJson('item: ::loop-value{original="[loop:item]" value="item" index="0"} end') as AnyJson
       ).content[0].content
 
       expect(content[0].type).toBe('text')
@@ -421,7 +421,7 @@ describe('rfmToJson()', () => {
       const md =
         'Click into this :font[box]{font-weight="700"} to :font[change]{color="#8931B5"} the font :font[settings]{text-decoration="line-through"}. Edit this text to include additional information and a description of the image. test\n'
 
-      expect(rfmToJson(md)).toEqual({
+      expect(emailRfmToJson(md)).toEqual({
         type: 'doc',
         content: [
           {
@@ -459,7 +459,7 @@ describe('rfmToJson()', () => {
       const md =
         'Edit this text to include additional information ::placeholder{type="CustomField" original="[CustomField:Order.CreatedAt]" name="Order.CreatedAt" value="11"} and a description of the image. test ::placeholder{type="User" original="[User:Street]" name="Street" value="Street"} and another one 😁 is ::placeholder{type="Date" original="[Date:yesterday::m-d-Y]" name="Yesterday"}.\n'
 
-      expect(rfmToJson(md)).toEqual({
+      expect(emailRfmToJson(md)).toEqual({
         type: 'doc',
         content: [
           {
@@ -530,7 +530,7 @@ describe('rfmToJson()', () => {
         '::placeholder{type="RemoteContent" original="[RemoteContent:https://x.com/[CustomField:Order.Id]]" name="RemoteContent" value="https://x.com/[CustomField:Order.Id]"}' +
         '\n'
 
-      expect(rfmToJson(md)).toEqual({
+      expect(emailRfmToJson(md)).toEqual({
         type: 'doc',
         content: [
           {
@@ -568,25 +568,25 @@ describe('rfmToJson()', () => {
 
   describe('validation errors', () => {
     it('throws RcmlValidationError for headings', () => {
-      expect(() => rfmToJson('# Heading')).toThrow(RcmlValidationError)
+      expect(() => emailRfmToJson('# Heading')).toThrow(RcmlValidationError)
     })
 
     it('throws RcmlValidationError for native bold (**text**)', () => {
-      expect(() => rfmToJson('**bold**')).toThrow(RcmlValidationError)
+      expect(() => emailRfmToJson('**bold**')).toThrow(RcmlValidationError)
     })
 
     it('accepts hard breaks (backslash or two trailing spaces)', () => {
-      expect(() => rfmToJson('line one  \nline two')).not.toThrow()
-      expect(() => rfmToJson('line one\\\nline two')).not.toThrow()
+      expect(() => emailRfmToJson('line one  \nline two')).not.toThrow()
+      expect(() => emailRfmToJson('line one\\\nline two')).not.toThrow()
     })
 
     it('throws RcmlValidationError for unknown container directives', () => {
-      expect(() => rfmToJson(':::unknown{}\n:::')).toThrow(RcmlValidationError)
+      expect(() => emailRfmToJson(':::unknown{}\n:::')).toThrow(RcmlValidationError)
     })
 
     it('multiple invalid nodes → err.errors has one entry per violation', () => {
       try {
-        rfmToJson('# Heading\n\n> Blockquote')
+        emailRfmToJson('# Heading\n\n> Blockquote')
       } catch (err) {
         expect(err).toBeInstanceOf(RcmlValidationError)
 
@@ -600,12 +600,12 @@ describe('rfmToJson()', () => {
   })
 })
 
-// ─── inlineRfmToJson ──────────────────────────────────────────────────────────
+// ─── emailInlineRfmToJson ──────────────────────────────────────────────────────────
 
-describe('inlineRfmToJson()', () => {
+describe('emailInlineRfmToJson()', () => {
   describe('document structure', () => {
     it('plain text produces a doc > paragraph > text node', () => {
-      expect(inlineRfmToJson('Hello.')).toEqual({
+      expect(emailInlineRfmToJson('Hello.')).toEqual({
         type: 'doc',
         content: [
           {
@@ -617,7 +617,7 @@ describe('inlineRfmToJson()', () => {
     })
 
     it('multiple paragraphs produce multiple doc children', () => {
-      const doc = inlineRfmToJson('First.\n\nSecond.') as AnyJson
+      const doc = emailInlineRfmToJson('First.\n\nSecond.') as AnyJson
 
       expect(doc.content).toHaveLength(2)
     })
@@ -625,14 +625,14 @@ describe('inlineRfmToJson()', () => {
 
   describe(':font mark', () => {
     it('produces a text node with a font mark', () => {
-      const mark = (inlineRfmToJson(':font[text]{font-weight="700"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailInlineRfmToJson(':font[text]{font-weight="700"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.type).toBe('font')
       expect(mark.attrs).toEqual({ ...NULL_FONT_ATTRS, 'font-weight': '700' })
     })
 
     it('font in middle of paragraph: [plain, marked, plain]', () => {
-      const content = (inlineRfmToJson('before :font[bold]{font-weight="700"} after') as AnyJson).content[0].content
+      const content = (emailInlineRfmToJson('before :font[bold]{font-weight="700"} after') as AnyJson).content[0].content
 
       expect(content).toHaveLength(3)
       expect(content[0]).toEqual({ type: 'text', text: 'before ' })
@@ -643,7 +643,7 @@ describe('inlineRfmToJson()', () => {
 
   describe(':link mark', () => {
     it('produces a text node with a link mark', () => {
-      const mark = (inlineRfmToJson(':link[click]{href="https://example.com"}') as AnyJson).content[0].content[0].marks[0]
+      const mark = (emailInlineRfmToJson(':link[click]{href="https://example.com"}') as AnyJson).content[0].content[0].marks[0]
 
       expect(mark.type).toBe('link')
       expect(mark.attrs).toEqual({ href: 'https://example.com', target: null, 'no-tracked': 'false' })
@@ -653,7 +653,7 @@ describe('inlineRfmToJson()', () => {
   describe('inline atoms', () => {
     it('::placeholder inline in paragraph', () => {
       const content = (
-        inlineRfmToJson('Hello ::placeholder{type="User" value="v" name="n" original="o"} world') as AnyJson
+        emailInlineRfmToJson('Hello ::placeholder{type="User" value="v" name="n" original="o"} world') as AnyJson
       ).content[0].content
 
       expect(content[0]).toEqual({ type: 'text', text: 'Hello ' })
@@ -668,7 +668,7 @@ describe('inlineRfmToJson()', () => {
         '::placeholder{type="Date" original="[Date:now::Y-m-d]" name="Now"}' +
         '::placeholder{type="CustomField" original="[CustomField:Order.Id]" name="Order.Id" value="10"}\n'
 
-      const content = (inlineRfmToJson(md) as AnyJson).content[0].content
+      const content = (emailInlineRfmToJson(md) as AnyJson).content[0].content
 
       expect(content).toHaveLength(3)
       expect(content[0].type).toBe('placeholder')
@@ -678,7 +678,7 @@ describe('inlineRfmToJson()', () => {
 
     it('::loop-value inline in paragraph', () => {
       const content = (
-        inlineRfmToJson('item ::loop-value{original="[loop:x]" value="x" index="0"} end') as AnyJson
+        emailInlineRfmToJson('item ::loop-value{original="[loop:x]" value="x" index="0"} end') as AnyJson
       ).content[0].content
 
       expect(content[1].type).toBe('loop-value')
@@ -688,24 +688,24 @@ describe('inlineRfmToJson()', () => {
 
   describe('validation errors', () => {
     it('throws RcmlValidationError for bullet lists', () => {
-      expect(() => inlineRfmToJson('- item')).toThrow(RcmlValidationError)
+      expect(() => emailInlineRfmToJson('- item')).toThrow(RcmlValidationError)
     })
 
     it('throws RcmlValidationError for ordered lists', () => {
-      expect(() => inlineRfmToJson('1. item')).toThrow(RcmlValidationError)
+      expect(() => emailInlineRfmToJson('1. item')).toThrow(RcmlValidationError)
     })
 
     it('throws RcmlValidationError for :::align', () => {
-      expect(() => inlineRfmToJson(':::align{value="center"}\ntext\n:::')).toThrow(RcmlValidationError)
+      expect(() => emailInlineRfmToJson(':::align{value="center"}\ntext\n:::')).toThrow(RcmlValidationError)
     })
 
     it('throws RcmlValidationError for headings', () => {
-      expect(() => inlineRfmToJson('# Heading')).toThrow(RcmlValidationError)
+      expect(() => emailInlineRfmToJson('# Heading')).toThrow(RcmlValidationError)
     })
 
     it('error exposes structured errors array', () => {
       try {
-        inlineRfmToJson('- item')
+        emailInlineRfmToJson('- item')
       } catch (err) {
         expect(err).toBeInstanceOf(RcmlValidationError)
 

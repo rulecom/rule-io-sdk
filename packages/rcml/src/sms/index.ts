@@ -2,8 +2,8 @@ export type { SmsDocument, SmsContentJson } from './sms-types.js'
 export { createSmsDocument } from './create-sms-document.js'
 export type { CreateSmsDocumentOptions } from './create-sms-document.js'
 
-export { sfmToJson } from './sfm-to-json.js'
-export { jsonToSfm } from './json-to-sfm.js'
+export { smsRfmToJson } from './sms-rfm-to-json.js'
+export { jsonToSmsRfm } from './json-to-sms-rfm.js'
 
 export {
   validateSmsJson,
@@ -65,14 +65,14 @@ export type { SmsTagName, SmsNodeSpec } from './schema/index.js'
 export { smsSpec } from './sms-spec.js'
 export type { SmsSpec, SmsPublicTagSpec, SmsContentSpec } from './sms-spec.js'
 
-export { sfmSpec } from './sfm-spec.js'
+export { smsRfmSpec } from './sms-rfm-spec.js'
 export type {
-  SfmSpec,
-  SfmFlavorSpec,
-  SfmNodeSpec,
-  SfmMarkSpec,
-  SfmAttrSpec,
-} from './sfm-spec.js'
+  SmsRfmSpec,
+  SmsRfmFlavorSpec,
+  SmsRfmNodeSpec,
+  SmsRfmMarkSpec,
+  SmsRfmAttrSpec,
+} from './sms-rfm-spec.js'
 
 export { smsPlaceholderSpec } from './sms-placeholder-spec.js'
 export type { SmsPlaceholderTokenType } from './sms-placeholder-spec.js'

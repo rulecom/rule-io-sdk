@@ -279,9 +279,9 @@ describe('validateEmailTemplate — XML string input', () => {
   })
 
   it('propagates CONTENT_INVALID when RFM inside rc-text fails to parse', () => {
-    // Use a string that (if parsed as RFM) would emit an RFM_PARSE_ERROR at
+    // Use a string that (if parsed as RFM) would emit an EMAIL_RFM_PARSE_ERROR at
     // the xml-to-rcml layer. The xml→rcml path uses rfmToJson on the text
-    // content; malformed RFM surfaces as RFM_PARSE_ERROR, which
+    // content; malformed RFM surfaces as EMAIL_RFM_PARSE_ERROR, which
     // validate-email-template translates to CONTENT_INVALID.
     const xml = `<rcml><rc-head></rc-head><rc-body width="600px"><rc-section><rc-column><rc-text>:font[</rc-text></rc-column></rc-section></rc-body></rcml>`
     const result = safeValidateEmailTemplate(xml)

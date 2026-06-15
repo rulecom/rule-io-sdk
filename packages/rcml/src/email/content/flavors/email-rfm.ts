@@ -8,7 +8,7 @@ import { LoopValueAttrsSchema } from '../schemas/loop-value.js'
 import type { FlavorConfig } from './types.js'
 
 /**
- * Flavor configuration for full RFM content.
+ * Flavor configuration for full Email RFM content.
  *
  * Supports paragraphs, hard breaks, bullet/ordered lists, `:::align`,
  * `:font`, `:link`, `::placeholder`, `::loop-value`.
@@ -17,8 +17,8 @@ import type { FlavorConfig } from './types.js'
  *
  * @internal
  */
-export const rfmConfig: FlavorConfig = {
-  name: 'RFM',
+export const emailRfmConfig: FlavorConfig = {
+  name: 'Email RFM',
 
   allowedBlockNodes: new Set(['list', 'listItem', 'break']),
 

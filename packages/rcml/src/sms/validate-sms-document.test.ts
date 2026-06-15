@@ -5,7 +5,7 @@ import {
   SmsDocumentValidationError,
 } from './validate-sms-document.js'
 import { createSmsDocument } from './create-sms-document.js'
-import { sfmToJson } from './sfm-to-json.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
 
 describe('validateSmsDocument()', () => {
   it('accepts a valid document built with createSmsDocument', () => {
@@ -22,7 +22,7 @@ describe('validateSmsDocument()', () => {
   })
 
   it('rejects wrong tagName', () => {
-    const doc = { tagName: 'rc-email' as 'rc-sms', attributes: {} as never, content: sfmToJson('') }
+    const doc = { tagName: 'rc-email' as 'rc-sms', attributes: {} as never, content: smsRfmToJson('') }
 
     expect(() => validateSmsDocument(doc)).toThrow(SmsDocumentValidationError)
   })
@@ -31,7 +31,7 @@ describe('validateSmsDocument()', () => {
     const doc = {
       tagName: 'rc-sms' as const,
       attributes: { foo: 'bar' } as never,
-      content: sfmToJson(''),
+      content: smsRfmToJson(''),
     }
 
     expect(() => validateSmsDocument(doc)).toThrow(SmsDocumentValidationError)
@@ -57,7 +57,7 @@ describe('safeValidateSmsDocument()', () => {
   })
 
   it('returns failure with STRUCTURE_INVALID for wrong tagName', () => {
-    const doc = { tagName: 'rc-sms' as const, attributes: {} as never, content: sfmToJson('') }
+    const doc = { tagName: 'rc-sms' as const, attributes: {} as never, content: smsRfmToJson('') }
     const broken = { ...doc, tagName: 'nope' as 'rc-sms' }
     const result = safeValidateSmsDocument(broken)
 

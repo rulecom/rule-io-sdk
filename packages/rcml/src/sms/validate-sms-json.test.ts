@@ -1,18 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { validateSmsJson, safeParseSmsJson, SmsContentParseError } from './validate-sms-json.js'
-import { sfmToJson } from './sfm-to-json.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
 
 describe('validateSmsJson()', () => {
-  it('accepts a valid empty doc from sfmToJson', () => {
-    expect(() => validateSmsJson(sfmToJson(''))).not.toThrow()
+  it('accepts a valid empty doc from smsRfmToJson', () => {
+    expect(() => validateSmsJson(smsRfmToJson(''))).not.toThrow()
   })
 
   it('accepts a valid doc with text', () => {
-    expect(() => validateSmsJson(sfmToJson('Hello [Subscriber:FirstName]'))).not.toThrow()
+    expect(() => validateSmsJson(smsRfmToJson('Hello [Subscriber:FirstName]'))).not.toThrow()
   })
 
   it('accepts a placeholder with Link type', () => {
-    const doc = sfmToJson('[Link:Unsubscribe]')
+    const doc = smsRfmToJson('[Link:Unsubscribe]')
 
     expect(() => validateSmsJson(doc)).not.toThrow()
   })
@@ -95,7 +95,7 @@ describe('validateSmsJson()', () => {
 
 describe('safeParseSmsJson()', () => {
   it('returns success for valid input', () => {
-    const result = safeParseSmsJson(sfmToJson('Hello'))
+    const result = safeParseSmsJson(smsRfmToJson('Hello'))
 
     expect(result.success).toBe(true)
   })

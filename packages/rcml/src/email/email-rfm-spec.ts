@@ -1,7 +1,7 @@
 /**
- * Public machine-readable RFM spec.
+ * Public machine-readable Email RFM spec.
  *
- * Describes the two RFM content flavors (`rcml-content` and
+ * Describes the two Email RFM content flavors (`rcml-content` and
  * `inline-rcml-content`) at two levels:
  *
  *  - **flavors** — which markdown constructs (block nodes, inline nodes,
@@ -14,11 +14,11 @@
  *
  * ```ts
  * const tag   = rcmlSpec.tags['rc-text']         // content.type === 'rcml-content'
- * const flavor = rfmSpec.flavors['rcml-content']  // describes what markdown is valid here
+ * const flavor = emailRfmSpec.flavors['rcml-content']  // describes what markdown is valid here
  * ```
  */
 
-import { rfmConfig, inlineRfmConfig } from './content/flavors/index.js'
+import { emailRfmConfig, emailInlineRfmConfig } from './content/flavors/index.js'
 import type { FlavorConfig } from './content/flavors/types.js'
 
 // ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ import type { FlavorConfig } from './content/flavors/types.js'
 // ---------------------------------------------------------------------------
 
 /** Per-attribute descriptor inside an RFM node or mark spec. */
-export interface RfmAttrSpec {
+export interface EmailRfmAttrSpec {
   /** Broad value type, e.g. 'string', 'enum', 'boolean'. */
   type: string
   /** `true` when the attribute must be present. */
@@ -40,29 +40,29 @@ export interface RfmAttrSpec {
 }
 
 /** Describes one JSON node type (paragraph, bullet-list, font, …). */
-export interface RfmNodeSpec {
+export interface EmailRfmNodeSpec {
   /** Human-readable description. */
   description: string
   /** Which content flavors include this node type. */
   flavors: string[]
   /** Allowed attributes on this node's `attrs` object, if any. */
-  attrs?: Record<string, RfmAttrSpec>
+  attrs?: Record<string, EmailRfmAttrSpec>
   /** Prose description of what the `content` array may hold. */
   contentDescription?: string
 }
 
 /** Describes one mark type (font, link). */
-export interface RfmMarkSpec {
+export interface EmailRfmMarkSpec {
   /** Human-readable description. */
   description: string
   /** Which content flavors allow this mark. */
   flavors: string[]
   /** Allowed attributes on the mark's `attrs` object. */
-  attrs: Record<string, RfmAttrSpec>
+  attrs: Record<string, EmailRfmAttrSpec>
 }
 
 /** Describes one RFM flavor at the markdown-syntax level. */
-export interface RfmFlavorSpec {
+export interface EmailRfmFlavorSpec {
   /** Human-readable description. */
   description: string
   /** When `true`, the document must contain exactly one paragraph. */
@@ -76,15 +76,15 @@ export interface RfmFlavorSpec {
 }
 
 /** Top-level machine-readable RFM specification exported from @rulecom/rcml. */
-export interface RfmSpec {
+export interface EmailRfmSpec {
   /** Spec format version. */
   version: string
   /** Flavors keyed by their `RcmlContentSpec.type` string. */
-  flavors: Record<string, RfmFlavorSpec>
+  flavors: Record<string, EmailRfmFlavorSpec>
   /** All JSON node types (both block and inline). */
-  nodes: Record<string, RfmNodeSpec>
+  nodes: Record<string, EmailRfmNodeSpec>
   /** All JSON mark types. */
-  marks: Record<string, RfmMarkSpec>
+  marks: Record<string, EmailRfmMarkSpec>
 }
 
 // ---------------------------------------------------------------------------
@@ -93,7 +93,7 @@ export interface RfmSpec {
 // the Zod schemas which are internal and not part of the public spec layer.
 // ---------------------------------------------------------------------------
 
-const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
+const NODE_META: Record<string, Omit<EmailRfmNodeSpec, 'flavors'>> = {
   doc: {
     description:
       'Root document node. Its `content` array holds one or more block nodes. In `inline-rcml-content` exactly one paragraph is allowed.',
@@ -265,7 +265,7 @@ const NODE_META: Record<string, Omit<RfmNodeSpec, 'flavors'>> = {
   },
 }
 
-const MARK_META: Record<string, Omit<RfmMarkSpec, 'flavors'>> = {
+const MARK_META: Record<string, Omit<EmailRfmMarkSpec, 'flavors'>> = {
   font: {
     description:
       'Applies inline typographic styling (font family, size, weight, colour, decoration, etc.) to a text run. At least one attribute must be set. Available in both flavors.',
@@ -356,7 +356,7 @@ const MARK_META: Record<string, Omit<RfmMarkSpec, 'flavors'>> = {
 // Maps internal FlavorConfig (MDAST names) to public JSON node type names.
 // ---------------------------------------------------------------------------
 
-function buildFlavorSpec(config: FlavorConfig, description: string): RfmFlavorSpec {
+function buildFlavorSpec(config: FlavorConfig, description: string): EmailRfmFlavorSpec {
   const blockNodes: string[] = ['paragraph']
 
   if (config.allowedBlockNodes.has('list')) {
@@ -388,21 +388,21 @@ function buildFlavorSpec(config: FlavorConfig, description: string): RfmFlavorSp
   }
 }
 
-function buildRfmSpec(): RfmSpec {
+function buildEmailRfmSpec(): EmailRfmSpec {
   const flavorMap = {
     'rcml-content': buildFlavorSpec(
-      rfmConfig,
-      'Full RFM content flavor used by rc-text and rc-heading. Supports paragraphs, bullet/ordered lists, alignment blocks, hard breaks, inline marks (:font, :link), and dynamic directives (::placeholder, ::loop-value).',
+      emailRfmConfig,
+      'Full Email RFM content flavor used by rc-text and rc-heading. Supports paragraphs, bullet/ordered lists, alignment blocks, hard breaks, inline marks (:font, :link), and dynamic directives (::placeholder, ::loop-value).',
     ),
     'inline-rcml-content': buildFlavorSpec(
-      inlineRfmConfig,
-      'Inline RFM content flavor used by rc-button labels. Restricted to a single paragraph — no lists, no hard breaks, no :::align blocks. Supports the same inline marks and directives as rcml-content.',
+      emailInlineRfmConfig,
+      'Email Inline RFM content flavor used by rc-button labels. Restricted to a single paragraph — no lists, no hard breaks, no :::align blocks. Supports the same inline marks and directives as rcml-content.',
     ),
   }
 
   const allFlavorNames = Object.keys(flavorMap)
 
-  const nodes: Record<string, RfmNodeSpec> = {}
+  const nodes: Record<string, EmailRfmNodeSpec> = {}
 
   for (const [name, meta] of Object.entries(NODE_META)) {
     let flavors: string[]
@@ -420,7 +420,7 @@ function buildRfmSpec(): RfmSpec {
     nodes[name] = { ...meta, flavors }
   }
 
-  const marks: Record<string, RfmMarkSpec> = {}
+  const marks: Record<string, EmailRfmMarkSpec> = {}
 
   for (const [name, meta] of Object.entries(MARK_META)) {
     const flavors = allFlavorNames.filter((f) => {
@@ -436,25 +436,25 @@ function buildRfmSpec(): RfmSpec {
 }
 
 /**
- * Machine-readable RFM specification.
+ * Machine-readable Email RFM specification.
  *
  * @example
  * ```ts
- * import { rfmSpec } from '@rulecom/rcml'
+ * import { emailRfmSpec } from '@rulecom/rcml'
  *
  * // Which block nodes are valid inside an rc-text?
- * rfmSpec.flavors['rcml-content'].blockNodes
+ * emailRfmSpec.flavors['rcml-content'].blockNodes
  * // → ['paragraph', 'bullet-list', 'ordered-list', 'align']
  *
  * // Cross-reference with rcmlSpec:
  * const tag = rcmlSpec.tags['rc-button']    // content.type === 'inline-rcml-content'
- * const flavor = rfmSpec.flavors[tag.content.type]
+ * const flavor = emailRfmSpec.flavors[tag.content.type]
  * flavor.singleParagraph  // true
  *
  * // Attribute schema for the font mark:
- * rfmSpec.marks['font'].attrs['font-weight']
+ * emailRfmSpec.marks['font'].attrs['font-weight']
  * // → { type: 'string', required: false, description: '…' }
  * ```
  * @public
  */
-export const rfmSpec: RfmSpec = buildRfmSpec()
+export const emailRfmSpec: EmailRfmSpec = buildEmailRfmSpec()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { jsonToInlineRfm, jsonToRfm } from './json-to-rfm.js'
+import { jsonToEmailRfm, jsonToEmailInlineRfm } from './json-to-email-rfm.js'
 import type { Json } from './validate-rcml-json.js'
 
 /**
@@ -23,13 +23,13 @@ function doc(...blocks: unknown[]): Json {
   return { type: 'doc', content: blocks } as Json
 }
 
-describe('jsonToRfm', () => {
+describe('jsonToEmailRfm', () => {
   it('serializes a plain-text paragraph', () => {
-    expect(jsonToRfm(doc(paragraph(text('Hello world'))))).toBe('Hello world')
+    expect(jsonToEmailRfm(doc(paragraph(text('Hello world'))))).toBe('Hello world')
   })
 
   it('joins multiple block paragraphs with a blank line', () => {
-    expect(jsonToRfm(doc(paragraph(text('First')), paragraph(text('Second'))))).toBe('First\n\nSecond')
+    expect(jsonToEmailRfm(doc(paragraph(text('First')), paragraph(text('Second'))))).toBe('First\n\nSecond')
   })
 
   it('emits a :font directive for a text node carrying a font mark', () => {
@@ -54,7 +54,7 @@ describe('jsonToRfm', () => {
         ],
       }),
     )
-    const out = jsonToRfm(json)
+    const out = jsonToEmailRfm(json)
 
     expect(out).toContain(':font[bold]')
     expect(out).toContain('font-weight="bold"')
@@ -73,7 +73,7 @@ describe('jsonToRfm', () => {
         ],
       }),
     )
-    const out = jsonToRfm(json)
+    const out = jsonToEmailRfm(json)
 
     expect(out).toContain(':link[click]')
     expect(out).toContain('href="https://example.com"')
@@ -96,7 +96,7 @@ describe('jsonToRfm', () => {
         },
       ],
     })
-    const out = jsonToRfm(json)
+    const out = jsonToEmailRfm(json)
 
     expect(out).toContain('- one')
     expect(out).toContain('- two')
@@ -115,7 +115,7 @@ describe('jsonToRfm', () => {
       ],
     })
 
-    expect(jsonToRfm(json)).toContain('1. first')
+    expect(jsonToEmailRfm(json)).toContain('1. first')
   })
 
   it('serializes an :::align block', () => {
@@ -124,7 +124,7 @@ describe('jsonToRfm', () => {
       attrs: { value: 'center' },
       content: [paragraph(text('centered'))],
     })
-    const out = jsonToRfm(json)
+    const out = jsonToEmailRfm(json)
 
     expect(out).toContain(':::align{value="center"}')
     expect(out).toContain('centered')
@@ -146,7 +146,7 @@ describe('jsonToRfm', () => {
         },
       ),
     )
-    const out = jsonToRfm(json)
+    const out = jsonToEmailRfm(json)
 
     expect(out).toContain('::placeholder')
     expect(out).toContain('type="Subscriber"')
@@ -154,18 +154,18 @@ describe('jsonToRfm', () => {
   })
 
   it('returns an empty string for an empty document', () => {
-    expect(jsonToRfm(doc())).toBe('')
+    expect(jsonToEmailRfm(doc())).toBe('')
   })
 })
 
-describe('jsonToInlineRfm', () => {
+describe('jsonToEmailInlineRfm', () => {
   it('serializes a plain-text paragraph', () => {
-    expect(jsonToInlineRfm(doc(paragraph(text('Hello'))))).toBe('Hello')
+    expect(jsonToEmailInlineRfm(doc(paragraph(text('Hello'))))).toBe('Hello')
   })
 
-  it('produces the same output as jsonToRfm for inline-RFM-compatible content', () => {
+  it('produces the same output as jsonToEmailRfm for inline-RFM-compatible content', () => {
     const json = doc(paragraph(text('Hello')))
 
-    expect(jsonToInlineRfm(json)).toBe(jsonToRfm(json))
+    expect(jsonToEmailInlineRfm(json)).toBe(jsonToEmailRfm(json))
   })
 })

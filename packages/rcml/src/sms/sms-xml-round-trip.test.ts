@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { SmsDocument } from './sms-types.js'
 import { smsToXml } from './sms-to-xml.js'
 import { xmlToSms } from './xml-to-sms.js'
-import { sfmToJson } from './sfm-to-json.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
 
 /**
  * Docs that exercise the full range of SMS document shapes.
@@ -13,7 +13,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson(''),
+      content: smsRfmToJson(''),
     },
   },
   {
@@ -21,7 +21,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Your order has shipped!'),
+      content: smsRfmToJson('Your order has shipped!'),
     },
   },
   {
@@ -29,7 +29,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Hi [Subscriber:FirstName], your order is ready.'),
+      content: smsRfmToJson('Hi [Subscriber:FirstName], your order is ready.'),
     },
   },
   {
@@ -37,7 +37,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Hello [Subscriber:FirstName], total: [CustomField:Order.Total]. [Link:Unsubscribe]'),
+      content: smsRfmToJson('Hello [Subscriber:FirstName], total: [CustomField:Order.Total]. [Link:Unsubscribe]'),
     },
   },
   {
@@ -45,7 +45,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Line one\nLine two\nLine three'),
+      content: smsRfmToJson('Line one\nLine two\nLine three'),
     },
   },
   {
@@ -53,7 +53,7 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
     doc: {
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Para one\n\nPara two\n\nPara three'),
+      content: smsRfmToJson('Para one\n\nPara two\n\nPara three'),
     },
   },
   {
@@ -62,13 +62,13 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
       id: 'abc-123',
       tagName: 'rc-sms',
       attributes: {},
-      content: sfmToJson('Hello [Subscriber:FirstName]'),
+      content: smsRfmToJson('Hello [Subscriber:FirstName]'),
     },
   },
 ]
 
 // Documents with link marks are intentionally excluded from ROUND_TRIP_DOCS:
-// the XML format serializes content as SFM, which cannot represent link marks.
+// the XML format serializes content as SMS RFM.
 // Link mark lossiness is tested explicitly below.
 
 describe('smsToXml → xmlToSms round-trip', () => {
@@ -93,7 +93,7 @@ describe('xmlToSms → smsToXml (string → JSON → string) idempotence', () =>
   })
 
   it('stable over multiple round-trips', () => {
-    const original = sfmToJson('Hi [Subscriber:FirstName]!\nYour total: [CustomField:Order.Total].')
+    const original = smsRfmToJson('Hi [Subscriber:FirstName]!\nYour total: [CustomField:Order.Total].')
     const doc: SmsDocument = { tagName: 'rc-sms', attributes: {}, content: original }
     const xml1 = smsToXml(doc)
     const doc2 = xmlToSms(xml1)
@@ -104,8 +104,8 @@ describe('xmlToSms → smsToXml (string → JSON → string) idempotence', () =>
   })
 })
 
-describe('XML round-trip — known lossiness', () => {
-  it('link marks are dropped because SFM cannot represent them', () => {
+describe('XML round-trip — link marks', () => {
+  it('link marks survive the XML round-trip via :link directive syntax', () => {
     const docWithLink: SmsDocument = {
       tagName: 'rc-sms',
       attributes: {},
@@ -130,15 +130,7 @@ describe('XML round-trip — known lossiness', () => {
     const xml = smsToXml(docWithLink)
     const restored = xmlToSms(xml)
 
-    // Link marks are stripped — the text is preserved but marks are gone.
-    expect(restored.content).toEqual({
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph',
-          content: [{ type: 'text', text: 'Hello click here' }],
-        },
-      ],
-    })
+    // Link marks are preserved via :link[...]{...} directive serialization.
+    expect(restored.content).toEqual(docWithLink.content)
   })
 })

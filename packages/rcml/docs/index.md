@@ -13,7 +13,7 @@ accepts when creating or updating a template, and the format produced by the ele
 factory functions in this package.
 
 **XML** is a human-readable and LLM-friendly serialisation of the same structure. Text
-content inside elements uses **RFM** (Rule Flavored Markdown) — a compact markdown
+content inside elements uses **Email RFM** (Rule Flavored Markdown) — a compact markdown
 dialect — rather than the verbose ProseMirror nodes used in the JSON AST. Both formats
 carry the same information and convert losslessly in either direction.
 
@@ -43,7 +43,7 @@ full composition walkthrough.
 
 Helpers for constructing the ProseMirror rich-text content that lives inside
 `rc-text`, `rc-heading`, and `rc-button` elements. `createTextContent()` is the most
-common entry point — it accepts an RFM markdown string and returns the ProseMirror JSON
+common entry point — it accepts an Email RFM markdown string and returns the ProseMirror JSON
 document expected by the element factories.
 
 ```typescript
@@ -52,9 +52,9 @@ import { createTextContent, createInlineContent, createTextNode, createPlacehold
 const content = createTextContent('Hi ::subscriber.first_name::, **your order** is confirmed.');
 ```
 
-### RFM string builders
+### Email RFM string builders
 
-Utility functions that produce valid RFM syntax strings for use in template copy:
+Utility functions that produce valid Email RFM syntax strings for use in template copy:
 `createCustomField`, `createLoopValue`, `createLink`, `createFont`.
 
 ### Theme utilities
@@ -87,8 +87,8 @@ Convert between JSON and XML in either direction:
 | `rcmlToXml(doc, options?)` | JSON AST → XML string |
 | `xmlToRcml(xml)` | XML string → JSON AST (throws on error) |
 | `safeXmlToRcml(xml)` | XML string → JSON AST (returns discriminated union) |
-| `rfmToJson(rfm)` | RFM markdown → ProseMirror JSON |
-| `jsonToRfm(json)` | ProseMirror JSON → RFM markdown |
+| `emailRfmToJson(rfm)` | RFM markdown → ProseMirror JSON |
+| `jsonToEmailRfm(json)` | ProseMirror JSON → Email RFM markdown |
 
 See [Building programmatically](/packages/rcml/email/building-programmatically) and
 [Building with LLM](/packages/rcml/email/building-with-llm) for usage patterns.
@@ -104,11 +104,11 @@ See [Validation](/packages/rcml/email/validation) for full details.
 ### Schema specs
 
 Three machine-readable constants that describe the full RCML schema for use in LLM
-system prompts: `rcmlSpec`, `rfmSpec`, and `placeholderSpec`. Each is a plain
+system prompts: `rcmlSpec`, `emailRfmSpec`, and `placeholderSpec`. Each is a plain
 JSON-serializable object.
 
 ```typescript
-import { rcmlSpec, rfmSpec, placeholderSpec } from '@rulecom/rcml';
+import { rcmlSpec, emailRfmSpec, placeholderSpec } from '@rulecom/rcml';
 // JSON.stringify and include in an LLM system prompt
 ```
 
@@ -118,7 +118,7 @@ prompting pattern.
 ## SMS templates
 
 The SMS module provides a parallel set of utilities for building SMS messages. An SMS
-template is a single `rc-sms` element whose body is written in SFM (SMS Format Markup),
+template is a single `rc-sms` element whose body is written in SMS RFM (SMS RFM),
 a simple `[Type:Name]` placeholder syntax.
 
 ```typescript
@@ -132,7 +132,7 @@ const doc = createSmsDocument({
 Three machine-readable spec constants for SMS LLM generation:
 
 ```typescript
-import { smsSpec, sfmSpec, smsPlaceholderSpec } from '@rulecom/rcml';
+import { smsSpec, smsRfmSpec, smsPlaceholderSpec } from '@rulecom/rcml';
 ```
 
 See [SMS](/packages/rcml/sms/) for the full SMS module documentation.

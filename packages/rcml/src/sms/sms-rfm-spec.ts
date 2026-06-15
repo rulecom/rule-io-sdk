@@ -1,18 +1,18 @@
 /**
- * Public machine-readable SFM (SMS Format Markup) spec.
+ * Public machine-readable SMS RFM (SMS Rule Flavor Markdown) spec.
  *
- * Describes the `sfm-content` flavor at two levels:
+ * Describes the `sms-rfm-content` flavor at two levels:
  *
  *  - **flavors** — which constructs the flavor permits (inline nodes + marks).
  *  - **nodes / marks** — the JSON document shape: every node and mark type
  *    with its attributes.
  *
- * The flavor key `'sfm-content'` matches the `content.type` field in
+ * The flavor key `'sms-rfm-content'` matches the `content.type` field in
  * {@link SmsPublicTagSpec} so consumers can cross-reference:
  *
  * ```ts
- * const tag    = smsSpec.tags['rc-sms']         // content.type === 'sfm-content'
- * const flavor = sfmSpec.flavors['sfm-content']  // describes the valid content
+ * const tag    = smsSpec.tags['rc-sms']              // content.type === 'sms-rfm-content'
+ * const flavor = smsRfmSpec.flavors['sms-rfm-content'] // describes the valid content
  * ```
  *
  * For the backend placeholder tokens that are valid in SMS, cross-reference
@@ -21,8 +21,8 @@
 
 // ─── Public types ─────────────────────────────────────────────────────────────
 
-/** Per-attribute descriptor inside an SFM node or mark spec. @public */
-export interface SfmAttrSpec {
+/** Per-attribute descriptor inside an SMS RFM node or mark spec. @public */
+export interface SmsRfmAttrSpec {
   /** Broad value type, e.g. `'string'`, `'boolean'`, `'enum'`. */
   type: string
   /** `true` when the attribute must be present. */
@@ -36,25 +36,25 @@ export interface SfmAttrSpec {
 }
 
 /** Describes one JSON node type. @public */
-export interface SfmNodeSpec {
+export interface SmsRfmNodeSpec {
   /** Human-readable description. */
   description: string
   /** Allowed attributes on this node's `attrs` object, if any. */
-  attrs?: Record<string, SfmAttrSpec>
+  attrs?: Record<string, SmsRfmAttrSpec>
   /** Prose description of what the `content` array may hold. */
   contentDescription?: string
 }
 
 /** Describes one mark type. @public */
-export interface SfmMarkSpec {
+export interface SmsRfmMarkSpec {
   /** Human-readable description. */
   description: string
   /** Allowed attributes on the mark's `attrs` object. */
-  attrs: Record<string, SfmAttrSpec>
+  attrs: Record<string, SmsRfmAttrSpec>
 }
 
-/** Describes the SFM content flavor. @public */
-export interface SfmFlavorSpec {
+/** Describes the SMS RFM content flavor. @public */
+export interface SmsRfmFlavorSpec {
   /** Human-readable description. */
   description: string
   /** JSON node types that may appear in `doc.content` (block level). */
@@ -66,24 +66,24 @@ export interface SfmFlavorSpec {
 }
 
 /**
- * Top-level machine-readable SFM specification exported from `@rulecom/rcml`.
+ * Top-level machine-readable SMS RFM specification exported from `@rulecom/rcml`.
  *
  * @public
  */
-export interface SfmSpec {
+export interface SmsRfmSpec {
   /** Spec format version. */
   version: string
-  /** Flavors keyed by their content type string. SMS has one: `'sfm-content'`. */
-  flavors: Record<string, SfmFlavorSpec>
+  /** Flavors keyed by their content type string. SMS has one: `'sms-rfm-content'`. */
+  flavors: Record<string, SmsRfmFlavorSpec>
   /** All JSON node types (doc, paragraph, text, placeholder, hardbreak). */
-  nodes: Record<string, SfmNodeSpec>
+  nodes: Record<string, SmsRfmNodeSpec>
   /** All JSON mark types (link). */
-  marks: Record<string, SfmMarkSpec>
+  marks: Record<string, SmsRfmMarkSpec>
 }
 
 // ─── Metadata ─────────────────────────────────────────────────────────────────
 
-const NODE_META: Record<string, SfmNodeSpec> = {
+const NODE_META: Record<string, SmsRfmNodeSpec> = {
   doc: {
     description:
       'Root document node. Its `content` array holds one or more paragraph blocks.',
@@ -91,7 +91,7 @@ const NODE_META: Record<string, SfmNodeSpec> = {
   },
   paragraph: {
     description:
-      'A paragraph of inline content. SMS documents may contain multiple paragraphs separated by blank lines in SFM.',
+      'A paragraph of inline content. SMS documents may contain multiple paragraphs separated by blank lines in SMS RFM.',
     contentDescription: 'Zero or more inline nodes (text, placeholder, hardbreak).',
   },
   text: {
@@ -109,6 +109,8 @@ const NODE_META: Record<string, SfmNodeSpec> = {
   placeholder: {
     description:
       'A dynamic value inserted at render time (e.g. subscriber first name, custom field value). ' +
+      'In SMS RFM, placeholders can be written as the `[Type:Name]` shorthand (e.g. `[Subscriber:FirstName]`) ' +
+      'or as the full `::placeholder{type="..." original="..." name="..." value="..." max-length="..."}` directive. ' +
       'See `smsPlaceholderSpec` for the token syntax and parameters for each `type`.',
     attrs: {
       type: {
@@ -148,7 +150,7 @@ const NODE_META: Record<string, SfmNodeSpec> = {
   },
   hardbreak: {
     description:
-      'A hard line break. In SFM source this corresponds to a single `\\n`. ' +
+      'A hard line break. In SMS RFM source this corresponds to a single `\\n`. ' +
       'Two consecutive newlines (`\\n\\n`) create a new paragraph instead.',
     attrs: {
       isInline: {
@@ -156,20 +158,21 @@ const NODE_META: Record<string, SfmNodeSpec> = {
         required: true,
         description:
           'When `true` the break is inline inside a paragraph. ' +
-          'The SFM parser always produces `false`; the editor may produce `true` for inline breaks.',
+          'The SMS RFM parser always produces `false`; the editor may produce `true` for inline breaks.',
         examples: [],
       },
     },
   },
 }
 
-const MARK_META: Record<string, SfmMarkSpec> = {
+const MARK_META: Record<string, SmsRfmMarkSpec> = {
   link: {
     description:
       'Wraps a text run in a hyperlink with SMS-specific tracking and shortening options. ' +
       'Unlike the email link mark, SMS uses boolean `track`/`shorten` flags instead of ' +
-      '`target`/`no-tracked` strings. Link marks are NOT representable in SFM text — ' +
-      'construct `SmsContentJson` directly when you need linked text.',
+      '`target`/`no-tracked` strings. ' +
+      'In SMS RFM, links are expressed with the `:link` text directive: ' +
+      '`:link[text]{href="https://example.com" track="true" shorten="true"}`.',
     attrs: {
       href: {
         type: 'string',
@@ -198,12 +201,15 @@ const MARK_META: Record<string, SfmMarkSpec> = {
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
 
-function buildSfmSpec(): SfmSpec {
-  const flavor: SfmFlavorSpec = {
+function buildSmsRfmSpec(): SmsRfmSpec {
+  const flavor: SmsRfmFlavorSpec = {
     description:
-      'SFM (SMS Format Markup) content flavor. Paragraphs only — no lists, no align blocks. ' +
+      'SMS RFM (SMS Rule Flavor Markdown) content flavor. Uses markdown-directive syntax. ' +
+      'Paragraphs only — no lists, no align blocks. ' +
       'Supports text runs, placeholders, hardbreaks, and link marks. ' +
-      'Paragraphs are separated by double newlines in SFM source; single newlines produce hardbreaks.',
+      'Links are written as `:link[text]{href="..." track="true|false" shorten="true|false"}`. ' +
+      'Placeholders accept either the `::placeholder{...}` directive form or the compact `[Type:Name]` shorthand. ' +
+      'Paragraphs are separated by double newlines; backslash-newlines produce hardbreaks.',
     blockNodes: ['paragraph'],
     inlineNodes: ['text', 'placeholder', 'hardbreak'],
     marks: ['link'],
@@ -211,29 +217,29 @@ function buildSfmSpec(): SfmSpec {
 
   return {
     version: '0.1.0',
-    flavors: { 'sfm-content': flavor },
+    flavors: { 'sms-rfm-content': flavor },
     nodes: NODE_META,
     marks: MARK_META,
   }
 }
 
 /**
- * Machine-readable SFM specification.
+ * Machine-readable SMS RFM specification.
  *
  * @example
  * ```ts
- * import { sfmSpec, smsPlaceholderSpec } from '@rulecom/rcml'
+ * import { smsRfmSpec, smsPlaceholderSpec } from '@rulecom/rcml'
  *
  * // Which inline nodes are valid in SMS content?
- * sfmSpec.flavors['sfm-content'].inlineNodes
+ * smsRfmSpec.flavors['sms-rfm-content'].inlineNodes
  * // → ['text', 'placeholder', 'hardbreak']
  *
  * // Attribute schema for the link mark:
- * sfmSpec.marks['link'].attrs['track']
+ * smsRfmSpec.marks['link'].attrs['track']
  * // → { type: 'boolean', required: true, description: '...' }
  *
  * // Which placeholder types are allowed?
- * sfmSpec.nodes['placeholder'].attrs?.['type'].allowedValues
+ * smsRfmSpec.nodes['placeholder'].attrs?.['type'].allowedValues
  * // → ['CustomField', 'Subscriber', 'User', 'RemoteContent', 'Date', 'Link']
  *
  * // Cross-reference token syntax:
@@ -242,4 +248,4 @@ function buildSfmSpec(): SfmSpec {
  * ```
  * @public
  */
-export const sfmSpec: SfmSpec = buildSfmSpec()
+export const smsRfmSpec: SmsRfmSpec = buildSmsRfmSpec()
