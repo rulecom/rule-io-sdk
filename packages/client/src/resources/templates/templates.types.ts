@@ -41,12 +41,28 @@ export interface Template {
    * For email templates this is an `RcmlDocument`; for SMS templates this is
    * an `SmsDocument`. Mapped from the wire's `template` field. Optional
    * because the API may omit the template body in some list responses.
+   *
+   * The type is the union `RcmlDocument | SmsDocument`. `messageType` is
+   * typed as a plain `string` rather than a discriminator, so TypeScript
+   * does not narrow `content` automatically — callers that need a
+   * specific shape should narrow manually:
+   *
+   * ```typescript
+   * if (template.messageType === 'email') {
+   *   const rcml = template.content as RcmlDocument | undefined;
+   * } else if (template.messageType === 'text_message') {
+   *   const sms = template.content as SmsDocument | undefined;
+   * }
+   * ```
    */
   content?: RcmlDocument | SmsDocument;
   /**
    * Message type this template was created for.
    *
    * `'email'` for email templates, `'text_message'` for SMS templates.
+   * Typed as `string` (not a literal union) so adding a new server-side
+   * value does not break consumers; narrow `content` manually based on
+   * the value you care about.
    */
   messageType: string;
   /** ISO 8601 timestamp of when the template was created. */
