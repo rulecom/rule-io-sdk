@@ -120,7 +120,7 @@ export interface CreateEmailTemplatePayload {
  * Payload for `TemplatesClient.createSmsTemplate`.
  *
  * The message type is fixed to `'text_message'` by the method. Construct the
- * `content` document with {@link createSmsDocument} from `@rulecom/rcml`.
+ * `content` document with `createSmsDocument` from `@rulecom/rcml`.
  *
  * @example
  * ```typescript
@@ -176,7 +176,7 @@ export interface UpdateEmailTemplatePayload {
  * import { createSmsDocument } from '@rulecom/rcml';
  *
  * await client.templates.updateSmsTemplate(templateId, {
- *   content: createSmsDocument({ text: 'Your order has shipped — updated!' }),
+ *   content: createSmsDocument({ content: 'Your order has shipped — updated!' }),
  * });
  * ```
  */

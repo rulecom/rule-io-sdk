@@ -218,7 +218,7 @@ export interface BulkCreateSubscriberEntry {
 export type BulkCreateAutomationMode = false | 'reset' | 'force';
 
 /**
- * Payload for {@link SubscribersClient.bulkCreateSubscribers}.
+ * Payload for `SubscribersClient.bulkCreateSubscribers`.
  *
  * Wraps the v2 `POST /subscribers` "create multiple" endpoint. Top-level
  * fields apply to every subscriber in the batch; per-entry fields are set
@@ -260,7 +260,7 @@ export interface BulkCreateSubscribersPayload {
 }
 
 /**
- * Return value of {@link SubscribersClient.bulkCreateSubscribers}.
+ * Return value of `SubscribersClient.bulkCreateSubscribers`.
  *
  * The v2 endpoint processes large batches asynchronously, so the
  * synchronous response is an acknowledgement rather than the list of
