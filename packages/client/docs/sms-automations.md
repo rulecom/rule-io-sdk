@@ -101,30 +101,30 @@ await client.automations.updateSmsAutomation(automationId, { active: true });
 
 ## Listing automations
 
-Filter to SMS using the `messageType: 'sms'` filter:
+Filter to SMS using the `messageType: 'text_message'` filter:
 
 ```typescript
 // One page — for UI tables, manual pagination, or retrying a specific page
 const page = await client.automations.listAutomations({
-  filters: { active: true, messageType: 'sms' },
+  filters: { active: true, messageType: 'text_message' },
   pagination: { page: 1, pageSize: 20 },
 });
 
 // All SMS automations as a single array
 const all = await client.automations.listAllAutomations({
-  filters: { active: true, messageType: 'sms' },
+  filters: { active: true, messageType: 'text_message' },
 });
 
 // Stream individual automations — memory-efficient for large lists
 for await (const automation of client.automations.iterateAutomations({
-  filters: { messageType: 'sms' },
+  filters: { messageType: 'text_message' },
 })) {
   console.log(automation.name, automation.active);
 }
 
 // Stream page by page — useful for batched processing
 for await (const page of client.automations.iterateAutomationsPages({
-  filters: { messageType: 'sms' },
+  filters: { messageType: 'text_message' },
   pagination: { pageSize: 20 },
 })) {
   console.log(`Batch of ${page.length} SMS automations`);

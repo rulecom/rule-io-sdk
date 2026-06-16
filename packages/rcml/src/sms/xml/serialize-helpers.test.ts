@@ -29,7 +29,7 @@ describe('serializeSmsToXml()', () => {
     const doc = createSmsDocument({ content: '' })
     const xml = serializeSmsToXml(doc, {})
 
-    // Empty paragraph → empty SFM → empty element
+    // Empty paragraph → empty SMS RFM → empty element
     expect(xml).toMatch(/^<rc-sms/)
   })
 

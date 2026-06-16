@@ -138,26 +138,26 @@ if (campaign) {
 
 ## Listing campaigns
 
-The API returns campaigns of all message types. Filter to SMS using the `messageType: 'sms'` filter:
+The API returns campaigns of all message types. Filter to SMS using the `messageType: 'text_message'` filter:
 
 ```typescript
 // One page — for UI tables, manual pagination, or retrying a specific page
 const page = await client.campaigns.listCampaigns({
-  filters: { messageType: 'sms' },
+  filters: { messageType: 'text_message' },
   pagination: { page: 1, pageSize: 20 },
 });
 
 // All SMS campaigns as a single array
-const all = await client.campaigns.listAllCampaigns({ filters: { messageType: 'sms' } });
+const all = await client.campaigns.listAllCampaigns({ filters: { messageType: 'text_message' } });
 
 // Stream individual campaigns — memory-efficient for large lists
-for await (const campaign of client.campaigns.iterateCampaigns({ filters: { messageType: 'sms' } })) {
+for await (const campaign of client.campaigns.iterateCampaigns({ filters: { messageType: 'text_message' } })) {
   console.log(campaign.name, campaign.status?.key);
 }
 
 // Stream page by page — useful for batched processing
 for await (const page of client.campaigns.iterateCampaignsPages({
-  filters: { messageType: 'sms' },
+  filters: { messageType: 'text_message' },
   pagination: { pageSize: 50 },
 })) {
   console.log(`Batch of ${page.length} SMS campaigns`);

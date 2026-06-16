@@ -67,9 +67,11 @@ const ROUND_TRIP_DOCS: ReadonlyArray<{ name: string; doc: SmsDocument }> = [
   },
 ]
 
-// Documents with link marks are intentionally excluded from ROUND_TRIP_DOCS:
-// the XML format serializes content as SMS RFM.
-// Link mark lossiness is tested explicitly below.
+// Documents with link marks are exercised separately under
+// `describe('XML round-trip — link marks', …)` below — not because the
+// round-trip is lossy (it isn't; the SMS RFM serializer emits a `:link`
+// directive that the parser reads back into the same mark) but to keep
+// the link-mark assertion focused on its own table.
 
 describe('smsToXml → xmlToSms round-trip', () => {
   for (const { name, doc } of ROUND_TRIP_DOCS) {

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * Attribute schema for the `::placeholder` leaf directive in SMS SFM.
+ * Attribute schema for the `::placeholder` leaf directive in SMS RFM.
  *
  * @internal
  */

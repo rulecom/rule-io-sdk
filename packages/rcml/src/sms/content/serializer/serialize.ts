@@ -1,5 +1,5 @@
 /**
- * Internal: SmsContentJson → SFM (SMS Format Markup) string conversion.
+ * Internal: SmsContentJson → SMS RFM (SMS Rule Flavor Markdown) string conversion.
  *
  * - Text nodes without marks → verbatim text.
  * - Text/placeholder nodes with a link mark → wrapped in `:link[...]{href track shorten}`.
@@ -25,7 +25,7 @@ function renderLinkAttrs(mark: SmsLinkMark): string {
 
 // ─── Paragraph serializer ─────────────────────────────────────────────────────
 
-/** Serialize one paragraph's inline children to SFM. @internal */
+/** Serialize one paragraph's inline children to SMS RFM. @internal */
 function serializeParagraph(para: SmsParagraphNode): string {
   if (!para.content || para.content.length === 0) return ''
 
@@ -102,7 +102,7 @@ function findSharedLinkMark(nodes: SmsInlineNode[]): SmsLinkMark | undefined {
 
 // ─── Single node serializer ───────────────────────────────────────────────────
 
-/** Serialize a single inline node to its SFM text fragment. @internal */
+/** Serialize a single inline node to its SMS RFM text fragment. @internal */
 function serializeSingleNode(node: SmsInlineNode): string {
   switch (node.type) {
     case 'text': {
@@ -141,7 +141,7 @@ function serializeSingleNode(node: SmsInlineNode): string {
 // ─── Public entry point ───────────────────────────────────────────────────────
 
 /**
- * Serialize an {@link SmsContentJson} document back to an SFM string.
+ * Serialize an {@link SmsContentJson} document back to an SMS RFM string.
  *
  * @internal — called by the public `jsonToSmsRfm` wrapper.
  */

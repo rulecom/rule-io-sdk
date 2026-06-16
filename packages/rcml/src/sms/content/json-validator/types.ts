@@ -60,7 +60,7 @@ export type SmsPlaceholderNode = {
     type: SmsPlaceholderType
     /** Human-readable display name for the placeholder. */
     name: string
-    /** Original source token as it appeared in the SFM source (e.g. `[Subscriber:FirstName]`). */
+    /** Original source token as it appeared in the SMS RFM source (e.g. `[Subscriber:FirstName]`). */
     original: string
     /** The resolved value at generation time, or `null` if unavailable. */
     value: string | number | null

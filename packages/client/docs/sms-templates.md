@@ -37,7 +37,7 @@ if (!template) {
   console.log('Template not found');
 } else {
   console.log(template.name);        // 'Order shipped — v1'
-  console.log(template.messageType); // 'sms'
+  console.log(template.messageType); // 'text_message'
   console.log(template.createdAt);
 }
 ```
@@ -106,21 +106,21 @@ The API returns templates of all types (email and SMS) and does not support serv
 ```typescript
 // One page — for UI tables, manual pagination, or retrying a specific page
 const page = await client.templates.listTemplates({ pagination: { page: 1, pageSize: 50 } });
-const smsPage = page.filter((t) => t.messageType === 'sms');
+const smsPage = page.filter((t) => t.messageType === 'text_message');
 
 // All templates as a single array, then filter to SMS
 const all = await client.templates.listAllTemplates();
-const allSms = all.filter((t) => t.messageType === 'sms');
+const allSms = all.filter((t) => t.messageType === 'text_message');
 
 // Stream individual templates — memory-efficient for large libraries
 for await (const template of client.templates.iterateTemplates()) {
-  if (template.messageType !== 'sms') continue;
+  if (template.messageType !== 'text_message') continue;
   console.log(template.name);
 }
 
 // Stream page by page — useful for batched processing
 for await (const page of client.templates.iterateTemplatesPages({ pagination: { pageSize: 50 } })) {
-  const smsBatch = page.filter((t) => t.messageType === 'sms');
+  const smsBatch = page.filter((t) => t.messageType === 'text_message');
   console.log(`Batch of ${smsBatch.length} SMS templates`);
 }
 ```

@@ -20,9 +20,9 @@ export type SmsToXmlOptions = {
 /**
  * Serialize an {@link SmsDocument} to an XML string.
  *
- * The output is a single `<rc-sms>` element whose text content is the SFM
- * representation of the document's content. Combine with {@link xmlToSms}
- * for the reverse direction.
+ * The output is a single `<rc-sms>` element whose text content is the
+ * SMS RFM representation of the document's content. Combine with
+ * {@link xmlToSms} for the reverse direction.
  *
  * @param doc - The SMS document to serialize.
  * @param options - Formatting options.

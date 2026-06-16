@@ -6,7 +6,13 @@ no wrapping root element, no head, no body.
 
 ## Attributes
 
-`rc-sms` takes no attributes.
+| Attribute | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `id` | No | string | Optional node identifier (typically a UUID). Set on `SmsDocument.id` and round-tripped through `smsToXml` / `xmlToSms` as the `id="…"` XML attribute. The Rule editor uses this when persisting drafts. |
+
+The element's JSON shape uses `attributes: {}` — `id` lives at the top
+level of `SmsDocument`, not inside `attributes`. Other than `id`, `rc-sms`
+takes no attributes.
 
 ## Content
 
