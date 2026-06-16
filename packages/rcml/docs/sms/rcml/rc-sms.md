@@ -41,7 +41,7 @@ None — `rc-sms` is the document root.
 ## XML
 
 ```xml
-<rc-sms>Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}, your order has shipped!</rc-sms>
+<rc-sms>Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}, your order has shipped!</rc-sms>
 ```
 
 ## JSON

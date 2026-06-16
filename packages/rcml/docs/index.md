@@ -119,14 +119,14 @@ prompting pattern.
 ## SMS templates
 
 The SMS module provides a parallel set of utilities for building SMS messages. An SMS
-template is a single `rc-sms` element whose body is written in SMS RFM (SMS RFM),
-a simple `[Type:Name]` placeholder syntax.
+template is a single `rc-sms` element whose body is written in **SMS RFM**
+(SMS Rule Flavor Markdown). Dynamic values use the `::placeholder{…}` directive.
 
 ```typescript
 import { createSmsDocument } from '@rulecom/rcml';
 
 const doc = createSmsDocument({
-  content: 'Hi [Subscriber:FirstName]! Your order has shipped.',
+  content: 'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}! Your order has shipped.',
 });
 ```
 

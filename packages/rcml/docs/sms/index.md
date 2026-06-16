@@ -19,7 +19,7 @@ and convert between each other.
 A minimal example in both formats:
 
 ```xml
-<rc-sms>Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}, your order has shipped!</rc-sms>
+<rc-sms>Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}, your order has shipped!</rc-sms>
 ```
 
 ```typescript

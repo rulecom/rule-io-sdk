@@ -34,19 +34,24 @@ To insert a placeholder as text in the message body, use the `::placeholder{…}
 directive:
 
 ```
-Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!
-Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total" value=null max-length=null}
+Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}!
+Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total"}
 ```
 
-The five attributes are required in the directive form:
+Three attributes are required in the directive form (`type`, `original`,
+`name`); the optional `value` and `max-length` attributes are omitted
+when null. The parser treats a missing or empty attribute as `null` —
+**do not write the literal string `null`**, since the parser would treat
+that as the string value `"null"`. To assign a non-null value, quote it
+(e.g. `value="Jane"` or `max-length="20"`).
 
-| Attribute | Value when null |
-|-----------|----------------|
-| `type` | — (always required) |
-| `original` | — (always required) |
-| `name` | — (always required) |
-| `value` | Write `value=null` explicitly |
-| `max-length` | Write `max-length=null` explicitly |
+| Attribute | Required? | Notes |
+|-----------|-----------|-------|
+| `type` | Yes | One of the six placeholder types. |
+| `original` | Yes | Backend `[Type:Name]` token. |
+| `name` | Yes | Editor display label. |
+| `value` | No | Omit when null. To set a preview value, quote the string (e.g. `value="Jane"`). |
+| `max-length` | No | Omit when null. To set a truncation limit, quote it as a string (e.g. `max-length="20"`). |
 
 ### Plain-text `[Type:Name]` tokens
 
@@ -64,10 +69,12 @@ Plain-text `[Type:Name]` tokens — `[Subscriber:FirstName]`,
 :link[Unsubscribe]{href="[Link:Unsubscribe]" track="false" shorten="false"}
 ```
 
-A bare `[Type:Name]` token is **not** the way to write a placeholder as body
-content. Use the `::placeholder{…}` directive for that. The parser accepts a
-bare token as a courtesy for backward compatibility, but treat it as a
-backend wire-format detail rather than an authoring choice.
+A bare `[Type:Name]` token is **not the recommended form** for placeholders
+in body content. The parser does accept it as a backward-compatible
+shorthand and produces an equivalent placeholder node, but it carries
+neither a `name` nor a `value` nor a `max-length` — the editor relies on
+those, so authoring through the `::placeholder{…}` directive keeps the
+template editor-friendly.
 
 ### Serializer output
 
@@ -107,13 +114,13 @@ Inserts a standard subscriber profile field.
 **SMS RFM:**
 
 ```
-Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!
+Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}!
 ```
 
 With a resolved preview value:
 
 ```
-Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value="Jane" max-length=null}!
+Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value="Jane"}!
 ```
 
 ---
@@ -148,7 +155,7 @@ Inserts a field from the sender's Rule.io account profile.
 **SMS RFM:**
 
 ```
-Sent by ::placeholder{type="User" original="[User:CompanyName]" name="Company name" value=null max-length=null}
+Sent by ::placeholder{type="User" original="[User:CompanyName]" name="Company name"}
 ```
 
 ---
@@ -192,13 +199,13 @@ truncate the value to N characters and append `…`.
 **SMS RFM (no truncation):**
 
 ```
-Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total" value=null max-length=null}
+Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total"}
 ```
 
 **SMS RFM (truncated to 20 characters):**
 
 ```
-Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total::20]" name="Order.Total" value=null max-length="20"}
+Your total: ::placeholder{type="CustomField" original="[CustomField:Order.Total::20]" name="Order.Total" max-length="20"}
 ```
 
 ---
@@ -240,7 +247,7 @@ Supported values: `Y-m-d`, `d.m.Y`, `m-d-Y`, `m/d/Y`, `d/m/Y`.
 **SMS RFM:**
 
 ```
-Offer valid until ::placeholder{type="Date" original="[Date:tomorrow::d.m.Y]" name="Offer expires" value=null max-length=null}.
+Offer valid until ::placeholder{type="Date" original="[Date:tomorrow::d.m.Y]" name="Offer expires"}.
 ```
 
 ---
@@ -284,7 +291,7 @@ With nested tokens in the URL:
 **SMS RFM:**
 
 ```
-::placeholder{type="RemoteContent" original="[RemoteContent:https://api.example.com/promo]" name="RemoteContent" value=null max-length=null}
+::placeholder{type="RemoteContent" original="[RemoteContent:https://api.example.com/promo]" name="RemoteContent"}
 ```
 
 ---
@@ -321,7 +328,7 @@ URL visible in the message body rather than as linked text.
 **SMS RFM:**
 
 ```
-Reply STOP or unsubscribe here: ::placeholder{type="Link" original="[Link:Unsubscribe]" name="Unsubscribe" value=null max-length=null}
+Reply STOP or unsubscribe here: ::placeholder{type="Link" original="[Link:Unsubscribe]" name="Unsubscribe"}
 ```
 
 ### Link tokens in link marks

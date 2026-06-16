@@ -10,7 +10,7 @@ Use `createSmsTemplate()` to create a new SMS template. The template's `SmsDocum
 import { createSmsDocument } from '@rulecom/rcml';
 
 const sms = createSmsDocument({
-  content: 'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}, your order has shipped!',
+  content: 'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}, your order has shipped!',
 });
 
 const template = await client.templates.createSmsTemplate({

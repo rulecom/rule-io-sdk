@@ -86,7 +86,7 @@ Parsed and validated by `emailInlineRfmToJson()`.
 ## API
 
 ```typescript
-import { rfmToJson, inlineRfmToJson } from '@rulecom/rcml';
+import { emailRfmToJson, emailInlineRfmToJson } from '@rulecom/rcml';
 
 // Full Email RFM → doc node (rc-text, rc-heading)
 const doc = emailRfmToJson('Hello :font[world]{font-weight="bold"}');

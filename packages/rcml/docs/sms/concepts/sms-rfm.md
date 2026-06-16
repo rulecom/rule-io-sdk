@@ -57,7 +57,7 @@ link URL.
 The recommended form is the `::placeholder{…}` directive:
 
 ```
-Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!
+Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}!
 ```
 
 Six token types are available: `Subscriber`, `User`, `CustomField`, `Date`,
@@ -66,8 +66,11 @@ Six token types are available: `Subscriber`, `User`, `CustomField`, `Date`,
 
 Plain-text `[Type:Name]` tokens belong inside the `original` attribute of a
 `::placeholder{…}` directive (as shown above) or inside a URL value such as
-`href="[Link:Unsubscribe]"`. They are not a way to write a placeholder as
-body content — use the `::placeholder{…}` directive for that.
+`href="[Link:Unsubscribe]"`. The parser does also accept a bare `[Type:Name]`
+token as a backward-compatible shorthand and produces an equivalent
+placeholder node from it, but the `::placeholder{…}` directive is the
+recommended form for body content because it carries the full `name` /
+`value` / `max-length` attributes the editor expects.
 
 See [`placeholder`](../content/nodes/placeholder) for the full attribute table,
 the catalogue of all six token types, and per-token examples.
@@ -95,8 +98,8 @@ See the [link mark](../content/marks/link) page for the full attribute reference
 A short marketing message exercising all four constructs:
 
 ```
-Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null},\
-your order ::placeholder{type="CustomField" original="[CustomField:Order.Id]" name="Order.Id" value=null max-length=null} has shipped.
+Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"},\
+your order ::placeholder{type="CustomField" original="[CustomField:Order.Id]" name="Order.Id"} has shipped.
 
 Track it here: :link[track shipment]{href="https://example.com/track/[CustomField:Order.Id]" track="true" shorten="true"}
 

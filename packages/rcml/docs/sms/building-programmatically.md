@@ -15,9 +15,12 @@ representation.
 2. Inside a URL value or part of a URL value — typically the `href` of a link
    mark or the URL given to `RemoteContent`.
 
-They are **not** a way to write a placeholder as body content. To insert a
-dynamic value as text in the message, use the `::placeholder{…}` directive in
-SMS RFM, or one of the `sms` builder functions described below.
+They are **not the recommended form** for body content. The parser does
+accept a bare `[Type:Name]` token as a backward-compatible shorthand —
+but the resulting placeholder node has no `name` / `value` / `max-length`
+attributes, which the editor relies on. To insert a dynamic value as text
+in the message, use the `::placeholder{…}` directive in SMS RFM, or one
+of the `sms` builder functions described below.
 
 ## Quick start
 
@@ -29,8 +32,8 @@ import { createSmsDocument } from '@rulecom/rcml';
 
 const doc = createSmsDocument({
   content:
-    'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!' +
-    ' Your order ::placeholder{type="CustomField" original="[CustomField:Order.Id]" name="Order.Id" value=null max-length=null} has shipped.',
+    'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}!' +
+    ' Your order ::placeholder{type="CustomField" original="[CustomField:Order.Id]" name="Order.Id"} has shipped.',
 });
 ```
 
@@ -62,7 +65,7 @@ import { smsRfmToJson, jsonToSmsRfm } from '@rulecom/rcml';
 
 // SMS RFM → JSON. Use the ::placeholder{…} directive for dynamic values.
 const json = smsRfmToJson(
-  'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!\nYour order is ready.'
+  'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}!\nYour order is ready.'
 );
 // {
 //   type: 'doc',
@@ -464,8 +467,8 @@ import { createSmsDocument, smsToXml, xmlToSms } from '@rulecom/rcml';
 
 const doc = createSmsDocument({
   content:
-    'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null},' +
-    ' your total is ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total" value=null max-length=null}.',
+    'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"},' +
+    ' your total is ::placeholder{type="CustomField" original="[CustomField:Order.Total]" name="Order.Total"}.',
 });
 
 // Serialize to XML. The XML body uses the compact [Type:Name] form
