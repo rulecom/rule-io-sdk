@@ -383,6 +383,83 @@ export interface ScheduleCampaignPayload {
   datetime?: string;
 }
 
+// ── Default campaign creation result ─────────────────────────────────────────
+
+/**
+ * Result from `CampaignsClient.createDefaultEmailCampaign` or
+ * `CampaignsClient.createDefaultSmsCampaign`.
+ *
+ * Contains the IDs of all resources created during the campaign setup
+ * sequence: campaign → message → template → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultEmailCampaign({
+ *   brandStyleId: 42,
+ * });
+ * console.log(result.campaignId, result.messageId, result.templateId, result.dynamicSetId);
+ * ```
+ */
+export interface CreateDefaultCampaignResult {
+  /** The created campaign ID. */
+  campaignId: number;
+  /** The created message ID. */
+  messageId: number;
+  /** The created template ID. */
+  templateId: number;
+  /** The created dynamic set ID linking the message to the template. */
+  dynamicSetId: number;
+}
+
+/**
+ * Options for `CampaignsClient.createDefaultEmailCampaign`.
+ *
+ * Creates a complete email campaign with all its dependencies in one call:
+ * campaign → message → template (built from brand style) → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultEmailCampaign({
+ *   brandStyleId: 42,
+ * });
+ * ```
+ */
+export interface CreateDefaultEmailCampaignParams {
+  /**
+   * Brand style ID used to build the default email template.
+   *
+   * The SDK fetches the brand style and auto-generates an editor-compatible
+   * RCML template with a logo, placeholder content section, and footer.
+   */
+  brandStyleId: number;
+  /**
+   * Initial campaign name. Defaults to a generated name when omitted.
+   */
+  name?: string;
+  /** Sendout type. Defaults to `'marketing'`. */
+  sendoutType?: CampaignSendoutType;
+}
+
+/**
+ * Options for `CampaignsClient.createDefaultSmsCampaign`.
+ *
+ * Creates a complete SMS campaign with all its dependencies in one call:
+ * campaign → message → template (built from account sender details) → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultSmsCampaign();
+ * ```
+ */
+export interface CreateDefaultSmsCampaignParams {
+  /**
+   * Initial campaign name. Defaults to a generated name when omitted.
+   */
+  name?: string;
+  /** Sendout type. Defaults to `'marketing'`. */
+  sendoutType?: CampaignSendoutType;
+}
+
 // ── Internal wire types ───────────────────────────────────────────────────────
 
 /**
