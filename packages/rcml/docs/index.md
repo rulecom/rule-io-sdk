@@ -54,8 +54,9 @@ const content = createTextContent('Hi ::subscriber.first_name::, **your order** 
 
 ### Email RFM string builders
 
-Utility functions that produce valid Email RFM syntax strings for use in template copy:
-`createCustomField`, `createLoopValue`, `createLink`, `createFont`.
+Utility functions that produce valid Email RFM syntax strings for use in template
+copy. Reach them via the `email` namespace: `email.createCustomField`,
+`email.createLoopValue`, `email.createLink`, `email.createFont`.
 
 ### Theme utilities
 

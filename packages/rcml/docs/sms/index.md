@@ -64,6 +64,6 @@ syntax used inside `<rc-sms>` lives in [SMS RFM](./concepts/sms-rfm).
 | [SMS RFM](./concepts/sms-rfm) | The SMS RFM source format: paragraphs, hard breaks, placeholders, links |
 | [SMS RCML](./rcml/) | The `rc-sms` element reference |
 | [SMS RFM Content](./content/nodes/doc) | Every node and mark with full attribute tables |
-| [Building programmatically](./building-programmatically) | `createSmsDocument`, SMS RFM ↔ JSON, XML round-trip |
+| [Building programmatically](./building-programmatically) | `createSmsDocument`, the `sms` builder namespace, SMS RFM ↔ JSON, XML round-trip |
 | [Validation](./validation) | Validating documents and content before submission |
 | [Building with LLM](./building-with-llm) | Using spec objects to drive LLM-assisted template generation |

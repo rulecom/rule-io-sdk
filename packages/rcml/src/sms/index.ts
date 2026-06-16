@@ -59,6 +59,29 @@ export type {
   SmsDocumentBuildIssue,
 } from './builders/index.js'
 
+// Content-JSON builder namespace — the public import surface for SMS node and
+// mark builders. Access via `sms.createTextNode(...)`, etc.
+export { sms } from './builders/index.js'
+// Option-type names are re-exported for use in caller code that wants to
+// declare typed wrappers around builders. Function names are intentionally
+// not re-exported flat — use the `sms.` namespace.
+export type {
+  CreateSmsContentOptions,
+  CreateSmsParagraphNodeOptions,
+  CreateSmsTextNodeOptions,
+  CreateSmsLinkMarkOptions,
+  CreateSmsPlaceholderNodeOptions,
+  CreateSmsSubscriberPlaceholderOptions,
+  CreateSmsUserPlaceholderOptions,
+  CreateSmsCustomFieldPlaceholderOptions,
+  CreateSmsDatePlaceholderOptions,
+  CreateSmsRemoteContentPlaceholderOptions,
+  CreateSmsLinkPlaceholderOptions,
+  SmsDateFormat,
+  SmsDateSource,
+  SmsSystemLinkType,
+} from './builders/index.js'
+
 export { SmsTagNamesEnum, SMS_SCHEMA_SPEC } from './schema/index.js'
 export type { SmsTagName, SmsNodeSpec } from './schema/index.js'
 

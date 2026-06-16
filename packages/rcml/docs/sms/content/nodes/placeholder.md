@@ -30,7 +30,8 @@ None (inline atom, leaf node).
 
 ## SMS RFM syntax
 
-The recommended form is the `::placeholder{…}` directive:
+To insert a placeholder as text in the message body, use the `::placeholder{…}`
+directive:
 
 ```
 Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name" value=null max-length=null}!
@@ -47,24 +48,34 @@ The five attributes are required in the directive form:
 | `value` | Write `value=null` explicitly |
 | `max-length` | Write `max-length=null` explicitly |
 
-### Compact shorthand
+### Plain-text `[Type:Name]` tokens
 
-`[Type:Name]` is a backward-compatible shorthand the parser also accepts. It is
-appropriate for embedding tokens inside URLs and attribute values — for example, as the
-`href` of a `:link` mark:
+Plain-text `[Type:Name]` tokens — `[Subscriber:FirstName]`,
+`[CustomField:Order.Total]`, `[Link:Unsubscribe]`, and so on — are valid in
+**exactly two places**:
+
+1. As the value of the `original` attribute on a placeholder node — the value
+   appears verbatim inside the `::placeholder{…}` directive in SMS RFM and on
+   `attrs.original` in JSON.
+2. As a URL value or part of a URL value — typically the `href` of a link
+   mark, or the URL passed to a `RemoteContent` placeholder.
 
 ```
 :link[Unsubscribe]{href="[Link:Unsubscribe]" track="false" shorten="false"}
 ```
 
-It is **not** the recommended form for SMS RFM content nodes. Use `::placeholder{…}` for
-any dynamic value that appears as text in the message.
+A bare `[Type:Name]` token is **not** the way to write a placeholder as body
+content. Use the `::placeholder{…}` directive for that. The parser accepts a
+bare token as a courtesy for backward compatibility, but treat it as a
+backend wire-format detail rather than an authoring choice.
 
 ### Serializer output
 
-`jsonToSmsRfm` emits the compact `[Type:Name]` shorthand when both `value` and
-`max-length` are null, and the `::placeholder{…}` directive form otherwise. This is an
-output optimization — the parser accepts both forms as input.
+`jsonToSmsRfm` emits the bare `[Type:Name]` form when both `value` and
+`max-length` are null, and the `::placeholder{…}` directive form otherwise.
+This is a serializer output optimization, not a recommendation about how to
+write SMS RFM by hand. Re-parsing the serializer output recovers the same
+`SmsContentJson` tree either way.
 
 ---
 
@@ -315,10 +326,9 @@ Reply STOP or unsubscribe here: ::placeholder{type="Link" original="[Link:Unsubs
 
 ### Link tokens in link marks
 
-`[Link:…]` tokens are also the correct form for the `href` attribute of a
-[`link` mark](../marks/link) — this is one of the places where the shorthand is
-appropriate, because it appears inside an attribute value rather than as a standalone
-content node:
+A `[Link:…]` token is the correct form for the `href` attribute of a
+[`link` mark](../marks/link) — that is the second of the two valid locations
+for plain-text tokens described above:
 
 ```
 Reply STOP or unsubscribe: :link[click here]{href="[Link:Unsubscribe]" track="true" shorten="false"}

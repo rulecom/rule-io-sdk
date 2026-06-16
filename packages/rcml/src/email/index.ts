@@ -15,7 +15,9 @@ export * from './json-to-email-rfm.js'
 export * from './rcml-to-xml.js'
 export * from './xml-to-rcml.js'
 export * from './create-rcml-element.js'
-export * from './email-rfm-builders.js'
+// Email RFM string builders are reached via the `email.` namespace below;
+// the underlying functions are intentionally not flat-exported.
+export { email } from './email-namespace.js'
 export * from './theme-types.js'
 export * from './theme-defaults.js'
 export * from './create-theme.js'

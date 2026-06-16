@@ -64,10 +64,10 @@ Six token types are available: `Subscriber`, `User`, `CustomField`, `Date`,
 `RemoteContent`, and `Link`. The `original` attribute holds the backend token
 (in `[Type:Name]` format) the Rule platform substitutes at send time.
 
-A `[Type:Name]` shorthand is also accepted by the parser and is the appropriate
-form when the token appears *inside* a URL or attribute value — for example,
-`href="[Link:Unsubscribe]"`. For dynamic values that appear as text in the
-message body, use the directive form.
+Plain-text `[Type:Name]` tokens belong inside the `original` attribute of a
+`::placeholder{…}` directive (as shown above) or inside a URL value such as
+`href="[Link:Unsubscribe]"`. They are not a way to write a placeholder as
+body content — use the `::placeholder{…}` directive for that.
 
 See [`placeholder`](../content/nodes/placeholder) for the full attribute table,
 the catalogue of all six token types, and per-token examples.
@@ -81,7 +81,8 @@ the destination URL, a tracking flag, and a URL-shortening flag:
 Click :link[here]{href="https://example.com" track="true" shorten="true"} to track your order.
 ```
 
-Inside `href` the `[Link:…]` shorthand is the right form for system-managed URLs:
+Inside `href` a plain-text `[Link:…]` token is the right form for
+system-managed URLs:
 
 ```
 :link[Unsubscribe]{href="[Link:Unsubscribe]" track="false" shorten="false"}
