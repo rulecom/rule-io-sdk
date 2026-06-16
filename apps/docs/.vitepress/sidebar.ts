@@ -118,6 +118,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Exports', link: '/packages/client/exports' },
       { text: 'Custom Field Schema', link: '/packages/client/custom-fields-schema' },
       { text: 'API Keys', link: '/packages/client/api-keys' },
+      { text: 'Account', link: '/packages/client/account' },
       { text: 'Error Handling', link: '/packages/client/error-handling' },
 
     ],
