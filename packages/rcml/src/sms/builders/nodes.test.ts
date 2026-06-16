@@ -108,4 +108,13 @@ describe('createContent', () => {
     expect(content.content[0]!.content![0]).toMatchObject({ text: 'First' })
     expect(content.content[1]!.content![0]).toMatchObject({ text: 'Second' })
   })
+
+  it('rejects an empty paragraphs array at compile time', () => {
+    // The schema requires at least one paragraph (`minItems: 1`).
+    // CreateSmsContentOptions.paragraphs is typed as
+    // `[SmsParagraphNode, ...SmsParagraphNode[]]` so empty arrays fail
+    // type-checking — this test pins that contract.
+    // @ts-expect-error — paragraphs must contain at least one entry
+    createContent({ paragraphs: [] })
+  })
 })

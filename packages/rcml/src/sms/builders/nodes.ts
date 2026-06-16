@@ -110,8 +110,14 @@ export function createParagraphNode(
 
 /** Options for {@link createContent}. @public */
 export interface CreateSmsContentOptions {
-  /** One or more paragraph nodes. */
-  paragraphs: SmsParagraphNode[]
+  /**
+   * One or more paragraph nodes.
+   *
+   * The non-empty tuple type matches the SMS content JSON Schema, which
+   * requires at least one paragraph (`minItems: 1`). Passing an empty
+   * array is a compile error rather than a runtime validation error.
+   */
+  paragraphs: [SmsParagraphNode, ...SmsParagraphNode[]]
 }
 
 /**
