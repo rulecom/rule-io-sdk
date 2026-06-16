@@ -89,6 +89,7 @@ function findSharedLinkMark(nodes: SmsInlineNode[]): SmsLinkMark | undefined {
     const onEveryNode = nodes.every((n) => {
       if (n.type === 'hardbreak') return false
       if (n.type === 'text') return (n.marks ?? []).some((m) => linkMarksEqual(m, candidate))
+
       // placeholder: no marks — would break the shared mark assumption
       return false
     })

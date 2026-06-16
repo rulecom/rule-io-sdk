@@ -60,6 +60,7 @@ export function markTagDirection(
   event: SubscriberTagChangedEvent,
   direction: 'added' | 'removed',
 ): SubscriberAddedToTagEvent | SubscriberRemovedFromTagEvent;
+
 export function markTagDirection(
   event: WebhookEvent,
   direction: 'added' | 'removed',
