@@ -14,14 +14,17 @@ import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
 import type {
   CreateEmailTemplatePayload,
+  CreateSmsTemplatePayload,
   EmailTemplate,
   ListTemplatesParams,
   RenderTemplateParams,
+  SmsTemplate,
   Template,
   TemplateListResponse,
   TemplateResponse,
   TemplateWire,
   UpdateEmailTemplatePayload,
+  UpdateSmsTemplatePayload,
 } from './templates.types.js';
 
 // ── Client ────────────────────────────────────────────────────────────────────
@@ -107,6 +110,68 @@ export class TemplatesClient extends BaseResource {
    * ```
    */
   async updateEmailTemplate(id: number, payload: UpdateEmailTemplatePayload): Promise<EmailTemplate> {
+    const res = await this.transport.put<TemplateResponse>(`/editor/template/${id}`, {
+      body: JSON.stringify({
+        name: payload.name,
+        template: payload.content,
+      }),
+    });
+
+    return mapTemplateWireToEntity(res.data);
+  }
+
+  /**
+   * Create an SMS template.
+   *
+   * Construct the `content` document with `createSmsDocument` from
+   * `@rulecom/rcml`. Templates are not linked to a message at creation time —
+   * use a dynamic set to connect a template to a message after both have been
+   * created.
+   *
+   * @param payload - Template name and SMS document body.
+   * @returns The created SMS template.
+   *
+   * @example
+   * ```typescript
+   * import { createSmsDocument } from '@rulecom/rcml';
+   *
+   * const template = await client.templates.createSmsTemplate({
+   *   name: 'Order shipped SMS',
+   *   content: createSmsDocument({ content: 'Your order has shipped!' }),
+   * });
+   * ```
+   */
+  async createSmsTemplate(payload: CreateSmsTemplatePayload): Promise<SmsTemplate> {
+    const res = await this.transport.post<TemplateResponse>('/editor/template', {
+      body: JSON.stringify({
+        name: payload.name,
+        message_type: 'text_message',
+        template: payload.content,
+      }),
+    });
+
+    return mapTemplateWireToEntity(res.data);
+  }
+
+  /**
+   * Update an SMS template.
+   *
+   * Only the fields you include are changed — omitted fields are left as-is.
+   *
+   * @param id - Template ID.
+   * @param payload - Fields to update. All fields are optional.
+   * @returns The updated SMS template.
+   *
+   * @example
+   * ```typescript
+   * import { createSmsDocument } from '@rulecom/rcml';
+   *
+   * await client.templates.updateSmsTemplate(templateId, {
+   *   content: createSmsDocument({ content: 'Your order has shipped — updated!' }),
+   * });
+   * ```
+   */
+  async updateSmsTemplate(id: number, payload: UpdateSmsTemplatePayload): Promise<SmsTemplate> {
     const res = await this.transport.put<TemplateResponse>(`/editor/template/${id}`, {
       body: JSON.stringify({
         name: payload.name,

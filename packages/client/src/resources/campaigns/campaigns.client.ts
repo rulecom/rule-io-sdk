@@ -29,10 +29,13 @@ import type {
   CampaignStatus,
   CampaignWire,
   CreateEmailCampaignPayload,
+  CreateSmsCampaignPayload,
   ListCampaignsParams,
   ScheduleCampaignPayload,
   SetEmailCampaignPayload,
+  SetSmsCampaignPayload,
   UpdateEmailCampaignPayload,
+  UpdateSmsCampaignPayload,
 } from './campaigns.types.js';
 
 // ── Client ────────────────────────────────────────────────────────────────────
@@ -316,6 +319,111 @@ export class CampaignsClient extends BaseResource {
    */
   setCampaignSubscribers(id: number, subscribers: number[]): Promise<Campaign> {
     return this.updateEmailCampaign(id, { subscribers });
+  }
+
+  /**
+   * Create an SMS campaign.
+   *
+   * The campaign starts with no name and no recipients. Use
+   * {@link updateSmsCampaign} to add a name and recipients before scheduling.
+   *
+   * @param payload - Campaign creation options.
+   * @returns The created campaign.
+   *
+   * @example
+   * ```typescript
+   * const campaign = await client.campaigns.createSmsCampaign({
+   *   name: 'Flash sale SMS',
+   * });
+   * ```
+   */
+  async createSmsCampaign(payload: CreateSmsCampaignPayload): Promise<Campaign> {
+    const res = await this.transport.post<CampaignResponse>('/editor/campaign', {
+      body: JSON.stringify({
+        name: payload.name,
+        message_type: '2',  // string — API requires string enum
+        sendout_type: payload.sendoutType
+          ? mapSendoutTypeToWire(payload.sendoutType)
+          : undefined,
+        tags: payload.tags,
+        segments: payload.segments,
+        subscribers: payload.subscribers,
+      }),
+    });
+
+    return mapCampaignWireToEntity(res.data);
+  }
+
+  /**
+   * Set (upsert) an SMS campaign — fully replaces it if it exists, creates
+   * it if not.
+   *
+   * All five fields are required and fully replace the existing values. If the
+   * campaign does not exist, it is created as an SMS campaign.
+   *
+   * @param id - Campaign ID.
+   * @param payload - Full replacement body. No `messageType` field — fixed to
+   *   `'text_message'` by the method.
+   * @returns The updated or newly created campaign.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.setSmsCampaign(campaignId, {
+   *   name: 'Flash sale SMS',
+   *   sendoutType: 'marketing',
+   *   tags: [{ id: 42, negative: false }],
+   *   segments: [],
+   *   subscribers: [],
+   * });
+   * ```
+   */
+  async setSmsCampaign(id: number, payload: SetSmsCampaignPayload): Promise<Campaign> {
+    const body = {
+      name: payload.name,
+      sendout_type: mapSendoutTypeToWire(payload.sendoutType),
+      tags: payload.tags,
+      segments: payload.segments,
+      subscribers: payload.subscribers,
+    };
+
+    try {
+      const res = await this.transport.put<CampaignResponse>(`/editor/campaign/${id}`, {
+        body: JSON.stringify(body),
+      });
+
+      return mapCampaignWireToEntity(res.data);
+    } catch (error) {
+      if (!(error instanceof RuleApiError) || error.statusCode !== 404) throw error;
+
+      const createRes = await this.transport.post<CampaignResponse>('/editor/campaign', {
+        body: JSON.stringify({ ...body, message_type: '2' }),  // string — API requires string enum
+      });
+
+      return mapCampaignWireToEntity(createRes.data);
+    }
+  }
+
+  /**
+   * Update an SMS campaign with a partial body.
+   *
+   * Only the fields you include are changed — omitted fields are preserved from
+   * the existing record.
+   *
+   * @param id - Campaign ID.
+   * @param partial - Fields to update. All fields are optional.
+   * @returns The updated campaign.
+   * @throws `RuleApiError` with 404 if the campaign does not exist.
+   *
+   * @example
+   * ```typescript
+   * await client.campaigns.updateSmsCampaign(campaignId, {
+   *   name: 'Flash sale SMS — updated',
+   *   tags: [{ id: 42, negative: false }],
+   * });
+   * ```
+   */
+  updateSmsCampaign(id: number, partial: UpdateSmsCampaignPayload): Promise<Campaign> {
+    return this.updateEmailCampaign(id, partial);
   }
 
   /**

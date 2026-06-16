@@ -161,7 +161,7 @@ export function safeValidateEmailTemplate(input: RcmlDocument | string): SafeVal
         errors: parsed.errors.map((e) => ({
           path: e.path,
           code:
-            e.code === RcmlXmlErrorCodes.RFM_PARSE_ERROR
+            e.code === RcmlXmlErrorCodes.EMAIL_RFM_PARSE_ERROR
               ? EmailTemplateErrorCodes.CONTENT_INVALID
               : e.code === RcmlXmlErrorCodes.ROOT_INVALID
                 ? EmailTemplateErrorCodes.ROOT_INVALID

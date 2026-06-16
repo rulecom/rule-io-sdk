@@ -1,5 +1,7 @@
 # Email Campaigns
 
+> Channel: **email**. For SMS, see [SMS Campaigns](./sms-campaigns).
+
 A campaign is a one-time or scheduled email blast sent to a defined set of recipients. The full lifecycle has four stages:
 
 1. **Create** the campaign shell

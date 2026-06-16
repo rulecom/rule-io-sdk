@@ -43,6 +43,11 @@ export type {
   SubscriberSegment,
   CreateSubscriberPayload,
   BulkTagsPayload,
+  BulkCreateSubscriberEntry,
+  BulkCreateSubscriberField,
+  BulkCreateAutomationMode,
+  BulkCreateSubscribersPayload,
+  BulkCreateSubscribersResult,
   SuppressOptions,
   TagRef,
   TagAutomationMode,
@@ -66,9 +71,12 @@ export type {
   AutomationSendoutType,
   AutomationTrigger,
   CreateEmailAutomationPayload,
+  CreateSmsAutomationPayload,
   ListAutomationsParams,
   SetEmailAutomationPayload,
+  SetSmsAutomationPayload,
   UpdateEmailAutomationPayload,
+  UpdateSmsAutomationPayload,
 } from './resources/automations/automations.types.js';
 
 // ── Messages ─────────────────────────────────────────────────────────────────
@@ -76,22 +84,31 @@ export type {
   AutomailSetting,
   CreateEmailAutomationMessagePayload,
   CreateEmailCampaignMessagePayload,
+  CreateSmsAutomationMessagePayload,
+  CreateSmsCampaignMessagePayload,
   EmailAutomationMessage,
   EmailCampaignMessage,
   Message,
   MessageDispatcher,
+  SmsAutomationMessage,
+  SmsCampaignMessage,
   UpdateEmailAutomationMessagePayload,
   UpdateEmailCampaignMessagePayload,
+  UpdateSmsAutomationMessagePayload,
+  UpdateSmsCampaignMessagePayload,
 } from './resources/messages/messages.types.js';
 
 // ── Templates ────────────────────────────────────────────────────────────────
 export type {
   CreateEmailTemplatePayload,
+  CreateSmsTemplatePayload,
   EmailTemplate,
   ListTemplatesParams,
   RenderTemplateParams,
+  SmsTemplate,
   Template,
   UpdateEmailTemplatePayload,
+  UpdateSmsTemplatePayload,
 } from './resources/templates/templates.types.js';
 
 // ── Dynamic sets ─────────────────────────────────────────────────────────────
@@ -114,10 +131,13 @@ export type {
   CampaignSendoutType,
   CampaignStatus,
   CreateEmailCampaignPayload,
+  CreateSmsCampaignPayload,
   ListCampaignsParams,
   ScheduleCampaignPayload,
   SetEmailCampaignPayload,
+  SetSmsCampaignPayload,
   UpdateEmailCampaignPayload,
+  UpdateSmsCampaignPayload,
 } from './resources/campaigns/campaigns.types.js';
 
 
@@ -217,3 +237,32 @@ export type {
   CreateCampaignEmailConfig,
   CreateCampaignEmailResult,
 } from './orchestration.types.js';
+
+// ── Webhooks ─────────────────────────────────────────────────────────────────
+export type {
+  CampaignLinkClickedEvent,
+  CampaignOpenedEvent,
+  CampaignSentEvent,
+  ImportFinishedEvent,
+  SubscriberAddedToSegmentEvent,
+  SubscriberAddedToTagEvent,
+  SubscriberBouncedEvent,
+  SubscriberOptedInEvent,
+  SubscriberRemovedFromTagEvent,
+  SubscriberResubscribedEvent,
+  SubscriberSuppressedEvent,
+  SubscriberTagChangedEvent,
+  TransactionLinkClickedEvent,
+  TransactionOpenedEvent,
+  TransactionSentEvent,
+  WebhookAccount,
+  WebhookBounceInfo,
+  WebhookCampaignRef,
+  WebhookEvent,
+  WebhookImportSummary,
+  WebhookSegmentRef,
+  WebhookSubscriber,
+  WebhookTagRef,
+  WebhookTransactionMessage,
+  WebhookTransactionRef,
+} from './webhooks/index.js';

@@ -25,3 +25,4 @@ export type {
   FindTemplateOwnerOptions,
   FindTemplateOwnerResult,
 } from './find-template-owner.js';
+export { parseWebhookEvent, markTagDirection } from './webhooks/index.js';

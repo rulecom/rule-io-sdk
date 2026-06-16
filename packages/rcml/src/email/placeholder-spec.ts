@@ -5,13 +5,13 @@
  * send time. These tokens appear as:
  *
  * - The `original` field of `::placeholder{...}` and `::loop-value{...}` RFM
- *   nodes (cross-reference: {@link rfmSpec}).
+ *   nodes (cross-reference: {@link emailRfmSpec}).
  * - Plain `[Type:value]` strings embedded directly in RCML attribute values
  *   (e.g. link `href`, subject line, custom attributes).
  *
  * Where a token maps to an RFM `::placeholder` type, the entry's
  * `rfmPlaceholderType` field holds that type string so consumers can
- * cross-reference with `rfmSpec.nodes['placeholder'].attrs.type`.
+ * cross-reference with `emailRfmSpec.nodes['placeholder'].attrs.type`.
  *
  * `If/ElseIf/Else/EndIf` control-flow tokens and `DynamicVariable` are
  * intentionally out of scope for this spec.
@@ -67,7 +67,7 @@ export interface PlaceholderTokenSpec {
    *
    * Cross-reference:
    * ```ts
-   * rfmSpec.nodes['placeholder'].attrs['type'].allowedValues
+   * emailRfmSpec.nodes['placeholder'].attrs['type'].allowedValues
    * ```
    */
   rfmPlaceholderType?: string
