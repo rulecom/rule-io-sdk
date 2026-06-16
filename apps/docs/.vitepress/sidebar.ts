@@ -87,6 +87,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Blocking Subscribers', link: '/packages/client/blocking-subscribers' },
           { text: 'Managing Suppressions', link: '/packages/client/managing-suppressions' },
           { text: 'Syncing Subscribers', link: '/packages/client/syncing-subscribers' },
+          { text: 'Bulk Create Subscribers', link: '/packages/client/bulk-create-subscribers' },
         ],
       },
       { text: 'Brand Styles', link: '/packages/client/brand-styles' },

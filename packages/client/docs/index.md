@@ -26,7 +26,7 @@ You can also pass the API key as a plain string: `new RuleClient(apiKey)`.
 
 | Namespace | What it covers | Guide |
 |---|---|---|
-| `client.subscribers` | Add, update, find, remove, block, and suppress subscribers | [Managing Subscribers](./managing-subscribers) |
+| `client.subscribers` | Add, update, find, remove, block, and suppress subscribers | [Managing Subscribers](./managing-subscribers) · [Bulk Create](./bulk-create-subscribers) |
 | `client.tags` | Create and manage audience tags | [Tags](./tags) |
 | `client.campaigns` | Create, target, and schedule campaigns | [Email Campaigns](./email-campaigns) · [SMS Campaigns](./sms-campaigns) |
 | `client.automations` | Trigger-based email and SMS workflows | [Email Automations](./email-automations) · [SMS Automations](./sms-automations) |
