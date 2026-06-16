@@ -128,7 +128,7 @@ export interface CreateEmailTemplatePayload {
  *
  * const template = await client.templates.createSmsTemplate({
  *   name: 'Order shipped SMS',
- *   content: createSmsDocument({ text: 'Your order has shipped!' }),
+ *   content: createSmsDocument({ content: 'Your order has shipped!' }),
  * });
  * ```
  */

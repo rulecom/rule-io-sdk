@@ -1,6 +1,6 @@
 # @rulecom/client
 
-`@rulecom/client` is the HTTP API client for the [Rule.io](https://rule.io) email marketing platform. It covers the full Rule.io API surface: subscriber management, audience segmentation, campaigns, automations, analytics, and more.
+`@rulecom/client` is the HTTP API client for the [Rule.io](https://rule.io) marketing platform. It covers the full Rule.io API surface: subscriber management, audience segmentation, email and SMS campaigns and automations, templates, analytics, and more.
 
 > **Most users should install `@rulecom/sdk` instead.** It re-exports everything from this package and adds the RCML template builders and high-level helpers on top.
 
@@ -28,10 +28,10 @@ You can also pass the API key as a plain string: `new RuleClient(apiKey)`.
 |---|---|---|
 | `client.subscribers` | Add, update, find, remove, block, and suppress subscribers | [Managing Subscribers](./managing-subscribers) |
 | `client.tags` | Create and manage audience tags | [Tags](./tags) |
-| `client.campaigns` | Create, target, and schedule campaigns | [Email Campaigns](./email-campaigns) |
-| `client.automations` | Trigger-based email workflows | [Email Automations](./email-automations) |
-| `client.messages` | Email message objects | [Email Messages](./email-messages) |
-| `client.templates` | Email templates with RCML | [Email Templates](./email-templates) |
+| `client.campaigns` | Create, target, and schedule campaigns | [Email Campaigns](./email-campaigns) · [SMS Campaigns](./sms-campaigns) |
+| `client.automations` | Trigger-based email and SMS workflows | [Email Automations](./email-automations) · [SMS Automations](./sms-automations) |
+| `client.messages` | Per-dispatcher message objects | [Email Messages](./email-messages) · [SMS Messages](./sms-messages) |
+| `client.templates` | Email and SMS templates | [Email Templates](./email-templates) · [SMS Templates](./sms-templates) |
 | `client.dynamicSets` | Connect messages to templates | [Dynamic Sets](./dynamic-sets) |
 | `client.brandStyles` | Brand colors, fonts, and logos | [Brand Styles](./brand-styles) |
 | `client.customField` | Custom field group schema | [Custom Field Schema](./custom-fields-schema) |

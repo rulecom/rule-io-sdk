@@ -1,5 +1,7 @@
 # Email Templates
 
+> Channel: **email**. For SMS, see [SMS Templates](./sms-templates).
+
 A template holds the email body written in [RCML](/packages/rcml/). Templates are independent objects — they are not linked to a message at creation time. The link is made later, via a dynamic set. This means the same template can be reused across multiple messages.
 
 ## Creating a template
