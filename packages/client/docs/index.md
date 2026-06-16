@@ -39,6 +39,7 @@ You can also pass the API key as a plain string: `new RuleClient(apiKey)`.
 | `client.analytics` | Campaign and automation statistics | [Analytics](./analytics) |
 | `client.exports` | Bulk data exports (Enterprise) | [Exports](./exports) |
 | `client.recipients` | Recipient lists for targeting | [Recipients](./recipients) |
+| `parseWebhookEvent` · `markTagDirection` | Typed event shapes for inbound Rule.io webhooks | [Webhooks](./webhooks) |
 
 ## Error handling
 

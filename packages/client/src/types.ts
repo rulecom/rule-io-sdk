@@ -237,3 +237,32 @@ export type {
   CreateCampaignEmailConfig,
   CreateCampaignEmailResult,
 } from './orchestration.types.js';
+
+// ── Webhooks ─────────────────────────────────────────────────────────────────
+export type {
+  CampaignLinkClickedEvent,
+  CampaignOpenedEvent,
+  CampaignSentEvent,
+  ImportFinishedEvent,
+  SubscriberAddedToSegmentEvent,
+  SubscriberAddedToTagEvent,
+  SubscriberBouncedEvent,
+  SubscriberOptedInEvent,
+  SubscriberRemovedFromTagEvent,
+  SubscriberResubscribedEvent,
+  SubscriberSuppressedEvent,
+  SubscriberTagChangedEvent,
+  TransactionLinkClickedEvent,
+  TransactionOpenedEvent,
+  TransactionSentEvent,
+  WebhookAccount,
+  WebhookBounceInfo,
+  WebhookCampaignRef,
+  WebhookEvent,
+  WebhookImportSummary,
+  WebhookSegmentRef,
+  WebhookSubscriber,
+  WebhookTagRef,
+  WebhookTransactionMessage,
+  WebhookTransactionRef,
+} from './webhooks/index.js';

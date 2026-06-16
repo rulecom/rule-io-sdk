@@ -32,3 +32,7 @@ The same `callbackUrl` option is available on all async methods listed above.
 ## When to omit the callback
 
 If you only need eventual consistency — for example, the tags will be in place before the next scheduled campaign send — you can omit the callback and simply continue. Rule.io processes bulk operations quickly under normal load.
+
+## Not the same as account-level webhooks
+
+The `callbackUrl` on these methods is one-off: Rule.io fires it once when the specific background job triggered by a single SDK call finishes. It is unrelated to the **account-level webhooks** configured in the Rule UI under Settings → Developer → Webhooks, which fire on platform events like campaign-opened or subscriber-suppressed and have completely different payload shapes. See [Webhooks](./webhooks) for those.

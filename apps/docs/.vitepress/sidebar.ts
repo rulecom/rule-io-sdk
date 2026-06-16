@@ -72,6 +72,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
         collapsed: false,
         items: [
           { text: 'Asynchronous Operations', link: '/packages/client/async-operations' },
+          { text: 'Webhooks', link: '/packages/client/webhooks' },
         ],
       },
       { text: 'Tags', link: '/packages/client/tags' },
