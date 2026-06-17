@@ -635,13 +635,19 @@ export class CampaignsClient extends BaseResource {
     const templates = this.lazy('templates', () => new TemplatesClient(this.transport));
     const dynamicSets = this.lazy('dynamicSets', () => new DynamicSetsClient(this.transport));
 
-    const brandStyle = await brandStyles.get(params.brandStyleId);
+    const { content: templateContentOverride, ...templateMetaOverrides } = params.template ?? {};
 
-    if (!brandStyle) {
-      throw new RuleApiError(`Brand style ${params.brandStyleId} not found.`, 404);
+    let templateContent = templateContentOverride;
+
+    if (!templateContent) {
+      const brandStyle = await brandStyles.get(params.brandStyleId);
+
+      if (!brandStyle) {
+        throw new RuleApiError(`Brand style ${params.brandStyleId} not found.`, 404);
+      }
+
+      templateContent = buildDefaultBrandedTemplate(brandStyle);
     }
-
-    const templateContent = buildDefaultBrandedTemplate(brandStyle);
 
     const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
 
@@ -662,9 +668,11 @@ export class CampaignsClient extends BaseResource {
       const [messageResult, templateResult] = await Promise.allSettled([
         messages.createEmailCampaignMessage(campaignId, {
           subject: campaign.name,
+          ...params.message,
         }),
         templates.createEmailTemplate({
           name: `Campaign ${campaignId} template`,
+          ...templateMetaOverrides,
           content: templateContent,
         }),
       ]);
@@ -750,7 +758,9 @@ export class CampaignsClient extends BaseResource {
 
     const senderDetails = await account.getSenderDetails();
 
-    const smsContent = buildDefaultSmsContent(senderDetails.linkInsteadOfStopWord ?? false);
+    const { content: templateContentOverride, ...templateMetaOverrides } = params.template ?? {};
+    const defaultSmsBody = buildDefaultSmsContent(senderDetails.linkInsteadOfStopWord ?? false);
+    const smsBody = params.message?.subject ?? defaultSmsBody;
 
     const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
 
@@ -770,11 +780,13 @@ export class CampaignsClient extends BaseResource {
 
       const [messageResult, templateResult] = await Promise.allSettled([
         messages.createSmsCampaignMessage(campaignId, {
-          subject: smsContent,
+          subject: smsBody,
+          ...params.message,
         }),
         templates.createSmsTemplate({
           name: `Campaign ${campaignId} SMS template`,
-          content: createSmsDocument({ content: smsContent }),
+          ...templateMetaOverrides,
+          content: templateContentOverride ?? createSmsDocument({ content: smsBody }),
         }),
       ]);
 

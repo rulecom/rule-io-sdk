@@ -12,7 +12,13 @@
  * structure stays the same but the content changes (e.g. recurring newsletters).
  */
 
+import type { RcmlDocument, SmsDocument } from '@rulecom/rcml';
+
 import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
+import type {
+  CreateEmailCampaignMessagePayload,
+  CreateSmsCampaignMessagePayload,
+} from '../messages/messages.types.js';
 
 // ── Public SDK types ──────────────────────────────────────────────────────────
 
@@ -430,6 +436,7 @@ export interface CreateDefaultEmailCampaignParams {
    *
    * The SDK fetches the brand style and auto-generates an editor-compatible
    * RCML template with a logo, placeholder content section, and footer.
+   * Not fetched when `template.content` is provided.
    */
   brandStyleId: number;
   /**
@@ -438,6 +445,29 @@ export interface CreateDefaultEmailCampaignParams {
   name?: string;
   /** Sendout type. Defaults to `'marketing'`. */
   sendoutType?: CampaignSendoutType;
+  /**
+   * Optional overrides for the auto-created email message.
+   *
+   * Any field provided here replaces the default. `subject` defaults to the
+   * campaign name when omitted.
+   */
+  message?: Partial<CreateEmailCampaignMessagePayload>;
+  /**
+   * Optional overrides for the auto-created email template.
+   *
+   * Provide `content` to supply a custom RCML document — this skips the brand
+   * style fetch entirely. Provide `name` to override the auto-generated
+   * template name.
+   */
+  template?: {
+    /** Template name. Defaults to `'Campaign ${id} template'`. */
+    name?: string;
+    /**
+     * Custom RCML document. When omitted the SDK auto-generates a branded
+     * template from `brandStyleId`.
+     */
+    content?: RcmlDocument;
+  };
 }
 
 /**
@@ -458,6 +488,30 @@ export interface CreateDefaultSmsCampaignParams {
   name?: string;
   /** Sendout type. Defaults to `'marketing'`. */
   sendoutType?: CampaignSendoutType;
+  /**
+   * Optional overrides for the auto-created SMS message.
+   *
+   * Any field provided here replaces the default. `subject` (the SMS body
+   * text) defaults to a placeholder built from the account's sender
+   * configuration (including the appropriate unsubscribe footer).
+   */
+  message?: Partial<CreateSmsCampaignMessagePayload>;
+  /**
+   * Optional overrides for the auto-created SMS template.
+   *
+   * Provide `content` to supply a custom SMS document — this skips the
+   * account sender details fetch for template building. Provide `name` to
+   * override the auto-generated template name.
+   */
+  template?: {
+    /** Template name. Defaults to `'Campaign ${id} SMS template'`. */
+    name?: string;
+    /**
+     * Custom SMS document. When omitted the SDK auto-generates a template
+     * from the account's sender configuration.
+     */
+    content?: SmsDocument;
+  };
 }
 
 // ── Internal wire types ───────────────────────────────────────────────────────

@@ -476,6 +476,67 @@ describe('CampaignsClient', () => {
       expect(deletedUrls.some((u) => u.includes('/editor/message/10'))).toBe(true);
       expect(deletedUrls.some((u) => u.includes('/editor/campaign/100'))).toBe(true);
     });
+
+    it('message override replaces the default subject', async () => {
+      setupHappyPath();
+      const client = createClient(fetchMock);
+
+      await client.createDefaultEmailCampaign({
+        brandStyleId: 1,
+        message: { subject: 'Custom subject', preheader: 'Custom preheader' },
+      });
+
+      const messagePostCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          (url as string).includes('/editor/message') &&
+          (init as RequestInit).method === 'POST'
+      );
+      const body = JSON.parse((messagePostCall![1] as RequestInit).body as string);
+
+      expect(body.subject).toBe('Custom subject');
+      expect(body.pre_header).toBe('Custom preheader');
+    });
+
+    it('template.content override skips the brand style fetch', async () => {
+      // No brand style fetch — only 4 calls (campaign, message, template, dynamic set)
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_CAMPAIGN }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_MESSAGE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_TEMPLATE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_DYNAMIC_SET }));
+
+      const client = createClient(fetchMock);
+
+      await client.createDefaultEmailCampaign({
+        brandStyleId: 1,
+        template: { content: { tagName: 'rc-email', attributes: {}, head: { tagName: 'rc-head', attributes: {}, children: [] }, body: { tagName: 'rc-body', attributes: {}, children: [] } } },
+      });
+
+      const brandStyleFetched = fetchMock.mock.calls.some(([url]) =>
+        (url as string).includes('/brand-styles')
+      );
+
+      expect(brandStyleFetched).toBe(false);
+      expect(fetchMock.mock.calls).toHaveLength(4);
+    });
+
+    it('template.name override uses the custom name', async () => {
+      setupHappyPath();
+      const client = createClient(fetchMock);
+
+      await client.createDefaultEmailCampaign({
+        brandStyleId: 1,
+        template: { name: 'My Custom Template' },
+      });
+
+      const templatePostCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          (url as string).includes('/editor/template') &&
+          (init as RequestInit).method === 'POST'
+      );
+      const body = JSON.parse((templatePostCall![1] as RequestInit).body as string);
+
+      expect(body.name).toBe('My Custom Template');
+    });
   });
 
   describe('createDefaultSmsCampaign', () => {
@@ -561,6 +622,52 @@ describe('CampaignsClient', () => {
 
       expect(deletedUrls.some((u) => u.includes('/editor/template/21'))).toBe(true);
       expect(deletedUrls.some((u) => u.includes('/editor/campaign/200'))).toBe(true);
+    });
+
+    it('message.subject override replaces the default SMS body', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse(WIRE_SENDER));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_CAMPAIGN }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_MESSAGE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_TEMPLATE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_DYNAMIC_SET }));
+
+      const client = createClient(fetchMock);
+
+      await client.createDefaultSmsCampaign({
+        message: { subject: 'Hi [Subscriber:FirstName], your order shipped!' },
+      });
+
+      const messagePostCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          (url as string).includes('/editor/message') &&
+          (init as RequestInit).method === 'POST'
+      );
+      const body = JSON.parse((messagePostCall![1] as RequestInit).body as string);
+
+      expect(body.subject).toBe('Hi [Subscriber:FirstName], your order shipped!');
+    });
+
+    it('template.name override uses the custom name', async () => {
+      fetchMock.mockResolvedValueOnce(createMockResponse(WIRE_SENDER));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_CAMPAIGN }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_MESSAGE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_TEMPLATE }));
+      fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_DYNAMIC_SET }));
+
+      const client = createClient(fetchMock);
+
+      await client.createDefaultSmsCampaign({
+        template: { name: 'Order Shipped SMS' },
+      });
+
+      const templatePostCall = fetchMock.mock.calls.find(
+        ([url, init]) =>
+          (url as string).includes('/editor/template') &&
+          (init as RequestInit).method === 'POST'
+      );
+      const body = JSON.parse((templatePostCall![1] as RequestInit).body as string);
+
+      expect(body.name).toBe('Order Shipped SMS');
     });
   });
 });
