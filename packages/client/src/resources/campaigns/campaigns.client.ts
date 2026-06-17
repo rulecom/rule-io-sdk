@@ -667,8 +667,8 @@ export class CampaignsClient extends BaseResource {
 
       const [messageResult, templateResult] = await Promise.allSettled([
         messages.createEmailCampaignMessage(campaignId, {
-          subject: campaign.name,
           ...params.message,
+          subject: params.message?.subject ?? campaign.name,
         }),
         templates.createEmailTemplate({
           name: `Campaign ${campaignId} template`,
@@ -729,11 +729,12 @@ export class CampaignsClient extends BaseResource {
    * Create a complete SMS campaign with all its dependencies in one call.
    *
    * Executes the full creation sequence:
-   * 1. Fetch account sender details (for the SMS sender name and unsubscribe
-   *    behavior).
+   * 1. Fetch account sender details when needed (to determine the unsubscribe
+   *    footer style for the default SMS body). Skipped when both
+   *    `message.subject` and `template.content` are provided.
    * 2. Create the campaign.
    * 3. In parallel: create the SMS message and create the SMS template (built
-   *    from the account sender details).
+   *    from the resolved SMS body text).
    * 4. Create the default dynamic set linking the message to the template.
    *
    * If any step fails, all previously created resources are deleted
@@ -756,11 +757,17 @@ export class CampaignsClient extends BaseResource {
     const templates = this.lazy('templates', () => new TemplatesClient(this.transport));
     const dynamicSets = this.lazy('dynamicSets', () => new DynamicSetsClient(this.transport));
 
-    const senderDetails = await account.getSenderDetails();
-
     const { content: templateContentOverride, ...templateMetaOverrides } = params.template ?? {};
-    const defaultSmsBody = buildDefaultSmsContent(senderDetails.linkInsteadOfStopWord ?? false);
-    const smsBody = params.message?.subject ?? defaultSmsBody;
+
+    let smsBody: string;
+
+    if (params.message?.subject === undefined) {
+      const senderDetails = await account.getSenderDetails();
+
+      smsBody = buildDefaultSmsContent(senderDetails.linkInsteadOfStopWord ?? false);
+    } else {
+      smsBody = params.message.subject;
+    }
 
     const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
 
@@ -780,8 +787,8 @@ export class CampaignsClient extends BaseResource {
 
       const [messageResult, templateResult] = await Promise.allSettled([
         messages.createSmsCampaignMessage(campaignId, {
-          subject: smsBody,
           ...params.message,
+          subject: params.message?.subject ?? smsBody,
         }),
         templates.createSmsTemplate({
           name: `Campaign ${campaignId} SMS template`,
@@ -915,7 +922,7 @@ function mapMessageTypeToWire(type: CampaignMessageType): number {
 }
 
 /**
- * Build the default SMS body content string in RCML format.
+ * Build the default SMS body content string in SMS RFM format.
  *
  * Mirrors the frontend's `InitialSmsTemplateRcmlBuilder`: appends either a
  * link-based unsubscribe (`linkInsteadOfStopWord = true`) or a stop-word

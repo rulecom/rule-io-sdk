@@ -625,7 +625,7 @@ describe('CampaignsClient', () => {
     });
 
     it('message.subject override replaces the default SMS body', async () => {
-      fetchMock.mockResolvedValueOnce(createMockResponse(WIRE_SENDER));
+      // No sender mock — getSenderDetails is skipped when message.subject is provided
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_CAMPAIGN }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_MESSAGE }));
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_TEMPLATE }));

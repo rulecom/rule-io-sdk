@@ -15,7 +15,7 @@ import { RuleApiError } from './errors.js';
 import type { RuleClient } from './client.js';
 import type { BrandStyleListItem } from './resources/brand-styles/brand-styles.types.js';
 
-export type ResolvePreferredBrandStyleSource = 'default' | 'fallback';
+export type ResolvePreferredBrandStyleSource = 'default' | 'fallback' | 'explicit';
 
 export interface ResolvePreferredBrandStyleResult {
   /** ID of the resolved brand style. */
@@ -25,6 +25,7 @@ export interface ResolvePreferredBrandStyleResult {
   /**
    * How the style was selected.
    *
+   * `'explicit'` — a specific `brandStyleId` was passed to the function.
    * `'default'` — the style is flagged `isDefault` on the account.
    * `'fallback'` — no default was set; the first style in the list was used.
    */
@@ -64,7 +65,7 @@ export async function resolvePreferredBrandStyle(
       throw new RuleApiError(`Brand style ${brandStyleId} not found.`, 404);
     }
 
-    return { id: match.id, brandStyle: match, source: 'default' };
+    return { id: match.id, brandStyle: match, source: 'explicit' };
   }
 
   const defaultStyle = styles.find((s) => s.isDefault);

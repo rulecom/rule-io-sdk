@@ -474,7 +474,7 @@ export interface CreateDefaultEmailCampaignParams {
  * Options for `CampaignsClient.createDefaultSmsCampaign`.
  *
  * Creates a complete SMS campaign with all its dependencies in one call:
- * campaign → message → template (built from account sender details) → dynamic set.
+ * campaign → message → template → dynamic set.
  *
  * @example
  * ```typescript
@@ -492,23 +492,23 @@ export interface CreateDefaultSmsCampaignParams {
    * Optional overrides for the auto-created SMS message.
    *
    * Any field provided here replaces the default. `subject` (the SMS body
-   * text) defaults to a placeholder built from the account's sender
-   * configuration (including the appropriate unsubscribe footer).
+   * text) defaults to a placeholder with an unsubscribe footer; the footer
+   * style (link vs stop-word) is determined from the account's sender
+   * configuration, fetched automatically when `subject` is omitted.
    */
   message?: Partial<CreateSmsCampaignMessagePayload>;
   /**
    * Optional overrides for the auto-created SMS template.
    *
-   * Provide `content` to supply a custom SMS document — this skips the
-   * account sender details fetch for template building. Provide `name` to
-   * override the auto-generated template name.
+   * Provide `name` to override the auto-generated template name. Provide
+   * `content` to supply a custom SMS document.
    */
   template?: {
     /** Template name. Defaults to `'Campaign ${id} SMS template'`. */
     name?: string;
     /**
-     * Custom SMS document. When omitted the SDK auto-generates a template
-     * from the account's sender configuration.
+     * Custom SMS document. When omitted the SDK wraps the resolved SMS body
+     * text in a default SMS document.
      */
     content?: SmsDocument;
   };
