@@ -12,7 +12,13 @@
  * structure stays the same but the content changes (e.g. recurring newsletters).
  */
 
+import type { RcmlDocument, SmsDocument } from '@rulecom/rcml';
+
 import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
+import type {
+  CreateEmailCampaignMessagePayload,
+  CreateSmsCampaignMessagePayload,
+} from '../messages/messages.types.js';
 
 // ── Public SDK types ──────────────────────────────────────────────────────────
 
@@ -381,6 +387,131 @@ export interface ScheduleCampaignPayload {
    * ISO 8601 date-time string (e.g. `'2025-09-15T09:00:00+02:00'`).
    */
   datetime?: string;
+}
+
+// ── Default campaign creation result ─────────────────────────────────────────
+
+/**
+ * Result from `CampaignsClient.createDefaultEmailCampaign` or
+ * `CampaignsClient.createDefaultSmsCampaign`.
+ *
+ * Contains the IDs of all resources created during the campaign setup
+ * sequence: campaign → message → template → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultEmailCampaign({
+ *   brandStyleId: 42,
+ * });
+ * console.log(result.campaignId, result.messageId, result.templateId, result.dynamicSetId);
+ * ```
+ */
+export interface CreateDefaultCampaignResult {
+  /** The created campaign ID. */
+  campaignId: number;
+  /** The created message ID. */
+  messageId: number;
+  /** The created template ID. */
+  templateId: number;
+  /** The created dynamic set ID linking the message to the template. */
+  dynamicSetId: number;
+}
+
+/**
+ * Options for `CampaignsClient.createDefaultEmailCampaign`.
+ *
+ * Creates a complete email campaign with all its dependencies in one call:
+ * campaign → message → template (built from brand style) → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultEmailCampaign({
+ *   brandStyleId: 42,
+ * });
+ * ```
+ */
+export interface CreateDefaultEmailCampaignParams {
+  /**
+   * Brand style ID used to build the default email template.
+   *
+   * The SDK fetches the brand style and auto-generates an editor-compatible
+   * RCML template with a logo, placeholder content section, and footer.
+   * Not fetched when `template.content` is provided.
+   */
+  brandStyleId: number;
+  /**
+   * Initial campaign name. Defaults to a generated name when omitted.
+   */
+  name?: string;
+  /** Sendout type. Defaults to `'marketing'`. */
+  sendoutType?: CampaignSendoutType;
+  /**
+   * Optional overrides for the auto-created email message.
+   *
+   * Any field provided here replaces the default. `subject` defaults to the
+   * campaign name when omitted.
+   */
+  message?: Partial<CreateEmailCampaignMessagePayload>;
+  /**
+   * Optional overrides for the auto-created email template.
+   *
+   * Provide `content` to supply a custom RCML document — this skips the brand
+   * style fetch entirely. Provide `name` to override the auto-generated
+   * template name.
+   */
+  template?: {
+    /** Template name. Defaults to `'Campaign ${id} template'`. */
+    name?: string;
+    /**
+     * Custom RCML document. When omitted the SDK auto-generates a branded
+     * template from `brandStyleId`.
+     */
+    content?: RcmlDocument;
+  };
+}
+
+/**
+ * Options for `CampaignsClient.createDefaultSmsCampaign`.
+ *
+ * Creates a complete SMS campaign with all its dependencies in one call:
+ * campaign → message → template → dynamic set.
+ *
+ * @example
+ * ```typescript
+ * const result = await client.campaigns.createDefaultSmsCampaign();
+ * ```
+ */
+export interface CreateDefaultSmsCampaignParams {
+  /**
+   * Initial campaign name. Defaults to a generated name when omitted.
+   */
+  name?: string;
+  /** Sendout type. Defaults to `'marketing'`. */
+  sendoutType?: CampaignSendoutType;
+  /**
+   * Optional overrides for the auto-created SMS message.
+   *
+   * Any field provided here replaces the default. `subject` (the SMS body
+   * text) defaults to a placeholder with an unsubscribe footer; the footer
+   * style (link vs stop-word) is determined from the account's sender
+   * configuration, fetched automatically when `subject` is omitted.
+   */
+  message?: Partial<CreateSmsCampaignMessagePayload>;
+  /**
+   * Optional overrides for the auto-created SMS template.
+   *
+   * Provide `name` to override the auto-generated template name. Provide
+   * `content` to supply a custom SMS document.
+   */
+  template?: {
+    /** Template name. Defaults to `'Campaign ${id} SMS template'`. */
+    name?: string;
+    /**
+     * Custom SMS document. When omitted the SDK wraps the resolved SMS body
+     * text in a default SMS document.
+     */
+    content?: SmsDocument;
+  };
 }
 
 // ── Internal wire types ───────────────────────────────────────────────────────

@@ -16,6 +16,11 @@ export { AnalyticsMetrics, AnalyticsObjectTypes, AnalyticsMessageTypes } from '.
 export type * from './types.js';
 export * from './brand-style-to-theme.js';
 export { findTemplateOwner } from './find-template-owner.js';
+export {
+  resolvePreferredBrandStyle,
+  type ResolvePreferredBrandStyleResult,
+  type ResolvePreferredBrandStyleSource,
+} from './resolve-preferred-brand-style.js';
 export { formatDateForRule } from './utils/index.js';
 export type {
   TemplateOwner,

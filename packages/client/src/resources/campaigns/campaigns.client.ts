@@ -15,9 +15,17 @@
  * ({@link renameCampaign}, {@link setCampaignSendoutType}, etc.).
  */
 
+import { createSmsDocument } from '@rulecom/rcml';
+
 import { RuleApiError, RuleClientError } from '../../errors.js';
 import { BaseResource } from '../../core/base-resource.js';
 import { buildQueryString } from '../../core/query-string.js';
+import { buildDefaultBrandedTemplate } from '../../default-branded-template.js';
+import { BrandStylesClient } from '../brand-styles/brand-styles.client.js';
+import { DynamicSetsClient } from '../dynamic-sets/dynamic-sets.client.js';
+import { MessagesClient } from '../messages/messages.client.js';
+import { TemplatesClient } from '../templates/templates.client.js';
+import { AccountClient } from '../account/account.client.js';
 import type {
   Campaign,
   CampaignListResponse,
@@ -28,6 +36,9 @@ import type {
   CampaignSendoutType,
   CampaignStatus,
   CampaignWire,
+  CreateDefaultCampaignResult,
+  CreateDefaultEmailCampaignParams,
+  CreateDefaultSmsCampaignParams,
   CreateEmailCampaignPayload,
   CreateSmsCampaignPayload,
   ListCampaignsParams,
@@ -592,6 +603,266 @@ export class CampaignsClient extends BaseResource {
 
     return results;
   }
+
+  /**
+   * Create a complete email campaign with all its dependencies in one call.
+   *
+   * Executes the full creation sequence:
+   * 1. Create the campaign.
+   * 2. In parallel: create the message (using the campaign name as subject)
+   *    and create the email template (built from the given brand style).
+   * 3. Create the default dynamic set linking the message to the template.
+   *
+   * If any step fails, all previously created resources are deleted
+   * automatically before the error is rethrown.
+   *
+   * @param params - Brand style ID and optional campaign name and sendout type.
+   * @returns IDs of all created resources.
+   *
+   * @example
+   * ```typescript
+   * const result = await client.campaigns.createDefaultEmailCampaign({
+   *   brandStyleId: 42,
+   * });
+   * console.log(result.campaignId, result.messageId, result.templateId, result.dynamicSetId);
+   * ```
+   */
+  async createDefaultEmailCampaign(
+    params: CreateDefaultEmailCampaignParams
+  ): Promise<CreateDefaultCampaignResult> {
+    const brandStyles = this.lazy('brandStyles', () => new BrandStylesClient(this.transport));
+    const messages = this.lazy('messages', () => new MessagesClient(this.transport));
+    const templates = this.lazy('templates', () => new TemplatesClient(this.transport));
+    const dynamicSets = this.lazy('dynamicSets', () => new DynamicSetsClient(this.transport));
+
+    const { content: templateContentOverride, ...templateMetaOverrides } = params.template ?? {};
+
+    let templateContent = templateContentOverride;
+
+    if (!templateContent) {
+      const brandStyle = await brandStyles.get(params.brandStyleId);
+
+      if (!brandStyle) {
+        throw new RuleApiError(`Brand style ${params.brandStyleId} not found.`, 404);
+      }
+
+      templateContent = buildDefaultBrandedTemplate(brandStyle);
+    }
+
+    const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
+
+    try {
+      const campaign = await this.createEmailCampaign({
+        name: params.name,
+        sendoutType: params.sendoutType ?? 'marketing',
+      });
+
+      if (!campaign.id) {
+        throw new RuleApiError('Failed to create campaign — no ID returned.', 500);
+      }
+
+      const campaignId = campaign.id;
+
+      createdResources.push({ type: 'campaign', id: campaignId });
+
+      const [messageResult, templateResult] = await Promise.allSettled([
+        messages.createEmailCampaignMessage(campaignId, {
+          ...params.message,
+          subject: params.message?.subject ?? campaign.name,
+        }),
+        templates.createEmailTemplate({
+          name: `Campaign ${campaignId} template`,
+          ...templateMetaOverrides,
+          content: templateContent,
+        }),
+      ]);
+
+      if (messageResult.status === 'fulfilled' && messageResult.value.id) {
+        createdResources.push({ type: 'message', id: messageResult.value.id });
+      }
+
+      if (templateResult.status === 'fulfilled' && templateResult.value.id) {
+        createdResources.push({ type: 'template', id: templateResult.value.id });
+      }
+
+      if (messageResult.status === 'rejected') {
+        throw messageResult.reason;
+      }
+
+      if (templateResult.status === 'rejected') {
+        throw templateResult.reason;
+      }
+
+      const message = messageResult.value;
+      const template = templateResult.value;
+
+      if (!message.id) {
+        throw new RuleApiError('Failed to create message — no ID returned.', 500);
+      }
+
+      if (!template.id) {
+        throw new RuleApiError('Failed to create template — no ID returned.', 500);
+      }
+
+      const dynamicSet = await dynamicSets.create({
+        messageId: message.id,
+        templateId: template.id,
+      });
+
+      if (!dynamicSet.id) {
+        throw new RuleApiError('Failed to create dynamic set — no ID returned.', 500);
+      }
+
+      return {
+        campaignId,
+        messageId: message.id,
+        templateId: template.id,
+        dynamicSetId: dynamicSet.id,
+      };
+    } catch (error) {
+      await this._cleanupResources(createdResources, { messages, templates });
+      throw error;
+    }
+  }
+
+  /**
+   * Create a complete SMS campaign with all its dependencies in one call.
+   *
+   * Executes the full creation sequence:
+   * 1. Fetch account sender details when needed (to determine the unsubscribe
+   *    footer style for the default SMS body). Skipped when both
+   *    `message.subject` and `template.content` are provided.
+   * 2. Create the campaign.
+   * 3. In parallel: create the SMS message and create the SMS template (built
+   *    from the resolved SMS body text).
+   * 4. Create the default dynamic set linking the message to the template.
+   *
+   * If any step fails, all previously created resources are deleted
+   * automatically before the error is rethrown.
+   *
+   * @param params - Optional campaign name and sendout type.
+   * @returns IDs of all created resources.
+   *
+   * @example
+   * ```typescript
+   * const result = await client.campaigns.createDefaultSmsCampaign();
+   * console.log(result.campaignId, result.messageId, result.templateId, result.dynamicSetId);
+   * ```
+   */
+  async createDefaultSmsCampaign(
+    params: CreateDefaultSmsCampaignParams = {}
+  ): Promise<CreateDefaultCampaignResult> {
+    const account = this.lazy('account', () => new AccountClient(this.transport));
+    const messages = this.lazy('messages', () => new MessagesClient(this.transport));
+    const templates = this.lazy('templates', () => new TemplatesClient(this.transport));
+    const dynamicSets = this.lazy('dynamicSets', () => new DynamicSetsClient(this.transport));
+
+    const { content: templateContentOverride, ...templateMetaOverrides } = params.template ?? {};
+
+    let smsBody: string;
+
+    if (params.message?.subject === undefined) {
+      const senderDetails = await account.getSenderDetails();
+
+      smsBody = buildDefaultSmsContent(senderDetails.linkInsteadOfStopWord ?? false);
+    } else {
+      smsBody = params.message.subject;
+    }
+
+    const createdResources: { type: 'campaign' | 'message' | 'template'; id: number }[] = [];
+
+    try {
+      const campaign = await this.createSmsCampaign({
+        name: params.name,
+        sendoutType: params.sendoutType ?? 'marketing',
+      });
+
+      if (!campaign.id) {
+        throw new RuleApiError('Failed to create campaign — no ID returned.', 500);
+      }
+
+      const campaignId = campaign.id;
+
+      createdResources.push({ type: 'campaign', id: campaignId });
+
+      const [messageResult, templateResult] = await Promise.allSettled([
+        messages.createSmsCampaignMessage(campaignId, {
+          ...params.message,
+          subject: params.message?.subject ?? smsBody,
+        }),
+        templates.createSmsTemplate({
+          name: `Campaign ${campaignId} SMS template`,
+          ...templateMetaOverrides,
+          content: templateContentOverride ?? createSmsDocument({ content: smsBody }),
+        }),
+      ]);
+
+      if (messageResult.status === 'fulfilled' && messageResult.value.id) {
+        createdResources.push({ type: 'message', id: messageResult.value.id });
+      }
+
+      if (templateResult.status === 'fulfilled' && templateResult.value.id) {
+        createdResources.push({ type: 'template', id: templateResult.value.id });
+      }
+
+      if (messageResult.status === 'rejected') {
+        throw messageResult.reason;
+      }
+
+      if (templateResult.status === 'rejected') {
+        throw templateResult.reason;
+      }
+
+      const message = messageResult.value;
+      const template = templateResult.value;
+
+      if (!message.id) {
+        throw new RuleApiError('Failed to create message — no ID returned.', 500);
+      }
+
+      if (!template.id) {
+        throw new RuleApiError('Failed to create template — no ID returned.', 500);
+      }
+
+      const dynamicSet = await dynamicSets.create({
+        messageId: message.id,
+        templateId: template.id,
+      });
+
+      if (!dynamicSet.id) {
+        throw new RuleApiError('Failed to create dynamic set — no ID returned.', 500);
+      }
+
+      return {
+        campaignId,
+        messageId: message.id,
+        templateId: template.id,
+        dynamicSetId: dynamicSet.id,
+      };
+    } catch (error) {
+      await this._cleanupResources(createdResources, { messages, templates });
+      throw error;
+    }
+  }
+
+  private async _cleanupResources(
+    resources: { type: 'campaign' | 'message' | 'template'; id: number }[],
+    clients: { messages: MessagesClient; templates: TemplatesClient }
+  ): Promise<void> {
+    for (const resource of resources.reverse()) {
+      try {
+        if (resource.type === 'campaign') {
+          await this.delete(resource.id);
+        } else if (resource.type === 'message') {
+          await clients.messages.delete(resource.id);
+        } else {
+          await clients.templates.delete(resource.id);
+        }
+      } catch {
+        // Ignore cleanup errors — best-effort only.
+      }
+    }
+  }
 }
 
 // ── Wire ↔ entity mappers ─────────────────────────────────────────────────────
@@ -648,4 +919,22 @@ function mapSendoutTypeToWire(type: CampaignSendoutType): '1' | '2' {
  */
 function mapMessageTypeToWire(type: CampaignMessageType): number {
   return type === 'email' ? 1 : 2;
+}
+
+/**
+ * Build the default SMS body content string in SMS RFM format.
+ *
+ * Mirrors the frontend's `InitialSmsTemplateRcmlBuilder`: appends either a
+ * link-based unsubscribe (`linkInsteadOfStopWord = true`) or a stop-word
+ * (`linkInsteadOfStopWord = false`) after the placeholder message text.
+ * @internal
+ */
+function buildDefaultSmsContent(linkInsteadOfStopWord: boolean): string {
+  const body = 'Your message here.\n';
+
+  if (linkInsteadOfStopWord) {
+    return `${body}[Subscriber:unsubscribe_text] [Link:Unsubscribe]`;
+  }
+
+  return `${body}[Subscriber:stop_word]`;
 }

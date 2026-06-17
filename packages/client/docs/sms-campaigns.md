@@ -22,6 +22,42 @@ const campaignId = campaign.id!;
 
 *→ [`CreateSmsCampaignPayload`](/api/client/src/type-aliases/CreateSmsCampaignPayload)*
 
+## Default campaign
+
+Use `createDefaultSmsCampaign()` to create a campaign with all required content in a single call. The method fetches account sender details automatically, then creates the campaign, message, and an SMS template in parallel, and links them with a dynamic set. The unsubscribe style (link vs stop-word) is determined from the account's sender configuration. If any step fails, all already-created resources are automatically rolled back.
+
+```typescript
+const result = await client.campaigns.createDefaultSmsCampaign();
+// result: { campaignId, messageId, templateId, dynamicSetId }
+```
+
+Sender details are fetched from `client.account` automatically — no manual configuration is needed. See [Account](./account) for details on the sender configuration.
+
+Pass `message` and `template` to override the auto-generated defaults:
+
+```typescript
+const result = await client.campaigns.createDefaultSmsCampaign({
+  message: { subject: 'Hi [Subscriber:FirstName], your order shipped!' },
+  template: { name: 'Order Shipped SMS' },
+});
+```
+
+Supply a custom SMS document via `template.content` to use your own template structure:
+
+```typescript
+import { createSmsDocument } from '@rulecom/sdk';
+
+const result = await client.campaigns.createDefaultSmsCampaign({
+  template: {
+    content: createSmsDocument({ content: 'Your order [Order:Id] has shipped!' }),
+  },
+});
+```
+
+An optional `name` and `sendoutType` (`'marketing'` or `'transactional'`) can be passed as well.
+
+*→ [`CreateDefaultSmsCampaignParams`](/api/client/src/interfaces/CreateDefaultSmsCampaignParams), [`CreateDefaultCampaignResult`](/api/client/src/interfaces/CreateDefaultCampaignResult)*
+
 ## Attaching SMS content
 
 After creating a campaign, attach a message, template, and dynamic set before scheduling. See [SMS Messages](./sms-messages) for the full walkthrough — the process is the same regardless of whether the dispatcher is a campaign or an automation.

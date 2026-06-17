@@ -130,6 +130,9 @@ export type {
   CampaignRecipients,
   CampaignSendoutType,
   CampaignStatus,
+  CreateDefaultCampaignResult,
+  CreateDefaultEmailCampaignParams,
+  CreateDefaultSmsCampaignParams,
   CreateEmailCampaignPayload,
   CreateSmsCampaignPayload,
   ListCampaignsParams,
@@ -169,6 +172,11 @@ export type {
   CreateApiKeyPayload,
   UpdateApiKeyPayload,
 } from './resources/api-keys/api-keys.types.js';
+
+// ── Account ───────────────────────────────────────────────────────────────────
+export type {
+  AccountSenderDetails,
+} from './resources/account/account.types.js';
 
 // ── Exports ──────────────────────────────────────────────────────────────────
 export type {
