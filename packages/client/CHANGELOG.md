@@ -1,3 +1,27 @@
+## 0.4.0-beta.7 (2026-06-17)
+
+### 🚀 Features
+
+- **client:** add message/template override params to createDefault campaign methods ([72c3276](https://github.com/rulecom/rule-io-sdk/commit/72c3276))
+- **client:** add createDefaultEmailCampaign and createDefaultSmsCampaign orchestration methods ([95b9d2a](https://github.com/rulecom/rule-io-sdk/commit/95b9d2a))
+- **client:** typed webhook events + parser + tag-direction helper ([bfc9b86](https://github.com/rulecom/rule-io-sdk/commit/bfc9b86))
+- **client:** bulk-create subscribers via Rule.io v2 endpoint ([5159191](https://github.com/rulecom/rule-io-sdk/commit/5159191))
+- **rcml:** add SMS RCML module with full architecture parity to email ([4dc9930](https://github.com/rulecom/rule-io-sdk/commit/4dc9930))
+
+### 🩹 Fixes
+
+- **client:** address second-round Copilot review comments ([57d196f](https://github.com/rulecom/rule-io-sdk/commit/57d196f))
+- **client:** add missing blank lines to satisfy padding-line-between-statements lint rule ([e47632d](https://github.com/rulecom/rule-io-sdk/commit/e47632d))
+- **client:** address Copilot review on createDefault campaign methods ([7d701f8](https://github.com/rulecom/rule-io-sdk/commit/7d701f8))
+- **client:** export AccountSenderDetails and CreateDefault* types ([6f399d9](https://github.com/rulecom/rule-io-sdk/commit/6f399d9))
+- **client:** resolve CI Docs Quality failures from cross-file @link refs ([#152](https://github.com/rulecom/rule-io-sdk/issues/152))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.6 (2026-06-05)
 
 ### 🚀 Features

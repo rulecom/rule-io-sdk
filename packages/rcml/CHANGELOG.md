@@ -1,3 +1,28 @@
+## 0.4.0-beta.7 (2026-06-17)
+
+### 🚀 Features
+
+- **rcml:** add sms namespace builders for SmsContentJson + email namespace mirror ([d380ca2](https://github.com/rulecom/rule-io-sdk/commit/d380ca2))
+- **rcml:** add SMS RCML module with full architecture parity to email ([4dc9930](https://github.com/rulecom/rule-io-sdk/commit/4dc9930))
+- **rcml:** add column-width validator for rc-column elements ([5ffb4d2](https://github.com/rulecom/rule-io-sdk/commit/5ffb4d2))
+- **rcml:** apply font-style rc-class defaults to body elements in applyTheme ([8e0dae6](https://github.com/rulecom/rule-io-sdk/commit/8e0dae6))
+
+### 🩹 Fixes
+
+- **rcml:** reject element children in rc-sms during XML parse ([1c64f63](https://github.com/rulecom/rule-io-sdk/commit/1c64f63))
+- **rcml:** tighten CreateSmsContentOptions.paragraphs to a non-empty tuple ([5ba029a](https://github.com/rulecom/rule-io-sdk/commit/5ba029a))
+- **rcml:** fix lint errors introduced in 625f378 ([fa5d03e](https://github.com/rulecom/rule-io-sdk/commit/fa5d03e))
+- **rcml:** address second round of Copilot review findings ([625f378](https://github.com/rulecom/rule-io-sdk/commit/625f378))
+- **rcml:** replace Array.findLast with compatible last-element lookup ([909a75c](https://github.com/rulecom/rule-io-sdk/commit/909a75c))
+- **rcml:** address Copilot review findings ([29403a2](https://github.com/rulecom/rule-io-sdk/commit/29403a2))
+- **rcml:** fix lint errors — blank lines and wire validateColumnWidths into safeValidateEmailTemplate ([72fb5c0](https://github.com/rulecom/rule-io-sdk/commit/72fb5c0))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.6 (2026-06-05)
 
 This was a version bump only for rcml to align it with other projects, there were no code changes.

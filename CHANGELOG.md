@@ -1,3 +1,41 @@
+## 0.4.0-beta.7 (2026-06-17)
+
+### 🚀 Features
+
+- SMS RCML module, SMS client docs, bulk-create subscribers, webhook events ([#152](https://github.com/rulecom/rule-io-sdk/pull/152))
+- createDefaultEmailCampaign and createDefaultSmsCampaign with docs ([#154](https://github.com/rulecom/rule-io-sdk/pull/154))
+- **client:** bulk-create subscribers via Rule.io v2 endpoint ([5159191](https://github.com/rulecom/rule-io-sdk/commit/5159191))
+- **client:** typed webhook events + parser + tag-direction helper ([bfc9b86](https://github.com/rulecom/rule-io-sdk/commit/bfc9b86))
+- **client:** add createDefaultEmailCampaign and createDefaultSmsCampaign orchestration methods ([95b9d2a](https://github.com/rulecom/rule-io-sdk/commit/95b9d2a))
+- **client:** add message/template override params to createDefault campaign methods ([72c3276](https://github.com/rulecom/rule-io-sdk/commit/72c3276))
+- **rcml:** apply font-style rc-class defaults to body elements in applyTheme ([8e0dae6](https://github.com/rulecom/rule-io-sdk/commit/8e0dae6))
+- **rcml:** add column-width validator for rc-column elements ([5ffb4d2](https://github.com/rulecom/rule-io-sdk/commit/5ffb4d2))
+- **rcml:** add SMS RCML module with full architecture parity to email ([4dc9930](https://github.com/rulecom/rule-io-sdk/commit/4dc9930))
+- **rcml:** add sms namespace builders for SmsContentJson + email namespace mirror ([d380ca2](https://github.com/rulecom/rule-io-sdk/commit/d380ca2))
+
+### 🩹 Fixes
+
+- use npm run instead of pnpm in republish:local script ([0c20581](https://github.com/rulecom/rule-io-sdk/commit/0c20581))
+- **client:** resolve CI Docs Quality failures from cross-file @link refs ([#152](https://github.com/rulecom/rule-io-sdk/issues/152))
+- **client:** export AccountSenderDetails and CreateDefault* types ([6f399d9](https://github.com/rulecom/rule-io-sdk/commit/6f399d9))
+- **client:** address Copilot review on createDefault campaign methods ([7d701f8](https://github.com/rulecom/rule-io-sdk/commit/7d701f8))
+- **client:** add missing blank lines to satisfy padding-line-between-statements lint rule ([e47632d](https://github.com/rulecom/rule-io-sdk/commit/e47632d))
+- **client:** address second-round Copilot review comments ([57d196f](https://github.com/rulecom/rule-io-sdk/commit/57d196f))
+- **rcml:** fix lint errors — blank lines and wire validateColumnWidths into safeValidateEmailTemplate ([72fb5c0](https://github.com/rulecom/rule-io-sdk/commit/72fb5c0))
+- **rcml:** address Copilot review findings ([29403a2](https://github.com/rulecom/rule-io-sdk/commit/29403a2))
+- **rcml:** replace Array.findLast with compatible last-element lookup ([909a75c](https://github.com/rulecom/rule-io-sdk/commit/909a75c))
+- **rcml:** address second round of Copilot review findings ([625f378](https://github.com/rulecom/rule-io-sdk/commit/625f378))
+- **rcml:** fix lint errors introduced in 625f378 ([fa5d03e](https://github.com/rulecom/rule-io-sdk/commit/fa5d03e))
+- **rcml:** apply theme font-style classes to body elements + local dev improvements ([#151](https://github.com/rulecom/rule-io-sdk/pull/151))
+- **rcml:** tighten CreateSmsContentOptions.paragraphs to a non-empty tuple ([5ba029a](https://github.com/rulecom/rule-io-sdk/commit/5ba029a))
+- **rcml:** reject element children in rc-sms during XML parse ([1c64f63](https://github.com/rulecom/rule-io-sdk/commit/1c64f63))
+
+### ❤️ Thank You
+
+- Claude
+- Claude Sonnet 4.6
+- Oleksandr Ryzhyk @webmarket7
+
 ## 0.4.0-beta.6 (2026-06-05)
 
 ### 🚀 Features
