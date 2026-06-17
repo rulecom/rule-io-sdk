@@ -62,4 +62,15 @@ describe('convertXmlToSms()', () => {
       expect(result.errors[0]!.code).toBe('ROOT_INVALID')
     }
   })
+
+  it('returns ROOT_INVALID when rc-sms contains a child element', () => {
+    const result = convertXmlToSms('<rc-sms><b>hi</b></rc-sms>')
+
+    expect(result.success).toBe(false)
+
+    if (!result.success) {
+      expect(result.errors[0]!.code).toBe('ROOT_INVALID')
+      expect(result.errors[0]!.message).toContain('<b>')
+    }
+  })
 })

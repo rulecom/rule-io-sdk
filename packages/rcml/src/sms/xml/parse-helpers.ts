@@ -92,7 +92,16 @@ export function convertXmlToSms(
   const rawChildren = rootNode['rc-sms']
 
   const id = typeof rawAttributes?.['id'] === 'string' ? rawAttributes['id'] : undefined
-  const rfmText = extractText(rawChildren)
+  const textResult = extractText(rawChildren)
+
+  if (typeof textResult !== 'string') {
+    return {
+      success: false,
+      errors: [{ path: '/content', code: 'ROOT_INVALID', message: textResult.error }],
+    }
+  }
+
+  const rfmText = textResult
 
   let content
 
@@ -120,17 +129,29 @@ export function convertXmlToSms(
   return { success: true, data: doc }
 }
 
-/** Walk the preserveOrder XML child array, concatenating all `#text` node values. @internal */
-function extractText(raw: unknown): string {
+/**
+ * Walk the preserveOrder XML child array, concatenating all `#text` node values.
+ * Returns an error descriptor if any element child is present — `<rc-sms>` is a leaf.
+ * @internal
+ */
+function extractText(raw: unknown): string | { error: string } {
   if (!Array.isArray(raw)) return ''
   let out = ''
 
   for (const entry of raw as PreservedNode[]) {
-    if (typeof entry === 'object' && '#text' in entry) {
+    if (typeof entry !== 'object') continue
+
+    if ('#text' in entry) {
       const t = entry['#text']
 
       if (typeof t === 'string') out += t
       else if (typeof t === 'number' || typeof t === 'boolean') out += String(t)
+    } else {
+      const elementTag = Object.keys(entry).find((k) => k !== ':@')
+
+      return {
+        error: `<rc-sms> is a leaf element and must contain only text, but found child element <${elementTag ?? '(unknown)'}>`,
+      }
     }
   }
 
