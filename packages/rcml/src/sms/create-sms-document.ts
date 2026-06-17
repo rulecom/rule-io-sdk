@@ -1,0 +1,89 @@
+/**
+ * Public API: factory for constructing SMS RCML documents.
+ */
+
+import type { SmsDocument } from './sms-types.js'
+import type { SmsContentJson } from './content/json-validator/types.js'
+import { smsRfmToJson } from './sms-rfm-to-json.js'
+import { safeParseSmsJson } from './validate-sms-json.js'
+import { SmsDocumentBuildError, SmsDocumentBuildErrorCodes } from './builders/errors.js'
+
+/**
+ * Options for {@link createSmsDocument}.
+ * @public
+ */
+export interface CreateSmsDocumentOptions {
+  /**
+   * The SMS message body.
+   *
+   * Accepts either:
+   * - A **string** in SMS RFM (SMS Rule Flavor Markdown) — placeholders use `[Type:Name]`
+   *   syntax (e.g. `[Subscriber:FirstName]`), single `\n` becomes a hard break,
+   *   and double `\n\n` starts a new paragraph.
+   * - A pre-built {@link SmsContentJson} document — validated on the way in.
+   */
+  content: string | SmsContentJson
+}
+
+/**
+ * Create an SMS RCML document.
+ *
+ * Returns an {@link SmsDocument} that can be passed to
+ * `client.templates.createSmsTemplate` or `client.templates.updateSmsTemplate`.
+ *
+ * @param options - SMS document options.
+ * @returns A valid {@link SmsDocument}.
+ * @throws {SmsDocumentBuildError} When a pre-built {@link SmsContentJson} is
+ *   supplied and fails schema validation.
+ *
+ * @example
+ * ```typescript
+ * import { createSmsDocument } from '@rulecom/rcml';
+ *
+ * // From an SMS RFM string
+ * const doc = createSmsDocument({
+ *   content: 'Hi [Subscriber:FirstName], your order has shipped!',
+ * });
+ *
+ * // From a pre-built content JSON document
+ * const doc2 = createSmsDocument({
+ *   content: {
+ *     type: 'doc',
+ *     content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello!' }] }],
+ *   },
+ * });
+ *
+ * const template = await client.templates.createSmsTemplate({
+ *   name: 'Order shipped SMS',
+ *   content: doc,
+ * });
+ * ```
+ * @public
+ */
+export function createSmsDocument(options: CreateSmsDocumentOptions): SmsDocument {
+  let content: SmsContentJson
+
+  if (typeof options.content === 'string') {
+    content = smsRfmToJson(options.content)
+  } else {
+    const result = safeParseSmsJson(options.content)
+
+    if (!result.success) {
+      throw new SmsDocumentBuildError(
+        result.errors.map((e) => ({
+          code: SmsDocumentBuildErrorCodes.CONTENT_INVALID,
+          path: `content${e.path}`,
+          message: e.message,
+        })),
+      )
+    }
+
+    content = result.data
+  }
+
+  return {
+    tagName: 'rc-sms',
+    attributes: {},
+    content,
+  }
+}

@@ -63,7 +63,7 @@ const doc = createRcmlDocumentElement({ head, body: emailBody });
 
 Text inside `rc-text`, `rc-heading`, and `rc-button` elements is always stored as a
 ProseMirror JSON document. The easiest way to produce one is `createTextContent()`,
-which accepts an RFM string — a compact markdown dialect designed for email copy.
+which accepts an Email RFM string — a compact markdown dialect designed for email copy.
 
 ```typescript
 import { createTextContent } from '@rulecom/rcml';
@@ -198,7 +198,7 @@ and writing it back.
 ## Exporting as XML
 
 `rcmlToXml()` converts a JSON document to an XML string. The ProseMirror content inside
-text elements is serialised back to RFM, making the output easy to read and diff.
+text elements is serialised back to Email RFM, making the output easy to read and diff.
 
 ```typescript
 import { rcmlToXml } from '@rulecom/rcml';

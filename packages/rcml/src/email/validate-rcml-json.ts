@@ -68,7 +68,7 @@ export type { SemanticValidationResult }
 
 /**
  * Restricts the set of node / mark types accepted by {@link validateJson} and
- * {@link safeParseJson}. Pre-built flavors: `rfmConfig`, `inlineRfmConfig`
+ * {@link safeParseJson}. Pre-built flavors: `emailRfmConfig`, `emailInlineRfmConfig`
  * (exported from `./content/flavors/index.js`).
  * @public
  */

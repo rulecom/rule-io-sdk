@@ -15,7 +15,7 @@
  * by creating additional dynamic sets.
  */
 
-import type { RcmlDocument } from '@rulecom/rcml';
+import type { RcmlDocument, SmsDocument } from '@rulecom/rcml';
 
 import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
 
@@ -36,16 +36,33 @@ export interface Template {
   /** Human-readable template name shown in the Rule.io UI. */
   name: string;
   /**
-   * The RCML document that defines the email body.
+   * The template body document.
    *
-   * Mapped from the wire's `template` field. Optional because the API may
-   * omit the template body in some list responses.
+   * For email templates this is an `RcmlDocument`; for SMS templates this is
+   * an `SmsDocument`. Mapped from the wire's `template` field. Optional
+   * because the API may omit the template body in some list responses.
+   *
+   * The type is the union `RcmlDocument | SmsDocument`. `messageType` is
+   * typed as a plain `string` rather than a discriminator, so TypeScript
+   * does not narrow `content` automatically — callers that need a
+   * specific shape should narrow manually:
+   *
+   * ```typescript
+   * if (template.messageType === 'email') {
+   *   const rcml = template.content as RcmlDocument | undefined;
+   * } else if (template.messageType === 'text_message') {
+   *   const sms = template.content as SmsDocument | undefined;
+   * }
+   * ```
    */
-  content?: RcmlDocument;
+  content?: RcmlDocument | SmsDocument;
   /**
    * Message type this template was created for.
    *
    * `'email'` for email templates, `'text_message'` for SMS templates.
+   * Typed as `string` (not a literal union) so adding a new server-side
+   * value does not break consumers; narrow `content` manually based on
+   * the value you care about.
    */
   messageType: string;
   /** ISO 8601 timestamp of when the template was created. */
@@ -67,6 +84,20 @@ export interface Template {
  * ```
  */
 export type EmailTemplate = Template;
+
+/**
+ * An SMS template (messageType = `'text_message'`).
+ *
+ * Structurally identical to `Template`; the named alias makes method
+ * signatures and variable declarations self-documenting at the call site.
+ *
+ * @example
+ * ```typescript
+ * const template: SmsTemplate =
+ *   await client.templates.createSmsTemplate({ ... });
+ * ```
+ */
+export type SmsTemplate = Template;
 
 // ── Create payloads ───────────────────────────────────────────────────────────
 
@@ -101,6 +132,34 @@ export interface CreateEmailTemplatePayload {
   content: RcmlDocument;
 }
 
+/**
+ * Payload for `TemplatesClient.createSmsTemplate`.
+ *
+ * The message type is fixed to `'text_message'` by the method. Construct the
+ * `content` document with `createSmsDocument` from `@rulecom/rcml`.
+ *
+ * @example
+ * ```typescript
+ * import { createSmsDocument } from '@rulecom/rcml';
+ *
+ * const template = await client.templates.createSmsTemplate({
+ *   name: 'Order shipped SMS',
+ *   content: createSmsDocument({ content: 'Your order has shipped!' }),
+ * });
+ * ```
+ */
+export interface CreateSmsTemplatePayload {
+  /**
+   * Human-readable name for the template.
+   *
+   * Must be unique within the account. Append a timestamp when creating
+   * programmatically to avoid conflicts.
+   */
+  name: string;
+  /** The SMS document defining the template body. */
+  content: SmsDocument;
+}
+
 // ── Update payloads ───────────────────────────────────────────────────────────
 
 /**
@@ -121,6 +180,27 @@ export interface UpdateEmailTemplatePayload {
   name?: string;
   /** New RCML document body. */
   content?: RcmlDocument;
+}
+
+/**
+ * Payload for `TemplatesClient.updateSmsTemplate`.
+ *
+ * All fields are optional — only the fields you include are changed.
+ *
+ * @example
+ * ```typescript
+ * import { createSmsDocument } from '@rulecom/rcml';
+ *
+ * await client.templates.updateSmsTemplate(templateId, {
+ *   content: createSmsDocument({ content: 'Your order has shipped — updated!' }),
+ * });
+ * ```
+ */
+export interface UpdateSmsTemplatePayload {
+  /** New name for the template. */
+  name?: string;
+  /** New SMS document body. */
+  content?: SmsDocument;
 }
 
 // ── List params ───────────────────────────────────────────────────────────────
@@ -177,8 +257,8 @@ export interface TemplateWire {
   id: number;
   name: string;
   message_type: string;
-  /** The RCML document body. Mapped to `content` on the public `Template` entity. */
-  template?: RcmlDocument;
+  /** The template body document. Mapped to `content` on the public `Template` entity. */
+  template?: RcmlDocument | SmsDocument;
   created_at: string;
   updated_at: string;
 }
@@ -194,7 +274,7 @@ export interface TemplateWire {
 export interface CreateTemplateBody {
   name: string;
   message_type: 'email' | 'text_message';
-  template: RcmlDocument;
+  template: RcmlDocument | SmsDocument;
 }
 
 /**
@@ -204,7 +284,7 @@ export interface CreateTemplateBody {
 export interface UpdateTemplateBody {
   name?: string;
   message_type?: 'email' | 'text_message';
-  template?: RcmlDocument;
+  template?: RcmlDocument | SmsDocument;
 }
 
 /**
