@@ -60,6 +60,7 @@ describe('AccountClient', () => {
 
     it('maps undefined link_instead_of_stop_word to undefined', async () => {
       const wire = { ...WIRE_SENDER };
+
       delete (wire as Partial<typeof WIRE_SENDER>).link_instead_of_stop_word;
       fetchMock.mockResolvedValueOnce(createMockResponse(wire));
       const client = createClient(fetchMock);

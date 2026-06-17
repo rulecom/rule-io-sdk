@@ -672,6 +672,7 @@ export class CampaignsClient extends BaseResource {
       if (messageResult.status === 'fulfilled' && messageResult.value.id) {
         createdResources.push({ type: 'message', id: messageResult.value.id });
       }
+
       if (templateResult.status === 'fulfilled' && templateResult.value.id) {
         createdResources.push({ type: 'template', id: templateResult.value.id });
       }
@@ -679,6 +680,7 @@ export class CampaignsClient extends BaseResource {
       if (messageResult.status === 'rejected') {
         throw messageResult.reason;
       }
+
       if (templateResult.status === 'rejected') {
         throw templateResult.reason;
       }
@@ -779,6 +781,7 @@ export class CampaignsClient extends BaseResource {
       if (messageResult.status === 'fulfilled' && messageResult.value.id) {
         createdResources.push({ type: 'message', id: messageResult.value.id });
       }
+
       if (templateResult.status === 'fulfilled' && templateResult.value.id) {
         createdResources.push({ type: 'template', id: templateResult.value.id });
       }
@@ -786,6 +789,7 @@ export class CampaignsClient extends BaseResource {
       if (messageResult.status === 'rejected') {
         throw messageResult.reason;
       }
+
       if (templateResult.status === 'rejected') {
         throw templateResult.reason;
       }

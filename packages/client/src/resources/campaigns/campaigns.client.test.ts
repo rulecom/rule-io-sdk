@@ -525,6 +525,7 @@ describe('CampaignsClient', () => {
       fetchMock.mockResolvedValueOnce(createMockResponse({ data: WIRE_SMS_DYNAMIC_SET }));
 
       const client = createClient(fetchMock);
+
       await client.createDefaultSmsCampaign();
 
       const messagePostCall = fetchMock.mock.calls.find(
@@ -532,7 +533,9 @@ describe('CampaignsClient', () => {
           (url as string).includes('/editor/message') &&
           (init as RequestInit).method === 'POST'
       );
+
       const body = JSON.parse((messagePostCall![1] as RequestInit).body as string);
+
       expect(body.subject).not.toBe('Spring Newsletter');
       expect(typeof body.subject).toBe('string');
       expect(body.subject.length).toBeGreaterThan(0);

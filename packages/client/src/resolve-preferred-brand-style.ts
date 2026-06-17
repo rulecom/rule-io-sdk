@@ -59,17 +59,21 @@ export async function resolvePreferredBrandStyle(
 
   if (brandStyleId !== undefined) {
     const match = styles.find((s) => s.id === brandStyleId);
+
     if (!match) {
       throw new RuleApiError(`Brand style ${brandStyleId} not found.`, 404);
     }
+
     return { id: match.id, brandStyle: match, source: 'default' };
   }
 
   const defaultStyle = styles.find((s) => s.isDefault);
+
   if (defaultStyle) {
     return { id: defaultStyle.id, brandStyle: defaultStyle, source: 'default' };
   }
 
   const fallback = styles[0]!;
+
   return { id: fallback.id, brandStyle: fallback, source: 'fallback' };
 }
