@@ -659,7 +659,7 @@ export class CampaignsClient extends BaseResource {
 
       createdResources.push({ type: 'campaign', id: campaignId });
 
-      const [message, template] = await Promise.all([
+      const [messageResult, templateResult] = await Promise.allSettled([
         messages.createEmailCampaignMessage(campaignId, {
           subject: campaign.name,
         }),
@@ -669,6 +669,23 @@ export class CampaignsClient extends BaseResource {
         }),
       ]);
 
+      if (messageResult.status === 'fulfilled' && messageResult.value.id) {
+        createdResources.push({ type: 'message', id: messageResult.value.id });
+      }
+      if (templateResult.status === 'fulfilled' && templateResult.value.id) {
+        createdResources.push({ type: 'template', id: templateResult.value.id });
+      }
+
+      if (messageResult.status === 'rejected') {
+        throw messageResult.reason;
+      }
+      if (templateResult.status === 'rejected') {
+        throw templateResult.reason;
+      }
+
+      const message = messageResult.value;
+      const template = templateResult.value;
+
       if (!message.id) {
         throw new RuleApiError('Failed to create message — no ID returned.', 500);
       }
@@ -676,9 +693,6 @@ export class CampaignsClient extends BaseResource {
       if (!template.id) {
         throw new RuleApiError('Failed to create template — no ID returned.', 500);
       }
-
-      createdResources.push({ type: 'message', id: message.id });
-      createdResources.push({ type: 'template', id: template.id });
 
       const dynamicSet = await dynamicSets.create({
         messageId: message.id,
@@ -752,15 +766,32 @@ export class CampaignsClient extends BaseResource {
 
       createdResources.push({ type: 'campaign', id: campaignId });
 
-      const [message, template] = await Promise.all([
+      const [messageResult, templateResult] = await Promise.allSettled([
         messages.createSmsCampaignMessage(campaignId, {
-          subject: campaign.name,
+          subject: smsContent,
         }),
         templates.createSmsTemplate({
           name: `Campaign ${campaignId} SMS template`,
           content: createSmsDocument({ content: smsContent }),
         }),
       ]);
+
+      if (messageResult.status === 'fulfilled' && messageResult.value.id) {
+        createdResources.push({ type: 'message', id: messageResult.value.id });
+      }
+      if (templateResult.status === 'fulfilled' && templateResult.value.id) {
+        createdResources.push({ type: 'template', id: templateResult.value.id });
+      }
+
+      if (messageResult.status === 'rejected') {
+        throw messageResult.reason;
+      }
+      if (templateResult.status === 'rejected') {
+        throw templateResult.reason;
+      }
+
+      const message = messageResult.value;
+      const template = templateResult.value;
 
       if (!message.id) {
         throw new RuleApiError('Failed to create message — no ID returned.', 500);
@@ -769,9 +800,6 @@ export class CampaignsClient extends BaseResource {
       if (!template.id) {
         throw new RuleApiError('Failed to create template — no ID returned.', 500);
       }
-
-      createdResources.push({ type: 'message', id: message.id });
-      createdResources.push({ type: 'template', id: template.id });
 
       const dynamicSet = await dynamicSets.create({
         messageId: message.id,
@@ -871,7 +899,7 @@ function mapMessageTypeToWire(type: CampaignMessageType): number {
 }
 
 /**
- * Build the default SMS body content string in SMS RFM format.
+ * Build the default SMS body content string in RCML format.
  *
  * Mirrors the frontend's `InitialSmsTemplateRcmlBuilder`: appends either a
  * link-based unsubscribe (`linkInsteadOfStopWord = true`) or a stop-word
