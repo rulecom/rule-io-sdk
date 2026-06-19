@@ -1,3 +1,14 @@
+## 0.4.0-beta.8 (2026-06-19)
+
+### 🚀 Features
+
+- rename npm scope from @rulecom to @rule ([4575ff6](https://github.com/rulecom/rule-io-sdk/commit/4575ff6))
+
+### ❤️ Thank You
+
+- Claude
+- Oleksandr Ryzhyk
+
 ## 0.4.0-beta.7 (2026-06-17)
 
 This was a version bump only for sdk to align it with other projects, there were no code changes.

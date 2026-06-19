@@ -1,3 +1,19 @@
+## 0.4.0-beta.8 (2026-06-19)
+
+### 🚀 Features
+
+- rename npm scope from @rulecom to @rule ([4575ff6](https://github.com/rulecom/rule-io-sdk/commit/4575ff6))
+- rename npm scope from @rulecom to @rule ([#155](https://github.com/rulecom/rule-io-sdk/pull/155))
+
+### 🩹 Fixes
+
+- **template-engine:** correct stale @rule/core reference in README ([fd21d70](https://github.com/rulecom/rule-io-sdk/commit/fd21d70))
+
+### ❤️ Thank You
+
+- Claude
+- Oleksandr Ryzhyk @webmarket7
+
 ## 0.4.0-beta.7 (2026-06-17)
 
 ### 🚀 Features
