@@ -200,7 +200,7 @@ const doc = template.render({
     },
     footer: { fontSize: '10px', textColor: '#666666' },
   },
-  theme,                              // EmailTheme from @rule/core
+  theme,                              // EmailTheme from @rule/rcml
   copy: { ctaButton: 'Check out' },   // optional partial override
 })
 ```
