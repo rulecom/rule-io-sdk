@@ -1,5 +1,5 @@
 /**
- * Campaign types for the `@rulecom/client` campaigns namespace.
+ * Campaign types for the `@rule/client` campaigns namespace.
  *
  * A campaign is a one-time or scheduled email blast sent to a defined set of
  * recipients. The lifecycle is:
@@ -12,7 +12,7 @@
  * structure stays the same but the content changes (e.g. recurring newsletters).
  */
 
-import type { RcmlDocument, SmsDocument } from '@rulecom/rcml';
+import type { RcmlDocument, SmsDocument } from '@rule/rcml';
 
 import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
 import type {

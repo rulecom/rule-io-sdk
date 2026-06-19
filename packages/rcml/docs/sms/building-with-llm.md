@@ -1,7 +1,7 @@
 # Building with LLM
 
 LLMs can generate SMS templates as SMS RFM strings or as `SmsContentJson` JSON. The
-`@rulecom/rcml` package exports three machine-readable spec constants that describe the
+`@rule/rcml` package exports three machine-readable spec constants that describe the
 complete SMS schema concisely. Serialize them to JSON and include them in a system
 prompt once, at the start of a session.
 
@@ -12,7 +12,7 @@ that does not match the `SmsContentJson` shape. The three spec objects give the 
 everything it needs to produce correct output:
 
 ```typescript
-import { smsSpec, smsRfmSpec, smsPlaceholderSpec } from '@rulecom/rcml';
+import { smsSpec, smsRfmSpec, smsPlaceholderSpec } from '@rule/rcml';
 
 const systemPrompt = `
 You generate Rule.io SMS templates as SMS RFM strings.
@@ -54,7 +54,7 @@ parameter descriptions, allowed values, and examples.
 `smsSpec.tags['rc-sms']` describes the one allowed element:
 
 ```typescript
-import { smsSpec } from '@rulecom/rcml';
+import { smsSpec } from '@rule/rcml';
 
 smsSpec.tags['rc-sms']
 // {
@@ -75,7 +75,7 @@ const flavor = smsRfmSpec.flavors[contentType];
 block and inline content, and which marks may be applied:
 
 ```typescript
-import { smsRfmSpec } from '@rulecom/rcml';
+import { smsRfmSpec } from '@rule/rcml';
 
 smsRfmSpec.flavors['sms-rfm-content']
 // {
@@ -107,7 +107,7 @@ in `SmsContentJson` — make sure the LLM emits `true`/`false`, not the strings
 `smsPlaceholderSpec.tokens` contains one entry per token type valid in SMS:
 
 ```typescript
-import { smsPlaceholderSpec } from '@rulecom/rcml';
+import { smsPlaceholderSpec } from '@rule/rcml';
 
 Object.keys(smsPlaceholderSpec.tokens)
 // → ['CustomField', 'Subscriber', 'User', 'Date', 'RemoteContent', 'Link']
@@ -132,7 +132,7 @@ SMS RFM is the easiest output format for an LLM to produce correctly. Ask the mo
 output the message body as a single SMS RFM string, then parse and validate:
 
 ```typescript
-import { smsRfmToJson, createSmsDocument, safeValidateSmsDocument } from '@rulecom/rcml';
+import { smsRfmToJson, createSmsDocument, safeValidateSmsDocument } from '@rule/rcml';
 
 // 1. LLM produces an SMS RFM string
 const rfmString = await llm.generate(systemPrompt + '\n\nGenerate a shipping confirmation.');
@@ -159,7 +159,7 @@ If the message requires linked text (text with `href`, `track`, and `shorten`), 
 the LLM to output `SmsContentJson` directly and validate with `safeParseSmsJson`:
 
 ```typescript
-import { safeParseSmsJson, createSmsDocument } from '@rulecom/rcml';
+import { safeParseSmsJson, createSmsDocument } from '@rule/rcml';
 
 // LLM produces a SmsContentJson object
 const rawJson = JSON.parse(await llm.generate(jsonPrompt));

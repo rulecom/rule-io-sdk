@@ -36,7 +36,7 @@ export interface SmsPublicTagSpec {
 }
 
 /**
- * Top-level machine-readable SMS specification exported from `@rulecom/rcml`.
+ * Top-level machine-readable SMS specification exported from `@rule/rcml`.
  *
  * @public
  */
@@ -54,7 +54,7 @@ export interface SmsSpec {
  *
  * @example
  * ```ts
- * import { smsSpec, smsRfmSpec } from '@rulecom/rcml'
+ * import { smsSpec, smsRfmSpec } from '@rule/rcml'
  *
  * // The only SMS tag
  * Object.keys(smsSpec.tags)  // → ['rc-sms']

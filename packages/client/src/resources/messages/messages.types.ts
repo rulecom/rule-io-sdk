@@ -1,5 +1,5 @@
 /**
- * Message types for the `@rulecom/client` messages namespace.
+ * Message types for the `@rule/client` messages namespace.
  *
  * The Rule.io API models an email as three connected layers:
  *

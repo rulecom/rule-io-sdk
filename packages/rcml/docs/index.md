@@ -1,6 +1,6 @@
-# @rulecom/rcml
+# @rule/rcml
 
-`@rulecom/rcml` is the RCML (Rule Campaign Markup Language) library. It provides the
+`@rule/rcml` is the RCML (Rule Campaign Markup Language) library. It provides the
 types, element factories, theme utilities, format converters, and validation functions
 needed to build email and SMS templates that the Rule platform can render and send.
 
@@ -33,7 +33,7 @@ import {
   createTextElement, createHeadingElement, createButtonElement,
   createImageElement, createSpacerElement,
   createPreviewElement,
-} from '@rulecom/rcml';
+} from '@rule/rcml';
 ```
 
 See [Building programmatically](/packages/rcml/email/building-programmatically) for a
@@ -47,7 +47,7 @@ common entry point — it accepts an Email RFM markdown string and returns the P
 document expected by the element factories.
 
 ```typescript
-import { createTextContent, createInlineContent, createTextNode, createPlaceholderNode } from '@rulecom/rcml';
+import { createTextContent, createInlineContent, createTextNode, createPlaceholderNode } from '@rule/rcml';
 
 const content = createTextContent('Hi ::subscriber.first_name::, **your order** is confirmed.');
 ```
@@ -66,7 +66,7 @@ editor — it writes the brand-style reference, color defaults, font styles, and
 social-link URLs into `rc-head` in the exact structure the editor expects.
 
 ```typescript
-import { createEmailTheme, applyTheme, EmailThemeColorType } from '@rulecom/rcml';
+import { createEmailTheme, applyTheme, EmailThemeColorType } from '@rule/rcml';
 
 const theme = createEmailTheme({
   brandStyleId: 10457,
@@ -109,7 +109,7 @@ system prompts: `rcmlSpec`, `emailRfmSpec`, and `placeholderSpec`. Each is a pla
 JSON-serializable object.
 
 ```typescript
-import { rcmlSpec, emailRfmSpec, placeholderSpec } from '@rulecom/rcml';
+import { rcmlSpec, emailRfmSpec, placeholderSpec } from '@rule/rcml';
 // JSON.stringify and include in an LLM system prompt
 ```
 
@@ -123,7 +123,7 @@ template is a single `rc-sms` element whose body is written in **SMS RFM**
 (SMS Rule Flavor Markdown). Dynamic values use the `::placeholder{…}` directive.
 
 ```typescript
-import { createSmsDocument } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
 
 const doc = createSmsDocument({
   content: 'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}! Your order has shipped.',
@@ -133,7 +133,7 @@ const doc = createSmsDocument({
 Three machine-readable spec constants for SMS LLM generation:
 
 ```typescript
-import { smsSpec, smsRfmSpec, smsPlaceholderSpec } from '@rulecom/rcml';
+import { smsSpec, smsRfmSpec, smsPlaceholderSpec } from '@rule/rcml';
 ```
 
 See [SMS](/packages/rcml/sms/) for the full SMS module documentation.

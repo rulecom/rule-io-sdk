@@ -20,7 +20,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RuleApiError } from './errors.js';
 import { RuleClientError } from './errors.js';
-import type { RcmlDocument } from '@rulecom/rcml';
+import type { RcmlDocument } from '@rule/rcml';
 
 import {
   createMock204Response,

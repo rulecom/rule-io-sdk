@@ -7,7 +7,7 @@ ProseMirror is also the editor's internal document model. Storing content as Pro
 Produce content using two functions:
 
 ```typescript
-import { emailRfmToJson, emailInlineRfmToJson } from '@rulecom/rcml';
+import { emailRfmToJson, emailInlineRfmToJson } from '@rule/rcml';
 
 const doc   = emailRfmToJson('Hello :font[world]{font-weight="bold"}');  // rc-text, rc-heading
 const label = emailInlineRfmToJson('Buy now');                           // rc-button

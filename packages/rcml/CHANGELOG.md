@@ -97,7 +97,7 @@ This was a version bump only for rcml to align it with other projects, there wer
 
 ### Initial Beta Release
 
-First public beta of `@rulecom/rcml` — RCML (Rule Campaign Markup Language) builders, validators, and converters.
+First public beta of `@rule/rcml` — RCML (Rule Campaign Markup Language) builders, validators, and converters.
 
 #### Features
 

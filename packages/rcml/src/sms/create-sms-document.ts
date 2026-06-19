@@ -38,7 +38,7 @@ export interface CreateSmsDocumentOptions {
  *
  * @example
  * ```typescript
- * import { createSmsDocument } from '@rulecom/rcml';
+ * import { createSmsDocument } from '@rule/rcml';
  *
  * // From an SMS RFM string
  * const doc = createSmsDocument({

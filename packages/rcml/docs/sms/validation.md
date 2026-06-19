@@ -1,6 +1,6 @@
 # Validation
 
-`@rulecom/rcml` provides three distinct validation entry points for SMS templates, each
+`@rule/rcml` provides three distinct validation entry points for SMS templates, each
 targeting a different stage of the document lifecycle:
 
 - **Document validation** — validate a complete `SmsDocument` before submitting to Rule.
@@ -23,7 +23,7 @@ submit.
 | `safeValidateSmsDocument` | Returns `{ success: false, errors }` |
 
 ```typescript
-import { validateSmsDocument, safeValidateSmsDocument } from '@rulecom/rcml';
+import { validateSmsDocument, safeValidateSmsDocument } from '@rule/rcml';
 
 // Throwing variant — use when invalid input is a programming error
 const doc = validateSmsDocument(candidate);
@@ -57,7 +57,7 @@ get the full issue list in a single call.
 All codes are available on the `SmsDocumentErrorCodes` constant:
 
 ```typescript
-import { SmsDocumentErrorCodes, safeValidateSmsDocument } from '@rulecom/rcml';
+import { SmsDocumentErrorCodes, safeValidateSmsDocument } from '@rule/rcml';
 
 const result = safeValidateSmsDocument(doc);
 if (!result.success) {
@@ -82,7 +82,7 @@ embedding it in a document.
 | `safeParseSmsJson` | Returns `{ success: false, errors }` |
 
 ```typescript
-import { validateSmsJson, safeParseSmsJson } from '@rulecom/rcml';
+import { validateSmsJson, safeParseSmsJson } from '@rule/rcml';
 
 // Throwing variant
 const content = validateSmsJson(rawJson);
@@ -146,7 +146,7 @@ Thrown by `xmlToSms` when XML parsing or `rc-sms` root validation fails. Use
 `safeXmlToSms` for the non-throwing variant:
 
 ```typescript
-import { safeXmlToSms, SmsXmlErrorCodes } from '@rulecom/rcml';
+import { safeXmlToSms, SmsXmlErrorCodes } from '@rule/rcml';
 
 const result = safeXmlToSms(xmlString);
 if (!result.success) {
@@ -169,7 +169,7 @@ if (!result.success) {
 The full recommended pattern when importing a document from an untrusted source:
 
 ```typescript
-import { safeXmlToSms, safeValidateSmsDocument } from '@rulecom/rcml';
+import { safeXmlToSms, safeValidateSmsDocument } from '@rule/rcml';
 
 async function importSmsTemplate(xmlString: string) {
   // Step 1: parse XML

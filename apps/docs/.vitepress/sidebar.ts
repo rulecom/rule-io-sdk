@@ -3,9 +3,9 @@ import { join } from 'node:path';
 import type { DefaultTheme } from 'vitepress';
 
 const API_PACKAGES: { dir: string; label: string }[] = [
-  { dir: 'client/src', label: '@rulecom/client' },
-  { dir: 'rcml/src', label: '@rulecom/rcml' },
-  { dir: 'sdk/src', label: '@rulecom/sdk' },
+  { dir: 'client/src', label: '@rule/client' },
+  { dir: 'rcml/src', label: '@rule/rcml' },
+  { dir: 'sdk/src', label: '@rule/sdk' },
 ];
 
 const CATEGORIES: { dir: string; label: string }[] = [
@@ -56,14 +56,21 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: '@rulecom/sdk',
+    text: 'Migration',
+    collapsed: false,
+    items: [
+      { text: '@rulecom → @rule', link: '/guide/migration' },
+    ],
+  },
+  {
+    text: '@rule/sdk',
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/sdk/' },
     ],
   },
   {
-    text: '@rulecom/client',
+    text: '@rule/client',
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/client/' },
@@ -124,7 +131,7 @@ export const guideSidebar: DefaultTheme.SidebarItem[] = [
     ],
   },
   {
-    text: '@rulecom/rcml',
+    text: '@rule/rcml',
     collapsed: false,
     items: [
       { text: 'Overview', link: '/packages/rcml/' },

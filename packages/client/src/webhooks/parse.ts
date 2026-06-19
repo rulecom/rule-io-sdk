@@ -138,7 +138,7 @@ function toImportSummary(raw: Record<string, unknown>): WebhookImportSummary {
  *
  * @example
  * ```typescript
- * import { parseWebhookEvent } from '@rulecom/client';
+ * import { parseWebhookEvent } from '@rule/client';
  *
  * app.post('/webhooks/rule', (req, res) => {
  *   const event = parseWebhookEvent(req.body);

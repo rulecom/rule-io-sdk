@@ -2,7 +2,7 @@
  * Public API: RCML XML → `RcmlDocument` JSON-AST conversion.
  *
  * This file contains **only public exports**. Every symbol here is part of
- * the `@rulecom/rcml` contract and is marked `@public` in its JSDoc. All
+ * the `@rule/rcml` contract and is marked `@public` in its JSDoc. All
  * implementation details live in `./xml/parse-helpers.ts`.
  *
  * Text inside `<rc-text>`, `<rc-heading>`, and `<rc-button>` is treated as

@@ -29,7 +29,7 @@ import type {
  *
  * @example
  * ```typescript
- * import { parseWebhookEvent, markTagDirection } from '@rulecom/client';
+ * import { parseWebhookEvent, markTagDirection } from '@rule/client';
  *
  * app.post('/webhooks/rule/tag-added', (req, res) => {
  *   const parsed = parseWebhookEvent(req.body);

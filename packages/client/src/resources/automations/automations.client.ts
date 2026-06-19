@@ -1,5 +1,5 @@
 /**
- * Automations namespace client for the `@rulecom/client` package.
+ * Automations namespace client for the `@rule/client` package.
  *
  * Wraps the v3 `/editor/automail` endpoints. The "Automail" terminology used
  * by the underlying API is hidden — consumers see only "Automation".
