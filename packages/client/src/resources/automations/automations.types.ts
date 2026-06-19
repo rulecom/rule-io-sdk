@@ -1,5 +1,5 @@
 /**
- * Automation types for the `@rulecom/client` automations namespace.
+ * Automation types for the `@rule/client` automations namespace.
  *
  * An automation is a trigger-based email that fires automatically when a
  * subscriber enters a tag or a segment. Unlike campaigns (one-time sends),

@@ -39,7 +39,7 @@ export type SmsPlaceholderTokenType = (typeof SMS_TOKEN_TYPES)[number]
  *
  * @example
  * ```ts
- * import { smsPlaceholderSpec } from '@rulecom/rcml'
+ * import { smsPlaceholderSpec } from '@rule/rcml'
  *
  * // All SMS-valid token type names
  * Object.keys(smsPlaceholderSpec.tokens)
@@ -50,7 +50,7 @@ export type SmsPlaceholderTokenType = (typeof SMS_TOKEN_TYPES)[number]
  * // → ['Optin', 'Unsubscribe', 'WebBrowser', 'ShareLink', 'Signup']
  *
  * // Cross-reference with smsRfmSpec:
- * import { smsRfmSpec } from '@rulecom/rcml'
+ * import { smsRfmSpec } from '@rule/rcml'
  * smsRfmSpec.nodes['placeholder'].attrs?.['type'].allowedValues
  * // → same list as Object.keys(smsPlaceholderSpec.tokens)
  * ```

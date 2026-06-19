@@ -261,10 +261,10 @@ The bracket tokens that appear in `original` can also be used directly as plain 
 - In `rc-raw` HTML content: `<p>[Subscriber:email]</p>`
 - In any RCML attribute that the backend renderer post-processes at send time
 
-The complete machine-readable token reference is available as `placeholderSpec` from `@rulecom/rcml`:
+The complete machine-readable token reference is available as `placeholderSpec` from `@rule/rcml`:
 
 ```typescript
-import { placeholderSpec } from '@rulecom/rcml';
+import { placeholderSpec } from '@rule/rcml';
 
 // All supported token types
 Object.keys(placeholderSpec.tokens)

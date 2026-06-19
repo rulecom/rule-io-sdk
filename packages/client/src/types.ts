@@ -1,10 +1,10 @@
 /**
- * Public type barrel for `@rulecom/client`.
+ * Public type barrel for `@rule/client`.
  *
  * Every type previously declared in this file lives next to its namespace
  * client (under `resources/<namespace>/<namespace>.types.ts`); this barrel
  * re-exports them all under their original names so `import type { ... }
- * from '@rulecom/client'` keeps working unchanged for downstream consumers.
+ * from '@rule/client'` keeps working unchanged for downstream consumers.
  *
  * The `RuleTag` v2 entity historically defined here is now exported as
  * `RuleTagEntity` to avoid colliding with the `RuleTag` string-literal union

@@ -66,7 +66,7 @@ export interface SmsRfmFlavorSpec {
 }
 
 /**
- * Top-level machine-readable SMS RFM specification exported from `@rulecom/rcml`.
+ * Top-level machine-readable SMS RFM specification exported from `@rule/rcml`.
  *
  * @public
  */
@@ -228,7 +228,7 @@ function buildSmsRfmSpec(): SmsRfmSpec {
  *
  * @example
  * ```ts
- * import { smsRfmSpec, smsPlaceholderSpec } from '@rulecom/rcml'
+ * import { smsRfmSpec, smsPlaceholderSpec } from '@rule/rcml'
  *
  * // Which inline nodes are valid in SMS content?
  * smsRfmSpec.flavors['sms-rfm-content'].inlineNodes

@@ -47,7 +47,7 @@ A `doc` with multiple paragraphs:
 The `doc` node is the implicit wrapper for all Email RFM content. It is never written directly — the Email RFM parser and the `emailRfmToJson` / `emailInlineRfmToJson` functions always return a `doc` node as the top-level result.
 
 ```typescript
-import { emailRfmToJson } from '@rulecom/rcml';
+import { emailRfmToJson } from '@rule/rcml';
 
 const doc = emailRfmToJson('Hello world');
 // { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello world' }] }] }

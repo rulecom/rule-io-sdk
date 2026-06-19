@@ -1,5 +1,5 @@
 /**
- * Account namespace client for the `@rulecom/client` package.
+ * Account namespace client for the `@rule/client` package.
  *
  * Wraps account-level configuration endpoints, including sender details
  * used when building campaign messages and SMS templates.

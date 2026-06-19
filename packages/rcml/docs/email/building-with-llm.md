@@ -12,12 +12,12 @@ alignment, social blocks, placeholders, merge fields, custom fonts, or the full 
 attributes each element accepts.
 
 Pasting this documentation into a system prompt solves that, but at the cost of a large
-token budget on every call. `@rulecom/rcml` exports three purpose-built, machine-readable
+token budget on every call. `@rule/rcml` exports three purpose-built, machine-readable
 spec constants that describe the schema concisely. Each is a plain object — serialize it
 to JSON and include it in the system prompt once, at the start of a session.
 
 ```typescript
-import { rcmlSpec, emailRfmSpec, placeholderSpec } from '@rulecom/rcml';
+import { rcmlSpec, emailRfmSpec, placeholderSpec } from '@rule/rcml';
 
 const systemPrompt = `
 You generate RCML email templates.
@@ -93,7 +93,7 @@ Example of what LLM-generated XML looks like:
 Convert and validate before submitting:
 
 ```typescript
-import { safeXmlToRcml, safeValidateEmailTemplate } from '@rulecom/rcml';
+import { safeXmlToRcml, safeValidateEmailTemplate } from '@rule/rcml';
 
 // 1. LLM produces XML
 const xmlString = await llm.generate(prompt);
@@ -127,7 +127,7 @@ Pass `emailRfmSpec` anyway so the LLM understands how content nodes are shaped.
 Validate before using regardless of format:
 
 ```typescript
-import { safeValidateEmailTemplate } from '@rulecom/rcml';
+import { safeValidateEmailTemplate } from '@rule/rcml';
 
 const doc = JSON.parse(await llm.generate(jsonPrompt));
 const result = safeValidateEmailTemplate(doc);
@@ -146,7 +146,7 @@ if (result.success) {
 - Letting users edit a template in XML before it is re-submitted.
 
 ```typescript
-import { rcmlToXml } from '@rulecom/rcml';
+import { rcmlToXml } from '@rule/rcml';
 
 const xml = rcmlToXml(validated.data, { prettyPrint: true });
 // display, store, or return xml to the user

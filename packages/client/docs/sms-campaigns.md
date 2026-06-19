@@ -45,7 +45,7 @@ const result = await client.campaigns.createDefaultSmsCampaign({
 Supply a custom SMS document via `template.content` to use your own template structure:
 
 ```typescript
-import { createSmsDocument } from '@rulecom/sdk';
+import { createSmsDocument } from '@rule/sdk';
 
 const result = await client.campaigns.createDefaultSmsCampaign({
   template: {

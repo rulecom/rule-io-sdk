@@ -75,7 +75,7 @@ export interface EmailRfmFlavorSpec {
   marks: string[]
 }
 
-/** Top-level machine-readable RFM specification exported from @rulecom/rcml. */
+/** Top-level machine-readable RFM specification exported from @rule/rcml. */
 export interface EmailRfmSpec {
   /** Spec format version. */
   version: string
@@ -440,7 +440,7 @@ function buildEmailRfmSpec(): EmailRfmSpec {
  *
  * @example
  * ```ts
- * import { emailRfmSpec } from '@rulecom/rcml'
+ * import { emailRfmSpec } from '@rule/rcml'
  *
  * // Which block nodes are valid inside an rc-text?
  * emailRfmSpec.flavors['rcml-content'].blockNodes

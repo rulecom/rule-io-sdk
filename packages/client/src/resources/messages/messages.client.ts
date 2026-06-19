@@ -1,5 +1,5 @@
 /**
- * Messages namespace client for the `@rulecom/client` package.
+ * Messages namespace client for the `@rule/client` package.
  *
  * Wraps the v3 `/editor/message` endpoints. A message belongs to a single
  * dispatcher (campaign or automation) and holds the subject, sender settings,

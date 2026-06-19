@@ -1,5 +1,5 @@
 /**
- * Account namespace types for the `@rulecom/client` package.
+ * Account namespace types for the `@rule/client` package.
  *
  * The sender details endpoint returns account-level email and SMS sender
  * configuration used when creating campaigns.

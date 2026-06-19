@@ -3,7 +3,7 @@
 Rule.io can POST a JSON body to a URL of your choosing whenever certain
 events happen in your account — a transaction is sent, a campaign is
 opened, a subscriber bounces, an import finishes. The
-`@rulecom/client` package provides typed event shapes plus a parser
+`@rule/client` package provides typed event shapes plus a parser
 (`parseWebhookEvent`) that turns the raw body into a discriminated
 union you can `switch` on.
 
@@ -30,7 +30,7 @@ Mount a route that reads the request body and hands it to
 union — narrow with `switch (event.type)`:
 
 ```typescript
-import { parseWebhookEvent } from '@rulecom/client';
+import { parseWebhookEvent } from '@rule/client';
 
 app.post('/webhooks/rule', (req, res) => {
   const event = parseWebhookEvent(req.body);
@@ -276,7 +276,7 @@ Rule.io — one for "added to tag" and one for "removed from tag" —
 and call `markTagDirection` on each route to commit the type:
 
 ```typescript
-import { parseWebhookEvent, markTagDirection } from '@rulecom/client';
+import { parseWebhookEvent, markTagDirection } from '@rule/client';
 
 app.post('/webhooks/rule/tag-added', (req, res) => {
   const parsed = parseWebhookEvent(req.body);

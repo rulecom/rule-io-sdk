@@ -46,7 +46,7 @@ This was a version bump only for sdk to align it with other projects, there were
 
 ### Initial Beta Release
 
-First public beta of `@rulecom/sdk` — convenience meta-package re-exporting
+First public beta of `@rule/sdk` — convenience meta-package re-exporting
 the full Rule.io TypeScript SDK under a single entry point.
 
-Re-exports everything from `@rulecom/client` and `@rulecom/rcml`.
+Re-exports everything from `@rule/client` and `@rule/rcml`.

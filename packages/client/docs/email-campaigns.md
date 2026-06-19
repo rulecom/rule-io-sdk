@@ -29,7 +29,7 @@ const campaignId = campaign.id!;
 Use `createDefaultEmailCampaign()` to create a campaign with all required content in a single call. The method creates the campaign, message, and a branded email template in parallel, then links them together with a dynamic set. If any step fails, all already-created resources are automatically rolled back.
 
 ```typescript
-import { resolvePreferredBrandStyle } from '@rulecom/sdk';
+import { resolvePreferredBrandStyle } from '@rule/sdk';
 
 const { id: brandStyleId } = await resolvePreferredBrandStyle(client);
 

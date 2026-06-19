@@ -1,6 +1,6 @@
 # Building programmatically
 
-The `@rulecom/rcml` package provides everything needed to construct, validate,
+The `@rule/rcml` package provides everything needed to construct, validate,
 and convert SMS templates in code: a document factory, a typed `sms` builder
 namespace, format converters between SMS RFM and JSON, and helpers for the XML
 representation.
@@ -28,7 +28,7 @@ of the `sms` builder functions described below.
 `content` and it returns a fully-formed `SmsDocument`:
 
 ```typescript
-import { createSmsDocument } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
 
 const doc = createSmsDocument({
   content:
@@ -61,7 +61,7 @@ see [XML format](#xml-format).
 `jsonToSmsRfm()` converts it back:
 
 ```typescript
-import { smsRfmToJson, jsonToSmsRfm } from '@rulecom/rcml';
+import { smsRfmToJson, jsonToSmsRfm } from '@rule/rcml';
 
 // SMS RFM → JSON. Use the ::placeholder{…} directive for dynamic values.
 const json = smsRfmToJson(
@@ -119,7 +119,7 @@ assembled document at the boundary.
 A small worked example:
 
 ```typescript
-import { sms, createSmsDocument } from '@rulecom/rcml';
+import { sms, createSmsDocument } from '@rule/rcml';
 
 const content = sms.createContent({
   paragraphs: [
@@ -446,8 +446,8 @@ useful when the JSON tree comes from somewhere other than the builders or the
 parser — for example, an editor save or a stored draft:
 
 ```typescript
-import { createSmsDocument } from '@rulecom/rcml';
-import type { SmsContentJson } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
+import type { SmsContentJson } from '@rule/rcml';
 
 const content: SmsContentJson = loadDraftFromStorage(); // your code
 const doc = createSmsDocument({ content });
@@ -463,7 +463,7 @@ body of `<rc-sms>` is just an SMS RFM string, and the conversion is exact in
 both directions:
 
 ```typescript
-import { createSmsDocument, smsToXml, xmlToSms } from '@rulecom/rcml';
+import { createSmsDocument, smsToXml, xmlToSms } from '@rule/rcml';
 
 const doc = createSmsDocument({
   content:
@@ -499,7 +499,7 @@ user-provided input), use `safeXmlToSms` to parse and then
 `safeValidateSmsDocument` to validate before using the result:
 
 ```typescript
-import { safeXmlToSms, safeValidateSmsDocument } from '@rulecom/rcml';
+import { safeXmlToSms, safeValidateSmsDocument } from '@rule/rcml';
 
 // 1. Parse XML → SmsDocument
 const parsed = safeXmlToSms(xmlString);
@@ -526,7 +526,7 @@ A complete order-shipped SMS built with builders only — three paragraphs, two
 placeholders, one link mark, one hardbreak, one system-link placeholder:
 
 ```typescript
-import { sms, createSmsDocument } from '@rulecom/rcml';
+import { sms, createSmsDocument } from '@rule/rcml';
 
 const content = sms.createContent({
   paragraphs: [
