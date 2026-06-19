@@ -1,13 +1,13 @@
 # SMS Templates
 
-A template holds the SMS body as an [`SmsDocument`](/packages/rcml/sms/concepts/sms-document) from `@rulecom/rcml`. Templates are independent objects — they are not linked to a message at creation time. The link is made later, via a dynamic set. This means the same template can be reused across multiple messages.
+A template holds the SMS body as an [`SmsDocument`](/packages/rcml/sms/concepts/sms-document) from `@rule/rcml`. Templates are independent objects — they are not linked to a message at creation time. The link is made later, via a dynamic set. This means the same template can be reused across multiple messages.
 
 ## Creating a template
 
 Use `createSmsTemplate()` to create a new SMS template. The template's `SmsDocument` defines the message body, including any `::placeholder{…}` directives or `:link[…]{…}` link marks.
 
 ```typescript
-import { createSmsDocument } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
 
 const sms = createSmsDocument({
   content: 'Hi ::placeholder{type="Subscriber" original="[Subscriber:FirstName]" name="First name"}, your order has shipped!',
@@ -24,7 +24,7 @@ Template names must be unique within the account. When creating templates progra
 
 *→ [`CreateSmsTemplatePayload`](/api/client/src/interfaces/CreateSmsTemplatePayload)*
 
-See the [@rulecom/rcml SMS documentation](/packages/rcml/sms/) for how to author SMS templates — including the `sms` builder namespace for composing `SmsContentJson` programmatically and the SMS RFM source format reference.
+See the [@rule/rcml SMS documentation](/packages/rcml/sms/) for how to author SMS templates — including the `sms` builder namespace for composing `SmsContentJson` programmatically and the SMS RFM source format reference.
 
 ## Fetching a template
 
@@ -47,7 +47,7 @@ if (!template) {
 Use `updateSmsTemplate()` to change a template's name or `SmsDocument` content. Pass only the fields you want to change — omitted fields are left as-is.
 
 ```typescript
-import { createSmsDocument } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
 
 const updatedSms = createSmsDocument({ content: 'Updated SMS body…' });
 
@@ -130,4 +130,4 @@ for await (const page of client.templates.iterateTemplatesPages({ pagination: { 
 ## Next steps
 
 - Link the template to a message: [Dynamic Sets](./dynamic-sets)
-- Author SMS templates: [@rulecom/rcml SMS documentation](/packages/rcml/sms/)
+- Author SMS templates: [@rule/rcml SMS documentation](/packages/rcml/sms/)

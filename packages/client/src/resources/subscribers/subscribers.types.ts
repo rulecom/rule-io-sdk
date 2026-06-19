@@ -1,5 +1,5 @@
 /**
- * Subscriber types for the `@rulecom/client` subscribers namespace.
+ * Subscriber types for the `@rule/client` subscribers namespace.
  */
 
 import type { RuleApiResponse, PagePaginationParams } from '../../shared.types.js';

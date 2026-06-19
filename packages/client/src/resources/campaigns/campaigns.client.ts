@@ -1,5 +1,5 @@
 /**
- * Campaigns namespace client for the `@rulecom/client` package.
+ * Campaigns namespace client for the `@rule/client` package.
  *
  * Wraps the v3 `/editor/campaign` endpoints, including the auxiliary
  * `/copy` and `/schedule` actions.
@@ -15,7 +15,7 @@
  * ({@link renameCampaign}, {@link setCampaignSendoutType}, etc.).
  */
 
-import { createSmsDocument } from '@rulecom/rcml';
+import { createSmsDocument } from '@rule/rcml';
 
 import { RuleApiError, RuleClientError } from '../../errors.js';
 import { BaseResource } from '../../core/base-resource.js';

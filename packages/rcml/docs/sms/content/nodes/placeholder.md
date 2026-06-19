@@ -351,7 +351,7 @@ message body; use the link mark form when you want trackable linked text.
 The complete token reference is available as `smsPlaceholderSpec`:
 
 ```typescript
-import { smsPlaceholderSpec } from '@rulecom/rcml';
+import { smsPlaceholderSpec } from '@rule/rcml';
 
 // All SMS-valid token types
 Object.keys(smsPlaceholderSpec.tokens)

@@ -79,7 +79,7 @@ export interface PlaceholderTokenSpec {
   nestable?: boolean
 }
 
-/** Top-level machine-readable placeholder specification exported from @rulecom/rcml. */
+/** Top-level machine-readable placeholder specification exported from @rule/rcml. */
 export interface PlaceholderSpec {
   /** Spec format version. */
   version: string
@@ -311,7 +311,7 @@ const TOKENS: Record<string, PlaceholderTokenSpec> = {
  *
  * @example
  * ```ts
- * import { placeholderSpec } from '@rulecom/rcml'
+ * import { placeholderSpec } from '@rule/rcml'
  *
  * // All token type names
  * Object.keys(placeholderSpec.tokens)

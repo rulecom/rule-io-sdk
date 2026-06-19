@@ -29,7 +29,7 @@ import {
  *
  * @example
  * ```ts
- * import { sms, createSmsDocument } from '@rulecom/rcml';
+ * import { sms, createSmsDocument } from '@rule/rcml';
  *
  * const content = sms.createContent({
  *   paragraphs: [

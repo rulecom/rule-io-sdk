@@ -40,7 +40,7 @@
 
 ### 🚀 Features
 
-- **client:** refactor subscriber tag API and add @rulecom/client docs ([b302c59](https://github.com/rulecom/rule-io-sdk/commit/b302c59))
+- **client:** refactor subscriber tag API and add @rule/client docs ([b302c59](https://github.com/rulecom/rule-io-sdk/commit/b302c59))
 - **client:** add getByCustomIdentifier() subscriber lookup method ([e1c6d41](https://github.com/rulecom/rule-io-sdk/commit/e1c6d41))
 - **client:** add tag automation methods, syncSegments option, and docs ([851a97d](https://github.com/rulecom/rule-io-sdk/commit/851a97d))
 - **client:** refactor messages namespace with dispatcher-specific types and OpenAPI wire fixes ([4c160f1](https://github.com/rulecom/rule-io-sdk/commit/4c160f1))
@@ -54,7 +54,7 @@
 - **client:** refactor custom-field namespace with full paginated list family ([2c6e0db](https://github.com/rulecom/rule-io-sdk/commit/2c6e0db))
 - **client:** expose AnalyticsMetrics, AnalyticsObjectTypes, AnalyticsMessageTypes constants ([189c6a2](https://github.com/rulecom/rule-io-sdk/commit/189c6a2))
 - **client:** accept SubscriberIdentifier in getSubscriberTags ([796f33a](https://github.com/rulecom/rule-io-sdk/commit/796f33a))
-- **client:** refactor subscriber tag API and add @rulecom/client docs ([#149](https://github.com/rulecom/rule-io-sdk/pull/149))
+- **client:** refactor subscriber tag API and add @rule/client docs ([#149](https://github.com/rulecom/rule-io-sdk/pull/149))
 
 ### 🩹 Fixes
 
@@ -195,4 +195,4 @@
 
 First public beta of the Rule.io TypeScript SDK.
 
-Published packages: `@rulecom/client`, `@rulecom/rcml`, `@rulecom/sdk`.
+Published packages: `@rule/client`, `@rule/rcml`, `@rule/sdk`.

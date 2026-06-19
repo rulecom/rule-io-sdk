@@ -1,5 +1,5 @@
 /**
- * Template types for the `@rulecom/client` templates namespace.
+ * Template types for the `@rule/client` templates namespace.
  *
  * A template holds the RCML email body. It belongs to a message via a
  * dynamic set:
@@ -15,7 +15,7 @@
  * by creating additional dynamic sets.
  */
 
-import type { RcmlDocument, SmsDocument } from '@rulecom/rcml';
+import type { RcmlDocument, SmsDocument } from '@rule/rcml';
 
 import type { PagePaginationParams, RuleApiResponse } from '../../shared.types.js';
 
@@ -111,7 +111,7 @@ export type SmsTemplate = Template;
  *
  * @example
  * ```typescript
- * import { buildRcmlDocument } from '@rulecom/rcml';
+ * import { buildRcmlDocument } from '@rule/rcml';
  *
  * const template = await client.templates.createEmailTemplate({
  *   name: 'Welcome email — v1',
@@ -136,11 +136,11 @@ export interface CreateEmailTemplatePayload {
  * Payload for `TemplatesClient.createSmsTemplate`.
  *
  * The message type is fixed to `'text_message'` by the method. Construct the
- * `content` document with `createSmsDocument` from `@rulecom/rcml`.
+ * `content` document with `createSmsDocument` from `@rule/rcml`.
  *
  * @example
  * ```typescript
- * import { createSmsDocument } from '@rulecom/rcml';
+ * import { createSmsDocument } from '@rule/rcml';
  *
  * const template = await client.templates.createSmsTemplate({
  *   name: 'Order shipped SMS',
@@ -189,7 +189,7 @@ export interface UpdateEmailTemplatePayload {
  *
  * @example
  * ```typescript
- * import { createSmsDocument } from '@rulecom/rcml';
+ * import { createSmsDocument } from '@rule/rcml';
  *
  * await client.templates.updateSmsTemplate(templateId, {
  *   content: createSmsDocument({ content: 'Your order has shipped — updated!' }),

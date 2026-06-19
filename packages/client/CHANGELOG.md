@@ -39,7 +39,7 @@
 - **client:** refactor messages namespace with dispatcher-specific types and OpenAPI wire fixes ([4c160f1](https://github.com/rulecom/rule-io-sdk/commit/4c160f1))
 - **client:** add tag automation methods, syncSegments option, and docs ([851a97d](https://github.com/rulecom/rule-io-sdk/commit/851a97d))
 - **client:** add getByCustomIdentifier() subscriber lookup method ([e1c6d41](https://github.com/rulecom/rule-io-sdk/commit/e1c6d41))
-- **client:** refactor subscriber tag API and add @rulecom/client docs ([b302c59](https://github.com/rulecom/rule-io-sdk/commit/b302c59))
+- **client:** refactor subscriber tag API and add @rule/client docs ([b302c59](https://github.com/rulecom/rule-io-sdk/commit/b302c59))
 
 ### 🩹 Fixes
 
@@ -126,7 +126,7 @@ This was a version bump only for client to align it with other projects, there w
 
 ### Initial Beta Release
 
-First public beta of `@rulecom/client` — a TypeScript HTTP client for the Rule.io email marketing API.
+First public beta of `@rule/client` — a TypeScript HTTP client for the Rule.io email marketing API.
 
 #### Features
 

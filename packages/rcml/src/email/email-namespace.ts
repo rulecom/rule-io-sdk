@@ -23,7 +23,7 @@ import {
  *
  * @example
  * ```ts
- * import { email } from '@rulecom/rcml';
+ * import { email } from '@rule/rcml';
  *
  * const fieldAtom = email.createCustomField({
  *   group: 'Order', name: 'Total', id: 13,

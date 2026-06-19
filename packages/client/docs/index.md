@@ -1,19 +1,19 @@
-# @rulecom/client
+# @rule/client
 
-`@rulecom/client` is the HTTP API client for the [Rule.io](https://rule.io) marketing platform. It covers the full Rule.io API surface: subscriber management, audience segmentation, email and SMS campaigns and automations, templates, analytics, and more.
+`@rule/client` is the HTTP API client for the [Rule.io](https://rule.io) marketing platform. It covers the full Rule.io API surface: subscriber management, audience segmentation, email and SMS campaigns and automations, templates, analytics, and more.
 
-> **Most users should install `@rulecom/sdk` instead.** It re-exports everything from this package and adds the RCML template builders and high-level helpers on top.
+> **Most users should install `@rule/sdk` instead.** It re-exports everything from this package and adds the RCML template builders and high-level helpers on top.
 
 ## Installation
 
 ```bash
-npm install @rulecom/client
+npm install @rule/client
 ```
 
 ## Connecting to Rule.io
 
 ```typescript
-import { RuleClient } from '@rulecom/client';
+import { RuleClient } from '@rule/client';
 
 const client = new RuleClient({ apiKey: process.env['RULE_API_KEY']! });
 ```
@@ -46,7 +46,7 @@ You can also pass the API key as a plain string: `new RuleClient(apiKey)`.
 Two error classes are exported from this package:
 
 ```typescript
-import { RuleApiError, RuleClientError } from '@rulecom/client';
+import { RuleApiError, RuleClientError } from '@rule/client';
 ```
 
 - **`RuleApiError`** — the Rule.io API returned a non-2xx response. Provides `.statusCode`, `.isAuthError()`, `.isValidationError()`, and `.validationErrors`.

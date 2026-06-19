@@ -3,7 +3,7 @@
  * placeholder format, plus a dispatcher and runtime type guard.
  *
  * The default output is byte-identical to the strings produced by
- * `email.createCustomField` / `email.createLoopValue` in `@rulecom/rcml` —
+ * `email.createCustomField` / `email.createLoopValue` in `@rule/rcml` —
  * so existing downstream parsers and snapshot assertions keep working
  * after callers switch from pre-rendered strings to typed refs.
  *

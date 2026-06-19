@@ -23,7 +23,7 @@ A minimal example in both formats:
 ```
 
 ```typescript
-import type { SmsDocument } from '@rulecom/rcml';
+import type { SmsDocument } from '@rule/rcml';
 
 const doc: SmsDocument = {
   tagName: 'rc-sms',

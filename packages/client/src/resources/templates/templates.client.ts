@@ -1,5 +1,5 @@
 /**
- * Templates namespace client for the `@rulecom/client` package.
+ * Templates namespace client for the `@rule/client` package.
  *
  * Wraps the v3 `/editor/template` endpoints. Templates hold RCML email bodies
  * and are linked to messages via dynamic sets — they are not associated
@@ -41,7 +41,7 @@ export class TemplatesClient extends BaseResource {
    *
    * @example
    * ```typescript
-   * import { buildRcmlDocument } from '@rulecom/rcml';
+   * import { buildRcmlDocument } from '@rule/rcml';
    *
    * const template = await client.templates.createEmailTemplate({
    *   name: 'Welcome email — v1',
@@ -124,7 +124,7 @@ export class TemplatesClient extends BaseResource {
    * Create an SMS template.
    *
    * Construct the `content` document with `createSmsDocument` from
-   * `@rulecom/rcml`. Templates are not linked to a message at creation time —
+   * `@rule/rcml`. Templates are not linked to a message at creation time —
    * use a dynamic set to connect a template to a message after both have been
    * created.
    *
@@ -133,7 +133,7 @@ export class TemplatesClient extends BaseResource {
    *
    * @example
    * ```typescript
-   * import { createSmsDocument } from '@rulecom/rcml';
+   * import { createSmsDocument } from '@rule/rcml';
    *
    * const template = await client.templates.createSmsTemplate({
    *   name: 'Order shipped SMS',
@@ -164,7 +164,7 @@ export class TemplatesClient extends BaseResource {
    *
    * @example
    * ```typescript
-   * import { createSmsDocument } from '@rulecom/rcml';
+   * import { createSmsDocument } from '@rule/rcml';
    *
    * await client.templates.updateSmsTemplate(templateId, {
    *   content: createSmsDocument({ content: 'Your order has shipped — updated!' }),

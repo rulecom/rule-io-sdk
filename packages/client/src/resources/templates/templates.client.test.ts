@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { RuleApiError } from '../../errors.js';
-import type { RcmlDocument } from '@rulecom/rcml';
+import type { RcmlDocument } from '@rule/rcml';
 
 import {
   createMockErrorResponse,
