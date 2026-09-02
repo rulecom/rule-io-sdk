@@ -93,13 +93,16 @@ export interface BrandStyleFont {
   /**
    * Direct download URL to the uploaded font binary on S3.
    *
-   * Populated with the S3 URL when `origin` is `'custom'` — the font has been
-   * uploaded to Rule.io as a binary file (`.ttf`, `.otf`, `.woff`, `.woff2`).
+   * Populated with the S3 URL when `origin` is `'custom'` AND a file has been
+   * uploaded to Rule.io as a binary (`.ttf`, `.otf`, `.woff`, `.woff2`).
    * `fetch()` this URL to retrieve the raw file.
    *
-   * `null` when `origin` is `'system'` or `'google'` — these fonts are
-   * referenced by family name (or Google Fonts identifier in `originId`),
-   * not stored as a binary.
+   * `null` when:
+   * - `origin` is `'system'` or `'google'` — these fonts are referenced by
+   *   family name (or Google Fonts identifier in `originId`), not stored as
+   *   a binary.
+   * - `origin` is `'custom'` but the font binary has not been uploaded yet
+   *   (rare — the API returns `file: null` in this state).
    */
   fileUrl?: string | null;
   createdAt: string;

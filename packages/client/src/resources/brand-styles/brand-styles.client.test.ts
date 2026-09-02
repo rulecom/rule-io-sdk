@@ -119,7 +119,7 @@ describe('BrandStylesClient', () => {
               file: {
                 id: 'file-abc',
                 name: 'Custom.woff2',
-                url: 'https://s3.example.com/fonts/Custom.woff2',
+                url: 'https://s3.example.com/fonts/Custom.woff2?preview=1',
                 full_url: 'https://s3.example.com/fonts/Custom.woff2',
                 mime_type: 'font/woff2',
                 size: 45678,
