@@ -34,6 +34,8 @@ const styles = await client.brandStyles.list();
 const defaultStyle = styles.find((s) => s.isDefault);
 ```
 
+*→ [`BrandStyleListItem`](/api/client/src/interfaces/BrandStyleListItem)*
+
 ## Fetching a brand style
 
 Returns the full style including all nested collections. Returns `null` if the ID does not exist.
@@ -45,6 +47,8 @@ if (style) {
   console.log(style.colours, style.fonts, style.links, style.images);
 }
 ```
+
+*→ [`BrandStyle`](/api/client/src/interfaces/BrandStyle)*
 
 ## Auto-detecting brand from your domain
 
