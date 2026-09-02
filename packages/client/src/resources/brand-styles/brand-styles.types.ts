@@ -86,7 +86,13 @@ export interface BrandStyleFont {
   originId?: string | null;
   /** Human-readable origin name. */
   originName?: string | null;
-  /** URL to the font file for custom fonts. */
+  /**
+   * CSS endpoint URL that serves an `@font-face` stylesheet for this font.
+   *
+   * Rule.io provides this as a proxy URL — use it in email templates to
+   * embed the font via HTML `<link>`. For direct download of the raw
+   * binary (`custom` fonts only), see `fileUrl`.
+   */
   url?: string | null;
   /** Available font weights, e.g. `['400', '700']`. */
   weights?: string[] | null;
