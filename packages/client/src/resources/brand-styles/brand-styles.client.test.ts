@@ -100,6 +100,105 @@ describe('BrandStylesClient', () => {
 
       await expect(client.get(42)).rejects.toBeInstanceOf(RuleApiError);
     });
+
+    describe('font.file mapping', () => {
+      it('maps custom font with file to fileUrl using file.full_url', async () => {
+        const wire = {
+          ...WIRE_BRAND_STYLE,
+          fonts: [
+            {
+              id: 100,
+              brand_style_id: 42,
+              type: 'title',
+              origin: 'custom',
+              origin_id: null,
+              origin_name: null,
+              url: null,
+              weights: null,
+              name: 'Custom.woff2',
+              file: {
+                id: 'file-abc',
+                name: 'Custom.woff2',
+                url: 'https://s3.example.com/fonts/Custom.woff2',
+                full_url: 'https://s3.example.com/fonts/Custom.woff2',
+                mime_type: 'font/woff2',
+                size: 45678,
+                created_at: '2024-01-01',
+                updated_at: '2024-01-01',
+              },
+              created_at: '2024-01-01',
+              updated_at: '2024-01-01',
+            },
+          ],
+        };
+
+        fetchMock.mockResolvedValueOnce(createMockResponse({ data: wire }));
+        const client = createClient(fetchMock);
+
+        const result = await client.get(42);
+
+        expect(result!.fonts![0]!.fileUrl).toBe('https://s3.example.com/fonts/Custom.woff2');
+        // no snake_case nested file object on the entity
+        expect(result!.fonts![0]).not.toHaveProperty('file');
+      });
+
+      it('maps custom font with file: null to fileUrl: null', async () => {
+        const wire = {
+          ...WIRE_BRAND_STYLE,
+          fonts: [
+            {
+              id: 101,
+              brand_style_id: 42,
+              type: 'body',
+              origin: 'custom',
+              origin_id: null,
+              origin_name: null,
+              url: null,
+              weights: null,
+              name: 'Legacy.ttf',
+              file: null,
+              created_at: '2024-01-01',
+              updated_at: '2024-01-01',
+            },
+          ],
+        };
+
+        fetchMock.mockResolvedValueOnce(createMockResponse({ data: wire }));
+        const client = createClient(fetchMock);
+
+        const result = await client.get(42);
+
+        expect(result!.fonts![0]!.fileUrl).toBeNull();
+      });
+
+      it('maps system/google font without file to fileUrl: null', async () => {
+        const wire = {
+          ...WIRE_BRAND_STYLE,
+          fonts: [
+            {
+              id: 102,
+              brand_style_id: 42,
+              type: 'title',
+              origin: 'google',
+              origin_id: 'Roboto',
+              origin_name: 'Roboto',
+              url: 'https://fonts.googleapis.com/css?family=Roboto',
+              weights: ['400', '700'],
+              name: 'Roboto',
+              created_at: '2024-01-01',
+              updated_at: '2024-01-01',
+            },
+          ],
+        };
+
+        fetchMock.mockResolvedValueOnce(createMockResponse({ data: wire }));
+        const client = createClient(fetchMock);
+
+        const result = await client.get(42);
+
+        expect(result!.fonts![0]!.fileUrl).toBeNull();
+      });
+    });
   });
 
   describe('createFromDomain', () => {
