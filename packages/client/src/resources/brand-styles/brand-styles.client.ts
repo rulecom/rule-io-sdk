@@ -230,6 +230,7 @@ function mapBrandStyleFontWireToEntity(w: BrandStyleFontWire): BrandStyleFont {
     originName: w.origin_name,
     url: w.url,
     weights: w.weights,
+    fileUrl: w.file?.full_url ?? null,
     createdAt: w.created_at,
     updatedAt: w.updated_at,
   };
