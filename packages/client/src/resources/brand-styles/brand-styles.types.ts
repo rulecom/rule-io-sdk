@@ -86,10 +86,31 @@ export interface BrandStyleFont {
   originId?: string | null;
   /** Human-readable origin name. */
   originName?: string | null;
-  /** URL to the font file for custom fonts. */
+  /**
+   * CSS endpoint URL that serves an `@font-face` stylesheet for this font.
+   *
+   * Rule.io provides this as a proxy URL — use it in email templates to
+   * embed the font via HTML `<link>`. For direct download of the raw
+   * binary (`custom` fonts only), see `fileUrl`.
+   */
   url?: string | null;
   /** Available font weights, e.g. `['400', '700']`. */
   weights?: string[] | null;
+  /**
+   * Direct download URL to the uploaded font binary on S3.
+   *
+   * Populated with the S3 URL when `origin` is `'custom'` AND a file has been
+   * uploaded to Rule.io as a binary (`.ttf`, `.otf`, `.woff`, `.woff2`).
+   * `fetch()` this URL to retrieve the raw file.
+   *
+   * `null` when:
+   * - `origin` is `'system'` or `'google'` — these fonts are referenced by
+   *   family name (or Google Fonts identifier in `originId`), not stored as
+   *   a binary.
+   * - `origin` is `'custom'` but the font binary has not been uploaded yet
+   *   (rare — the API returns `file: null` in this state).
+   */
+  fileUrl?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -301,6 +322,24 @@ export interface BrandStyleFontWire {
   origin_name?: string | null;
   url?: string | null;
   weights?: string[] | null;
+  created_at: string;
+  updated_at: string;
+  /**
+   * Present only for custom fonts. Contains the S3 URL to the uploaded binary
+   * (via `full_url`) together with size, mime type, and file id.
+   */
+  file?: BrandStyleFontFileWire | null;
+}
+
+/** @internal */
+export interface BrandStyleFontFileWire {
+  id: string;
+  name: string;
+  url: string;
+  /** Direct S3 URL to the font binary; use this for downloads. */
+  full_url: string;
+  mime_type: string;
+  size: number;
   created_at: string;
   updated_at: string;
 }
