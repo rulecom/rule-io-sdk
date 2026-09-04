@@ -1,3 +1,17 @@
+## 0.4.0-beta.14 (2026-09-04)
+
+### 🩹 Fixes
+
+- **client:** expose custom font direct-download URL as BrandStyleFont.fileUrl ([6510e9de](https://github.com/rule/sdk/commit/6510e9de))
+- **client:** sharpen fileUrl mapper test and JSDoc precision ([#168](https://github.com/rule/sdk/issues/168))
+- **client:** expose custom font direct-download URL as BrandStyleFont.fileUrl ([#168](https://github.com/rule/sdk/pull/168))
+
+### ❤️ Thank You
+
+- Claude
+- Serhij Zubrin
+- Serhij-Zubrin @Serhij-Zubrin
+
 ## 0.4.0-beta.13 (2026-08-12)
 
 ### 🩹 Fixes
